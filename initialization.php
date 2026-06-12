@@ -4,7 +4,7 @@
  * Description: Publication profile integration for Scale My Publication systems.
  * Author: Michael Peres
  * Plugin URI: https://github.com/mikeyperes/smp-publication-integration
- * Version: 0.1.0
+ * Version: 0.2.0
  * Text Domain: smp-publication-integration
  * Domain Path: /languages
  * Author URI: https://michaelperes.com
@@ -23,7 +23,7 @@ require_once __DIR__ . '/src/Support/Autoloader.php';
 Support\Autoloader::register( __DIR__ . '/src' );
 
 final class Config {
-    public const VERSION = '0.1.0';
+    public const VERSION = '0.2.0';
 
     public static string $plugin_name        = 'SMP Publication Integration';
     public static string $plugin_slug        = 'smp-publication-integration';
@@ -64,8 +64,9 @@ function boot_github_updater(): void {
 add_action( 'plugins_loaded', __NAMESPACE__ . '\\boot_github_updater', 20 );
 
 function boot_plugin(): void {
-    if ( ! Support\Dependencies::hws_base_tools_active() ) {
-        add_action( 'admin_notices', [ Support\Dependencies::class, 'render_missing_hws_notice' ] );
+    $missing = Support\Dependencies::missing_required_dependencies();
+    if ( ! empty( $missing ) ) {
+        add_action( 'admin_notices', [ Support\Dependencies::class, 'render_missing_required_notice' ] );
         return;
     }
 
@@ -73,21 +74,29 @@ function boot_plugin(): void {
     ( new Content\AcfFields() )->register();
     ( new Content\Shortcodes() )->register();
     ( new Content\Schema() )->register();
+    ( new Content\Visibility() )->register();
+    ( new Content\PostTime() )->register();
+    ( new Content\AuthorSocialCleanup() )->register();
+    ( new Content\DebugEndpoint() )->register();
 
-    if ( is_admin() ) {
+    if ( is_admin() || wp_doing_ajax() ) {
+        ( new Admin\Ajax() )->register();
         ( new Admin\Dashboard() )->register();
     }
 }
 add_action( 'plugins_loaded', __NAMESPACE__ . '\\boot_plugin', 30 );
 
 function activate_plugin(): void {
-    if ( ! Support\Dependencies::hws_base_tools_active() ) {
-        deactivate_plugins( plugin_basename( __FILE__ ) );
-        wp_die(
-            esc_html__( 'SMP Publication Integration requires HWS Base Tools to be installed and active.', 'smp-publication-integration' ),
-            esc_html__( 'Plugin dependency missing', 'smp-publication-integration' ),
-            [ 'back_link' => true ]
-        );
+    $missing = Support\Dependencies::missing_required_dependencies();
+    if ( empty( $missing ) ) {
+        return;
     }
+
+    deactivate_plugins( plugin_basename( __FILE__ ) );
+    wp_die(
+        wp_kses_post( Support\Dependencies::required_notice_message( $missing ) ),
+        esc_html__( 'Plugin dependency missing', 'smp-publication-integration' ),
+        [ 'back_link' => true ]
+    );
 }
 register_activation_hook( __FILE__, __NAMESPACE__ . '\\activate_plugin' );

@@ -7,6 +7,8 @@ use smp_publication_integration\Content\Schema;
 use smp_publication_integration\Content\Shortcodes;
 use smp_publication_integration\Support\Dependencies;
 use smp_publication_integration\Support\Fields;
+use smp_publication_integration\Support\PluginRegistry;
+use smp_publication_integration\Support\Settings;
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
@@ -18,381 +20,229 @@ final class Dashboard {
     }
 
     public function add_settings_page(): void {
-        add_options_page(
-            Config::$settings_page_name,
-            Config::$settings_page_name,
-            Config::$settings_page_capability,
-            Config::$settings_page_slug,
-            [ $this, 'render' ]
-        );
+        add_options_page( Config::$settings_page_name, Config::$settings_page_name, Config::$settings_page_capability, Config::$settings_page_slug, [ $this, 'render' ] );
     }
 
     public function render(): void {
         if ( ! current_user_can( Config::$settings_page_capability ) ) {
             wp_die( esc_html__( 'You do not have permission to access this page.', 'smp-publication-integration' ) );
         }
-
-        $tabs       = $this->tabs();
-        $active_tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'overview';
-        if ( ! isset( $tabs[ $active_tab ] ) ) {
-            $active_tab = 'overview';
-        }
-
+        $tabs = $this->tabs();
+        $active = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'overview';
+        $active = isset( $tabs[ $active ] ) ? $active : 'overview';
         ?>
         <div class="wrap smpi-dashboard">
             <h1><?php echo esc_html( Config::$settings_page_display_title ); ?></h1>
-            <?php $this->render_styles(); ?>
-            <div class="smpi-tabs-nav">
-                <?php foreach ( $tabs as $tab_id => $label ) : ?>
-                    <button type="button" class="smpi-tab-btn<?php echo $tab_id === $active_tab ? ' active' : ''; ?>" data-tab="<?php echo esc_attr( $tab_id ); ?>">
-                        <?php echo esc_html( $label ); ?>
-                    </button>
-                <?php endforeach; ?>
-            </div>
-            <?php foreach ( $tabs as $tab_id => $label ) : ?>
-                <section id="smpi-tab-<?php echo esc_attr( $tab_id ); ?>" class="smpi-tab-content<?php echo $tab_id === $active_tab ? ' active' : ''; ?>">
-                    <?php $this->render_tab( $tab_id ); ?>
-                </section>
-            <?php endforeach; ?>
+            <?php $this->styles(); ?>
+            <div class="smpi-tabs-nav"><?php foreach ( $tabs as $id => $label ) : ?><button type="button" class="smpi-tab-btn<?php echo $id === $active ? ' active' : ''; ?>" data-tab="<?php echo esc_attr( $id ); ?>"><?php echo esc_html( $label ); ?></button><?php endforeach; ?></div>
+            <?php foreach ( $tabs as $id => $label ) : ?><section id="smpi-tab-<?php echo esc_attr( $id ); ?>" class="smpi-tab-content<?php echo $id === $active ? ' active' : ''; ?>"><?php $this->tab( $id ); ?></section><?php endforeach; ?>
         </div>
-        <script>
-        jQuery(function($) {
-            $('.smpi-tab-btn').on('click', function() {
-                var tabId = $(this).data('tab');
-                $('.smpi-tab-btn').removeClass('active');
-                $(this).addClass('active');
-                $('.smpi-tab-content').removeClass('active');
-                $('#smpi-tab-' + tabId).addClass('active');
-
-                if (window.history && window.history.replaceState && typeof window.URL === 'function') {
-                    var url = new URL(window.location.href);
-                    url.searchParams.set('tab', tabId);
-                    window.history.replaceState({}, '', url.toString());
-                }
-            });
-        });
-        </script>
+        <?php $this->scripts(); ?>
         <?php
     }
 
     private function tabs(): array {
         return [
-            'overview'     => 'Overview',
-            'profiles'     => 'Publication Profiles',
-            'shortcodes'   => 'Shortcodes',
-            'schema'       => 'Schema',
-            'reports'      => 'Reports',
+            'overview' => 'Overview',
+            'profiles' => 'Publication Profiles',
+            'shortcodes' => 'Shortcodes',
+            'schema' => 'Schema',
+            'reports' => 'Reports',
+            'optimization' => 'Optimization',
+            'pages' => 'Pages',
+            'verified_profiles' => 'Verified Profiles',
             'integrations' => 'Integrations',
+            'quick_run' => 'Quick Run',
         ];
     }
 
-    private function render_tab( string $tab_id ): void {
-        switch ( $tab_id ) {
-            case 'profiles':
-                $this->render_profiles_tab();
-                break;
-            case 'shortcodes':
-                $this->render_shortcodes_tab();
-                break;
-            case 'reports':
-                $this->render_reports_tab();
-                break;
-            case 'schema':
-                $this->render_schema_tab();
-                break;
-            case 'integrations':
-                $this->render_integrations_tab();
-                break;
-            case 'overview':
-            default:
-                $this->render_overview_tab();
-                break;
+    private function tab( string $id ): void {
+        if ( 'profiles' === $id ) { $this->profiles(); return; }
+        if ( 'shortcodes' === $id ) { $this->shortcodes(); return; }
+        if ( 'schema' === $id ) { $this->schema(); return; }
+        if ( 'reports' === $id ) { $this->reports(); return; }
+        if ( 'optimization' === $id ) { $this->optimization(); return; }
+        if ( 'pages' === $id ) { $this->pages(); return; }
+        if ( 'verified_profiles' === $id ) { $this->verified_profiles(); return; }
+        if ( 'integrations' === $id ) { $this->integrations(); return; }
+        if ( 'quick_run' === $id ) { echo '<div class="smpi-panel"><h2>Quick Run</h2><p>Reserved for safe setup scripts once the exact setup sequence is supplied.</p></div>'; return; }
+        $this->overview();
+    }
+
+    private function overview(): void {
+        $settings = Settings::all();
+        ?>
+        <div class="smpi-hero"><p class="smpi-kicker">Publication OS</p><h2>Publication profiles, schema, dependency checks, page assignments, and performance reporting.</h2><p>Front-end code now only runs where needed: main archive filters, optional time formatting, and single/author social cleanup.</p></div>
+        <div class="smpi-grid"><?php $this->card( 'Namespace', '<code>smp_publication_integration</code>' ); $this->card( 'Plugin Slug', '<code>smp-publication-integration</code>' ); $this->card( 'GitHub Slug', '<code>mikeyperes/smp-publication-integration</code>' ); $this->card( 'Debug URL', '<code>' . esc_html( rest_url( 'smpi/v1/debug' ) ) . '</code>' ); ?></div>
+        <div class="smpi-panel"><h2>Core Settings</h2><table class="widefat striped"><tbody>
+            <?php $this->toggle( 'founders_enabled', 'Show founder marketing', $settings ); ?>
+            <?php $this->toggle( 'shadow_press_releases', 'Shadow all press releases from home/category/tag', $settings ); ?>
+            <?php $this->toggle( 'author_social_cleanup', 'Hide empty author social icons', $settings ); ?>
+            <?php $this->toggle( 'public_debug_enabled', 'Public safe debug endpoint', $settings ); ?>
+            <tr><th>Post time display</th><td><select class="smpi-setting" data-key="post_time_mode"><option value="native" <?php selected( $settings['post_time_mode'], 'native' ); ?>>Native WordPress output</option><option value="relative_then_date" <?php selected( $settings['post_time_mode'], 'relative_then_date' ); ?>>5 min ago, then friendly date after 24 hours</option><option value="friendly_date" <?php selected( $settings['post_time_mode'], 'friendly_date' ); ?>>Always friendly date</option></select><span class="spinner"></span><span class="smpi-save-state"></span></td></tr>
+        </tbody></table></div>
+        <?php
+    }
+
+    private function profiles(): void {
+        echo '<div class="smpi-panel"><h2>Publication Profile Structure</h2><p>The plugin registers the public <code>publication</code> CPT only when missing. Publications bind to a WordPress user and can bind multiple founders from the Verified Profiles <code>profile</code> CPT.</p><table class="widefat striped"><tbody>';
+        foreach ( [ 'smpi_publication_user' => 'Publication user binding', 'smpi_founders' => 'Multiple founder profile bindings', 'smpi_mission_statement_override' => 'Fallback mission statement', '_smpi_shadow_home' => 'Hide from home query', '_smpi_shadow_archives' => 'Hide from category/tag query' ] as $field => $label ) {
+            echo '<tr><th><code>' . esc_html( $field ) . '</code></th><td>' . esc_html( $label ) . '</td></tr>';
         }
+        echo '</tbody></table></div>';
     }
 
-    private function render_overview_tab(): void {
-        ?>
-        <div class="smpi-hero">
-            <p class="smpi-kicker">Publication Profiles</p>
-            <h2>Scale My Publication profile layer for publications.</h2>
-            <p>This plugin is conceptually parallel to the SFPF verified profile plugin: SFPF binds and renders people profiles; this plugin binds and renders publication profiles.</p>
-        </div>
-        <div class="smpi-grid">
-            <?php $this->card( 'Namespace', '<code>smp_publication_integration</code>' ); ?>
-            <?php $this->card( 'Plugin Slug', '<code>smp-publication-integration</code>' ); ?>
-            <?php $this->card( 'GitHub Slug', '<code>mikeyperes/smp-publication-integration</code>' ); ?>
-            <?php $this->card( 'Dependency', Dependencies::hws_base_tools_active() ? '<span class="smpi-ok">HWS Base Tools active</span>' : '<span class="smpi-bad">HWS Base Tools missing</span>' ); ?>
-        </div>
-        <?php
-    }
-
-    private function render_profiles_tab(): void {
-        ?>
-        <div class="smpi-panel">
-            <h2>Publication Profile Structure</h2>
-            <p>The plugin registers the public <code>publication</code> post type only when a site does not already have one. It then adds ACF field groups for publication profile bindings and user.php publication bindings.</p>
-            <table class="widefat striped">
-                <thead><tr><th>Field</th><th>Purpose</th><th>Duplicate Policy</th></tr></thead>
-                <tbody>
-                    <tr><td><code>smpi_publication_user</code></td><td>Bind a publication profile to a WordPress user.</td><td>Namespaced plugin-owned field.</td></tr>
-                    <tr><td><code>smpi_founders</code></td><td>Bind multiple founder people profiles from the SFPF <code>profile</code> CPT.</td><td>Namespaced plugin-owned field.</td></tr>
-                    <tr><td><code>smpi_mission_statement_override</code></td><td>Fallback mission statement.</td><td>Shortcodes read imported <code>mission_statement</code> first.</td></tr>
-                    <tr><td><code>smpi_primary_publication</code></td><td>User profile primary publication binding.</td><td>Stored on <code>user.php</code>.</td></tr>
-                    <tr><td><code>smpi_managed_publications</code></td><td>User profile multi-publication binding.</td><td>Stored on <code>user.php</code>.</td></tr>
-                </tbody>
-            </table>
-        </div>
-        <?php
-    }
-
-    private function render_shortcodes_tab(): void {
-        ?>
-        <div class="smpi-panel">
-            <h2>Shortcodes</h2>
-            <p>These follow the SFPF pattern of central shortcode registration, but are publication-specific.</p>
-            <table class="widefat striped">
-                <thead><tr><th>Shortcode</th><th>Use</th></tr></thead>
-                <tbody>
-                <?php foreach ( Shortcodes::shortcodes() as $shortcode => $callback ) : ?>
-                    <tr>
-                        <td><code>[<?php echo esc_html( $shortcode ); ?>]</code></td>
-                        <td><?php echo esc_html( $this->shortcode_description( $shortcode ) ); ?></td>
-                    </tr>
-                <?php endforeach; ?>
-                    <tr><td><code>[smp_publication_field field="mission_statement"]</code></td><td>Read imported mission statement first, then the namespaced fallback.</td></tr>
-                    <tr><td><code>[smp_publication_profile id="123"]</code></td><td>Render a specific publication profile card outside a publication page.</td></tr>
-                </tbody>
-            </table>
-        </div>
-        <?php
-    }
-
-    private function render_reports_tab(): void {
-        $counts = wp_count_posts( PublicationPostType::POST_TYPE );
-        $total  = 0;
-        if ( $counts ) {
-            foreach ( (array) $counts as $count ) {
-                $total += (int) $count;
-            }
+    private function shortcodes(): void {
+        $sample = $this->latest_publication_id();
+        echo '<div class="smpi-panel"><h2>Shortcodes</h2><table class="widefat striped"><thead><tr><th>Shortcode</th><th>Current Value</th></tr></thead><tbody>';
+        foreach ( Shortcodes::shortcodes() as $tag => $callback ) {
+            $code = '[' . $tag . ( $sample ? ' id="' . $sample . '"' : '' ) . ']';
+            echo '<tr><td><code>' . esc_html( $code ) . '</code></td><td><code>' . esc_html( wp_trim_words( wp_strip_all_tags( do_shortcode( $code ) ), 18 ) ) . '</code></td></tr>';
         }
-
-        $profiles_count = wp_count_posts( 'profile' );
-        $profiles_total = $profiles_count ? array_sum( array_map( 'intval', (array) $profiles_count ) ) : 0;
-        $audit          = $this->publication_audit();
-        ?>
-        <div class="smpi-grid">
-            <?php $this->card( 'WordPress Version', '<code>' . esc_html( get_bloginfo( 'version' ) ) . '</code>' ); ?>
-            <?php $this->card( 'Publication Profiles', '<strong>' . esc_html( (string) $total ) . '</strong>' ); ?>
-            <?php $this->card( 'SFPF Person Profiles', '<strong>' . esc_html( (string) $profiles_total ) . '</strong>' ); ?>
-            <?php $this->card( 'Theme', '<code>' . esc_html( wp_get_theme()->get( 'Name' ) ) . '</code>' ); ?>
-        </div>
-        <div class="smpi-panel">
-            <h2>Publication Field Audit</h2>
-            <table class="widefat striped">
-                <tbody>
-                    <tr><th>Missing Mission Statement</th><td><?php echo esc_html( (string) $audit['missing_mission'] ); ?></td></tr>
-                    <tr><th>Missing Publication User</th><td><?php echo esc_html( (string) $audit['missing_user'] ); ?></td></tr>
-                    <tr><th>Missing Founders</th><td><?php echo esc_html( (string) $audit['missing_founders'] ); ?></td></tr>
-                </tbody>
-            </table>
-        </div>
-        <?php
+        echo '<tr><td><code>[smp_publication_page type="privacy"]</code></td><td>Assigned page link.</td></tr></tbody></table></div>';
     }
 
-    private function render_schema_tab(): void {
-        $counts = wp_count_posts( PublicationPostType::POST_TYPE );
-        $total  = $counts && isset( $counts->publish ) ? (int) $counts->publish : 0;
+    private function schema(): void {
         $sample = $this->latest_publication_id();
         $schema = $sample ? ( new Schema() )->generate_schema_json( $sample ) : '';
-        ?>
-        <div class="smpi-panel">
-            <h2>Publication Schema</h2>
-            <p>This follows the SFPF schema pattern: generate JSON-LD, store it on the profile, inject it into the single profile page, and provide validator links.</p>
-            <table class="widefat striped">
-                <tbody>
-                    <tr><th>Schema Type</th><td><code>NewsMediaOrganization</code></td></tr>
-                    <tr><th>Stored Field</th><td><code>smpi_schema_markup</code> with fallback meta <code>_smpi_schema_markup</code></td></tr>
-                    <tr><th>Published Publications</th><td><?php echo esc_html( (string) $total ); ?></td></tr>
-                    <tr><th>Injected On</th><td><code>is_singular('publication')</code></td></tr>
-                    <tr><th>Validator Shortcode</th><td><code>[smp_publication_validate_schema]</code></td></tr>
-                </tbody>
-            </table>
-        </div>
-
-        <div class="smpi-panel">
-            <h2>Reprocess Publication Schema Objects</h2>
-            <p>Regenerates schema for published publication profiles in batches, matching the SFPF reprocess workflow.</p>
-            <button id="smpi-reprocess-schema" type="button" class="button button-primary">Reprocess all publication schema objects</button>
-            <div id="smpi-schema-report" style="margin-top:16px; padding:14px; background:#fff; border:1px solid #dcdcde; max-height:420px; overflow:auto;"></div>
-        </div>
-
-        <?php if ( $schema ) : ?>
-            <div class="smpi-panel">
-                <h2>Latest Publication Schema Preview</h2>
-                <pre style="white-space:pre-wrap;background:#f6f7f7;border:1px solid #dcdcde;padding:14px;"><?php echo esc_html( $schema ); ?></pre>
-            </div>
-        <?php endif; ?>
-
-        <script>
-        jQuery(function($) {
-            var offset = 0;
-            var batchSize = 20;
-            var total = 0;
-
-            $('#smpi-reprocess-schema').on('click', function() {
-                offset = 0;
-                total = 0;
-                $(this).prop('disabled', true);
-                $('#smpi-schema-report').empty().append('<p>Starting schema reprocess...</p>');
-                processBatch();
-            });
-
-            function processBatch() {
-                $.post(ajaxurl, {
-                    action: 'smpi_reprocess_schema',
-                    offset: offset,
-                    batch_size: batchSize
-                }).done(function(response) {
-                    if (!response || !response.success) {
-                        $('#smpi-schema-report').append('<p style="color:#b32d2e;">Error: ' + ((response && response.data && response.data.message) || 'Unknown error') + '</p>');
-                        $('#smpi-reprocess-schema').prop('disabled', false);
-                        return;
-                    }
-
-                    total = response.data.total || 0;
-                    $.each(response.data.items || [], function(i, item) {
-                        var schema = $('<div>').text(item.schema || '').html();
-                        $('#smpi-schema-report').append(
-                            '<div style="margin-bottom:18px;">' +
-                            '<p><strong>' + item.title + ' (ID ' + item.post_id + ')</strong> - ' +
-                            '<a href="' + item.admin_link + '" target="_blank">Edit</a> | ' +
-                            '<a href="' + item.view_link + '" target="_blank">View</a> | ' +
-                            '<a href="' + item.validator_link + '" target="_blank">Validate Schema</a></p>' +
-                            '<pre style="background:#f9f9f9;padding:10px;border:1px solid #ddd;white-space:pre-wrap;">' + schema + '</pre>' +
-                            '</div>'
-                        );
-                    });
-
-                    offset += batchSize;
-                    $('#smpi-schema-report').append('<p>Processed ' + Math.min(offset, total) + ' of ' + total + '</p>');
-
-                    if (offset < total) {
-                        processBatch();
-                    } else {
-                        $('#smpi-schema-report').append('<p><strong>Completed processing ' + total + ' publication profiles.</strong></p>');
-                        $('#smpi-reprocess-schema').prop('disabled', false);
-                    }
-                }).fail(function() {
-                    $('#smpi-schema-report').append('<p style="color:#b32d2e;">AJAX request failed.</p>');
-                    $('#smpi-reprocess-schema').prop('disabled', false);
-                });
-            }
-        });
-        </script>
-        <?php
-    }
-
-
-    private function render_integrations_tab(): void {
-        ?>
-        <div class="smpi-panel">
-            <h2>Integration Status</h2>
-            <table class="widefat striped">
-                <tbody>
-                    <tr><th>HWS Base Tools</th><td><?php echo Dependencies::hws_base_tools_active() ? '<span class="smpi-ok">Active</span>' : '<span class="smpi-bad">Missing</span>'; ?></td></tr>
-                    <tr><th>Advanced Custom Fields</th><td><?php echo Dependencies::acf_active() ? '<span class="smpi-ok">Active</span>' : '<span class="smpi-warn">Missing - fields will not register</span>'; ?></td></tr>
-                    <tr><th>SFPF / Profile CPT</th><td><?php echo Dependencies::sfpf_active() ? '<span class="smpi-ok">Available</span>' : '<span class="smpi-warn">Profile CPT not detected</span>'; ?></td></tr>
-                    <tr><th>Hexa PR Wire Distributor</th><td><?php echo Dependencies::plugin_active( 'hexa-pr-wire-distributor/initialization.php' ) ? '<span class="smpi-ok">Active</span>' : '<span class="smpi-warn">Not active</span>'; ?></td></tr>
-                </tbody>
-            </table>
-        </div>
-        <?php
-    }
-
-    private function publication_audit(): array {
-        $query = new \WP_Query(
-            [
-                'post_type'      => PublicationPostType::POST_TYPE,
-                'post_status'    => 'any',
-                'posts_per_page' => 200,
-                'fields'         => 'ids',
-                'no_found_rows'  => true,
-            ]
-        );
-
-        $audit = [
-            'missing_mission'  => 0,
-            'missing_user'     => 0,
-            'missing_founders' => 0,
-        ];
-
-        foreach ( $query->posts as $post_id ) {
-            if ( ! Fields::has_value( Fields::get( (int) $post_id, 'mission_statement' ) ) ) {
-                $audit['missing_mission']++;
-            }
-            if ( ! Fields::has_value( Fields::get( (int) $post_id, 'publication_user' ) ) ) {
-                $audit['missing_user']++;
-            }
-            if ( ! Fields::has_value( Fields::get( (int) $post_id, 'founders' ) ) ) {
-                $audit['missing_founders']++;
-            }
+        $rank = Dependencies::plugin_active( 'seo-by-rank-math-pro/rank-math-pro.php' );
+        echo '<div class="smpi-grid">';
+        $this->status_card( 'Rank Math Pro', $rank, $rank ? 'Rank Math Pro active.' : 'Rank Math Pro is recommended for schema edits.' );
+        $this->status_card( 'Verified Profiles', Dependencies::sfpf_active(), Dependencies::sfpf_active() ? 'Founder profile schema source active.' : 'Founder profile schema source inactive.' );
+        $this->status_card( 'Homepage Schema', (bool) $this->extract_schema_types( home_url( '/' ) ), 'Homepage JSON-LD fetch checked.' );
+        $this->status_card( 'Recent Posts', $this->recent_posts_schema_count() >= 8, $this->recent_posts_schema_count() . ' of 10 recent posts returned JSON-LD.' );
+        echo '</div><div class="smpi-panel"><h2>Reprocess Publication Schema Objects</h2><button id="smpi-reprocess-schema" type="button" class="button button-primary">Reprocess all publication schema objects</button><div id="smpi-schema-report" class="smpi-code-panel"></div></div>';
+        if ( $schema ) {
+            echo '<div class="smpi-panel"><h2>Latest Publication Schema Preview</h2><pre class="smpi-code">' . esc_html( $schema ) . '</pre></div>';
         }
+    }
 
-        return $audit;
+    private function reports(): void {
+        echo '<div class="smpi-grid">';
+        foreach ( $this->counts() as $type => $count ) {
+            $this->card( ucwords( str_replace( '-', ' ', $type ) ), '<strong>' . esc_html( (string) $count ) . '</strong>' );
+        }
+        echo '</div><div class="smpi-panel"><h2>Author ACF Field Sources</h2><table class="widefat striped"><tbody>';
+        foreach ( [ 'urls' => 'HWS/SFPF/HPR user ACF social URL group', 'facebook_url' => 'SFPF legacy user field', 'instagram_url' => 'SFPF legacy user field', 'twitter_url' => 'SFPF legacy user field', 'linkedin_url' => 'SFPF legacy user field', 'biography' => 'HWS/SFPF user field', 'title' => 'HWS/SFPF user field' ] as $field => $source ) {
+            echo '<tr><th><code>' . esc_html( $field ) . '</code></th><td>' . esc_html( $source ) . '</td></tr>';
+        }
+        echo '</tbody></table></div>';
+    }
+
+    private function optimization(): void {
+        echo '<div class="smpi-panel"><h2>Optimization</h2><p>Settings rerooting is intentionally pending until target values are supplied. LiteSpeed checks report current concrete values.</p><button id="smpi-refresh-optimization" class="button button-primary" type="button">Refresh Optimization Report</button><span class="spinner"></span></div><div id="smpi-optimization-report">' . self::render_optimization_report_html() . '</div>';
+    }
+
+    public static function render_optimization_report_html(): string {
+        $rank = get_option( 'rank-math-options-general', [] );
+        $plugin = PluginRegistry::info( 'litespeed-cache/litespeed-cache.php' );
+        $checks = [
+            [ 'LiteSpeed installed', $plugin['installed'], $plugin['installed'] ? 'LiteSpeed Cache installed.' : 'LiteSpeed Cache missing.' ],
+            [ 'LiteSpeed active', $plugin['active'], $plugin['active'] ? 'Version ' . $plugin['version'] : 'Plugin inactive.' ],
+            [ 'LiteSpeed update', ! $plugin['update_available'], $plugin['update_available'] ? 'Update available: ' . $plugin['update_version'] : 'No update reported.' ],
+            [ 'RankMath breadcrumbs', is_array( $rank ) && ( $rank['breadcrumbs'] ?? '' ) === 'on', is_array( $rank ) && ( $rank['breadcrumbs'] ?? '' ) === 'on' ? 'Breadcrumbs enabled.' : 'Breadcrumbs disabled.' ],
+            [ 'Site favicon', (bool) get_site_icon_url(), get_site_icon_url( 32 ) ?: 'No site icon configured.' ],
+        ];
+        foreach ( [ 'litespeed.conf._version', 'litespeed.conf.cache', 'litespeed.conf.cache-browser', 'litespeed.conf.cache-mobile', 'litespeed.conf.cache-favicon', 'litespeed.conf.optm-css_min', 'litespeed.conf.optm-js_min', 'litespeed.conf.optm-html_min', 'litespeed.conf.media-lazy', 'litespeed.conf.img_optm-auto' ] as $key ) {
+            $value = get_option( $key, '__missing__' );
+            $checks[] = [ $key, '__missing__' !== $value && '' !== $value, '<code>' . esc_html( is_scalar( $value ) ? (string) $value : wp_json_encode( $value ) ) . '</code>' ];
+        }
+        ob_start();
+        echo '<div class="smpi-grid">';
+        foreach ( $checks as $check ) {
+            echo '<div class="smpi-card"><h3>' . esc_html( $check[0] ) . '</h3><p><span class="' . ( $check[1] ? 'smpi-ok' : 'smpi-warn' ) . '">' . ( $check[1] ? 'GREEN CHECK' : 'YELLOW !' ) . '</span> ' . wp_kses_post( $check[2] ) . '</p></div>';
+        }
+        echo '</div>';
+        return (string) ob_get_clean();
+    }
+
+    private function pages(): void {
+        $settings = Settings::all();
+        $pages = get_pages( [ 'sort_column' => 'post_title', 'sort_order' => 'ASC', 'post_status' => [ 'publish', 'draft', 'private' ] ] );
+        echo '<div class="smpi-panel"><h2>Publication Pages</h2><p>Assign canonical pages for dynamic retrieval and launch integrity checks.</p></div>';
+        foreach ( Settings::page_types() as $type => $config ) {
+            $page_id = isset( $settings['page_assignments'][ $type ] ) ? (int) $settings['page_assignments'][ $type ] : 0;
+            echo '<div class="smpi-panel smpi-page-row" data-page-type="' . esc_attr( $type ) . '"><h2>' . ( $page_id ? '<span class="smpi-ok">●</span> ' : '<span class="smpi-bad">●</span> ' ) . esc_html( $config['label'] ) . '</h2><p>' . esc_html( $config['description'] ) . '</p><select class="smpi-page-select"><option value="0">Not assigned</option>';
+            foreach ( $pages as $page ) {
+                echo '<option value="' . esc_attr( (string) $page->ID ) . '"' . selected( $page_id, $page->ID, false ) . '>' . esc_html( $page->post_title . ' (#' . $page->ID . ')' ) . '</option>';
+            }
+            echo '</select>';
+            if ( ! empty( $config['template'] ) ) {
+                echo '<p><label><strong>Starter/template text</strong></label></p><textarea class="large-text smpi-page-template" rows="5">' . esc_textarea( $settings['page_templates'][ $type ] ?? '' ) . '</textarea>';
+            }
+            echo '<p><button class="button button-primary smpi-save-page" type="button">Save Page Assignment</button><span class="spinner"></span><span class="smpi-save-state"></span></p></div>';
+        }
+    }
+
+    private function verified_profiles(): void {
+        echo '<div class="smpi-panel"><h2>Verified Profiles Integration</h2><p>Recommended for founder/person bindings. SMP still runs without it when founder marketing is disabled.</p>';
+        $this->plugin_table( [ 'smp-verified-profiles/initialization.php' => PluginRegistry::info( 'smp-verified-profiles/initialization.php' ) ] );
+        echo '</div>';
+    }
+
+    private function integrations(): void {
+        echo '<div class="smpi-panel"><h2>Dependency and Plugin Registry</h2><p>Required dependencies block boot when missing. Recommended dependencies are reported when inactive.</p>';
+        $this->plugin_table( PluginRegistry::all() );
+        echo '</div>';
+    }
+
+    private function plugin_table( array $plugins ): void {
+        echo '<table class="widefat striped"><thead><tr><th>Plugin</th><th>Requirement</th><th>Status</th><th>Version</th><th>GitHub</th><th>Actions</th></tr></thead><tbody>';
+        foreach ( $plugins as $file => $info ) {
+            echo '<tr data-plugin-file="' . esc_attr( $file ) . '"><td><strong>' . esc_html( $info['label'] ) . '</strong><br><code>' . esc_html( $file ) . '</code></td><td>' . esc_html( $info['type'] ) . '</td><td>' . ( $info['active'] ? '<span class="smpi-ok">Active</span>' : ( $info['installed'] ? '<span class="smpi-warn">Installed inactive</span>' : '<span class="smpi-bad">Missing</span>' ) ) . '</td><td>' . esc_html( $info['version'] ?: 'n/a' ) . ( $info['github_version'] ? '<br><small>GitHub: ' . esc_html( $info['github_version'] ) . '</small>' : '' ) . '</td><td>' . ( $info['github_repo'] ? '<code>' . esc_html( $info['github_repo'] ) . '</code>' : 'n/a' ) . '</td><td><button class="button smpi-plugin-action" data-operation="update">Update</button> <button class="button smpi-plugin-action" data-operation="activate">Activate</button> <button class="button smpi-plugin-action" data-operation="deactivate">Deactivate</button> <button class="button smpi-plugin-action" data-operation="delete">Delete</button><span class="spinner"></span><span class="smpi-save-state"></span></td></tr>';
+        }
+        echo '</tbody></table>';
+    }
+
+    private function counts(): array {
+        $out = [];
+        foreach ( [ 'post', 'page', 'publication', 'profile', 'press-release' ] as $type ) {
+            $count = wp_count_posts( $type );
+            $out[ $type ] = $count && isset( $count->publish ) ? (int) $count->publish : 0;
+        }
+        return $out;
+    }
+
+    private function latest_publication_id(): int {
+        $query = new \WP_Query( [ 'post_type' => PublicationPostType::POST_TYPE, 'post_status' => 'publish', 'posts_per_page' => 1, 'fields' => 'ids', 'no_found_rows' => true ] );
+        return ! empty( $query->posts ) ? (int) $query->posts[0] : 0;
+    }
+
+    private function extract_schema_types( string $url ): array {
+        $response = wp_remote_get( $url, [ 'timeout' => 8 ] );
+        if ( is_wp_error( $response ) || ! preg_match_all( '#<script[^>]+type=["\']application/ld\+json["\'][^>]*>(.*?)</script>#is', wp_remote_retrieve_body( $response ), $matches ) ) {
+            return [];
+        }
+        return $matches[1];
+    }
+
+    private function recent_posts_schema_count(): int {
+        $count = 0;
+        foreach ( get_posts( [ 'post_type' => 'post', 'posts_per_page' => 10, 'post_status' => 'publish', 'fields' => 'ids' ] ) as $post_id ) {
+            $count += $this->extract_schema_types( get_permalink( $post_id ) ) ? 1 : 0;
+        }
+        return $count;
+    }
+
+    private function toggle( string $key, string $label, array $settings ): void {
+        echo '<tr><th>' . esc_html( $label ) . '</th><td><label><input class="smpi-setting" type="checkbox" data-key="' . esc_attr( $key ) . '" value="1" ' . checked( ! empty( $settings[ $key ] ), true, false ) . '> Enabled</label><span class="spinner"></span><span class="smpi-save-state"></span></td></tr>';
     }
 
     private function card( string $title, string $content ): void {
         echo '<div class="smpi-card"><h3>' . esc_html( $title ) . '</h3><p>' . wp_kses_post( $content ) . '</p></div>';
     }
 
-    private function shortcode_description( string $shortcode ): string {
-        $descriptions = [
-            'smp_publication_field'             => 'Render a publication field by key or alias.',
-            'smp_publication_mission_statement' => 'Render the mission statement block.',
-            'smp_publication_founders'          => 'Render linked founder person profiles.',
-            'smp_publication_user'              => 'Render the bound publication user display name.',
-            'smp_publication_profile'           => 'Render a complete publication profile card.',
-            'smp_publication_validate_schema'   => 'Render a Schema.org validator link for the current publication.',
-        ];
-
-        return $descriptions[ $shortcode ] ?? '';
+    private function status_card( string $title, bool $ok, string $message ): void {
+        $this->card( $title, ( $ok ? '<span class="smpi-ok">GREEN CHECK</span> ' : '<span class="smpi-warn">YELLOW !</span> ' ) . esc_html( $message ) );
     }
 
-    private function latest_publication_id(): int {
-        $query = new \WP_Query(
-            [
-                'post_type'      => PublicationPostType::POST_TYPE,
-                'post_status'    => 'publish',
-                'posts_per_page' => 1,
-                'fields'         => 'ids',
-                'orderby'        => 'date',
-                'order'          => 'DESC',
-                'no_found_rows'  => true,
-            ]
-        );
+    private function scripts(): void { ?>
+        <script>
+        window.smpiAdmin={ajaxUrl:ajaxurl,nonce:<?php echo wp_json_encode( Ajax::nonce() ); ?>};
+        jQuery(function($){$('.smpi-tab-btn').on('click',function(){var t=$(this).data('tab');$('.smpi-tab-btn').removeClass('active');$(this).addClass('active');$('.smpi-tab-content').removeClass('active');$('#smpi-tab-'+t).addClass('active');if(window.history&&window.URL){var u=new URL(window.location.href);u.searchParams.set('tab',t);window.history.replaceState({},'',u.toString())}});$('.smpi-setting').on('change',function(){var e=$(this),k=e.data('key'),d={action:'smpi_save_settings',nonce:smpiAdmin.nonce};d[k]=e.is(':checkbox')?(e.is(':checked')?1:0):e.val();var r=e.closest('td');r.find('.spinner').addClass('is-active');$.post(smpiAdmin.ajaxUrl,d).done(function(x){r.find('.smpi-save-state').text(x.success?' Saved':' Error')}).always(function(){r.find('.spinner').removeClass('is-active')})});$('.smpi-save-page').on('click',function(){var r=$(this).closest('.smpi-page-row'),d={action:'smpi_save_page_assignment',nonce:smpiAdmin.nonce,page_type:r.data('page-type'),page_id:r.find('.smpi-page-select').val(),template:r.find('.smpi-page-template').val()||''};r.find('.spinner').addClass('is-active');$.post(smpiAdmin.ajaxUrl,d).done(function(x){r.find('.smpi-save-state').text(x.success?' Saved':' Error')}).always(function(){r.find('.spinner').removeClass('is-active')})});$('#smpi-refresh-optimization').on('click',function(){var s=$(this).next('.spinner');s.addClass('is-active');$.post(smpiAdmin.ajaxUrl,{action:'smpi_refresh_optimization',nonce:smpiAdmin.nonce}).done(function(x){if(x.success)$('#smpi-optimization-report').html(x.data.html)}).always(function(){s.removeClass('is-active')})});$('.smpi-plugin-action').on('click',function(){var b=$(this),r=b.closest('tr');if(b.data('operation')==='delete'&&!confirm('Delete this plugin?'))return;r.find('.spinner').addClass('is-active');$.post(smpiAdmin.ajaxUrl,{action:'smpi_plugin_action',nonce:smpiAdmin.nonce,plugin_file:r.data('plugin-file'),operation:b.data('operation')}).done(function(x){r.find('.smpi-save-state').text(x.success?' Done':' Error')}).always(function(){r.find('.spinner').removeClass('is-active')})});var o=0,bs=20,total=0;$('#smpi-reprocess-schema').on('click',function(){o=0;total=0;$(this).prop('disabled',true);$('#smpi-schema-report').empty().append('<p>Starting...</p>');p()});function p(){$.post(ajaxurl,{action:'smpi_reprocess_schema',nonce:smpiAdmin.nonce,offset:o,batch_size:bs}).done(function(x){if(!x||!x.success){$('#smpi-reprocess-schema').prop('disabled',false);return}total=x.data.total||0;$.each(x.data.items||[],function(i,it){$('#smpi-schema-report').append('<pre class="smpi-code">'+$('<div>').text(it.schema||'').html()+'</pre>')});o+=bs;if(o<total)p();else $('#smpi-reprocess-schema').prop('disabled',false)})}});</script>
+    <?php }
 
-        return ! empty( $query->posts ) ? (int) $query->posts[0] : 0;
-    }
-
-    private function render_styles(): void {
-        ?>
-        <style>
-            .smpi-dashboard { max-width: 1180px; }
-            .smpi-tabs-nav { display:flex; flex-wrap:wrap; gap:8px; margin:18px 0; border-bottom:1px solid #dcdcde; }
-            .smpi-tab-btn { border:1px solid #dcdcde; border-bottom:none; background:#f6f7f7; padding:10px 14px; border-radius:8px 8px 0 0; cursor:pointer; color:#1d2327; }
-            .smpi-tab-btn.active { background:#fff; color:#2271b1; font-weight:700; }
-            .smpi-tab-content { display:none; }
-            .smpi-tab-content.active { display:block; }
-            .smpi-hero { margin:18px 0; padding:28px 30px; border:1px solid #dcdcde; border-radius:14px; background:linear-gradient(135deg,#fff 0%,#f6f7f7 100%); box-shadow:0 10px 28px rgba(0,0,0,.05); }
-            .smpi-kicker { margin:0 0 8px; color:#2271b1; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
-            .smpi-hero h2 { margin:0 0 10px; font-size:28px; line-height:1.2; }
-            .smpi-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:16px; margin:18px 0; }
-            .smpi-card, .smpi-panel { padding:18px; border:1px solid #dcdcde; border-radius:12px; background:#fff; }
-            .smpi-card h3, .smpi-panel h2 { margin-top:0; }
-            .smpi-ok { color:#008a20; font-weight:700; }
-            .smpi-warn { color:#996800; font-weight:700; }
-            .smpi-bad { color:#b32d2e; font-weight:700; }
-        </style>
-        <?php
-    }
+    private function styles(): void { ?>
+        <style>.smpi-dashboard{max-width:1280px}.smpi-tabs-nav{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0;border-bottom:1px solid #dcdcde}.smpi-tab-btn{border:1px solid #dcdcde;border-bottom:none;background:#f6f7f7;padding:10px 14px;border-radius:8px 8px 0 0;cursor:pointer}.smpi-tab-btn.active{background:#fff;color:#2271b1;font-weight:700}.smpi-tab-content{display:none}.smpi-tab-content.active{display:block}.smpi-hero{margin:18px 0;padding:28px 30px;border:1px solid #dcdcde;border-radius:14px;background:linear-gradient(135deg,#fff 0%,#eef6fb 100%);box-shadow:0 10px 28px rgba(0,0,0,.05)}.smpi-kicker{margin:0 0 8px;color:#2271b1;font-weight:700;letter-spacing:.08em;text-transform:uppercase}.smpi-hero h2{margin:0 0 10px;font-size:28px}.smpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;margin:18px 0}.smpi-card,.smpi-panel{padding:18px;border:1px solid #dcdcde;border-radius:12px;background:#fff;margin:16px 0}.smpi-card h3,.smpi-panel h2{margin-top:0}.smpi-ok{color:#008a20;font-weight:700}.smpi-warn{color:#996800;font-weight:700}.smpi-bad{color:#b32d2e;font-weight:700}.smpi-code,.smpi-code-panel{white-space:pre-wrap;background:#101517;color:#e6edf3;border:1px solid #1f2933;border-radius:10px;padding:14px;max-height:520px;overflow:auto}.smpi-page-select{min-width:320px}.smpi-save-state{margin-left:8px;font-weight:700}</style>
+    <?php }
 }
