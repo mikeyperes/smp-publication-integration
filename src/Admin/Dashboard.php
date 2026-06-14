@@ -48,6 +48,7 @@ final class Dashboard {
             'shortcodes' => 'Shortcodes',
             'schema' => 'Schema',
             'reports' => 'Reports',
+            'features' => 'Features',
             'optimization' => 'Optimization',
             'pages' => 'Pages',
             'verified_profiles' => 'Verified Profiles',
@@ -61,6 +62,7 @@ final class Dashboard {
         if ( 'shortcodes' === $id ) { $this->shortcodes(); return; }
         if ( 'schema' === $id ) { $this->schema(); return; }
         if ( 'reports' === $id ) { $this->reports(); return; }
+        if ( 'features' === $id ) { $this->features(); return; }
         if ( 'optimization' === $id ) { $this->optimization(); return; }
         if ( 'pages' === $id ) { $this->pages(); return; }
         if ( 'verified_profiles' === $id ) { $this->verified_profiles(); return; }
@@ -127,6 +129,82 @@ final class Dashboard {
             echo '<tr><th><code>' . esc_html( $field ) . '</code></th><td>' . esc_html( $source ) . '</td></tr>';
         }
         echo '</tbody></table></div>';
+    }
+
+
+    private function features(): void {
+        $settings = Settings::all();
+        $rank = get_option( "rank-math-options-general", [] );
+        $breadcrumbs_on = is_array( $rank ) && ( $rank["breadcrumbs"] ?? "" ) === "on";
+        $social_cleanup_on = Settings::bool( "author_social_cleanup" );
+        $publication_scope_note = $social_cleanup_on ? "Partially covered on singular publication/profile contexts; footer and global publication widgets still need a selector scan before broader runtime." : "Disabled because the social cleanup toggle is off.";
+        $features = [
+            [
+                "title" => "Author social icons on single and author pages",
+                "ok" => $social_cleanup_on,
+                "status" => $social_cleanup_on ? "Enabled through the Hide empty author social icons setting." : "Disabled in Core Settings.",
+                "details" => [
+                    "Run only on single.php style singular views and author.php author archives.",
+                    "Target Elementor social icon widgets plus generic social-icon anchors.",
+                    "Hide only empty links: missing href, blank href, hash links, or javascript placeholders.",
+                    "Collapse the Elementor social widget only when every social anchor in that widget is empty.",
+                    "Do not hide valid author, publication, or sitewide social links.",
+                ],
+            ],
+            [
+                "title" => "Publication social icons hide when empty",
+                "ok" => $social_cleanup_on,
+                "status" => $publication_scope_note,
+                "details" => [
+                    "This is a separate use from author cleanup and must remain configurable as its own feature path.",
+                    "The expected behavior is the same non-invasive cleanup: hide empty social anchors and collapse only fully empty wrappers.",
+                    "Publication profile pages are covered when rendered as singular pages; global footer or header publication widgets need exact selectors before enabling wider runtime.",
+                    "Field sources should come from publication profile data first, then shared HWS or SFPF social URL fields when appropriate.",
+                    "The implementation should stay light and run only on templates where social widgets can actually render.",
+                ],
+            ],
+            [
+                "title" => "Rank Math breadcrumb check",
+                "ok" => $breadcrumbs_on,
+                "status" => $breadcrumbs_on ? "Rank Math breadcrumbs are enabled." : "Rank Math breadcrumbs are disabled or missing from Rank Math options.",
+                "details" => [
+                    "Keep this as an integrity check in SMP and surface it in Optimization plus Features.",
+                    "Check Rank Math settings before adding code-level breadcrumb filters.",
+                    "Older session code used rank_math/frontend/breadcrumb/items for CPT-specific crumb injection.",
+                    "Only add mutation filters when a specific publication or press-release breadcrumb rule is supplied.",
+                    "Future proof should confirm the visible breadcrumb output on single posts, author archives, and publication pages.",
+                ],
+            ],
+        ];
+        echo "<div class=smpi-hero><p class=smpi-kicker>Features</p><h2>Feature instructions captured from prior sessions.</h2><p>This tab is a working readback for social icon cleanup, publication icon cleanup, and breadcrumb integrity before deeper implementation.</p></div>";
+        echo "<div class=smpi-grid>";
+        foreach ( $features as $feature ) {
+            $this->feature_readback_card( $feature["title"], (bool) $feature["ok"], $feature["status"], $feature["details"] );
+        }
+        echo "</div>";
+        echo "<div class=smpi-panel><h2>Session Instructions Read Back</h2><ul>";
+        foreach ( [
+            "The author social icon cleanup came from the requirement to stop injecting custom JS below each Elementor author structure.",
+            "The specific pages named for author cleanup were single.php and author.php.",
+            "The behavior must be smart and non-invasive: hide empty social icons, not entire valid social sections.",
+            "Publication social icons are a separate use case and should not be mixed into author-only wording.",
+            "The publication path needs its own settings language and exact selector discovery for global footer/header templates.",
+            "Breadcrumb checking was requested as an integrity check, with Rank Math as the expected control surface.",
+            "Historical breadcrumb snippets in the sessions used Rank Math frontend breadcrumb item filters for CPT injection.",
+            "The plugin should stay light, only loading front-end cleanup where the affected templates can render those elements.",
+            "The next implementation pass should split the single author_social_cleanup toggle into explicit author and publication social cleanup settings if broader publication coverage is required.",
+        ] as $instruction ) {
+            echo "<li>" . esc_html( $instruction ) . "</li>";
+        }
+        echo "</ul></div>";
+    }
+
+    private function feature_readback_card( string $title, bool $ok, string $status, array $details ): void {
+        echo "<div class=smpi-card><h3>" . esc_html( $title ) . "</h3><p><span class=" . ( $ok ? "smpi-ok" : "smpi-warn" ) . ">" . ( $ok ? "GREEN CHECK" : "YELLOW !" ) . "</span> " . esc_html( $status ) . "</p><ul>";
+        foreach ( $details as $detail ) {
+            echo "<li>" . esc_html( $detail ) . "</li>";
+        }
+        echo "</ul></div>";
     }
 
     private function optimization(): void {

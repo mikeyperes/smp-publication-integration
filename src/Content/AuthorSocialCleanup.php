@@ -13,7 +13,8 @@ final class AuthorSocialCleanup {
     }
 
     public function print_script(): void {
-        if ( ! Settings::bool( 'author_social_cleanup' ) || ( ! is_singular() && ! is_author() ) ) {
+        $should_run = is_single() || is_author();
+        if ( ! Settings::bool( "author_social_cleanup" ) || ! $should_run ) {
             return;
         }
         ?>
