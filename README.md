@@ -11,7 +11,7 @@ WordPress plugin for Scale My Publication publication profiles.
 
 ## Structure
 
-- `initialization.php`: plugin bootstrap, dependency check, updater bootstrap.
+- `smp-publication-integration.php`: canonical plugin bootstrap, dependency check, updater bootstrap. `initialization.php` is a legacy no-header loader for old installs.
 - `GitHub_Updater.php`: HWS-style GitHub update integration.
 - `src/Content`: publication CPT, ACF fields, shortcodes, and publication schema.
 - `src/Admin`: tabbed admin dashboard.
