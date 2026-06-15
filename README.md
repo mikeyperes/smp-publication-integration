@@ -32,9 +32,9 @@ WordPress plugin for Scale My Publication publication profiles.
 - Optional but expected: Advanced Custom Fields Pro.
 - Optional integration: SFPF Verified Profiles, via the `profile` post type for founders.
 
-## TODO
+## Completed
 
-- Fix the WordPress updater flow: verify the GitHub updater connection from HWS Base Tools, confirm the package URL points to the correct `mikeyperes/smp-publication-integration` release/archive, and test the full WordPress Plugins screen update path so `Update failed: The package could not be installed.` does not recur.
+- Updater flow fixed: SMP uses GitHub API version detection and HWS Base Tools post-install handling. Verified 0.3.8 to 0.3.9 updates on HerForward and Mashviral.
 
 ## Pending Work Queue
 
