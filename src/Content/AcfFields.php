@@ -18,6 +18,7 @@ final class AcfFields {
         }
         $this->register_publication_profile_fields();
         $this->register_user_binding_fields();
+        $this->register_muckrack_user_fields();
         $this->register_visibility_fields();
     }
 
@@ -55,6 +56,24 @@ final class AcfFields {
                 'location' => [ [ [ 'param' => 'user_form', 'operator' => '==', 'value' => 'all' ] ] ],
                 'position' => 'normal',
                 'style' => 'default',
+            ]
+        );
+    }
+
+
+    private function register_muckrack_user_fields(): void {
+        acf_add_local_field_group(
+            [
+                "key" => "group_smpi_muckrack_user_fields",
+                "title" => "SMP MuckRack Verification",
+                "fields" => [
+                    [ "key" => "field_smpi_muckrack_verified", "label" => "MuckRack Verified", "name" => "muckrack_verified", "type" => "true_false", "ui" => 1, "instructions" => "Marks this author as verified by the MuckRack editorial team." ],
+                    [ "key" => "field_smpi_muckrack_url", "label" => "MuckRack URL", "name" => "muckrack_url", "type" => "url", "instructions" => "Public MuckRack profile or media outlet URL." ],
+                    [ "key" => "field_smpi_what_best_describe_you", "label" => "What Best Describes You", "name" => "what_best_describe_you", "type" => "text", "instructions" => "Short descriptor used in verification copy, for example Journalist or Publication." ],
+                ],
+                "location" => [ [ [ "param" => "user_form", "operator" => "==", "value" => "all" ] ] ],
+                "position" => "normal",
+                "style" => "default",
             ]
         );
     }

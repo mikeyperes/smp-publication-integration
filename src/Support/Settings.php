@@ -15,6 +15,13 @@ final class Settings {
             'post_time_mode'        => 'native',
             'author_social_cleanup' => true,
             'public_debug_enabled'  => true,
+            'elementor_css_cache_busting' => true,
+            'publication_social_cleanup' => true,
+            'muckrack_verified_enabled' => true,
+            'muckrack_verified_contexts' => [ 'single_author', 'single_footer', 'author', 'home' ],
+            'muckrack_verified_style' => 'tooltip',
+            'press_release_include_enabled' => true,
+            'press_release_include_contexts' => [ 'home', 'category_tag', 'author', 'single_recent' ],
             'page_assignments'      => [],
             'page_templates'        => self::default_page_templates(),
         ];
@@ -34,6 +41,11 @@ final class Settings {
         return (bool) self::get( $key, false );
     }
 
+    public static function array( string $key ): array {
+        $value = self::get( $key, [] );
+        return is_array( $value ) ? array_values( array_filter( array_map( 'sanitize_key', $value ) ) ) : [];
+    }
+
     public static function update( array $changes ): array {
         $settings = self::all();
         foreach ( $changes as $key => $value ) {
@@ -43,12 +55,34 @@ final class Settings {
                 continue;
             }
 
-            if ( in_array( $key, [ 'founders_enabled', 'shadow_press_releases', 'author_social_cleanup', 'public_debug_enabled' ], true ) ) {
+            if ( in_array( $key, [ 'founders_enabled', 'shadow_press_releases', 'author_social_cleanup', 'public_debug_enabled', 'elementor_css_cache_busting', 'publication_social_cleanup', 'muckrack_verified_enabled', 'press_release_include_enabled' ], true ) ) {
                 $settings[ $key ] = (bool) $value;
+                continue;
+            }
+
+            if ( 'muckrack_verified_style' === $key ) {
+                $allowed = [ 'tooltip', 'text' ];
+                $settings[ $key ] = in_array( $value, $allowed, true ) ? $value : 'tooltip';
+                continue;
+            }
+
+            if ( 'muckrack_verified_contexts' === $key ) {
+                $allowed = [ 'single_author', 'single_footer', 'author', 'home' ];
+                $items = is_array( $value ) ? array_map( 'sanitize_key', $value ) : [];
+                $settings[ $key ] = array_values( array_intersect( $allowed, $items ) );
+                continue;
+            }
+
+            if ( 'press_release_include_contexts' === $key ) {
+                $allowed = [ 'home', 'category_tag', 'author', 'single_recent' ];
+                $items = is_array( $value ) ? array_map( 'sanitize_key', $value ) : [];
+                $settings[ $key ] = array_values( array_intersect( $allowed, $items ) );
+                continue;
             }
         }
 
         update_option( self::OPTION, $settings, false );
+        self::log( 'Settings updated: ' . implode( ', ', array_keys( $changes ) ) );
         return $settings;
     }
 
@@ -65,7 +99,19 @@ final class Settings {
         }
 
         update_option( self::OPTION, $settings, false );
+        self::log( 'Page assignment updated: ' . $type );
         return $settings;
+    }
+
+    public static function activity_log(): array {
+        $log = get_option( 'smpi_activity_log', [] );
+        return is_array( $log ) ? array_slice( $log, 0, 25 ) : [];
+    }
+
+    public static function log( string $message ): void {
+        $log = self::activity_log();
+        array_unshift( $log, [ 'time' => current_time( 'mysql' ), 'message' => sanitize_text_field( $message ) ] );
+        update_option( 'smpi_activity_log', array_slice( $log, 0, 50 ), false );
     }
 
     public static function page_types(): array {

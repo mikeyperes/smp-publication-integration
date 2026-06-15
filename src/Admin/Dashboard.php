@@ -75,7 +75,7 @@ final class Dashboard {
         $settings = Settings::all();
         ?>
         <div class="smpi-hero"><p class="smpi-kicker">Publication OS</p><h2>Publication profiles, schema, dependency checks, page assignments, and performance reporting.</h2><p>Front-end code now only runs where needed: main archive filters, optional time formatting, and single/author social cleanup.</p></div>
-        <div class="smpi-grid"><?php $this->card( 'Namespace', '<code>smp_publication_integration</code>' ); $this->card( 'Plugin Slug', '<code>smp-publication-integration</code>' ); $this->card( 'GitHub Slug', '<code>mikeyperes/smp-publication-integration</code>' ); $this->card( 'Debug URL', '<code>' . esc_html( rest_url( 'smpi/v1/debug' ) ) . '</code>' ); ?></div>
+        <div class="smpi-grid"><?php $this->card( 'Namespace', '<code>smp_publication_integration</code>' ); $this->card( 'Plugin Slug', '<code>smp-publication-integration</code>' ); $this->card( 'GitHub Slug', '<code>mikeyperes/smp-publication-integration</code>' ); $this->card( 'Debug URL', '<code>' . esc_html( rest_url( 'smpi/v1/debug' ) ) . '</code>' ); $this->card( 'HWS masked admin', $this->hws_masked_login_report_html() ); ?></div>
         <div class="smpi-panel"><h2>Core Settings</h2><table class="widefat striped"><tbody>
             <?php $this->toggle( 'founders_enabled', 'Show founder marketing', $settings ); ?>
             <?php $this->toggle( 'shadow_press_releases', 'Shadow all press releases from home/category/tag', $settings ); ?>
@@ -132,79 +132,118 @@ final class Dashboard {
     }
 
 
+
+
     private function features(): void {
         $settings = Settings::all();
-        $rank = get_option( "rank-math-options-general", [] );
-        $breadcrumbs_on = is_array( $rank ) && ( $rank["breadcrumbs"] ?? "" ) === "on";
-        $social_cleanup_on = Settings::bool( "author_social_cleanup" );
-        $publication_scope_note = $social_cleanup_on ? "Partially covered on singular publication/profile contexts; footer and global publication widgets still need a selector scan before broader runtime." : "Disabled because the social cleanup toggle is off.";
-        $features = [
-            [
-                "title" => "Author social icons on single and author pages",
-                "ok" => $social_cleanup_on,
-                "status" => $social_cleanup_on ? "Enabled through the Hide empty author social icons setting." : "Disabled in Core Settings.",
-                "details" => [
-                    "Run only on single.php style singular views and author.php author archives.",
-                    "Target Elementor social icon widgets plus generic social-icon anchors.",
-                    "Hide only empty links: missing href, blank href, hash links, or javascript placeholders.",
-                    "Collapse the Elementor social widget only when every social anchor in that widget is empty.",
-                    "Do not hide valid author, publication, or sitewide social links.",
-                ],
-            ],
-            [
-                "title" => "Publication social icons hide when empty",
-                "ok" => $social_cleanup_on,
-                "status" => $publication_scope_note,
-                "details" => [
-                    "This is a separate use from author cleanup and must remain configurable as its own feature path.",
-                    "The expected behavior is the same non-invasive cleanup: hide empty social anchors and collapse only fully empty wrappers.",
-                    "Publication profile pages are covered when rendered as singular pages; global footer or header publication widgets need exact selectors before enabling wider runtime.",
-                    "Field sources should come from publication profile data first, then shared HWS or SFPF social URL fields when appropriate.",
-                    "The implementation should stay light and run only on templates where social widgets can actually render.",
-                ],
-            ],
-            [
-                "title" => "Rank Math breadcrumb check",
-                "ok" => $breadcrumbs_on,
-                "status" => $breadcrumbs_on ? "Rank Math breadcrumbs are enabled." : "Rank Math breadcrumbs are disabled or missing from Rank Math options.",
-                "details" => [
-                    "Keep this as an integrity check in SMP and surface it in Optimization plus Features.",
-                    "Check Rank Math settings before adding code-level breadcrumb filters.",
-                    "Older session code used rank_math/frontend/breadcrumb/items for CPT-specific crumb injection.",
-                    "Only add mutation filters when a specific publication or press-release breadcrumb rule is supplied.",
-                    "Future proof should confirm the visible breadcrumb output on single posts, author archives, and publication pages.",
-                ],
-            ],
-        ];
-        echo "<div class=smpi-hero><p class=smpi-kicker>Features</p><h2>Feature instructions captured from prior sessions.</h2><p>This tab is a working readback for social icon cleanup, publication icon cleanup, and breadcrumb integrity before deeper implementation.</p></div>";
-        echo "<div class=smpi-grid>";
-        foreach ( $features as $feature ) {
-            $this->feature_readback_card( $feature["title"], (bool) $feature["ok"], $feature["status"], $feature["details"] );
-        }
-        echo "</div>";
-        echo "<div class=smpi-panel><h2>Session Instructions Read Back</h2><ul>";
-        foreach ( [
-            "The author social icon cleanup came from the requirement to stop injecting custom JS below each Elementor author structure.",
-            "The specific pages named for author cleanup were single.php and author.php.",
-            "The behavior must be smart and non-invasive: hide empty social icons, not entire valid social sections.",
-            "Publication social icons are a separate use case and should not be mixed into author-only wording.",
-            "The publication path needs its own settings language and exact selector discovery for global footer/header templates.",
-            "Breadcrumb checking was requested as an integrity check, with Rank Math as the expected control surface.",
-            "Historical breadcrumb snippets in the sessions used Rank Math frontend breadcrumb item filters for CPT injection.",
-            "The plugin should stay light, only loading front-end cleanup where the affected templates can render those elements.",
-            "The next implementation pass should split the single author_social_cleanup toggle into explicit author and publication social cleanup settings if broader publication coverage is required.",
-        ] as $instruction ) {
-            echo "<li>" . esc_html( $instruction ) . "</li>";
-        }
-        echo "</ul></div>";
+        echo "<div class=\"smpi-hero\"><p class=\"smpi-kicker\">Features</p><h2>Feature controls, implementation notes, code examples, live test reports, and activity logs.</h2><p>Each feature is isolated behind settings so it can be enabled, tested, or removed without mixing concerns.</p></div>";
+        $this->feature_card( "Elementor CSS cache busting", "elementor_css_cache_busting", "No custom ACF fields needed.", "Adds filemtime mv_css query args only to Elementor upload CSS files under /wp-content/uploads/elementor/css/. This prevents stale Elementor CSS after rebuilds without touching global assets.", "add_filter(\"style_loader_src\",function(\$src){if(false===strpos(\$src,\"/wp-content/uploads/elementor/css/\"))return \$src;\$path=wp_parse_url(\$src,PHP_URL_PATH);\$file=ABSPATH.ltrim(\$path,\"/\");return is_readable(\$file)?add_query_arg(\"mv_css\",filemtime(\$file),\$src):\$src;},9999,1);", $this->elementor_css_report_html(), $this->activity_log_html() );
+        $this->feature_card( "MuckRack verified authors", "muckrack_verified_enabled", "Registers user ACF fields: muckrack_verified, muckrack_url, what_best_describe_you.", "Provides [acf_author_field] and [muckrack_verified]. Auto placement can be enabled for single header author mentions, single footer mentions, homepage author mentions, and author.php. Tooltip style keeps the badge small; text style renders the verification sentence.", "[muckrack_verified type=\"icon\" user_id=\"54\"]\n[muckrack_verified type=\"text\" user_id=\"54\"]\n[acf_author_field field=\"muckrack_url\" user_id=\"54\"]", $this->muckrack_report_html(), $this->activity_log_html(), $this->context_select_html( "muckrack_verified_contexts", [ "single_author" => "single.php header author mention", "single_footer" => "single.php footer mention", "home" => "Home page author mention", "author" => "author.php author mention" ], $settings ) . $this->select_setting_html( "muckrack_verified_style", [ "tooltip" => "Tooltip icon", "text" => "Inline text" ], $settings ) );
+        $this->feature_card( "Press-release inclusion controls", "press_release_include_enabled", "Uses existing press-release CPT and _smpi_pr_shadow_override meta. ACF/local fields are registered for force include or force exclude.", "Includes Hexa PR Wire press-release posts in selected blog-like loops: home, category/tag, author.php, and single.php recent article secondary queries. Force exclude is honored through the press-release visibility meta box.", "add_action(\"pre_get_posts\", function (WP_Query \$q) { /* SMP uses the same main-query guard pattern and selected contexts. */ });", $this->press_release_report_html(), $this->activity_log_html(), $this->context_select_html( "press_release_include_contexts", [ "home" => "Home page", "category_tag" => "Category and tag pages", "author" => "author.php", "single_recent" => "single.php recent article queries" ], $settings ) );
+        $this->feature_card( "Author social icons", "author_social_cleanup", "No ACF changes. Reads rendered Elementor/social-icon anchors.", "Runs only on single posts and author archives. Empty social anchors are hidden when href is missing, blank, hash, or javascript. Fully empty Elementor social wrappers are collapsed.", "No shortcode needed. Toggle this feature on and inspect single.php or author.php social widgets.", $this->simple_status_html( Settings::bool( "author_social_cleanup" ), "Cleanup script active on single posts and author archives only." ), $this->activity_log_html() );
+        $this->feature_card( "Publication social icons", "publication_social_cleanup", "No dedicated ACF change yet. Publication social field mapping should use publication profile fields first, then shared HWS or SFPF social URL fields.", "Separate from author cleanup. The feature is enabled as a tracked feature, but exact global footer/header selectors still need selector-specific implementation before broad automatic cleanup is safe.", "Future shortcode target: [smp_publication_field field=\"website\"] or publication social fields once mapped.", $this->simple_status_html( Settings::bool( "publication_social_cleanup" ), "Tracked and enabled. Selector-specific frontend cleanup is not broadened beyond safe author cleanup yet." ), $this->activity_log_html() );
+        $this->feature_card( "Rank Math breadcrumb check", "", "No ACF changes.", "Reports Rank Math breadcrumb status from rank-math-options-general. Mutation filters should only be added after exact breadcrumb rules are supplied.", "add_filter(\"rank_math/frontend/breadcrumb/items\", function(\$crumbs){ return \$crumbs; }, 10, 1);", $this->rank_math_breadcrumb_report_html(), $this->activity_log_html() );
+        $this->feature_card( "HWS masked admin URL", "", "HWS Base Tools owns this feature. SMP only reports status and links to it.", "Confirms whether HWS Base Tools masked login is enabled and exposes the masked URL in the Overview and Features tabs.", "HWS option: hws_login_mask_options with slug hexa-admin.", $this->hws_masked_login_report_html(), $this->activity_log_html() );
     }
 
-    private function feature_readback_card( string $title, bool $ok, string $status, array $details ): void {
-        echo "<div class=smpi-card><h3>" . esc_html( $title ) . "</h3><p><span class=" . ( $ok ? "smpi-ok" : "smpi-warn" ) . ">" . ( $ok ? "GREEN CHECK" : "YELLOW !" ) . "</span> " . esc_html( $status ) . "</p><ul>";
-        foreach ( $details as $detail ) {
-            echo "<li>" . esc_html( $detail ) . "</li>";
+    private function feature_card( string $title, string $toggle_key, string $acf, string $description, string $code, string $test_report, string $activity_log, string $extra_controls = "" ): void {
+        echo "<div class=\"smpi-panel smpi-feature-card\"><h2>" . esc_html( $title ) . "</h2>";
+        echo "<table class=\"widefat striped\"><tbody>";
+        echo "<tr><th>Toggle</th><td>" . ( $toggle_key ? $this->inline_toggle_html( $toggle_key ) : "<span class=\"smpi-ok\">Report only</span>" ) . $extra_controls . "</td></tr>";
+        echo "<tr><th>Custom ACF adjustments</th><td>" . wp_kses_post( $acf ) . "</td></tr>";
+        echo "<tr><th>Description / use instructions</th><td>" . esc_html( $description ) . "</td></tr>";
+        echo "<tr><th>Code example</th><td><pre class=\"smpi-code\">" . esc_html( $code ) . "</pre></td></tr>";
+        echo "<tr><th>Test report, active and proof working</th><td>" . wp_kses_post( $test_report ) . "</td></tr>";
+        echo "<tr><th>Activity log</th><td>" . wp_kses_post( $activity_log ) . "</td></tr>";
+        echo "</tbody></table></div>";
+    }
+
+    private function inline_toggle_html( string $key ): string {
+        $enabled = Settings::bool( $key );
+        return "<label><input class=\"smpi-setting\" type=\"checkbox\" data-key=\"" . esc_attr( $key ) . "\" value=\"1\" " . checked( $enabled, true, false ) . "> Enabled</label><span class=\"spinner\"></span><span class=\"smpi-save-state\"></span>";
+    }
+
+    private function context_select_html( string $key, array $options, array $settings ): string {
+        $selected = isset( $settings[ $key ] ) && is_array( $settings[ $key ] ) ? $settings[ $key ] : [];
+        $html = "<p><strong>Placement contexts</strong></p><select class=\"smpi-setting\" data-key=\"" . esc_attr( $key ) . "\" multiple size=\"" . esc_attr( (string) min( 6, max( 2, count( $options ) ) ) ) . "\">";
+        foreach ( $options as $value => $label ) {
+            $html .= "<option value=\"" . esc_attr( $value ) . "\"" . selected( in_array( $value, $selected, true ), true, false ) . ">" . esc_html( $label ) . "</option>";
         }
-        echo "</ul></div>";
+        return $html . "</select><span class=\"spinner\"></span><span class=\"smpi-save-state\"></span>";
+    }
+
+    private function select_setting_html( string $key, array $options, array $settings ): string {
+        $current = isset( $settings[ $key ] ) ? (string) $settings[ $key ] : "";
+        $html = "<p><strong>Style</strong></p><select class=\"smpi-setting\" data-key=\"" . esc_attr( $key ) . "\">";
+        foreach ( $options as $value => $label ) {
+            $html .= "<option value=\"" . esc_attr( $value ) . "\"" . selected( $current, $value, false ) . ">" . esc_html( $label ) . "</option>";
+        }
+        return $html . "</select><span class=\"spinner\"></span><span class=\"smpi-save-state\"></span>";
+    }
+
+    private function simple_status_html( bool $ok, string $message ): string {
+        return "<p><span class=\"" . ( $ok ? "smpi-ok" : "smpi-warn" ) . "\">" . ( $ok ? "GREEN CHECK" : "YELLOW !" ) . "</span> " . esc_html( $message ) . "</p>";
+    }
+
+    private function elementor_css_report_html(): string {
+        $report = \smp_publication_integration\Content\ElementorCssCacheBusting::test_report();
+        $html = $this->simple_status_html( ! empty( $report["enabled"] ) && (int) $report["css_files"] > 0, "Elementor CSS files found: " . (int) $report["css_files"] );
+        $html .= "<table class=\"widefat striped\"><thead><tr><th>File</th><th>Readable</th><th>Cache query</th></tr></thead><tbody>";
+        foreach ( $report["sample_files"] as $file ) {
+            $html .= "<tr><td><code>" . esc_html( $file["file"] ) . "</code></td><td>" . ( $file["readable"] ? "GREEN CHECK" : "RED X" ) . "</td><td><code>" . esc_html( $file["query"] ) . "</code></td></tr>";
+        }
+        return $html . "</tbody></table>";
+    }
+
+    private function muckrack_report_html(): string {
+        $rows = \smp_publication_integration\Content\MuckRackVerification::integrity_report( 10 );
+        $html = $this->simple_status_html( Settings::bool( "muckrack_verified_enabled" ), "Top 10 authors by published posts checked for MuckRack ACF/user fields." );
+        $html .= "<table class=\"widefat striped\"><thead><tr><th>User</th><th>Posts</th><th>Verified</th><th>URL</th><th>Description</th></tr></thead><tbody>";
+        foreach ( $rows as $row ) {
+            $html .= "<tr><td>" . esc_html( $row["display_name"] ) . " (#" . esc_html( (string) $row["user_id"] ) . ")</td><td>" . esc_html( (string) $row["posts"] ) . "</td><td>" . ( $row["verified"] ? "GREEN CHECK" : "YELLOW !" ) . "</td><td>" . ( $row["has_url"] ? "GREEN CHECK" : "YELLOW !" ) . "</td><td>" . ( $row["has_description"] ? "GREEN CHECK" : "YELLOW !" ) . "</td></tr>";
+        }
+        return $html . "</tbody></table>";
+    }
+
+    private function press_release_report_html(): string {
+        $rows = \smp_publication_integration\Content\Visibility::author_report( 10 );
+        $hpr = Dependencies::hpr_active();
+        $html = $this->simple_status_html( $hpr && Settings::bool( "press_release_include_enabled" ), "Hexa PR Wire active: " . ( $hpr ? "yes" : "no" ) . ". Press-release CPT exists: " . ( post_type_exists( "press-release" ) ? "yes" : "no" ) . "." );
+        $html .= "<table class=\"widefat striped\"><thead><tr><th>Recent author</th><th>Posts</th><th>Press releases</th><th>Expected on author.php</th><th>Consistent</th></tr></thead><tbody>";
+        foreach ( $rows as $row ) {
+            $html .= "<tr><td>" . esc_html( $row["display_name"] ) . " (#" . esc_html( (string) $row["user_id"] ) . ")</td><td>" . esc_html( (string) $row["posts"] ) . "</td><td>" . esc_html( (string) $row["press_releases"] ) . "</td><td>" . ( $row["expected"] ? "YES" : "NO" ) . "</td><td>" . ( $row["consistent"] ? "GREEN CHECK" : "RED X" ) . "</td></tr>";
+        }
+        return $html . "</tbody></table>";
+    }
+
+    private function rank_math_breadcrumb_report_html(): string {
+        $rank = get_option( "rank-math-options-general", [] );
+        $on = is_array( $rank ) && ( $rank["breadcrumbs"] ?? "" ) === "on";
+        return $this->simple_status_html( $on, $on ? "Rank Math breadcrumbs are enabled." : "Rank Math breadcrumbs are disabled or missing." );
+    }
+
+    private function hws_masked_login_status(): array {
+        $opts = get_option( "hws_login_mask_options", [] );
+        $slug = is_array( $opts ) && ! empty( $opts["slug"] ) ? sanitize_title( (string) $opts["slug"] ) : "hexa-admin";
+        $enabled = is_array( $opts ) && ! empty( $opts["enabled"] ) && Dependencies::hws_base_tools_active();
+        return [ "enabled" => $enabled, "slug" => $slug, "url" => home_url( "/" . $slug . "/" ), "hws_active" => Dependencies::hws_base_tools_active() ];
+    }
+
+    private function hws_masked_login_report_html(): string {
+        $status = $this->hws_masked_login_status();
+        return $this->simple_status_html( ! empty( $status["enabled"] ), "Masked login URL: " . $status["url"] ) . "<p><a class=\"button\" target=\"_blank\" rel=\"noopener noreferrer\" href=\"" . esc_url( $status["url"] ) . "\">Open masked admin URL</a></p><p><small>Owned by HWS Base Tools. SMP only reports this.</small></p>";
+    }
+
+    private function activity_log_html(): string {
+        $log = Settings::activity_log();
+        if ( empty( $log ) ) {
+            return "<p>No activity logged yet.</p>";
+        }
+        $html = "<ul>";
+        foreach ( array_slice( $log, 0, 5 ) as $item ) {
+            $html .= "<li><code>" . esc_html( (string) ( $item["time"] ?? "" ) ) . "</code> " . esc_html( (string) ( $item["message"] ?? "" ) ) . "</li>";
+        }
+        return $html . "</ul>";
     }
 
     private function optimization(): void {

@@ -32,13 +32,22 @@ final class Ajax {
     public function save_settings(): void {
         $this->guard();
         $changes = [];
-        foreach ( [ 'founders_enabled', 'shadow_press_releases', 'author_social_cleanup', 'public_debug_enabled' ] as $key ) {
+        foreach ( [ 'founders_enabled', 'shadow_press_releases', 'author_social_cleanup', 'public_debug_enabled', 'elementor_css_cache_busting', 'publication_social_cleanup', 'muckrack_verified_enabled', 'press_release_include_enabled' ] as $key ) {
             if ( isset( $_POST[ $key ] ) ) {
                 $changes[ $key ] = (bool) absint( $_POST[ $key ] );
             }
         }
         if ( isset( $_POST['post_time_mode'] ) ) {
             $changes['post_time_mode'] = sanitize_key( wp_unslash( $_POST['post_time_mode'] ) );
+        }
+        if ( isset( $_POST['muckrack_verified_style'] ) ) {
+            $changes['muckrack_verified_style'] = sanitize_key( wp_unslash( $_POST['muckrack_verified_style'] ) );
+        }
+        foreach ( [ 'muckrack_verified_contexts', 'press_release_include_contexts' ] as $array_key ) {
+            if ( isset( $_POST[ $array_key ] ) ) {
+                $raw = wp_unslash( $_POST[ $array_key ] );
+                $changes[ $array_key ] = is_array( $raw ) ? array_map( 'sanitize_key', $raw ) : [];
+            }
         }
         wp_send_json_success( [ 'settings' => Settings::update( $changes ) ] );
     }
