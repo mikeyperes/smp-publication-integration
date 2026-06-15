@@ -23,6 +23,8 @@ final class Settings {
             'muckrack_verified_style' => 'tooltip',
             'press_release_include_enabled' => true,
             'press_release_include_contexts' => [ 'home', 'category_tag', 'author', 'single_recent' ],
+            'system_publication_id' => 0,
+            'system_publication_user_id' => 0,
             'page_assignments'      => [],
             'page_templates'        => self::default_page_templates(),
         ];
@@ -53,6 +55,11 @@ final class Settings {
             if ( 'post_time_mode' === $key ) {
                 $allowed = [ 'native', 'relative_then_date', 'friendly_date' ];
                 $settings[ $key ] = in_array( $value, $allowed, true ) ? $value : 'native';
+                continue;
+            }
+
+            if ( in_array( $key, [ "system_publication_id", "system_publication_user_id" ], true ) ) {
+                $settings[ $key ] = absint( $value );
                 continue;
             }
 

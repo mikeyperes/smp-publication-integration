@@ -2,6 +2,7 @@
 namespace smp_publication_integration\Admin;
 
 use smp_publication_integration\Config;
+use smp_publication_integration\Content\AuthorShortcodes;
 use smp_publication_integration\Content\PublicationPostType;
 use smp_publication_integration\Content\Schema;
 use smp_publication_integration\Content\Shortcodes;
@@ -76,6 +77,7 @@ final class Dashboard {
         ?>
         <div class="smpi-hero"><p class="smpi-kicker">Publication OS</p><h2>Publication profiles, schema, dependency checks, page assignments, and performance reporting.</h2><p>Front-end code now only runs where needed: main archive filters, optional time formatting, and single/author social cleanup.</p></div>
         <div class="smpi-grid"><?php $this->card( 'Namespace', '<code>smp_publication_integration</code>' ); $this->card( 'Plugin Slug', '<code>smp-publication-integration</code>' ); $this->card( 'GitHub Slug', '<code>mikeyperes/smp-publication-integration</code>' ); $this->card( 'Debug URL', '<code>' . esc_html( rest_url( 'smpi/v1/debug' ) ) . '</code>' ); $this->card( 'HWS masked admin', $this->hws_masked_login_report_html() ); ?></div>
+        <?php $this->publication_mapping_panel( $settings ); ?>
         <div class="smpi-panel"><h2>Core Settings</h2><table class="widefat striped"><tbody>
             <?php $this->toggle( 'founders_enabled', 'Show founder marketing', $settings ); ?>
             <?php $this->toggle( 'shadow_press_releases', 'Shadow all press releases from home/category/tag', $settings ); ?>
@@ -84,6 +86,47 @@ final class Dashboard {
             <tr><th>Post time display</th><td><select class="smpi-setting" data-key="post_time_mode"><option value="native" <?php selected( $settings['post_time_mode'], 'native' ); ?>>Native WordPress output</option><option value="relative_then_date" <?php selected( $settings['post_time_mode'], 'relative_then_date' ); ?>>5 min ago, then friendly date after 24 hours</option><option value="friendly_date" <?php selected( $settings['post_time_mode'], 'friendly_date' ); ?>>Always friendly date</option></select><span class="spinner"></span><span class="smpi-save-state"></span></td></tr>
         </tbody></table></div>
         <?php
+    }
+
+    private function publication_mapping_panel( array $settings ): void {
+        $publication_id = isset( $settings["system_publication_id"] ) ? absint( $settings["system_publication_id"] ) : 0;
+        $user_id = isset( $settings["system_publication_user_id"] ) ? absint( $settings["system_publication_user_id"] ) : 0;
+        echo "<div class=\"smpi-panel\"><h2>System Publication Mapping</h2><p>Like SFPF maps a person profile, SMP maps this site to one publication profile and one WordPress author/user. Saving through AJAX also syncs the publication ACF/user meta binding.</p><table class=\"widefat striped\"><tbody>";
+        echo "<tr><th>System publication profile</th><td>" . $this->publication_select_html( $publication_id ) . "<span class=\"spinner\"></span><span class=\"smpi-save-state\"></span></td></tr>";
+        echo "<tr><th>Mapped publication author/user</th><td>" . $this->user_select_html( $user_id ) . "<span class=\"spinner\"></span><span class=\"smpi-save-state\"></span></td></tr>";
+        echo "<tr><th>Status</th><td>" . $this->mapping_status_html( $publication_id, $user_id ) . "</td></tr>";
+        echo "<tr><th>Shortcode todo</th><td><span class=\"smpi-ok\">Done</span> Single.php author shortcodes are registered and listed in the Shortcodes tab. Keep adding field aliases here as site-specific author fields are discovered.</td></tr>";
+        echo "</tbody></table></div>";
+    }
+
+    private function publication_select_html( int $current ): string {
+        $posts = get_posts( [ "post_type" => PublicationPostType::POST_TYPE, "post_status" => "any", "posts_per_page" => 200, "orderby" => "title", "order" => "ASC" ] );
+        $html = "<select class=\"smpi-setting smpi-mapping-select\" data-key=\"system_publication_id\"><option value=\"0\">Select publication</option>";
+        foreach ( $posts as $post ) {
+            $html .= "<option value=\"" . esc_attr( (string) $post->ID ) . "\"" . selected( $current, $post->ID, false ) . ">" . esc_html( $post->post_title . " (#" . $post->ID . ")" ) . "</option>";
+        }
+        return $html . "</select>";
+    }
+
+    private function user_select_html( int $current ): string {
+        $users = get_users( [ "number" => 200, "orderby" => "display_name", "order" => "ASC", "fields" => [ "ID", "display_name", "user_email" ] ] );
+        $html = "<select class=\"smpi-setting smpi-mapping-select\" data-key=\"system_publication_user_id\"><option value=\"0\">Select author/user</option>";
+        foreach ( $users as $user ) {
+            $html .= "<option value=\"" . esc_attr( (string) $user->ID ) . "\"" . selected( $current, $user->ID, false ) . ">" . esc_html( $user->display_name . " (#" . $user->ID . ")" ) . "</option>";
+        }
+        return $html . "</select>";
+    }
+
+    private function mapping_status_html( int $publication_id, int $user_id ): string {
+        $items = [];
+        $items[] = $publication_id && PublicationPostType::POST_TYPE === get_post_type( $publication_id ) ? "<span class=\"smpi-ok\">GREEN CHECK</span> Publication selected: " . esc_html( get_the_title( $publication_id ) ) : "<span class=\"smpi-warn\">YELLOW !</span> No system publication selected.";
+        $user = $user_id ? get_user_by( "id", $user_id ) : false;
+        $items[] = $user ? "<span class=\"smpi-ok\">GREEN CHECK</span> Author/user selected: " . esc_html( $user->display_name ) : "<span class=\"smpi-warn\">YELLOW !</span> No author/user selected.";
+        if ( $publication_id ) {
+            $bound_user = (int) Fields::get( $publication_id, "publication_user", 0 );
+            $items[] = $bound_user && $bound_user === $user_id ? "<span class=\"smpi-ok\">GREEN CHECK</span> Publication ACF binding matches this user." : "<span class=\"smpi-warn\">YELLOW !</span> Publication ACF binding will sync after saving both mapping fields.";
+        }
+        return "<p>" . implode( "</p><p>", $items ) . "</p>";
     }
 
     private function profiles(): void {
@@ -95,13 +138,23 @@ final class Dashboard {
     }
 
     private function shortcodes(): void {
-        $sample = $this->latest_publication_id();
-        echo '<div class="smpi-panel"><h2>Shortcodes</h2><table class="widefat striped"><thead><tr><th>Shortcode</th><th>Current Value</th></tr></thead><tbody>';
+        $publication_sample = $this->latest_publication_id();
+        $post_sample = $this->latest_post_id();
+        echo "<div class=\"smpi-panel\"><h2>Shortcodes</h2><p>Author shortcodes resolve the current post author inside single.php loops. Pass post_id or user_id when debugging outside the loop.</p><table class=\"widefat striped\"><thead><tr><th>Group</th><th>Shortcode</th><th>Current Value</th></tr></thead><tbody>";
         foreach ( Shortcodes::shortcodes() as $tag => $callback ) {
-            $code = '[' . $tag . ( $sample ? ' id="' . $sample . '"' : '' ) . ']';
-            echo '<tr><td><code>' . esc_html( $code ) . '</code></td><td><code>' . esc_html( wp_trim_words( wp_strip_all_tags( do_shortcode( $code ) ), 18 ) ) . '</code></td></tr>';
+            $code = "[" . $tag . ( $publication_sample ? " id=\"" . $publication_sample . "\"" : "" ) . "]";
+            echo "<tr><td>Publication</td><td><code>" . esc_html( $code ) . "</code></td><td><code>" . esc_html( wp_trim_words( wp_strip_all_tags( do_shortcode( $code ) ), 18 ) ) . "</code></td></tr>";
         }
-        echo '<tr><td><code>[smp_publication_page type="privacy"]</code></td><td>Assigned page link.</td></tr></tbody></table></div>';
+        foreach ( AuthorShortcodes::shortcodes() as $tag => $callback ) {
+            $code = "[" . $tag . ( $post_sample ? " post_id=\"" . $post_sample . "\"" : "" );
+            if ( "author_image" === $tag ) {
+                $code .= " size=\"thumbnail\"";
+            }
+            $code .= "]";
+            $value_code = "author_image" === $tag ? str_replace( "]", " output=\"url\"]", $code ) : $code;
+            echo "<tr><td>Single.php author</td><td><code>" . esc_html( $code ) . "</code></td><td><code>" . esc_html( wp_trim_words( wp_strip_all_tags( do_shortcode( $value_code ) ), 18 ) ) . "</code></td></tr>";
+        }
+        echo "<tr><td>Publication</td><td><code>[smp_publication_page type=\"privacy\"]</code></td><td>Assigned page link.</td></tr></tbody></table></div>";
     }
 
     private function schema(): void {
@@ -337,6 +390,11 @@ final class Dashboard {
         return ! empty( $query->posts ) ? (int) $query->posts[0] : 0;
     }
 
+    private function latest_post_id(): int {
+        $query = new \WP_Query( [ "post_type" => "post", "post_status" => "publish", "posts_per_page" => 1, "fields" => "ids", "no_found_rows" => true ] );
+        return ! empty( $query->posts ) ? (int) $query->posts[0] : 0;
+    }
+
     private function extract_schema_types( string $url ): array {
         $response = wp_remote_get( $url, [ 'timeout' => 8 ] );
         if ( is_wp_error( $response ) || ! preg_match_all( '#<script[^>]+type=["\']application/ld\+json["\'][^>]*>(.*?)</script>#is', wp_remote_retrieve_body( $response ), $matches ) ) {
@@ -372,6 +430,6 @@ final class Dashboard {
     <?php }
 
     private function styles(): void { ?>
-        <style>.smpi-dashboard{max-width:1280px}.smpi-tabs-nav{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0;border-bottom:1px solid #dcdcde}.smpi-tab-btn{border:1px solid #dcdcde;border-bottom:none;background:#f6f7f7;padding:10px 14px;border-radius:8px 8px 0 0;cursor:pointer}.smpi-tab-btn.active{background:#fff;color:#2271b1;font-weight:700}.smpi-tab-content{display:none}.smpi-tab-content.active{display:block}.smpi-hero{margin:18px 0;padding:28px 30px;border:1px solid #dcdcde;border-radius:14px;background:linear-gradient(135deg,#fff 0%,#eef6fb 100%);box-shadow:0 10px 28px rgba(0,0,0,.05)}.smpi-kicker{margin:0 0 8px;color:#2271b1;font-weight:700;letter-spacing:.08em;text-transform:uppercase}.smpi-hero h2{margin:0 0 10px;font-size:28px}.smpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;margin:18px 0}.smpi-card,.smpi-panel{padding:18px;border:1px solid #dcdcde;border-radius:12px;background:#fff;margin:16px 0}.smpi-card h3,.smpi-panel h2{margin-top:0}.smpi-ok{color:#008a20;font-weight:700}.smpi-warn{color:#996800;font-weight:700}.smpi-bad{color:#b32d2e;font-weight:700}.smpi-code,.smpi-code-panel{white-space:pre-wrap;background:#101517;color:#e6edf3;border:1px solid #1f2933;border-radius:10px;padding:14px;max-height:520px;overflow:auto}.smpi-page-select{min-width:320px}.smpi-save-state{margin-left:8px;font-weight:700}</style>
+        <style>.smpi-dashboard{max-width:1280px}.smpi-tabs-nav{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0;border-bottom:1px solid #dcdcde}.smpi-tab-btn{border:1px solid #dcdcde;border-bottom:none;background:#f6f7f7;padding:10px 14px;border-radius:8px 8px 0 0;cursor:pointer}.smpi-tab-btn.active{background:#fff;color:#2271b1;font-weight:700}.smpi-tab-content{display:none}.smpi-tab-content.active{display:block}.smpi-hero{margin:18px 0;padding:28px 30px;border:1px solid #dcdcde;border-radius:14px;background:linear-gradient(135deg,#fff 0%,#eef6fb 100%);box-shadow:0 10px 28px rgba(0,0,0,.05)}.smpi-kicker{margin:0 0 8px;color:#2271b1;font-weight:700;letter-spacing:.08em;text-transform:uppercase}.smpi-hero h2{margin:0 0 10px;font-size:28px}.smpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;margin:18px 0}.smpi-card,.smpi-panel{padding:18px;border:1px solid #dcdcde;border-radius:12px;background:#fff;margin:16px 0}.smpi-card h3,.smpi-panel h2{margin-top:0}.smpi-ok{color:#008a20;font-weight:700}.smpi-warn{color:#996800;font-weight:700}.smpi-bad{color:#b32d2e;font-weight:700}.smpi-code,.smpi-code-panel{white-space:pre-wrap;background:#101517;color:#e6edf3;border:1px solid #1f2933;border-radius:10px;padding:14px;max-height:520px;overflow:auto}.smpi-page-select,.smpi-mapping-select{min-width:320px}.smpi-save-state{margin-left:8px;font-weight:700}</style>
     <?php }
 }

@@ -1,6 +1,7 @@
 <?php
 namespace smp_publication_integration\Admin;
 
+use smp_publication_integration\Content\PublicationPostType;
 use smp_publication_integration\Support\PluginRegistry;
 use smp_publication_integration\Support\Settings;
 
@@ -37,6 +38,11 @@ final class Ajax {
                 $changes[ $key ] = (bool) absint( $_POST[ $key ] );
             }
         }
+        foreach ( [ "system_publication_id", "system_publication_user_id" ] as $key ) {
+            if ( isset( $_POST[ $key ] ) ) {
+                $changes[ $key ] = absint( $_POST[ $key ] );
+            }
+        }
         if ( isset( $_POST['post_time_mode'] ) ) {
             $changes['post_time_mode'] = sanitize_key( wp_unslash( $_POST['post_time_mode'] ) );
         }
@@ -49,7 +55,28 @@ final class Ajax {
                 $changes[ $array_key ] = is_array( $raw ) ? array_map( 'sanitize_key', $raw ) : [];
             }
         }
-        wp_send_json_success( [ 'settings' => Settings::update( $changes ) ] );
+        $settings = Settings::update( $changes );
+        $this->sync_publication_mapping( $settings );
+        wp_send_json_success( [ "settings" => $settings ] );
+    }
+
+    private function sync_publication_mapping( array $settings ): void {
+        $publication_id = isset( $settings["system_publication_id"] ) ? absint( $settings["system_publication_id"] ) : 0;
+        $user_id = isset( $settings["system_publication_user_id"] ) ? absint( $settings["system_publication_user_id"] ) : 0;
+        if ( ! $publication_id || ! $user_id ) {
+            return;
+        }
+        if ( PublicationPostType::POST_TYPE !== get_post_type( $publication_id ) || ! get_user_by( "id", $user_id ) ) {
+            return;
+        }
+        update_post_meta( $publication_id, "smpi_publication_user", $user_id );
+        update_post_meta( $publication_id, "publication_user", $user_id );
+        update_user_meta( $user_id, "smpi_primary_publication", $publication_id );
+        if ( function_exists( "update_field" ) ) {
+            update_field( "smpi_publication_user", $user_id, $publication_id );
+            update_field( "smpi_primary_publication", $publication_id, "user_" . $user_id );
+        }
+        Settings::log( "Publication mapping synced: publication #" . $publication_id . " to user #" . $user_id );
     }
 
     public function save_page_assignment(): void {
