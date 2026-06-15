@@ -15,6 +15,7 @@ final class Settings {
             'post_time_mode'        => 'native',
             'author_social_cleanup' => true,
             'public_debug_enabled'  => true,
+            'estimated_read_time_enabled' => true,
             'elementor_css_cache_busting' => true,
             'publication_social_cleanup' => true,
             'muckrack_verified_enabled' => true,
@@ -55,7 +56,7 @@ final class Settings {
                 continue;
             }
 
-            if ( in_array( $key, [ 'founders_enabled', 'shadow_press_releases', 'author_social_cleanup', 'public_debug_enabled', 'elementor_css_cache_busting', 'publication_social_cleanup', 'muckrack_verified_enabled', 'press_release_include_enabled' ], true ) ) {
+            if ( in_array( $key, [ 'founders_enabled', 'shadow_press_releases', 'author_social_cleanup', 'public_debug_enabled', 'estimated_read_time_enabled', 'elementor_css_cache_busting', 'publication_social_cleanup', 'muckrack_verified_enabled', 'press_release_include_enabled' ], true ) ) {
                 $settings[ $key ] = (bool) $value;
                 continue;
             }
