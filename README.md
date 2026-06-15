@@ -7,7 +7,7 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.1.0`
+- Version: `0.3.6`
 
 ## Structure
 
@@ -34,4 +34,10 @@ WordPress plugin for Scale My Publication publication profiles.
 
 ## TODO
 
-- Fix the WordPress updater flow: extract or align the GitHub updater connection from HWS Base Tools, confirm the package URL points to the correct `mikeyperes/smp-publication-integration` release/archive, and test the full WordPress Plugins screen update path so `Update failed: The package could not be installed.` does not recur.
+- Fix the WordPress updater flow: verify the GitHub updater connection from HWS Base Tools, confirm the package URL points to the correct `mikeyperes/smp-publication-integration` release/archive, and test the full WordPress Plugins screen update path so `Update failed: The package could not be installed.` does not recur.
+
+## Pending Work Queue
+
+- Feature: optional post ACF field post_summary matching HerForward label Post Summary and ACF key reference field_65ab7ba0e849b; add as a separate SMP setting so sites can opt into registering it on posts.
+- Feature: optional post ACF field post_faqs matching HerForward label Post FAQs and ACF key reference field_65ab7bc1e849c; add as a separate SMP setting so sites can opt into registering it on posts.
+- Feature: table of contents for single posts; add a setting toggle named display table of contents in the single page, add a shortcode for the Elementor/widget area above single.php content, and make the toggle activate that shortcode output.
