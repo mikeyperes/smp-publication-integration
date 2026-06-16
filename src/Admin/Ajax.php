@@ -21,6 +21,7 @@ final class Ajax {
         add_action( "wp_ajax_smpi_save_founder_profiles", [ $this, "save_founder_profiles" ] );
         add_action( 'wp_ajax_smpi_refresh_optimization', [ $this, 'refresh_optimization' ] );
         add_action( 'wp_ajax_smpi_plugin_action', [ $this, 'plugin_action' ] );
+        add_action( 'admin_post_smpi_enable_verified_profile_snippet', [ $this, 'enable_verified_profile_snippet' ] );
     }
 
     public static function nonce(): string {
@@ -37,7 +38,7 @@ final class Ajax {
     public function save_settings(): void {
         $this->guard();
         $changes = [];
-        foreach ( [ 'founders_enabled', 'shadow_press_releases', 'author_social_cleanup', 'public_debug_enabled', 'estimated_read_time_enabled', 'elementor_css_cache_busting', 'publication_social_cleanup', 'muckrack_verified_enabled', 'muckrack_author_always_show', 'publication_muckrack_verified_enabled', 'press_release_include_enabled', 'post_summary_acf_enabled', 'post_faqs_acf_enabled' ] as $key ) {
+        foreach ( [ 'founders_enabled', 'shadow_press_releases', 'author_social_cleanup', 'public_debug_enabled', 'estimated_read_time_enabled', 'elementor_css_cache_busting', 'publication_social_cleanup', 'muckrack_verified_enabled', 'muckrack_author_always_show', 'publication_muckrack_verified_enabled', 'press_release_include_enabled', 'post_summary_acf_enabled', 'post_faqs_acf_enabled', 'table_of_contents_enabled', 'table_of_contents_auto_single', 'rank_math_breadcrumb_check_enabled', 'hws_masked_admin_report_enabled' ] as $key ) {
             if ( isset( $_POST[ $key ] ) ) {
                 $changes[ $key ] = (bool) absint( $_POST[ $key ] );
             }
@@ -52,6 +53,12 @@ final class Ajax {
         }
         if ( isset( $_POST['muckrack_verified_style'] ) ) {
             $changes['muckrack_verified_style'] = sanitize_key( wp_unslash( $_POST['muckrack_verified_style'] ) );
+        }
+        if ( isset( $_POST['muckrack_icon_style'] ) ) {
+            $changes['muckrack_icon_style'] = sanitize_key( wp_unslash( $_POST['muckrack_icon_style'] ) );
+        }
+        if ( isset( $_POST['muckrack_icon_color'] ) ) {
+            $changes['muckrack_icon_color'] = sanitize_hex_color( wp_unslash( $_POST['muckrack_icon_color'] ) );
         }
         if ( isset( $_POST['publication_muckrack_text_mode'] ) ) {
             $changes['publication_muckrack_text_mode'] = sanitize_key( wp_unslash( $_POST['publication_muckrack_text_mode'] ) );
@@ -274,6 +281,22 @@ final class Ajax {
     public function refresh_optimization(): void {
         $this->guard();
         wp_send_json_success( [ 'html' => Dashboard::render_optimization_report_html() ] );
+    }
+
+
+    public function enable_verified_profile_snippet(): void {
+        if ( ! current_user_can( "manage_options" ) ) {
+            wp_die( esc_html__( "Permission denied.", "smp-publication-integration" ) );
+        }
+        check_admin_referer( "smpi_enable_verified_profile_snippet" );
+        $snippet = isset( $_GET["snippet"] ) ? sanitize_key( wp_unslash( $_GET["snippet"] ) ) : "";
+        $allowed = [ "register_profile_custom_post_type", "register_profile_general_acf_fields" ];
+        if ( in_array( $snippet, $allowed, true ) ) {
+            update_option( $snippet, true, false );
+            Settings::log( "Verified Profiles snippet enabled: " . $snippet );
+        }
+        wp_safe_redirect( admin_url( "options-general.php?page=smp-publication-integration&tab=publication_options" ) );
+        exit;
     }
 
     public function plugin_action(): void {

@@ -8,27 +8,27 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class Dependencies {
     public static function required_dependencies(): array {
         return [
-            'hws-base-tools/initialization.php' => [
+            'hws-base-tools/hws-base-tools.php' => [
                 'label'   => 'HWS Base Tools',
                 'message' => 'Required core services for Scale My Publication integrations.',
                 'active'  => self::hws_base_tools_active(),
-            ],
-            'advanced-custom-fields-pro/acf.php' => [
-                'label'   => 'Advanced Custom Fields Pro',
-                'message' => 'Required for publication profile fields, repeaters, relationships, and admin field rendering.',
-                'active'  => self::acf_active(),
             ],
         ];
     }
 
     public static function optional_dependencies(): array {
         return [
+            'advanced-custom-fields-pro/acf.php' => [
+                'label'   => 'Advanced Custom Fields Pro',
+                'message' => 'Recommended for publication option fields, repeaters, relationships, and admin field rendering. SMP still boots without it.',
+                'active'  => self::acf_active(),
+            ],
             'smp-verified-profiles/initialization.php' => [
                 'label'   => 'SMP Verified Profiles',
                 'message' => 'Recommended for founder/person profile binding and profile schema checks.',
                 'active'  => self::sfpf_active(),
             ],
-            'hexa-pr-wire-distributor/initialization.php' => [
+            'hexa-pr-wire-distributor/hexa-pr-wire-distributor.php' => [
                 'label'   => 'Hexa PR Wire Distributor',
                 'message' => 'Recommended when press-release CPT visibility controls are needed.',
                 'active'  => self::hpr_active(),
@@ -77,7 +77,8 @@ final class Dependencies {
     }
 
     public static function hws_base_tools_active(): bool {
-        return self::plugin_active( 'hws-base-tools/initialization.php' )
+        return self::plugin_active( 'hws-base-tools/hws-base-tools.php' )
+            || self::plugin_active( 'hws-base-tools/initialization.php' )
             || defined( 'HWS_BASE_TOOLS_VERSION' )
             || function_exists( 'hws_base_tools\\hws_get_structured_plugin' )
             || function_exists( 'hws_base_tools\\check_plugin_status' );
@@ -87,14 +88,48 @@ final class Dependencies {
         return function_exists( 'acf_add_local_field_group' ) || function_exists( 'acf' ) || class_exists( 'ACF' );
     }
 
-    public static function sfpf_active(): bool {
+
+    public static function verified_profiles_plugin_active(): bool {
         return self::plugin_active( 'smp-verified-profiles/initialization.php' )
-            || post_type_exists( 'profile' )
-            || function_exists( 'smp_verified_profiles\\get_verified_profile_shortcodes' );
+            || function_exists( 'smp_verified_profiles\\get_verified_profile_shortcodes' )
+            || function_exists( 'smp_verified_profiles\\get_snippets' );
+    }
+
+    public static function profile_cpt_active(): bool {
+        return post_type_exists( 'profile' );
+    }
+
+    public static function profile_acf_fields_enabled(): bool {
+        if ( ! self::acf_active() ) {
+            return false;
+        }
+        if ( (bool) get_option( 'register_profile_general_acf_fields', false ) ) {
+            return true;
+        }
+        return function_exists( 'acf_get_field_group' ) && (bool) acf_get_field_group( 'group_656eb036374de' );
+    }
+
+    public static function verified_profiles_ready_for_founders(): bool {
+        return self::verified_profiles_plugin_active() && self::profile_cpt_active() && self::profile_acf_fields_enabled();
+    }
+
+    public static function verified_profiles_readiness(): array {
+        return [
+            'plugin_active' => self::verified_profiles_plugin_active(),
+            'profile_cpt' => self::profile_cpt_active(),
+            'profile_acf' => self::profile_acf_fields_enabled(),
+            'ready' => self::verified_profiles_ready_for_founders(),
+            'settings_url' => admin_url( 'options-general.php?page=smp-verified-profiles' ),
+            'profiles_url' => admin_url( 'edit.php?post_type=profile' ),
+        ];
+    }
+
+    public static function sfpf_active(): bool {
+        return self::verified_profiles_plugin_active() || self::profile_cpt_active();
     }
 
     public static function hpr_active(): bool {
-        return self::plugin_active( 'hexa-pr-wire-distributor/initialization.php' ) || post_type_exists( 'press-release' );
+        return self::plugin_active( 'hexa-pr-wire-distributor/hexa-pr-wire-distributor.php' ) || self::plugin_active( 'hexa-pr-wire-distributor/initialization.php' ) || post_type_exists( 'press-release' );
     }
 
     public static function rank_math_active(): bool {

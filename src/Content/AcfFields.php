@@ -17,29 +17,10 @@ final class AcfFields {
         if ( ! Dependencies::acf_active() ) {
             return;
         }
-        $this->register_publication_options_page();
         $this->register_publication_profile_fields();
         $this->register_muckrack_user_fields();
         $this->register_visibility_fields();
         $this->register_post_header_fields();
-    }
-
-    private function register_publication_options_page(): void {
-        if ( ! function_exists( "acf_add_options_page" ) ) {
-            return;
-        }
-
-        acf_add_options_page(
-            [
-                "page_title" => "SMP Publication Theme Options",
-                "menu_title" => "Publication Theme Options",
-                "menu_slug" => "smpi-publication-options",
-                "parent_slug" => "options-general.php",
-                "capability" => "manage_options",
-                "post_id" => "option",
-                "redirect" => false,
-            ]
-        );
     }
 
     private function register_publication_profile_fields(): void {
@@ -49,10 +30,7 @@ final class AcfFields {
                 'title' => 'SMP Publication Theme Options',
                 'fields' => [
                     [ 'key' => 'field_smpi_publication_user', 'label' => 'Publication User', 'name' => 'smpi_publication_user', 'type' => 'user', 'instructions' => 'Select the WordPress author profile that represents this publication on the front end.', 'return_format' => 'id', 'multiple' => 0 ],
-                    [ 'key' => 'field_smpi_founders', 'label' => 'Founders', 'name' => 'smpi_founders', 'type' => 'relationship', 'instructions' => 'Bind one or more founder person profiles from the SFPF/profile system.', 'post_type' => [ 'profile' ], 'filters' => [ 'search', 'post_type' ], 'elements' => [ 'featured_image' ], 'return_format' => 'id' ],
-                    [ "key" => "field_smpi_founder_profiles", "label" => "Founder Profiles", "name" => "smpi_founder_profiles", "type" => "repeater", "instructions" => "Requires SMP Verified Profiles. Add founder profile records from the profile post type.", "layout" => "row", "button_label" => "Add Founder Profile", "sub_fields" => [
-                        [ "key" => "field_smpi_founder_profiles_profile", "label" => "Founder Profile", "name" => "profile", "type" => "post_object", "post_type" => [ "profile" ], "return_format" => "id", "ui" => 1, "allow_null" => 0, "multiple" => 0 ],
-                    ] ],
+                    [ "key" => "field_smpi_founder_profiles_notice", "label" => "Founder Profiles Setup", "name" => "", "type" => "message", "message" => self::founder_profiles_message(), "esc_html" => 0, "new_lines" => "wpautop" ],
                     [ 'key' => 'field_smpi_mission_statement_override', 'label' => 'Mission Statement Fallback', 'name' => 'smpi_mission_statement_override', 'type' => 'textarea', 'instructions' => 'Shortcodes read existing imported fields such as mission_statement first. Use this only when no imported mission statement exists.', 'rows' => 4, 'new_lines' => 'wpautop' ],
                     [ 'key' => 'field_smpi_publication_summary', 'label' => 'Publication Summary Fallback', 'name' => 'smpi_publication_summary', 'type' => 'textarea', 'instructions' => 'Fallback summary for publication cards and profile shortcodes.', 'rows' => 4, 'new_lines' => 'wpautop' ],
                     [ 'key' => 'field_smpi_publication_website', 'label' => 'Publication Website Fallback', 'name' => 'smpi_publication_website', 'type' => 'url', 'instructions' => 'Fallback URL. Existing imported website/url fields are preferred by shortcodes.' ],
@@ -94,11 +72,30 @@ final class AcfFields {
                     [ 'key' => 'field_smpi_imported_source_url', 'label' => 'Imported Source URL', 'name' => 'smpi_imported_source_url', 'type' => 'url', 'instructions' => 'Reference-only source URL for imported publication records.' ],
                     [ 'key' => 'field_smpi_schema_markup', 'label' => 'Publication Schema Markup', 'name' => 'smpi_schema_markup', 'type' => 'textarea', 'instructions' => 'Generated JSON-LD for the current site publication. Refresh from the Schema tab.', 'rows' => 10, 'readonly' => 1 ],
                 ],
-                "location" => [ [ [ "param" => "options_page", "operator" => "==", "value" => "smpi-publication-options" ] ] ],
+                "location" => [ [ [ "param" => "options_page", "operator" => "==", "value" => "smp-publication-integration" ] ] ],
                 'position' => 'normal',
                 'style' => 'default',
             ]
         );
+    }
+
+
+    private static function founder_profiles_message(): string {
+        $state = Dependencies::verified_profiles_readiness();
+        $lines = [];
+        $lines[] = ! empty( $state["plugin_active"] ) ? "GREEN CHECK Verified Profiles plugin is active." : "RED X Verified Profiles plugin is not active.";
+        $lines[] = ! empty( $state["profile_cpt"] ) ? "GREEN CHECK Profile content type is active." : "RED X Profile content type is not active.";
+        $lines[] = ! empty( $state["profile_acf"] ) ? "GREEN CHECK Profile ACF fields are enabled." : "RED X Profile ACF fields are not enabled.";
+        $message = "Founder selection is managed in the SMP Overview tab. The selector appears only when all three checks pass.<br>" . implode( "<br>", array_map( "esc_html", $lines ) );
+        $actions = [];
+        $actions[] = "<a class=button target=_blank rel=noopener href=" . esc_url( $state["settings_url"] ) . ">Open Verified Profiles settings</a>";
+        if ( empty( $state["profile_cpt"] ) ) {
+            $actions[] = "<a class=button-primary href=" . esc_url( wp_nonce_url( admin_url( "admin-post.php?action=smpi_enable_verified_profile_snippet&snippet=register_profile_custom_post_type" ), "smpi_enable_verified_profile_snippet" ) ) . ">Enable profile content type</a>";
+        }
+        if ( empty( $state["profile_acf"] ) ) {
+            $actions[] = "<a class=button-primary href=" . esc_url( wp_nonce_url( admin_url( "admin-post.php?action=smpi_enable_verified_profile_snippet&snippet=register_profile_general_acf_fields" ), "smpi_enable_verified_profile_snippet" ) ) . ">Enable profile ACF fields</a>";
+        }
+        return $message . "<p>" . implode( " ", $actions ) . "</p>";
     }
 
     private function register_post_header_fields(): void {

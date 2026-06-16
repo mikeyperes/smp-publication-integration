@@ -44,7 +44,7 @@ final class Schema {
                     [
                         "title" => get_bloginfo( "name" ),
                         "schema" => $schema,
-                        "admin_link" => admin_url( "options-general.php?page=smpi-publication-options" ),
+                        "admin_link" => admin_url( "options-general.php?page=smp-publication-integration&tab=publication_options" ),
                         "view_link" => home_url( "/" ),
                         "validator_link" => "https://validator.schema.org/#url=" . rawurlencode( home_url( "/" ) ),
                     ],

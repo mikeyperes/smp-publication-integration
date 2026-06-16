@@ -22,6 +22,8 @@ final class Settings {
             'muckrack_author_always_show' => false,
             'muckrack_verified_contexts' => [ 'single_author', 'single_footer', 'author', 'home' ],
             'muckrack_verified_style' => 'tooltip',
+            'muckrack_icon_color' => '#2d5277',
+            'muckrack_icon_style' => 'circle_check',
             'publication_muckrack_verified_enabled' => false,
             'publication_muckrack_text_mode' => 'news_outlet',
             'publication_muckrack_placements' => [ 'bottom_article' ],
@@ -29,6 +31,10 @@ final class Settings {
             'press_release_include_contexts' => [ 'home', 'category_tag', 'author', 'single_recent' ],
             'post_summary_acf_enabled' => false,
             'post_faqs_acf_enabled' => false,
+            'table_of_contents_enabled' => false,
+            'table_of_contents_auto_single' => false,
+            'rank_math_breadcrumb_check_enabled' => true,
+            'hws_masked_admin_report_enabled' => true,
             'system_publication_user_id' => 0,
             'page_assignments'      => [],
             'page_templates'        => self::default_page_templates(),
@@ -68,7 +74,7 @@ final class Settings {
                 continue;
             }
 
-            if ( in_array( $key, [ 'founders_enabled', 'shadow_press_releases', 'author_social_cleanup', 'public_debug_enabled', 'estimated_read_time_enabled', 'elementor_css_cache_busting', 'publication_social_cleanup', 'muckrack_verified_enabled', 'muckrack_author_always_show', 'publication_muckrack_verified_enabled', 'press_release_include_enabled', 'post_summary_acf_enabled', 'post_faqs_acf_enabled' ], true ) ) {
+            if ( in_array( $key, [ 'founders_enabled', 'shadow_press_releases', 'author_social_cleanup', 'public_debug_enabled', 'estimated_read_time_enabled', 'elementor_css_cache_busting', 'publication_social_cleanup', 'muckrack_verified_enabled', 'muckrack_author_always_show', 'publication_muckrack_verified_enabled', 'press_release_include_enabled', 'post_summary_acf_enabled', 'post_faqs_acf_enabled', 'table_of_contents_enabled', 'table_of_contents_auto_single', 'rank_math_breadcrumb_check_enabled', 'hws_masked_admin_report_enabled' ], true ) ) {
                 $settings[ $key ] = (bool) $value;
                 continue;
             }
@@ -76,6 +82,18 @@ final class Settings {
             if ( 'muckrack_verified_style' === $key ) {
                 $allowed = [ 'tooltip', 'text' ];
                 $settings[ $key ] = in_array( $value, $allowed, true ) ? $value : 'tooltip';
+                continue;
+            }
+
+            if ( 'muckrack_icon_style' === $key ) {
+                $allowed = [ 'circle_check', 'check' ];
+                $settings[ $key ] = in_array( $value, $allowed, true ) ? $value : 'circle_check';
+                continue;
+            }
+
+            if ( 'muckrack_icon_color' === $key ) {
+                $color = sanitize_hex_color( (string) $value );
+                $settings[ $key ] = $color ?: '#2d5277';
                 continue;
             }
 

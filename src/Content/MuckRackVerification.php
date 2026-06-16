@@ -31,7 +31,7 @@ final class MuckRackVerification {
             return;
         }
 
-        echo "<style id=\"smpi-muckrack-styles\">.smpi-muckrack-icon{display:inline-flex;align-items:center;justify-content:center;margin-left:.28em;color:var(--e-global-color-primary,#2d5277);vertical-align:middle}.smpi-muckrack-link{text-decoration:none}.smpi-muckrack-brand{color:#2d5277;font-weight:700}.smpi-muckrack-footer-note{margin:24px 0 0;padding:12px 14px;border-left:3px solid #2d5277;background:#f5f8fb;font-size:.95em}.smpi-muckrack-publication-note{display:block;margin:.35em 0 0;font-size:.92em;line-height:1.35;color:#334155}.smpi-muckrack-publication-footer{margin:24px 0 0;padding:12px 14px;border-left:3px solid #2d5277;background:#f5f8fb;font-size:.95em}</style>";
+        echo "<style id=smpi-muckrack-styles>.smpi-muckrack-icon-circle,.smpi-muckrack-icon-check{display:inline-flex;align-items:center;justify-content:center;margin-left:.28em;vertical-align:middle;font-weight:700;line-height:1}.smpi-muckrack-icon-circle{width:1.08em;height:1.08em;border:1px solid currentColor;border-radius:999px;font-size:.78em}.smpi-muckrack-link{text-decoration:none}.smpi-muckrack-brand{color:#2d5277;font-weight:700}.smpi-muckrack-footer-note{margin:24px 0 0;padding:12px 14px;border-left:3px solid #2d5277;background:#f5f8fb;font-size:.95em}.smpi-muckrack-publication-note{display:block;margin:.35em 0 0;font-size:.92em;line-height:1.35;color:#334155}.smpi-muckrack-publication-footer{margin:24px 0 0;padding:12px 14px;border-left:3px solid #2d5277;background:#f5f8fb;font-size:.95em}</style>";
     }
 
     public function render_author_field_shortcode( array $atts = [] ): string {
@@ -153,17 +153,21 @@ final class MuckRackVerification {
         return self::author_acf_verified( $author_id ) || Settings::bool( "muckrack_author_always_show" );
     }
 
+
     public static function verification_icon( int $author_id, string $style = "tooltip" ): string {
         if ( ! self::author_verified( $author_id ) ) {
             return "";
         }
-        $url = esc_url( (string) self::author_field( $author_id, self::FIELD_URL ) );
-        $label = esc_attr( "Verified by MuckRack editorial team" );
-        $icon = "<span class=\"smpi-muckrack-icon\" title=\"" . $label . "\" aria-label=\"" . $label . "\"><i aria-hidden=\"true\" class=\"fas fa-check-circle\"></i></span>";
         if ( "text" === $style ) {
             return self::verification_text( $author_id );
         }
-        return $url ? "<a class=\"smpi-muckrack-link\" href=\"" . $url . "\" target=\"_blank\" rel=\"noopener noreferrer\">" . $icon . "</a>" : $icon;
+        $url = esc_url( (string) self::author_field( $author_id, self::FIELD_URL ) );
+        $label = esc_attr( "Verified by MuckRack editorial team" );
+        $color = sanitize_hex_color( (string) Settings::get( "muckrack_icon_color", "#2d5277" ) ) ?: "#2d5277";
+        $icon_style = "check" === (string) Settings::get( "muckrack_icon_style", "circle_check" ) ? "smpi-muckrack-icon-check" : "smpi-muckrack-icon-circle";
+        $quote = chr( 34 );
+        $icon = "<span class=" . $quote . esc_attr( $icon_style ) . $quote . " title=" . $quote . $label . $quote . " aria-label=" . $quote . $label . $quote . " style=" . $quote . "color:" . esc_attr( $color ) . $quote . ">&#10003;</span>";
+        return $url ? "<a class=smpi-muckrack-link href=" . $quote . $url . $quote . " target=_blank rel=noopener>" . $icon . "</a>" : $icon;
     }
 
     public static function verification_text( int $author_id ): string {

@@ -7,7 +7,7 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.4.7`
+- Version: `0.4.8`
 
 ## Structure
 
@@ -61,23 +61,34 @@ WordPress plugin for Scale My Publication publication profiles.
 
 - Added a plugin-registered Publication Theme Options quotes repeater with quote, name, and title subfields.
 
+
+## 0.4.8 Updates
+
+- Moved publication/theme option fields into `Settings > SMP Publication Integration > Publication Options` and removed the standalone `smpi-publication-options` ACF settings page registration.
+- Changed ACF from a hard required dependency to a recommended dependency; SMP still boots without ACF and shows admin guidance where fields are unavailable.
+- Added Verified Profiles readiness checks for founder selection: plugin active, Profile content type active, and Profile ACF fields enabled.
+- Redesigned the Features tab cards with enable/disable toggles, checkbox-card placement controls, MuckRack icon color/style controls, Table of Contents controls, and feature-specific activity logs.
+- Added `[smp_table_of_contents]` plus optional automatic single-post Table of Contents insertion above content.
+- Added a Brand tab that reports HWS Base Tools highlight background/text colors and links to the HWS Brand Assets editor.
+- Changed settings tabs to server-render only the active tab so ACF forms and heavy controls do not load on unrelated tabs.
+- Fixed the MuckRack verified authors feature report to use a full-width responsive proof section instead of overflowing the card grid.
+- Expanded the Integrations catalog to include Hexa PR Wire, SMP Publication Integration, SMP Core Podcast Integration, SMP Verified Profiles, SMP Contributor Network, and SFPF Person Profile Integration.
+- Fixed dependency detection for live HWS Base Tools and Hexa PR Wire installs whose active plugin files use slug-matched main files instead of `initialization.php`.
+- Updated Integrations reporting to display full `https://github.com/...` repository URLs instead of only repository slugs.
+
 ## 0.4.7 Updates
 
 - Added opt-in post ACF add-ons for Post Summary and Post FAQs with independent AJAX feature toggles.
 - Registers the supplied Post - Header ACF group on post and imported-news only when at least one add-on toggle is enabled.
 
 ## Pending Work Queue
+- Features tab / MuckRack verified authors: re-check narrower responsive widths after the full-width report fix and clean up any remaining status-label wrapping if it appears.
 
 - Dependency UX: in the Founder Profiles options area, detect whether SMP Verified Profiles is active, whether the `profile` CPT is registered by `register_profile_custom_post_type`, and whether the Verified Profiles ACF/profile field structures are enabled. Show a clear disclaimer with status rows and direct links to the Verified Profiles Snippets tab to activate missing pieces.
-- Admin consolidation: remove the standalone `options-general.php?page=smpi-publication-options` Publication Theme Options page from the visible Settings menu and render the publication ACF fields inside `Settings > SMP Publication Integration`. Preserve existing option field names and saved values.
 - Admin tab: add a `Brand` tab that reads HWS Base Tools brand assets/highlight colors for display and includes an edit link to `options-general.php?page=hws-core-tools&tab=brand-assets`.
 - Integrations tab: expand plugin reporting with plugin name, expected slug, GitHub URL, installed status, active status, local version, repository version, update state, and AJAX refresh per plugin.
 - Integrations tab: add AJAX download/install/activate flow for missing plugins with a real-time task-specific activity log.
 - Integrations tab plugin list: `mikeyperes/hexa-pr-wire-distributor`, `mikeyperes/smp-publication-integration`, `mikeyperes/smp-core-podcast-integration`, `mikeyperes/smp-verified-profiles`, `mikeyperes/smp-contributor-network`, and `mikeyperes/sfpf-person-profile-integration`.
-- Features tab: redesign every feature card. Replace checkmark-style pseudo controls with real enable/disable toggles wherever the feature can be enabled or disabled.
-- Features tab: replace native multi-select controls with clearer placement/context selectors such as chips, segmented controls, or checkbox cards.
-- Features tab: make activity logs task-specific to each feature card. Do not show unrelated global settings activity inside cards like Rank Math breadcrumb check.
-- Features tab: redesign the full card layout so controls, custom ACF adjustments, instructions, code examples, test proof, and activity are visually separated and easier to scan.
 - MuckRack verified authors: add an icon color picker.
 - MuckRack verified authors: add an icon style chooser with visual selectable previews for `circle with check inside` and `plain check`.
 - MuckRack verified authors: replace the native style dropdown with a UI that shows what `Tooltip icon` and `Inline text` look like before selection.
