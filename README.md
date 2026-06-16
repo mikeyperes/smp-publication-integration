@@ -7,7 +7,7 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.5.0`
+- Version: `0.5.1`
 
 ## Structure
 
@@ -62,6 +62,11 @@ WordPress plugin for Scale My Publication publication profiles.
 - Added a plugin-registered Publication Theme Options quotes repeater with quote, name, and title subfields.
 
 
+## 0.5.1 Updates
+
+- Added AJAX-loaded admin settings tabs so switching SMP tabs swaps server-rendered tab content without a full WordPress page reload.
+- Added the Shortcodes tab dynamic user selector/request to the Pending Work Queue.
+
 ## 0.5.0 Updates
 
 - Changed Publication Pages starter/template text fields from plain textareas to WordPress WYSIWYG editors.
@@ -93,6 +98,7 @@ WordPress plugin for Scale My Publication publication profiles.
 - Registers the supplied Post - Header ACF group on post and imported-news only when at least one add-on toggle is enabled.
 
 ## Pending Work Queue
+- Shortcodes tab: add a dynamic user selector that loads one row per shortcode/field with the selected user, the exact shortcode, and the rendered shortcode value for that user.
 - Features tab / MuckRack verified authors: re-check narrower responsive widths after the full-width report fix and clean up any remaining status-label wrapping if it appears.
 
 - Dependency UX: in the Founder Profiles options area, detect whether SMP Verified Profiles is active, whether the `profile` CPT is registered by `register_profile_custom_post_type`, and whether the Verified Profiles ACF/profile field structures are enabled. Show a clear disclaimer with status rows and direct links to the Verified Profiles Snippets tab to activate missing pieces.

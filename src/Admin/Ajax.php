@@ -13,6 +13,7 @@ final class Ajax {
     public const NONCE = 'smpi_admin';
 
     public function register(): void {
+        add_action( 'wp_ajax_smpi_load_tab', [ $this, 'load_tab' ] );
         add_action( 'wp_ajax_smpi_save_settings', [ $this, 'save_settings' ] );
         add_action( 'wp_ajax_smpi_save_page_assignment', [ $this, 'save_page_assignment' ] );
         add_action( "wp_ajax_smpi_create_page_assignment", [ $this, "create_page_assignment" ] );
@@ -33,6 +34,13 @@ final class Ajax {
             wp_send_json_error( [ 'message' => 'Permission denied.' ], 403 );
         }
         check_ajax_referer( self::NONCE, 'nonce' );
+    }
+
+    public function load_tab(): void {
+        $this->guard();
+        $tab = isset( $_POST["tab"] ) ? sanitize_key( wp_unslash( $_POST["tab"] ) ) : "overview";
+        $dashboard = new Dashboard();
+        wp_send_json_success( $dashboard->tab_fragment( $tab ) );
     }
 
     public function save_settings(): void {
