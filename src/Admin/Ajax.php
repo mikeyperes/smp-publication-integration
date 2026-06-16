@@ -34,7 +34,7 @@ final class Ajax {
     public function save_settings(): void {
         $this->guard();
         $changes = [];
-        foreach ( [ 'founders_enabled', 'shadow_press_releases', 'author_social_cleanup', 'public_debug_enabled', 'estimated_read_time_enabled', 'elementor_css_cache_busting', 'publication_social_cleanup', 'muckrack_verified_enabled', 'press_release_include_enabled' ] as $key ) {
+        foreach ( [ 'founders_enabled', 'shadow_press_releases', 'author_social_cleanup', 'public_debug_enabled', 'estimated_read_time_enabled', 'elementor_css_cache_busting', 'publication_social_cleanup', 'muckrack_verified_enabled', 'muckrack_author_always_show', 'publication_muckrack_verified_enabled', 'press_release_include_enabled' ] as $key ) {
             if ( isset( $_POST[ $key ] ) ) {
                 $changes[ $key ] = (bool) absint( $_POST[ $key ] );
             }
@@ -50,9 +50,12 @@ final class Ajax {
         if ( isset( $_POST['muckrack_verified_style'] ) ) {
             $changes['muckrack_verified_style'] = sanitize_key( wp_unslash( $_POST['muckrack_verified_style'] ) );
         }
-        foreach ( [ 'muckrack_verified_contexts', 'press_release_include_contexts' ] as $array_key ) {
-            if ( isset( $_POST[ $array_key ] ) ) {
-                $raw = wp_unslash( $_POST[ $array_key ] );
+        if ( isset( $_POST['publication_muckrack_text_mode'] ) ) {
+            $changes['publication_muckrack_text_mode'] = sanitize_key( wp_unslash( $_POST['publication_muckrack_text_mode'] ) );
+        }
+        foreach ( [ 'muckrack_verified_contexts', 'publication_muckrack_placements', 'press_release_include_contexts' ] as $array_key ) {
+            if ( isset( $_POST[ $array_key ] ) || isset( $_POST[ $array_key . '_present' ] ) ) {
+                $raw = isset( $_POST[ $array_key ] ) ? wp_unslash( $_POST[ $array_key ] ) : [];
                 $changes[ $array_key ] = is_array( $raw ) ? array_map( 'sanitize_key', $raw ) : [];
             }
         }

@@ -235,7 +235,10 @@ final class Dashboard {
         $settings = Settings::all();
         echo "<div class=\"smpi-hero\"><p class=\"smpi-kicker\">Features</p><h2>Feature controls, implementation notes, code examples, live test reports, and activity logs.</h2><p>Each feature is isolated behind settings so it can be enabled, tested, or removed without mixing concerns.</p></div>";
         $this->feature_card( "Elementor CSS cache busting", "elementor_css_cache_busting", "No custom ACF fields needed.", "Adds filemtime mv_css query args only to Elementor upload CSS files under /wp-content/uploads/elementor/css/. This prevents stale Elementor CSS after rebuilds without touching global assets.", "add_filter(\"style_loader_src\",function(\$src){if(false===strpos(\$src,\"/wp-content/uploads/elementor/css/\"))return \$src;\$path=wp_parse_url(\$src,PHP_URL_PATH);\$file=ABSPATH.ltrim(\$path,\"/\");return is_readable(\$file)?add_query_arg(\"mv_css\",filemtime(\$file),\$src):\$src;},9999,1);", $this->elementor_css_report_html(), $this->activity_log_html() );
-        $this->feature_card( "MuckRack verified authors", "muckrack_verified_enabled", "Registers user ACF fields: muckrack_verified, muckrack_url, what_best_describe_you.", "Provides [acf_author_field] and [muckrack_verified]. Auto placement can be enabled for single header author mentions, single footer mentions, homepage author mentions, and author.php. Tooltip style keeps the badge small; text style renders the verification sentence.", "[muckrack_verified type=\"icon\" user_id=\"54\"]\n[muckrack_verified type=\"text\" user_id=\"54\"]\n[acf_author_field field=\"muckrack_url\" user_id=\"54\"]", $this->muckrack_report_html(), $this->activity_log_html(), $this->context_select_html( "muckrack_verified_contexts", [ "single_author" => "single.php header author mention", "single_footer" => "single.php footer mention", "home" => "Home page author mention", "author" => "author.php author mention" ], $settings ) . $this->select_setting_html( "muckrack_verified_style", [ "tooltip" => "Tooltip icon", "text" => "Inline text" ], $settings ) );
+        $author_muckrack_controls = $this->context_select_html( "muckrack_verified_contexts", [ "single_author" => "single.php header author mention", "single_footer" => "single.php footer mention", "home" => "Home page author mention", "author" => "author.php author mention" ], $settings ) . $this->select_setting_html( "muckrack_verified_style", [ "tooltip" => "Tooltip icon", "text" => "Inline text" ], $settings ) . $this->inline_toggle_setting_html( "muckrack_author_always_show", "Always show for every author" );
+        $this->feature_card( "MuckRack verified authors", "muckrack_verified_enabled", "Registers user ACF fields: muckrack_verified, muckrack_url, what_best_describe_you.", "Provides [acf_author_field] and [muckrack_verified]. Auto placement can be enabled for single header author mentions, single footer mentions, homepage author mentions, and author.php. Tooltip style keeps the badge small; text style renders the verification sentence. The override can force the effective author badge for every author even when the individual ACF checkbox is empty.", "[muckrack_verified type=\"icon\" user_id=\"54\"]\n[muckrack_verified type=\"text\" user_id=\"54\"]\n[acf_author_field field=\"muckrack_url\" user_id=\"54\"]", $this->muckrack_report_html(), $this->activity_log_html(), $author_muckrack_controls );
+        $publication_muckrack_controls = $this->select_setting_html( "publication_muckrack_text_mode", [ "news_outlet" => "News outlet verified by MuckRack editorial team", "publication_name" => get_bloginfo( "name" ) . " verified by MuckRack editorial team" ], $settings, "Text option" ) . $this->context_select_html( "publication_muckrack_placements", [ "below_author" => "Below author", "bottom_article" => "Bottom of article" ], $settings );
+        $this->feature_card( "MuckRack verified publication", "publication_muckrack_verified_enabled", "Registers site option ACF fields on Publication Theme Options: smpi_publication_muckrack_verified and smpi_publication_muckrack_url.", "Displays publication-level MuckRack verification text separately from journalist verification. Use this for the site/news-outlet claim, not the author badge.", "[smp_publication_muckrack_verified]", $this->publication_muckrack_report_html(), $this->activity_log_html(), $publication_muckrack_controls );
         $this->feature_card( "Press-release inclusion controls", "press_release_include_enabled", "Uses existing press-release CPT and _smpi_pr_shadow_override meta. ACF/local fields are registered for force include or force exclude.", "Includes Hexa PR Wire press-release posts in selected blog-like loops: home, category/tag, author.php, and single.php recent article secondary queries. Force exclude is honored through the press-release visibility meta box.", "add_action(\"pre_get_posts\", function (WP_Query \$q) { /* SMP uses the same main-query guard pattern and selected contexts. */ });", $this->press_release_report_html(), $this->activity_log_html(), $this->context_select_html( "press_release_include_contexts", [ "home" => "Home page", "category_tag" => "Category and tag pages", "author" => "author.php", "single_recent" => "single.php recent article queries" ], $settings ) );
         $this->feature_card( "Estimated read time", "estimated_read_time_enabled", "No custom ACF fields needed. Reads the selected post content directly.", "Calculates reading time from post_content after stripping HTML and shortcodes. The shortcode returns a plain numeric value in minutes by default or seconds when unit=seconds is passed.", "[smp_estimated_read_time]\n[smp_estimated_read_time unit=\"seconds\"]\n[smp_estimated_read_time post_id=\"123\" unit=\"minutes\"]", $this->estimated_read_time_report_html(), $this->activity_log_html() );
         $this->feature_card( "Author social icons", "author_social_cleanup", "No ACF changes. Reads rendered Elementor/social-icon anchors.", "Runs only on single posts and author archives. Empty social anchors are hidden when href is missing, blank, hash, or javascript. Fully empty Elementor social wrappers are collapsed.", "No shortcode needed. Toggle this feature on and inspect single.php or author.php social widgets.", $this->simple_status_html( Settings::bool( "author_social_cleanup" ), "Cleanup script active on single posts and author archives only." ), $this->activity_log_html() );
@@ -261,6 +264,11 @@ final class Dashboard {
         return "<label><input class=\"smpi-setting\" type=\"checkbox\" data-key=\"" . esc_attr( $key ) . "\" value=\"1\" " . checked( $enabled, true, false ) . "> Enabled</label><span class=\"spinner\"></span><span class=\"smpi-save-state\"></span>";
     }
 
+    private function inline_toggle_setting_html( string $key, string $label ): string {
+        $enabled = Settings::bool( $key );
+        return "<p><label><input class=\"smpi-setting\" type=\"checkbox\" data-key=\"" . esc_attr( $key ) . "\" value=\"1\" " . checked( $enabled, true, false ) . "> " . esc_html( $label ) . "</label><span class=\"spinner\"></span><span class=\"smpi-save-state\"></span></p>";
+    }
+
     private function context_select_html( string $key, array $options, array $settings ): string {
         $selected = isset( $settings[ $key ] ) && is_array( $settings[ $key ] ) ? $settings[ $key ] : [];
         $html = "<p><strong>Placement contexts</strong></p><select class=\"smpi-setting\" data-key=\"" . esc_attr( $key ) . "\" multiple size=\"" . esc_attr( (string) min( 6, max( 2, count( $options ) ) ) ) . "\">";
@@ -270,9 +278,9 @@ final class Dashboard {
         return $html . "</select><span class=\"spinner\"></span><span class=\"smpi-save-state\"></span>";
     }
 
-    private function select_setting_html( string $key, array $options, array $settings ): string {
+    private function select_setting_html( string $key, array $options, array $settings, string $label = "Style" ): string {
         $current = isset( $settings[ $key ] ) ? (string) $settings[ $key ] : "";
-        $html = "<p><strong>Style</strong></p><select class=\"smpi-setting\" data-key=\"" . esc_attr( $key ) . "\">";
+        $html = "<p><strong>" . esc_html( $label ) . "</strong></p><select class=\"smpi-setting\" data-key=\"" . esc_attr( $key ) . "\">";
         foreach ( $options as $value => $label ) {
             $html .= "<option value=\"" . esc_attr( $value ) . "\"" . selected( $current, $value, false ) . ">" . esc_html( $label ) . "</option>";
         }
@@ -306,11 +314,25 @@ final class Dashboard {
 
     private function muckrack_report_html(): string {
         $rows = \smp_publication_integration\Content\MuckRackVerification::integrity_report( 10 );
-        $html = $this->simple_status_html( Settings::bool( "muckrack_verified_enabled" ), "Top 10 authors by published posts checked for MuckRack ACF/user fields." );
-        $html .= "<table class=\"widefat striped\"><thead><tr><th>User</th><th>Posts</th><th>Verified</th><th>URL</th><th>Description</th></tr></thead><tbody>";
+        $forced = Settings::bool( "muckrack_author_always_show" );
+        $html = $this->simple_status_html( Settings::bool( "muckrack_verified_enabled" ), "Top 10 authors by published posts checked for MuckRack ACF/user fields. Always-show override: " . ( $forced ? "on" : "off" ) . "." );
+        $html .= "<table class=\"widefat striped\"><thead><tr><th>User</th><th>Posts</th><th>ACF verified</th><th>Effective</th><th>Forced</th><th>URL</th><th>Description</th></tr></thead><tbody>";
         foreach ( $rows as $row ) {
-            $html .= "<tr><td>" . esc_html( $row["display_name"] ) . " (#" . esc_html( (string) $row["user_id"] ) . ")</td><td>" . esc_html( (string) $row["posts"] ) . "</td><td>" . ( $row["verified"] ? "GREEN CHECK" : "YELLOW !" ) . "</td><td>" . ( $row["has_url"] ? "GREEN CHECK" : "YELLOW !" ) . "</td><td>" . ( $row["has_description"] ? "GREEN CHECK" : "YELLOW !" ) . "</td></tr>";
+            $html .= "<tr><td>" . esc_html( $row["display_name"] ) . " (#" . esc_html( (string) $row["user_id"] ) . ")</td><td>" . esc_html( (string) $row["posts"] ) . "</td><td>" . ( $row["acf_verified"] ? "GREEN CHECK" : "YELLOW !" ) . "</td><td>" . ( $row["verified"] ? "GREEN CHECK" : "YELLOW !" ) . "</td><td>" . ( $row["forced"] ? "YES" : "NO" ) . "</td><td>" . ( $row["has_url"] ? "GREEN CHECK" : "YELLOW !" ) . "</td><td>" . ( $row["has_description"] ? "GREEN CHECK" : "YELLOW !" ) . "</td></tr>";
         }
+        return $html . "</tbody></table>";
+    }
+
+    private function publication_muckrack_report_html(): string {
+        $report = \smp_publication_integration\Content\MuckRackVerification::publication_report();
+        $placements = ! empty( $report["placements"] ) ? implode( ", ", array_map( "sanitize_key", (array) $report["placements"] ) ) : "none selected";
+        $html = $this->simple_status_html( ! empty( $report["effective"] ), "Feature toggle: " . ( ! empty( $report["enabled"] ) ? "on" : "off" ) . ". Publication ACF verified: " . ( ! empty( $report["acf_verified"] ) ? "yes" : "no" ) . "." );
+        $html .= "<table class=\"widefat striped\"><tbody>";
+        $html .= "<tr><th>Text option</th><td><code>" . esc_html( (string) $report["text_mode"] ) . "</code></td></tr>";
+        $html .= "<tr><th>Placement</th><td>" . esc_html( $placements ) . "</td></tr>";
+        $html .= "<tr><th>MuckRack URL</th><td>" . ( "" !== $report["url"] ? esc_html( (string) $report["url"] ) : "YELLOW ! Missing optional URL." ) . "</td></tr>";
+        $html .= "<tr><th>Shortcode</th><td><code>" . esc_html( (string) $report["shortcode"] ) . "</code></td></tr>";
+        $html .= "<tr><th>Preview</th><td>" . ( "" !== $report["preview"] ? esc_html( (string) $report["preview"] ) : "YELLOW ! Enable feature and verify publication ACF to render preview." ) . "</td></tr>";
         return $html . "</tbody></table>";
     }
 
@@ -468,7 +490,7 @@ final class Dashboard {
         <script>
         window.smpiAdmin={ajaxUrl:ajaxurl,nonce:<?php echo wp_json_encode( Ajax::nonce() ); ?>};
         jQuery(function($){
-            function saveSetting(e, done){var k=e.data(`key`),d={action:`smpi_save_settings`,nonce:smpiAdmin.nonce};d[k]=e.is(`:checkbox`)?(e.is(`:checked`)?1:0):e.val();var r=e.closest(`td,.smpi-user-picker`);r.find(`.spinner`).addClass(`is-active`);$.post(smpiAdmin.ajaxUrl,d).done(function(x){r.find(`.smpi-save-state`).text(x.success?` Saved`:` Error`);if(done)done(x)}).always(function(){r.find(`.spinner`).removeClass(`is-active`)})}
+            function saveSetting(e, done){var k=e.data(`key`),d={action:`smpi_save_settings`,nonce:smpiAdmin.nonce},v=e.is(`:checkbox`)?(e.is(`:checked`)?1:0):e.val();d[k]=v;if(e.is(`select[multiple]`))d[k+`_present`]=1;var r=e.closest(`td,.smpi-user-picker`);r.find(`.spinner`).addClass(`is-active`);$.post(smpiAdmin.ajaxUrl,d).done(function(x){r.find(`.smpi-save-state`).text(x.success?` Saved`:` Error`);if(done)done(x)}).always(function(){r.find(`.spinner`).removeClass(`is-active`)})}
             $(`.smpi-tab-btn`).on(`click`,function(){var t=$(this).data(`tab`);$(`.smpi-tab-btn`).removeClass(`active`);$(this).addClass(`active`);$(`.smpi-tab-content`).removeClass(`active`);$(`#smpi-tab-`+t).addClass(`active`);if(window.history&&window.URL){var u=new URL(window.location.href);u.searchParams.set(`tab`,t);window.history.replaceState({},``,u.toString())}});
             $(document).on(`change`,`.smpi-setting`,function(){saveSetting($(this))});
             var userTimer=null;

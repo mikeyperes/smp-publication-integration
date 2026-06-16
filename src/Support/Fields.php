@@ -135,6 +135,15 @@ final class Fields {
                 "google_news_url",
                 "smpi_google_news_url",
             ],
+            "publication_muckrack_verified" => [
+                "publication_muckrack_verified",
+                "smpi_publication_muckrack_verified",
+            ],
+            "publication_muckrack_url" => [
+                "publication_muckrack_url",
+                "smpi_publication_muckrack_url",
+                "muckrack_url",
+            ],
         ];
     }
 

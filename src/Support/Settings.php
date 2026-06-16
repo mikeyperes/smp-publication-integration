@@ -19,8 +19,12 @@ final class Settings {
             'elementor_css_cache_busting' => true,
             'publication_social_cleanup' => true,
             'muckrack_verified_enabled' => true,
+            'muckrack_author_always_show' => false,
             'muckrack_verified_contexts' => [ 'single_author', 'single_footer', 'author', 'home' ],
             'muckrack_verified_style' => 'tooltip',
+            'publication_muckrack_verified_enabled' => false,
+            'publication_muckrack_text_mode' => 'news_outlet',
+            'publication_muckrack_placements' => [ 'bottom_article' ],
             'press_release_include_enabled' => true,
             'press_release_include_contexts' => [ 'home', 'category_tag', 'author', 'single_recent' ],
             'system_publication_user_id' => 0,
@@ -62,7 +66,7 @@ final class Settings {
                 continue;
             }
 
-            if ( in_array( $key, [ 'founders_enabled', 'shadow_press_releases', 'author_social_cleanup', 'public_debug_enabled', 'estimated_read_time_enabled', 'elementor_css_cache_busting', 'publication_social_cleanup', 'muckrack_verified_enabled', 'press_release_include_enabled' ], true ) ) {
+            if ( in_array( $key, [ 'founders_enabled', 'shadow_press_releases', 'author_social_cleanup', 'public_debug_enabled', 'estimated_read_time_enabled', 'elementor_css_cache_busting', 'publication_social_cleanup', 'muckrack_verified_enabled', 'muckrack_author_always_show', 'publication_muckrack_verified_enabled', 'press_release_include_enabled' ], true ) ) {
                 $settings[ $key ] = (bool) $value;
                 continue;
             }
@@ -73,8 +77,21 @@ final class Settings {
                 continue;
             }
 
+            if ( 'publication_muckrack_text_mode' === $key ) {
+                $allowed = [ 'news_outlet', 'publication_name' ];
+                $settings[ $key ] = in_array( $value, $allowed, true ) ? $value : 'news_outlet';
+                continue;
+            }
+
             if ( 'muckrack_verified_contexts' === $key ) {
                 $allowed = [ 'single_author', 'single_footer', 'author', 'home' ];
+                $items = is_array( $value ) ? array_map( 'sanitize_key', $value ) : [];
+                $settings[ $key ] = array_values( array_intersect( $allowed, $items ) );
+                continue;
+            }
+
+            if ( 'publication_muckrack_placements' === $key ) {
+                $allowed = [ 'below_author', 'bottom_article' ];
                 $items = is_array( $value ) ? array_map( 'sanitize_key', $value ) : [];
                 $settings[ $key ] = array_values( array_intersect( $allowed, $items ) );
                 continue;
