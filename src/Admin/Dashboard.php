@@ -16,10 +16,24 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class Dashboard {
     public function register(): void {
         add_action( 'admin_menu', [ $this, 'add_settings_page' ] );
+        add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_admin_assets' ] );
     }
 
     public function add_settings_page(): void {
         add_options_page( Config::$settings_page_name, Config::$settings_page_name, Config::$settings_page_capability, Config::$settings_page_slug, [ $this, 'render' ] );
+    }
+
+    public function enqueue_admin_assets(): void {
+        $page = isset( $_GET["page"] ) ? sanitize_key( wp_unslash( $_GET["page"] ) ) : "";
+        if ( Config::$settings_page_slug !== $page ) {
+            return;
+        }
+
+        $tab = isset( $_GET["tab"] ) ? sanitize_key( wp_unslash( $_GET["tab"] ) ) : "overview";
+        if ( "pages" === $tab ) {
+            wp_enqueue_editor();
+            wp_enqueue_media();
+        }
     }
 
     public function render(): void {
@@ -128,7 +142,7 @@ final class Dashboard {
 
         $readiness = Dependencies::verified_profiles_readiness();
         if ( empty( $readiness["plugin_active"] ) || empty( $readiness["profile_cpt"] ) || empty( $readiness["profile_acf"] ) ) {
-            echo "<div class=smpi-alert><strong>Verified Profiles setup required.</strong><p>Founder selection appears after the Verified Profiles plugin is active, the Profile content type is active, and Profile ACF fields are enabled.</p><ul><li>Plugin: " . ( ! empty( $readiness["plugin_active"] ) ? "GREEN CHECK" : "RED X" ) . "</li><li>Profile content type: " . ( ! empty( $readiness["profile_cpt"] ) ? "GREEN CHECK" : "RED X" ) . "</li><li>Profile ACF fields: " . ( ! empty( $readiness["profile_acf"] ) ? "GREEN CHECK" : "RED X" ) . "</li></ul><p><a class=button target=_blank rel=noopener href=" . esc_url( $readiness["settings_url"] ) . ">Open Verified Profiles settings</a></p></div></div>";
+            echo "<div class=smpi-alert><strong>Verified Profiles setup required.</strong><p>Founder selection appears after the Verified Profiles plugin is active, the Profile content type is active, and Profile ACF fields are enabled.</p><ul><li>Plugin: " . ( ! empty( $readiness["plugin_active"] ) ? "GREEN CHECK" : "RED X" ) . "</li><li>Profile content type: " . ( ! empty( $readiness["profile_cpt"] ) ? "GREEN CHECK" : "RED X" ) . "</li><li>Profile ACF fields: " . ( ! empty( $readiness["profile_acf"] ) ? "GREEN CHECK" : "RED X" ) . "</li></ul>" . $this->verified_profiles_setup_actions_html( $readiness ) . "</div></div>";
             return;
         }
 
@@ -144,6 +158,21 @@ final class Dashboard {
             }
         }
         echo "</div></div></div>";
+    }
+
+    private function verified_profiles_setup_actions_html( array $readiness ): string {
+        $actions = [];
+        $actions[] = "<a class=\"button\" target=\"_blank\" rel=\"noopener noreferrer\" href=\"" . esc_url( $readiness["settings_url"] ?? admin_url( "options-general.php?page=smp-verified-profiles" ) ) . "\">Open Verified Profiles settings</a>";
+
+        if ( empty( $readiness["profile_cpt"] ) ) {
+            $actions[] = "<a class=\"button button-primary\" target=\"_blank\" rel=\"noopener noreferrer\" href=\"" . esc_url( wp_nonce_url( admin_url( "admin-post.php?action=smpi_enable_verified_profile_snippet&snippet=register_profile_custom_post_type" ), "smpi_enable_verified_profile_snippet" ) ) . "\">Enable profile content type</a>";
+        }
+
+        if ( empty( $readiness["profile_acf"] ) ) {
+            $actions[] = "<a class=\"button button-primary\" target=\"_blank\" rel=\"noopener noreferrer\" href=\"" . esc_url( wp_nonce_url( admin_url( "admin-post.php?action=smpi_enable_verified_profile_snippet&snippet=register_profile_general_acf_fields" ), "smpi_enable_verified_profile_snippet" ) ) . "\">Enable profile ACF fields</a>";
+        }
+
+        return "<p class=\"smpi-action-row\">" . implode( " ", $actions ) . "</p>";
     }
 
     private function founder_profile_ids(): array {
@@ -649,7 +678,21 @@ final class Dashboard {
             }
             echo '</select>';
             if ( ! empty( $config['template'] ) ) {
-                echo '<p><label><strong>Starter/template text</strong></label></p><textarea class="large-text smpi-page-template" rows="5">' . esc_textarea( $settings['page_templates'][ $type ] ?? '' ) . '</textarea>';
+                $editor_id = 'smpi_page_template_' . sanitize_key( $type );
+                echo '<p><label><strong>Starter/template text</strong></label></p><div class="smpi-page-template-editor" data-editor-id="' . esc_attr( $editor_id ) . '">';
+                wp_editor(
+                    (string) ( $settings['page_templates'][ $type ] ?? '' ),
+                    $editor_id,
+                    [
+                        'textarea_name' => $editor_id,
+                        'textarea_rows' => 8,
+                        'media_buttons' => true,
+                        'teeny'         => false,
+                        'quicktags'     => true,
+                        'tinymce'       => true,
+                    ]
+                );
+                echo '</div>';
             }
             echo "<p><button class=\"button button-primary smpi-save-page\" type=\"button\">Save Page Assignment</button> <button class=\"button smpi-create-page\" type=\"button\">Create New Page</button><span class=\"spinner\"></span><span class=\"smpi-save-state\"></span></p></div>";
         }
@@ -733,11 +776,12 @@ final class Dashboard {
             function founderEmptyHtml(){return `<div class="smpi-empty-state smpi-empty-founder-profiles"><strong>No founder profiles selected.</strong><p>Use the search above to add founder records from Verified Profiles.</p></div>`}
             function profileCard(p){var media=p.thumbnail?`<img src="${p.thumbnail}" alt="">`:`<span class="dashicons dashicons-id-alt"></span>`;return `<div class="smpi-founder-profile-card" data-profile-id="${p.id}"><div class="smpi-founder-thumb">${media}</div><div class="smpi-founder-info"><strong>${p.label}</strong><p class="smpi-muted">Profile #${p.id}</p><p><a class="button button-secondary" target="_blank" rel="noopener noreferrer" href="${p.edit_url}">Edit Profile</a> <a class="button button-secondary" target="_blank" rel="noopener noreferrer" href="${p.view_url}">View Profile</a> <button type="button" class="button smpi-remove-founder-profile">Remove</button></p></div></div>`}
             function saveFounderProfiles(panel){var ids=founderIds(panel),wrap=panel.closest(`.smpi-profile-picker`);wrap.find(`.spinner`).addClass(`is-active`);$.post(smpiAdmin.ajaxUrl,{action:`smpi_save_founder_profiles`,nonce:smpiAdmin.nonce,founder_profile_ids:ids}).done(function(x){wrap.find(`.smpi-save-state`).text(x.success?` Saved`:` Error`)}).always(function(){wrap.find(`.spinner`).removeClass(`is-active`)})}
+            function pageTemplateValue(row){var wrap=row.find(`.smpi-page-template-editor`).first(),id=wrap.data(`editor-id`);if(!id)return ``;if(window.tinymce&&tinymce.get(id)){tinymce.get(id).save()}return $(`#${id}`).val()||``}
             var profileTimer=null;
             $(document).on(`input`,`.smpi-profile-search`,function(){var input=$(this),wrap=input.closest(`.smpi-profile-picker`),box=wrap.find(`.smpi-profile-results`),term=input.val();clearTimeout(profileTimer);if(term.length<2){box.empty();return}profileTimer=setTimeout(function(){wrap.find(`.spinner`).addClass(`is-active`);$.post(smpiAdmin.ajaxUrl,{action:`smpi_search_profiles`,nonce:smpiAdmin.nonce,term:term}).done(function(x){box.empty();if(!x.success||!x.data.profiles.length){box.html(`<p class="smpi-muted">No matching profiles.</p>`);return}$.each(x.data.profiles,function(i,p){var b=$(`<button type="button" class="button smpi-profile-result"></button>`).text(p.label+` (#`+p.id+`)`).data(`profile`,p);box.append(b)})}).always(function(){wrap.find(`.spinner`).removeClass(`is-active`)})},250)});
             $(document).on(`click`,`.smpi-profile-result`,function(){var p=$(this).data(`profile`),wrap=$(this).closest(`.smpi-profile-picker`),selected=wrap.find(`.smpi-founder-selected`);if(!selected.find(`.smpi-founder-profile-card[data-profile-id="${p.id}"]`).length){selected.find(`.smpi-empty-founder-profiles`).remove();selected.append(profileCard(p));saveFounderProfiles(selected)}wrap.find(`.smpi-profile-search`).val(``);wrap.find(`.smpi-profile-results`).empty()});
             $(document).on(`click`,`.smpi-remove-founder-profile`,function(){var selected=$(this).closest(`.smpi-founder-selected`);$(this).closest(`.smpi-founder-profile-card`).remove();if(!selected.find(`.smpi-founder-profile-card`).length){selected.html(founderEmptyHtml())}saveFounderProfiles(selected)});
-            $(document).on(`click`,`.smpi-save-page`,function(){var r=$(this).closest(`.smpi-page-row`),d={action:`smpi_save_page_assignment`,nonce:smpiAdmin.nonce,page_type:r.data(`page-type`),page_id:r.find(`.smpi-page-select`).val(),template:r.find(`.smpi-page-template`).val()||``};r.find(`.spinner`).addClass(`is-active`);$.post(smpiAdmin.ajaxUrl,d).done(function(x){r.find(`.smpi-save-state`).text(x.success?` Saved`:` Error`)}).always(function(){r.find(`.spinner`).removeClass(`is-active`)})});
+            $(document).on(`click`,`.smpi-save-page`,function(){var r=$(this).closest(`.smpi-page-row`),d={action:`smpi_save_page_assignment`,nonce:smpiAdmin.nonce,page_type:r.data(`page-type`),page_id:r.find(`.smpi-page-select`).val(),template:pageTemplateValue(r)};r.find(`.spinner`).addClass(`is-active`);$.post(smpiAdmin.ajaxUrl,d).done(function(x){r.find(`.smpi-save-state`).text(x.success?` Saved`:` Error`)}).always(function(){r.find(`.spinner`).removeClass(`is-active`)})});
             $(document).on(`click`,`.smpi-create-page`,function(){var r=$(this).closest(`.smpi-page-row`),d={action:`smpi_create_page_assignment`,nonce:smpiAdmin.nonce,page_type:r.data(`page-type`)};r.find(`.spinner`).addClass(`is-active`);$.post(smpiAdmin.ajaxUrl,d).done(function(x){if(x.success&&x.data.page){var p=x.data.page,sel=r.find(`.smpi-page-select`);if(!sel.find(`option[value=`+p.id+`]`).length){sel.append($(`<option></option>`).attr(`value`,p.id).text(p.title+` (#`+p.id+`)`))}sel.val(p.id);r.find(`.smpi-save-state`).html(` Created draft page. <a target="_blank" rel="noopener noreferrer" href="${p.edit_url}">Edit</a>`)}else{r.find(`.smpi-save-state`).text(` Error`)}}).always(function(){r.find(`.spinner`).removeClass(`is-active`)})});
             $(`#smpi-refresh-optimization`).on(`click`,function(){var s=$(this).next(`.spinner`);s.addClass(`is-active`);$.post(smpiAdmin.ajaxUrl,{action:`smpi_refresh_optimization`,nonce:smpiAdmin.nonce}).done(function(x){if(x.success)$(`#smpi-optimization-report`).html(x.data.html)}).always(function(){s.removeClass(`is-active`)})});
             $(document).on(`click`,`.smpi-plugin-action`,function(){var b=$(this),r=b.closest(`tr`);if(b.data(`operation`)===`delete`&&!confirm(`Delete this plugin?`))return;r.find(`.spinner`).addClass(`is-active`);$.post(smpiAdmin.ajaxUrl,{action:`smpi_plugin_action`,nonce:smpiAdmin.nonce,plugin_file:r.data(`plugin-file`),operation:b.data(`operation`)}).done(function(x){r.find(`.smpi-save-state`).text(x.success?` Done`:` Error`)}).always(function(){r.find(`.spinner`).removeClass(`is-active`)})});

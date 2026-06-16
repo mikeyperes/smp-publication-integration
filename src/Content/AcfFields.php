@@ -88,12 +88,12 @@ final class AcfFields {
         $lines[] = ! empty( $state["profile_acf"] ) ? "GREEN CHECK Profile ACF fields are enabled." : "RED X Profile ACF fields are not enabled.";
         $message = "Founder selection is managed in the SMP Overview tab. The selector appears only when all three checks pass.<br>" . implode( "<br>", array_map( "esc_html", $lines ) );
         $actions = [];
-        $actions[] = "<a class=button target=_blank rel=noopener href=" . esc_url( $state["settings_url"] ) . ">Open Verified Profiles settings</a>";
+        $actions[] = "<a class=\"button\" target=\"_blank\" rel=\"noopener noreferrer\" href=\"" . esc_url( $state["settings_url"] ) . "\">Open Verified Profiles settings</a>";
         if ( empty( $state["profile_cpt"] ) ) {
-            $actions[] = "<a class=button-primary href=" . esc_url( wp_nonce_url( admin_url( "admin-post.php?action=smpi_enable_verified_profile_snippet&snippet=register_profile_custom_post_type" ), "smpi_enable_verified_profile_snippet" ) ) . ">Enable profile content type</a>";
+            $actions[] = "<a class=\"button button-primary\" target=\"_blank\" rel=\"noopener noreferrer\" href=\"" . esc_url( wp_nonce_url( admin_url( "admin-post.php?action=smpi_enable_verified_profile_snippet&snippet=register_profile_custom_post_type" ), "smpi_enable_verified_profile_snippet" ) ) . "\">Enable profile content type</a>";
         }
         if ( empty( $state["profile_acf"] ) ) {
-            $actions[] = "<a class=button-primary href=" . esc_url( wp_nonce_url( admin_url( "admin-post.php?action=smpi_enable_verified_profile_snippet&snippet=register_profile_general_acf_fields" ), "smpi_enable_verified_profile_snippet" ) ) . ">Enable profile ACF fields</a>";
+            $actions[] = "<a class=\"button button-primary\" target=\"_blank\" rel=\"noopener noreferrer\" href=\"" . esc_url( wp_nonce_url( admin_url( "admin-post.php?action=smpi_enable_verified_profile_snippet&snippet=register_profile_general_acf_fields" ), "smpi_enable_verified_profile_snippet" ) ) . "\">Enable profile ACF fields</a>";
         }
         return $message . "<p>" . implode( " ", $actions ) . "</p>";
     }

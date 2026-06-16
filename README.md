@@ -7,7 +7,7 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.4.9`
+- Version: `0.5.0`
 
 ## Structure
 
@@ -61,6 +61,11 @@ WordPress plugin for Scale My Publication publication profiles.
 
 - Added a plugin-registered Publication Theme Options quotes repeater with quote, name, and title subfields.
 
+
+## 0.5.0 Updates
+
+- Changed Publication Pages starter/template text fields from plain textareas to WordPress WYSIWYG editors.
+- Added new-tab enable links for missing Verified Profiles profile CPT and ACF snippets in Founder Profiles dependency warnings.
 
 ## 0.4.9 Updates
 
