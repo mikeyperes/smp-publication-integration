@@ -142,7 +142,7 @@ final class Schema {
         $items = [];
 
         foreach ( $founders as $founder ) {
-            $founder_id = is_object( $founder ) && isset( $founder->ID ) ? (int) $founder->ID : (int) $founder;
+            $founder_id = $this->founder_profile_id( $founder );
             if ( ! $founder_id ) {
                 continue;
             }
@@ -155,6 +155,16 @@ final class Schema {
         }
 
         return $items;
+    }
+
+    private function founder_profile_id( $founder ): int {
+        if ( is_array( $founder ) && isset( $founder["profile"] ) ) {
+            $founder = $founder["profile"];
+        }
+        if ( is_object( $founder ) && isset( $founder->ID ) ) {
+            return (int) $founder->ID;
+        }
+        return is_numeric( $founder ) ? (int) $founder : 0;
     }
 
     private function normalize_founder_users( $users ): array {

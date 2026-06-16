@@ -1,6 +1,7 @@
 <?php
 namespace smp_publication_integration\Admin;
 
+use smp_publication_integration\Support\Dependencies;
 use smp_publication_integration\Support\PluginRegistry;
 use smp_publication_integration\Support\Settings;
 
@@ -16,6 +17,8 @@ final class Ajax {
         add_action( 'wp_ajax_smpi_save_page_assignment', [ $this, 'save_page_assignment' ] );
         add_action( "wp_ajax_smpi_create_page_assignment", [ $this, "create_page_assignment" ] );
         add_action( "wp_ajax_smpi_search_users", [ $this, "search_users" ] );
+        add_action( "wp_ajax_smpi_search_profiles", [ $this, "search_profiles" ] );
+        add_action( "wp_ajax_smpi_save_founder_profiles", [ $this, "save_founder_profiles" ] );
         add_action( 'wp_ajax_smpi_refresh_optimization', [ $this, 'refresh_optimization' ] );
         add_action( 'wp_ajax_smpi_plugin_action', [ $this, 'plugin_action' ] );
     }
@@ -99,6 +102,91 @@ final class Ajax {
             "edit_url" => get_edit_user_link( $user->ID ),
             "view_url" => get_author_posts_url( $user->ID ),
         ];
+    }
+
+    public function search_profiles(): void {
+        $this->guard();
+        if ( ! Dependencies::sfpf_active() ) {
+            wp_send_json_error( [ "message" => "Verified Profiles integration is required to add founders." ], 400 );
+        }
+        if ( ! post_type_exists( "profile" ) ) {
+            wp_send_json_error( [ "message" => "Verified Profiles is active, but the profile post type is not registered. Enable register_profile_custom_post_type." ], 400 );
+        }
+
+        $term = isset( $_POST["term"] ) ? sanitize_text_field( wp_unslash( $_POST["term"] ) ) : "";
+        $query = new \WP_Query(
+            [
+                "post_type" => "profile",
+                "post_status" => [ "publish", "draft", "pending", "private" ],
+                "posts_per_page" => 20,
+                "orderby" => "title",
+                "order" => "ASC",
+                "s" => $term,
+                "no_found_rows" => true,
+            ]
+        );
+
+        $profiles = [];
+        foreach ( $query->posts as $post ) {
+            $profiles[] = $this->profile_result( $post );
+        }
+
+        wp_send_json_success( [ "profiles" => $profiles ] );
+    }
+
+    public function save_founder_profiles(): void {
+        $this->guard();
+        if ( ! Dependencies::sfpf_active() ) {
+            wp_send_json_error( [ "message" => "Verified Profiles integration is required to add founders." ], 400 );
+        }
+        if ( ! post_type_exists( "profile" ) ) {
+            wp_send_json_error( [ "message" => "Verified Profiles is active, but the profile post type is not registered. Enable register_profile_custom_post_type." ], 400 );
+        }
+
+        $raw = isset( $_POST["founder_profile_ids"] ) ? wp_unslash( $_POST["founder_profile_ids"] ) : [];
+        $raw = is_array( $raw ) ? $raw : [ $raw ];
+        $ids = [];
+        foreach ( $raw as $id ) {
+            $id = absint( $id );
+            if ( $id && "profile" === get_post_type( $id ) ) {
+                $ids[] = $id;
+            }
+        }
+        $ids = array_values( array_unique( $ids ) );
+        $this->update_founder_profiles( $ids );
+
+        $profiles = [];
+        foreach ( $ids as $id ) {
+            $post = get_post( $id );
+            if ( $post ) {
+                $profiles[] = $this->profile_result( $post );
+            }
+        }
+
+        wp_send_json_success( [ "ids" => $ids, "profiles" => $profiles ] );
+    }
+
+    private function profile_result( \WP_Post $post ): array {
+        return [
+            "id" => (int) $post->ID,
+            "label" => get_the_title( $post ),
+            "status" => get_post_status( $post ),
+            "edit_url" => get_edit_post_link( $post->ID, "raw" ),
+            "view_url" => get_permalink( $post ),
+            "thumbnail" => get_the_post_thumbnail_url( $post, "thumbnail" ) ?: "",
+        ];
+    }
+
+    private function update_founder_profiles( array $ids ): void {
+        update_option( "smpi_founder_profile_ids", $ids, false );
+        if ( function_exists( "update_field" ) ) {
+            $rows = array_map(
+                static fn( int $id ): array => [ "profile" => $id ],
+                $ids
+            );
+            update_field( "smpi_founder_profiles", $rows, "option" );
+        }
+        Settings::log( "Founder profiles updated: " . implode( ", ", $ids ) );
     }
 
     private function sync_publication_mapping( array $settings ): void {

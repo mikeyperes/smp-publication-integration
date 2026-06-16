@@ -56,7 +56,14 @@ final class Fields {
             ],
             "founders" => [
                 "founders",
+                "publication_founders",
+                "smpi_founder_profiles",
                 "smpi_founders",
+            ],
+            "founder_profiles" => [
+                "founder_profiles",
+                "publication_founder_profiles",
+                "smpi_founder_profiles",
             ],
             "founder_users" => [
                 "founder_users",

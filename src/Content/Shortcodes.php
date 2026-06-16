@@ -113,12 +113,22 @@ final class Shortcodes {
         $founders = is_array( $founders ) ? $founders : [ $founders ];
         $items = [];
         foreach ( $founders as $founder ) {
-            $founder_id = is_object( $founder ) && isset( $founder->ID ) ? (int) $founder->ID : (int) $founder;
+            $founder_id = $this->founder_profile_id( $founder );
             if ( $founder_id && get_the_title( $founder_id ) ) {
                 $items[] = sprintf( "<li><a href=\"%s\">%s</a></li>", esc_url( get_permalink( $founder_id ) ), esc_html( get_the_title( $founder_id ) ) );
             }
         }
         return $items;
+    }
+
+    private function founder_profile_id( $founder ): int {
+        if ( is_array( $founder ) && isset( $founder["profile"] ) ) {
+            $founder = $founder["profile"];
+        }
+        if ( is_object( $founder ) && isset( $founder->ID ) ) {
+            return (int) $founder->ID;
+        }
+        return is_numeric( $founder ) ? (int) $founder : 0;
     }
 
     private function founder_user_items( $users ): array {
