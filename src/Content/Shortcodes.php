@@ -124,6 +124,10 @@ final class Shortcodes {
             return $explicit_id;
         }
         $post = get_post();
-        return $post && PublicationPostType::POST_TYPE === $post->post_type ? (int) $post->ID : 0;
+        if ( $post && PublicationPostType::POST_TYPE === $post->post_type ) {
+            return (int) $post->ID;
+        }
+        $mapped = (int) Settings::get( "system_publication_id", 0 );
+        return $mapped && PublicationPostType::POST_TYPE === get_post_type( $mapped ) ? $mapped : 0;
     }
 }

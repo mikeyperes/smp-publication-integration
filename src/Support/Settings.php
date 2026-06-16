@@ -127,11 +127,22 @@ final class Settings {
             'about_publication' => [ 'label' => 'About The Publication', 'description' => 'Public overview of the outlet, editorial focus, audience, and mission.', 'template' => false ],
             'founder_about' => [ 'label' => 'Founder About Page', 'description' => 'Canonical page for founder biographies and leadership context.', 'template' => false ],
             'team' => [ 'label' => 'Team', 'description' => 'Editors, contributors, leadership, and operational contacts.', 'template' => false ],
-            'become_contributor' => [ 'label' => 'Become a Contributor', 'description' => 'Contributor guidelines, submission expectations, and application path.', 'template' => false ],
+            'become_contributor' => [ 'label' => 'Become a Contributor', 'description' => 'Contributor guidelines, submission expectations, and application path.', 'template' => true ],
+
+            "writers" => [ "label" => "Writers", "description" => "Canonical writers directory for publication authors.", "template" => false ],
+            "contributors" => [ "label" => "Contributors", "description" => "Directory or landing page for contributor profiles.", "template" => false ],
+            "staff" => [ "label" => "Staff", "description" => "Staff directory for editorial, operations, and business contacts.", "template" => false ],
+            "executive_team" => [ "label" => "Executive Team", "description" => "Leadership and executive team page.", "template" => false ],
+            "headquarters" => [ "label" => "Headquarters", "description" => "Canonical page for headquarters location and company presence.", "template" => false ],
+            "founding_date" => [ "label" => "Founding Date", "description" => "Canonical page for publication founding history and timeline.", "template" => false ],
+            "mission_statement" => [ "label" => "Mission Statement", "description" => "Editorial mission, audience promise, and publication purpose.", "template" => true ],
+            "founders" => [ "label" => "Founders", "description" => "Founder profiles and founding team context.", "template" => false ],
+            "editorial_guidelines" => [ "label" => "Editorial Guidelines", "description" => "Editorial standards, sourcing rules, corrections, and transparency.", "template" => true ],
+            "parent_organization" => [ "label" => "Parent Organization", "description" => "Ownership, parent company, funding, and independence disclosure.", "template" => true ],
             'terms' => [ 'label' => 'Terms of Use', 'description' => 'Terms governing use of the website and its content.', 'template' => true ],
             'dmca' => [ 'label' => 'DMCA', 'description' => 'Copyright takedown policy and designated contact instructions.', 'template' => true ],
             'privacy' => [ 'label' => 'Privacy Policy', 'description' => 'Privacy practices, data use, cookies, and user rights.', 'template' => true ],
-            'contact' => [ 'label' => 'Contact', 'description' => 'General, editorial, advertising, and legal contact points.', 'template' => false ],
+            'contact' => [ 'label' => 'Contact', 'description' => 'General, editorial, advertising, and legal contact points.', 'template' => true ],
             'faqs' => [ 'label' => 'FAQs', 'description' => 'Common reader, contributor, and publication questions.', 'template' => false ],
             'editorial_policy' => [ 'label' => 'Editorial Policy', 'description' => 'Editorial standards, sourcing, independence, and review process.', 'template' => true ],
             'corrections_policy' => [ 'label' => 'Corrections Policy', 'description' => 'How corrections, clarifications, and updates are handled.', 'template' => true ],
@@ -145,6 +156,12 @@ final class Settings {
 
     public static function default_page_templates(): array {
         return [
+
+            "mission_statement" => "This page should explain the publication mission, who it serves, what it covers, and the editorial promise made to readers.",
+            "become_contributor" => "This page should explain contributor eligibility, pitch requirements, editorial review, attribution, conflicts, and how to submit.",
+            "editorial_guidelines" => "Our editorial guidelines describe sourcing, review, attribution, corrections, conflicts, sponsored content labels, and standards for accuracy.",
+            "contact" => "Use this page for general contact information, editorial inquiries, advertising inquiries, corrections, legal requests, and public contact email details.",
+            "parent_organization" => "This page should disclose the parent organization, ownership structure, funding sources, and any relationships that could affect editorial independence.",
             'terms' => 'These Terms of Use explain the rules for accessing and using this publication. Replace this starter text with counsel-reviewed terms before launch.',
             'dmca' => 'If you believe content on this website infringes your copyright, send a written notice with the work identified, the allegedly infringing URL, your contact information, a good-faith statement, and your signature.',
             'privacy' => 'This Privacy Policy explains what information this publication collects, how it is used, how cookies and analytics are handled, and how readers can contact us about privacy requests.',

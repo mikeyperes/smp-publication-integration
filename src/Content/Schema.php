@@ -115,25 +115,46 @@ final class Schema {
         return wp_json_encode( $schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT );
     }
 
+
     public function generate_schema_array( int $post_id ): array {
-        $website  = Fields::get( $post_id, 'website' );
-        $summary  = Fields::get( $post_id, 'summary' );
-        $mission  = Fields::get( $post_id, 'mission_statement' );
-        $logo     = Fields::get( $post_id, 'logo' );
-        $founders = Fields::get( $post_id, 'founders', [] );
+        $website  = Fields::get( $post_id, "website" );
+        $summary  = Fields::get( $post_id, "summary" );
+        $mission  = Fields::get( $post_id, "mission_statement" );
+        $logo     = Fields::get( $post_id, "logo" );
+        $founders = Fields::get( $post_id, "founders", [] );
+        $founder_users = Fields::get( $post_id, "founder_users", [] );
+        $founding_date = Fields::get( $post_id, "founding_date" );
+        $headquarters = Fields::get( $post_id, "headquarters" );
+        $headquarters_wiki = Fields::get( $post_id, "headquarters_wikipedia_url" );
+        $contact_email = Fields::get( $post_id, "contact_email" );
+        $google_news_url = Fields::get( $post_id, "google_news_url" );
+
+        $founder_items = array_merge( $this->normalize_founders( $founders ), $this->normalize_founder_users( $founder_users ) );
+        $same_as = array_values( array_filter( [ $google_news_url, $headquarters_wiki ] ) );
 
         $schema = [
-            '@context' => 'https://schema.org',
-            '@type'    => 'NewsMediaOrganization',
-            '@id'      => trailingslashit( get_permalink( $post_id ) ) . '#organization',
-            'name'     => get_the_title( $post_id ),
-            'url'      => $website ?: get_permalink( $post_id ),
-            'mainEntityOfPage' => get_permalink( $post_id ),
-            'description'      => wp_strip_all_tags( (string) ( $summary ?: $mission ?: get_the_excerpt( $post_id ) ) ),
-            'slogan'           => wp_strip_all_tags( (string) $mission ),
-            'logo'             => $this->normalize_logo( $logo ),
-            'founder'          => $this->normalize_founders( $founders ),
+            "@context" => "https://schema.org",
+            "@type"    => "NewsMediaOrganization",
+            "@id"      => trailingslashit( get_permalink( $post_id ) ) . "#organization",
+            "name"     => get_the_title( $post_id ),
+            "url"      => $website ?: get_permalink( $post_id ),
+            "mainEntityOfPage" => get_permalink( $post_id ),
+            "description"      => wp_strip_all_tags( (string) ( $summary ?: $mission ?: get_the_excerpt( $post_id ) ) ),
+            "slogan"           => wp_strip_all_tags( (string) $mission ),
+            "logo"             => $this->normalize_logo( $logo ),
+            "founder"          => $founder_items,
+            "foundingDate"     => $founding_date,
+            "email"            => $contact_email ? sanitize_email( (string) $contact_email ) : null,
+            "sameAs"           => $same_as,
         ];
+
+        if ( $headquarters ) {
+            $schema["location"] = [
+                "@type" => "Place",
+                "name" => wp_strip_all_tags( (string) $headquarters ),
+                "sameAs" => $headquarters_wiki ?: null,
+            ];
+        }
 
         return $this->clean_schema( $schema );
     }
@@ -164,6 +185,28 @@ final class Schema {
                 '@type' => 'Person',
                 'name'  => get_the_title( $founder_id ),
                 'url'   => get_permalink( $founder_id ),
+            ];
+        }
+
+        return $items;
+    }
+
+
+    private function normalize_founder_users( $users ): array {
+        $users = is_array( $users ) ? $users : [ $users ];
+        $items = [];
+
+        foreach ( $users as $user_id ) {
+            $user_id = is_object( $user_id ) && isset( $user_id->ID ) ? (int) $user_id->ID : (int) $user_id;
+            $user = $user_id ? get_user_by( "id", $user_id ) : false;
+            if ( ! $user ) {
+                continue;
+            }
+
+            $items[] = [
+                "@type" => "Person",
+                "name" => $user->display_name,
+                "url" => get_author_posts_url( $user_id ),
             ];
         }
 

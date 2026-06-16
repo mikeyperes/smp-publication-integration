@@ -7,7 +7,7 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.3.9`
+- Version: `0.4.0`
 
 ## Structure
 
@@ -35,6 +35,12 @@ WordPress plugin for Scale My Publication publication profiles.
 ## Completed
 
 - Updater flow fixed: SMP uses GitHub API version detection and HWS Base Tools post-install handling. Verified 0.3.8 to 0.3.9 updates on HerForward and Mashviral.
+
+## 0.4.0 Updates
+
+- Removed Managed Publications from user profile ACF bindings.
+- Added Overview publication user.php search binding with selected-user profile card.
+- Added publication metadata ACF fields and page creation AJAX flow.
 
 ## Pending Work Queue
 
