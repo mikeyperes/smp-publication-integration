@@ -7,7 +7,7 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.4.5`
+- Version: `0.4.6`
 
 ## Structure
 
@@ -63,6 +63,19 @@ WordPress plugin for Scale My Publication publication profiles.
 
 ## Pending Work Queue
 
+- Dependency UX: in the Founder Profiles options area, detect whether SMP Verified Profiles is active, whether the `profile` CPT is registered by `register_profile_custom_post_type`, and whether the Verified Profiles ACF/profile field structures are enabled. Show a clear disclaimer with status rows and direct links to the Verified Profiles Snippets tab to activate missing pieces.
+- Admin consolidation: remove the standalone `options-general.php?page=smpi-publication-options` Publication Theme Options page from the visible Settings menu and render the publication ACF fields inside `Settings > SMP Publication Integration`. Preserve existing option field names and saved values.
+- Admin tab: add a `Brand` tab that reads HWS Base Tools brand assets/highlight colors for display and includes an edit link to `options-general.php?page=hws-core-tools&tab=brand-assets`.
+- Integrations tab: expand plugin reporting with plugin name, expected slug, GitHub URL, installed status, active status, local version, repository version, update state, and AJAX refresh per plugin.
+- Integrations tab: add AJAX download/install/activate flow for missing plugins with a real-time task-specific activity log.
+- Integrations tab plugin list: `mikeyperes/hexa-pr-wire-distributor`, `mikeyperes/smp-publication-integration`, `mikeyperes/smp-core-podcast-integration`, `mikeyperes/smp-verified-profiles`, `mikeyperes/smp-contributor-network`, and `mikeyperes/sfpf-person-profile-integration`.
+- Features tab: redesign every feature card. Replace checkmark-style pseudo controls with real enable/disable toggles wherever the feature can be enabled or disabled.
+- Features tab: replace native multi-select controls with clearer placement/context selectors such as chips, segmented controls, or checkbox cards.
+- Features tab: make activity logs task-specific to each feature card. Do not show unrelated global settings activity inside cards like Rank Math breadcrumb check.
+- Features tab: redesign the full card layout so controls, custom ACF adjustments, instructions, code examples, test proof, and activity are visually separated and easier to scan.
+- MuckRack verified authors: add an icon color picker.
+- MuckRack verified authors: add an icon style chooser with visual selectable previews for `circle with check inside` and `plain check`.
+- MuckRack verified authors: replace the native style dropdown with a UI that shows what `Tooltip icon` and `Inline text` look like before selection.
 - Feature: optional post ACF field post_summary matching HerForward label Post Summary and ACF key reference field_65ab7ba0e849b; add as a separate SMP setting so sites can opt into registering it on posts.
 - Feature: optional post ACF field post_faqs matching HerForward label Post FAQs and ACF key reference field_65ab7bc1e849c; add as a separate SMP setting so sites can opt into registering it on posts.
 - Feature: table of contents for single posts; add a setting toggle named display table of contents in the single page, add a shortcode for the Elementor/widget area above single.php content, and make the toggle activate that shortcode output.
