@@ -78,6 +78,11 @@ final class Fields {
                 "publication_recent_media",
                 "smpi_recent_media",
             ],
+            "quotes" => [
+                "quotes",
+                "publication_quotes",
+                "smpi_quotes",
+            ],
             "founding_date" => [
                 "founding_date",
                 "publication_founding_date",

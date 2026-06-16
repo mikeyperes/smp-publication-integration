@@ -62,6 +62,11 @@ final class AcfFields {
                         [ "key" => "field_smpi_recent_media_title", "label" => "Title", "name" => "title", "type" => "text" ],
                         [ "key" => "field_smpi_recent_media_url", "label" => "URL", "name" => "url", "type" => "url" ],
                     ] ],
+                    [ "key" => "field_smpi_quotes", "label" => "Quotes", "name" => "smpi_quotes", "type" => "repeater", "instructions" => "Publication quotes or testimonials that can be reused by templates and shortcodes.", "layout" => "row", "button_label" => "Add Quote", "sub_fields" => [
+                        [ "key" => "field_smpi_quotes_quote", "label" => "Quote", "name" => "quote", "type" => "textarea", "rows" => 4, "new_lines" => "br" ],
+                        [ "key" => "field_smpi_quotes_name", "label" => "Name", "name" => "name", "type" => "text" ],
+                        [ "key" => "field_smpi_quotes_title", "label" => "Title", "name" => "title", "type" => "text" ],
+                    ] ],
                     [ "key" => "field_smpi_content_tab", "label" => "Publication Copy", "name" => "", "type" => "tab", "placement" => "top" ],
                     [ "key" => "field_smpi_mission_statement", "label" => "Mission Statement", "name" => "smpi_mission_statement", "type" => "wysiwyg", "tabs" => "all", "toolbar" => "basic", "media_upload" => 0 ],
                     [ "key" => "field_smpi_mission_statement_extended", "label" => "Mission Statement Extended", "name" => "smpi_mission_statement_extended", "type" => "wysiwyg", "tabs" => "all", "toolbar" => "basic", "media_upload" => 0 ],
