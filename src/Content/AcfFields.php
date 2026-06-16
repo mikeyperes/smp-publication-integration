@@ -2,6 +2,7 @@
 namespace smp_publication_integration\Content;
 
 use smp_publication_integration\Support\Dependencies;
+use smp_publication_integration\Support\Settings;
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
@@ -20,6 +21,7 @@ final class AcfFields {
         $this->register_publication_profile_fields();
         $this->register_muckrack_user_fields();
         $this->register_visibility_fields();
+        $this->register_post_header_fields();
     }
 
     private function register_publication_options_page(): void {
@@ -95,6 +97,78 @@ final class AcfFields {
                 "location" => [ [ [ "param" => "options_page", "operator" => "==", "value" => "smpi-publication-options" ] ] ],
                 'position' => 'normal',
                 'style' => 'default',
+            ]
+        );
+    }
+
+    private function register_post_header_fields(): void {
+        $fields = [
+            [
+                "key" => "field_64a7290bc7625",
+                "label" => "",
+                "name" => "",
+                "type" => "message",
+                "message" => "",
+                "new_lines" => "wpautop",
+                "esc_html" => 0,
+            ],
+        ];
+
+        if ( Settings::bool( "post_summary_acf_enabled" ) ) {
+            $fields[] = [
+                "key" => "field_65ab7ba0e849b",
+                "label" => "Post Summary",
+                "name" => "post_summary",
+                "type" => "wysiwyg",
+                "instructions" => "Insert an html list (you can copy paste html in the code editor)",
+                "tabs" => "all",
+                "toolbar" => "full",
+                "media_upload" => 1,
+                "delay" => 0,
+            ];
+        }
+
+        if ( Settings::bool( "post_faqs_acf_enabled" ) ) {
+            $fields[] = [
+                "key" => "field_65ab7bc1e849c",
+                "label" => "Post FAQs",
+                "name" => "post_faqs",
+                "type" => "wysiwyg",
+                "instructions" => "If there are FAQs, insert them here.
+
+Example:
+
+Q: How to do ABC.
+A: Just XYZ.",
+                "tabs" => "all",
+                "toolbar" => "full",
+                "media_upload" => 1,
+                "delay" => 0,
+            ];
+        }
+
+        if ( 1 === count( $fields ) ) {
+            return;
+        }
+
+        acf_add_local_field_group(
+            [
+                "key" => "group_64a7290b61191",
+                "title" => "Post - Header",
+                "fields" => $fields,
+                "location" => [
+                    [ [ "param" => "post_type", "operator" => "==", "value" => "post" ] ],
+                    [ [ "param" => "post_type", "operator" => "==", "value" => "imported-news" ] ],
+                ],
+                "menu_order" => 0,
+                "position" => "normal",
+                "style" => "default",
+                "label_placement" => "top",
+                "instruction_placement" => "label",
+                "hide_on_screen" => "",
+                "active" => true,
+                "description" => "",
+                "show_in_rest" => 0,
             ]
         );
     }

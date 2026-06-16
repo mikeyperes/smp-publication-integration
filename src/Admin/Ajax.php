@@ -37,7 +37,7 @@ final class Ajax {
     public function save_settings(): void {
         $this->guard();
         $changes = [];
-        foreach ( [ 'founders_enabled', 'shadow_press_releases', 'author_social_cleanup', 'public_debug_enabled', 'estimated_read_time_enabled', 'elementor_css_cache_busting', 'publication_social_cleanup', 'muckrack_verified_enabled', 'muckrack_author_always_show', 'publication_muckrack_verified_enabled', 'press_release_include_enabled' ] as $key ) {
+        foreach ( [ 'founders_enabled', 'shadow_press_releases', 'author_social_cleanup', 'public_debug_enabled', 'estimated_read_time_enabled', 'elementor_css_cache_busting', 'publication_social_cleanup', 'muckrack_verified_enabled', 'muckrack_author_always_show', 'publication_muckrack_verified_enabled', 'press_release_include_enabled', 'post_summary_acf_enabled', 'post_faqs_acf_enabled' ] as $key ) {
             if ( isset( $_POST[ $key ] ) ) {
                 $changes[ $key ] = (bool) absint( $_POST[ $key ] );
             }

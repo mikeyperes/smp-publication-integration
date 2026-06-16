@@ -7,7 +7,7 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.4.6`
+- Version: `0.4.7`
 
 ## Structure
 
@@ -61,6 +61,11 @@ WordPress plugin for Scale My Publication publication profiles.
 
 - Added a plugin-registered Publication Theme Options quotes repeater with quote, name, and title subfields.
 
+## 0.4.7 Updates
+
+- Added opt-in post ACF add-ons for Post Summary and Post FAQs with independent AJAX feature toggles.
+- Registers the supplied Post - Header ACF group on post and imported-news only when at least one add-on toggle is enabled.
+
 ## Pending Work Queue
 
 - Dependency UX: in the Founder Profiles options area, detect whether SMP Verified Profiles is active, whether the `profile` CPT is registered by `register_profile_custom_post_type`, and whether the Verified Profiles ACF/profile field structures are enabled. Show a clear disclaimer with status rows and direct links to the Verified Profiles Snippets tab to activate missing pieces.
@@ -76,7 +81,5 @@ WordPress plugin for Scale My Publication publication profiles.
 - MuckRack verified authors: add an icon color picker.
 - MuckRack verified authors: add an icon style chooser with visual selectable previews for `circle with check inside` and `plain check`.
 - MuckRack verified authors: replace the native style dropdown with a UI that shows what `Tooltip icon` and `Inline text` look like before selection.
-- Feature: optional post ACF field post_summary matching HerForward label Post Summary and ACF key reference field_65ab7ba0e849b; add as a separate SMP setting so sites can opt into registering it on posts.
-- Feature: optional post ACF field post_faqs matching HerForward label Post FAQs and ACF key reference field_65ab7bc1e849c; add as a separate SMP setting so sites can opt into registering it on posts.
 - Feature: table of contents for single posts; add a setting toggle named display table of contents in the single page, add a shortcode for the Elementor/widget area above single.php content, and make the toggle activate that shortcode output.
 - Feature: highlight text override with enable/disable toggle, highlight background color, and highlight text color. When enabled, output cross-browser selection CSS for `::selection` and `::-moz-selection` so the site highlight colors override theme defaults.

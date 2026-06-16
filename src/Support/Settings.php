@@ -27,6 +27,8 @@ final class Settings {
             'publication_muckrack_placements' => [ 'bottom_article' ],
             'press_release_include_enabled' => true,
             'press_release_include_contexts' => [ 'home', 'category_tag', 'author', 'single_recent' ],
+            'post_summary_acf_enabled' => false,
+            'post_faqs_acf_enabled' => false,
             'system_publication_user_id' => 0,
             'page_assignments'      => [],
             'page_templates'        => self::default_page_templates(),
@@ -66,7 +68,7 @@ final class Settings {
                 continue;
             }
 
-            if ( in_array( $key, [ 'founders_enabled', 'shadow_press_releases', 'author_social_cleanup', 'public_debug_enabled', 'estimated_read_time_enabled', 'elementor_css_cache_busting', 'publication_social_cleanup', 'muckrack_verified_enabled', 'muckrack_author_always_show', 'publication_muckrack_verified_enabled', 'press_release_include_enabled' ], true ) ) {
+            if ( in_array( $key, [ 'founders_enabled', 'shadow_press_releases', 'author_social_cleanup', 'public_debug_enabled', 'estimated_read_time_enabled', 'elementor_css_cache_busting', 'publication_social_cleanup', 'muckrack_verified_enabled', 'muckrack_author_always_show', 'publication_muckrack_verified_enabled', 'press_release_include_enabled', 'post_summary_acf_enabled', 'post_faqs_acf_enabled' ], true ) ) {
                 $settings[ $key ] = (bool) $value;
                 continue;
             }

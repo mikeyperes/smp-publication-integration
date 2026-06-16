@@ -339,6 +339,8 @@ final class Dashboard {
         $this->feature_card( "MuckRack verified publication", "publication_muckrack_verified_enabled", "Registers site option ACF fields on Publication Theme Options: smpi_publication_muckrack_verified and smpi_publication_muckrack_url.", "Displays publication-level MuckRack verification text separately from journalist verification. Use this for the site/news-outlet claim, not the author badge.", "[smp_publication_muckrack_verified]", $this->publication_muckrack_report_html(), $this->activity_log_html(), $publication_muckrack_controls );
         $this->feature_card( "Press-release inclusion controls", "press_release_include_enabled", "Uses existing press-release CPT and _smpi_pr_shadow_override meta. ACF/local fields are registered for force include or force exclude.", "Includes Hexa PR Wire press-release posts in selected blog-like loops: home, category/tag, author.php, and single.php recent article secondary queries. Force exclude is honored through the press-release visibility meta box.", "add_action(\"pre_get_posts\", function (WP_Query \$q) { /* SMP uses the same main-query guard pattern and selected contexts. */ });", $this->press_release_report_html(), $this->activity_log_html(), $this->context_select_html( "press_release_include_contexts", [ "home" => "Home page", "category_tag" => "Category and tag pages", "author" => "author.php", "single_recent" => "single.php recent article queries" ], $settings ) );
         $this->feature_card( "Estimated read time", "estimated_read_time_enabled", "No custom ACF fields needed. Reads the selected post content directly.", "Calculates reading time from post_content after stripping HTML and shortcodes. The shortcode returns a plain numeric value in minutes by default or seconds when unit=seconds is passed.", "[smp_estimated_read_time]\n[smp_estimated_read_time unit=\"seconds\"]\n[smp_estimated_read_time post_id=\"123\" unit=\"minutes\"]", $this->estimated_read_time_report_html(), $this->activity_log_html() );
+        $post_acf_controls = $this->inline_toggle_setting_html( "post_summary_acf_enabled", "Register Post Summary on posts" ) . $this->inline_toggle_setting_html( "post_faqs_acf_enabled", "Register Post FAQs on posts" );
+        $this->feature_card( "Post ACF add-ons", "", "Optional WYSIWYG post fields: <code>post_summary</code> and <code>post_faqs</code>. Fields are registered only when their toggles are enabled.", "Adds the supplied Post - Header ACF field group to posts and imported-news items. Use Post Summary for HTML/list summaries and Post FAQs for Q/A content.", "acf_add_local_field_group([\n  \"key\" => \"group_64a7290b61191\",\n  \"title\" => \"Post - Header\",\n  \"fields\" => [\"post_summary\", \"post_faqs\"],\n  \"location\" => [[post], [imported-news]],\n]);", $this->post_acf_addons_report_html(), $this->activity_log_html(), $post_acf_controls );
         $this->feature_card( "Author social icons", "author_social_cleanup", "No ACF changes. Reads rendered Elementor/social-icon anchors.", "Runs only on single posts and author archives. Empty social anchors are hidden when href is missing, blank, hash, or javascript. Fully empty Elementor social wrappers are collapsed.", "No shortcode needed. Toggle this feature on and inspect single.php or author.php social widgets.", $this->simple_status_html( Settings::bool( "author_social_cleanup" ), "Cleanup script active on single posts and author archives only." ), $this->activity_log_html() );
         $this->feature_card( "Publication social icons", "publication_social_cleanup", "No dedicated ACF change. Reads rendered Elementor/social-icon anchors in global publication areas.", "Runs the same empty-social cleanup safely across frontend pages for publication-level header and footer social widgets. Empty href, #, and javascript anchors are hidden without touching valid social links.", "No shortcode needed. Toggle this on and inspect header/footer publication social widgets.", $this->simple_status_html( Settings::bool( "publication_social_cleanup" ), "Publication social cleanup script active on frontend pages." ), $this->activity_log_html() );
         $this->feature_card( "Rank Math breadcrumb check", "", "No ACF changes.", "Reports Rank Math breadcrumb status from rank-math-options-general. Mutation filters should only be added after exact breadcrumb rules are supplied.", "add_filter(\"rank_math/frontend/breadcrumb/items\", function(\$crumbs){ return \$crumbs; }, 10, 1);", $this->rank_math_breadcrumb_report_html(), $this->activity_log_html() );
@@ -348,7 +350,8 @@ final class Dashboard {
     private function feature_card( string $title, string $toggle_key, string $acf, string $description, string $code, string $test_report, string $activity_log, string $extra_controls = "" ): void {
         echo "<div class=\"smpi-panel smpi-feature-card\"><h2>" . esc_html( $title ) . "</h2>";
         echo "<table class=\"widefat striped\"><tbody>";
-        echo "<tr><th>Toggle</th><td>" . ( $toggle_key ? $this->inline_toggle_html( $toggle_key ) : "<span class=\"smpi-ok\">Report only</span>" ) . $extra_controls . "</td></tr>";
+        $toggle_html = $toggle_key ? $this->inline_toggle_html( $toggle_key ) : ( "" !== $extra_controls ? "" : "<span class=\"smpi-ok\">Report only</span>" );
+        echo "<tr><th>Toggle</th><td>" . $toggle_html . $extra_controls . "</td></tr>";
         echo "<tr><th>Custom ACF adjustments</th><td>" . wp_kses_post( $acf ) . "</td></tr>";
         echo "<tr><th>Description / use instructions</th><td>" . esc_html( $description ) . "</td></tr>";
         echo "<tr><th>Code example</th><td><pre class=\"smpi-code\">" . esc_html( $code ) . "</pre></td></tr>";
@@ -389,6 +392,19 @@ final class Dashboard {
         return "<p><span class=\"" . ( $ok ? "smpi-ok" : "smpi-warn" ) . "\">" . ( $ok ? "GREEN CHECK" : "YELLOW !" ) . "</span> " . esc_html( $message ) . "</p>";
     }
 
+
+    private function post_acf_addons_report_html(): string {
+        $summary_enabled = Settings::bool( "post_summary_acf_enabled" );
+        $faqs_enabled = Settings::bool( "post_faqs_acf_enabled" );
+        $summary_registered = function_exists( "acf_get_field" ) && (bool) acf_get_field( "field_65ab7ba0e849b" );
+        $faqs_registered = function_exists( "acf_get_field" ) && (bool) acf_get_field( "field_65ab7bc1e849c" );
+        $ok = ( ! $summary_enabled || $summary_registered ) && ( ! $faqs_enabled || $faqs_registered );
+        $html = $this->simple_status_html( $ok, "Post Summary enabled: " . ( $summary_enabled ? "yes" : "no" ) . ". Post FAQs enabled: " . ( $faqs_enabled ? "yes" : "no" ) . "." );
+        $html .= "<table class=\"widefat striped\"><thead><tr><th>Field</th><th>Setting</th><th>ACF runtime</th><th>Key</th><th>Locations</th></tr></thead><tbody>";
+        $html .= "<tr><td>Post Summary</td><td>" . ( $summary_enabled ? "Enabled" : "Disabled" ) . "</td><td>" . ( $summary_registered ? "GREEN CHECK" : "YELLOW !" ) . "</td><td><code>field_65ab7ba0e849b</code></td><td><code>post</code>, <code>imported-news</code></td></tr>";
+        $html .= "<tr><td>Post FAQs</td><td>" . ( $faqs_enabled ? "Enabled" : "Disabled" ) . "</td><td>" . ( $faqs_registered ? "GREEN CHECK" : "YELLOW !" ) . "</td><td><code>field_65ab7bc1e849c</code></td><td><code>post</code>, <code>imported-news</code></td></tr>";
+        return $html . "</tbody></table>";
+    }
 
     private function estimated_read_time_report_html(): string {
         $report = \smp_publication_integration\Content\EstimatedReadTime::integrity_report( 5 );
