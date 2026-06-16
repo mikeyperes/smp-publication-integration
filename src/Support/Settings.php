@@ -26,6 +26,8 @@ final class Settings {
             'muckrack_icon_style' => 'circle_check',
             'publication_muckrack_verified_enabled' => false,
             'publication_muckrack_text_mode' => 'news_outlet',
+            'publication_muckrack_style' => 'block',
+            'publication_muckrack_color' => '#2d5277',
             'publication_muckrack_placements' => [ 'bottom_article' ],
             'press_release_include_enabled' => true,
             'press_release_include_contexts' => [ 'home', 'category_tag', 'author', 'single_recent' ],
@@ -100,6 +102,18 @@ final class Settings {
             if ( 'publication_muckrack_text_mode' === $key ) {
                 $allowed = [ 'news_outlet', 'publication_name' ];
                 $settings[ $key ] = in_array( $value, $allowed, true ) ? $value : 'news_outlet';
+                continue;
+            }
+
+            if ( 'publication_muckrack_style' === $key ) {
+                $allowed = [ 'block', 'compact', 'minimalist' ];
+                $settings[ $key ] = in_array( $value, $allowed, true ) ? $value : 'block';
+                continue;
+            }
+
+            if ( 'publication_muckrack_color' === $key ) {
+                $color = sanitize_hex_color( (string) $value );
+                $settings[ $key ] = $color ?: '#2d5277';
                 continue;
             }
 

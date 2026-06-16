@@ -63,6 +63,12 @@ final class Ajax {
         if ( isset( $_POST['publication_muckrack_text_mode'] ) ) {
             $changes['publication_muckrack_text_mode'] = sanitize_key( wp_unslash( $_POST['publication_muckrack_text_mode'] ) );
         }
+        if ( isset( $_POST['publication_muckrack_style'] ) ) {
+            $changes['publication_muckrack_style'] = sanitize_key( wp_unslash( $_POST['publication_muckrack_style'] ) );
+        }
+        if ( isset( $_POST['publication_muckrack_color'] ) ) {
+            $changes['publication_muckrack_color'] = sanitize_hex_color( wp_unslash( $_POST['publication_muckrack_color'] ) );
+        }
         foreach ( [ 'muckrack_verified_contexts', 'publication_muckrack_placements', 'press_release_include_contexts' ] as $array_key ) {
             if ( isset( $_POST[ $array_key ] ) || isset( $_POST[ $array_key . '_present' ] ) ) {
                 $raw = isset( $_POST[ $array_key ] ) ? wp_unslash( $_POST[ $array_key ] ) : [];

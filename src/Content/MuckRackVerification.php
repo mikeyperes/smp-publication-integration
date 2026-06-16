@@ -31,7 +31,7 @@ final class MuckRackVerification {
             return;
         }
 
-        echo "<style id=smpi-muckrack-styles>.smpi-muckrack-icon-circle,.smpi-muckrack-icon-check{display:inline-flex;align-items:center;justify-content:center;margin-left:.28em;vertical-align:middle;font-weight:700;line-height:1}.smpi-muckrack-icon-circle{width:1.08em;height:1.08em;border:1px solid currentColor;border-radius:999px;font-size:.78em}.smpi-muckrack-link{text-decoration:none}.smpi-muckrack-brand{color:#2d5277;font-weight:700}.smpi-muckrack-footer-note{margin:24px 0 0;padding:12px 14px;border-left:3px solid #2d5277;background:#f5f8fb;font-size:.95em}.smpi-muckrack-publication-note{display:block;margin:.35em 0 0;font-size:.92em;line-height:1.35;color:#334155}.smpi-muckrack-publication-footer{margin:24px 0 0;padding:12px 14px;border-left:3px solid #2d5277;background:#f5f8fb;font-size:.95em}</style>";
+        echo "<style id=smpi-muckrack-styles>.smpi-muckrack-icon-circle,.smpi-muckrack-icon-check{display:inline-flex;align-items:center;justify-content:center;margin-left:.28em;vertical-align:middle;font-weight:700;line-height:1}.smpi-muckrack-icon-circle{width:1.08em;height:1.08em;border:1px solid currentColor;border-radius:999px;font-size:.78em}.smpi-muckrack-link{text-decoration:none}.smpi-muckrack-brand{color:var(--smpi-muckrack-color,#2d5277);font-weight:700}.smpi-muckrack-footer-note{margin:24px 0 0;padding:12px 14px;border-left:3px solid var(--smpi-muckrack-color,#2d5277);background:#f5f8fb;font-size:.95em}.smpi-muckrack-publication-text{--smpi-muckrack-color:#2d5277}.smpi-muckrack-publication-note{margin:.35em 0 0;font-size:.92em;line-height:1.35;color:#334155}.smpi-muckrack-publication-footer{margin:24px 0 0;font-size:.95em}.smpi-muckrack-publication-block{display:block;padding:12px 14px;border-left:3px solid var(--smpi-muckrack-color,#2d5277);background:#f5f8fb}.smpi-muckrack-publication-compact{display:inline-flex;align-items:center;gap:.35em;padding:.28em .7em;border:1px solid var(--smpi-muckrack-color,#2d5277);border-radius:999px;background:#fff;font-size:.92em}.smpi-muckrack-publication-minimalist{display:inline;color:inherit;font-size:.95em}.smpi-muckrack-publication-compact a,.smpi-muckrack-publication-minimalist a,.smpi-muckrack-publication-block a{color:inherit}</style>";
     }
 
     public function render_author_field_shortcode( array $atts = [] ): string {
@@ -194,13 +194,22 @@ final class MuckRackVerification {
             return "";
         }
 
+        return self::publication_verification_markup( $class );
+    }
+
+    public static function publication_verification_markup( string $class = "", string $style_override = "", string $color_override = "" ): string {
         $mode = (string) Settings::get( "publication_muckrack_text_mode", "news_outlet" );
         $label = "publication_name" === $mode ? get_bloginfo( "name" ) : "News outlet";
         $url = trim( (string) Fields::option( "publication_muckrack_url" ) );
         $target = "" !== $url ? $url : "https://muckrack.com/";
-        $classes = trim( "smpi-muckrack-publication-text " . $class );
+        $style = sanitize_key( "" !== $style_override ? $style_override : (string) Settings::get( "publication_muckrack_style", "block" ) );
+        if ( ! in_array( $style, [ "block", "compact", "minimalist" ], true ) ) {
+            $style = "block";
+        }
+        $color = sanitize_hex_color( "" !== $color_override ? $color_override : (string) Settings::get( "publication_muckrack_color", "#2d5277" ) ) ?: "#2d5277";
+        $classes = trim( "smpi-muckrack-publication-text smpi-muckrack-publication-" . $style . " " . $class );
 
-        return "<span class=\"" . esc_attr( $classes ) . "\">" . esc_html( $label ) . " verified by <span class=\"smpi-muckrack-brand\">MuckRack</span> editorial team <a href=\"" . esc_url( $target ) . "\" target=\"_blank\" rel=\"noopener noreferrer\">(learn more)</a></span>";
+        return "<span class=\"" . esc_attr( $classes ) . "\" style=\"--smpi-muckrack-color:" . esc_attr( $color ) . "\">" . esc_html( $label ) . " verified by <span class=\"smpi-muckrack-brand\">MuckRack</span> editorial team <a href=\"" . esc_url( $target ) . "\" target=\"_blank\" rel=\"noopener noreferrer\">(learn more)</a></span>";
     }
 
     public static function publication_report(): array {
@@ -209,10 +218,13 @@ final class MuckRackVerification {
             "acf_verified" => self::publication_verified(),
             "effective" => self::publication_enabled(),
             "text_mode" => (string) Settings::get( "publication_muckrack_text_mode", "news_outlet" ),
+            "style" => (string) Settings::get( "publication_muckrack_style", "block" ),
+            "color" => sanitize_hex_color( (string) Settings::get( "publication_muckrack_color", "#2d5277" ) ) ?: "#2d5277",
             "placements" => Settings::array( "publication_muckrack_placements" ),
             "url" => trim( (string) Fields::option( "publication_muckrack_url" ) ),
             "shortcode" => "[smp_publication_muckrack_verified]",
             "preview" => wp_strip_all_tags( self::publication_verification_text() ),
+            "preview_html" => self::publication_verification_text(),
         ];
     }
 

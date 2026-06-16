@@ -7,7 +7,7 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.4.8`
+- Version: `0.4.9`
 
 ## Structure
 
@@ -61,6 +61,12 @@ WordPress plugin for Scale My Publication publication profiles.
 
 - Added a plugin-registered Publication Theme Options quotes repeater with quote, name, and title subfields.
 
+
+## 0.4.9 Updates
+
+- Rebuilt Features tab placement controls so each context is one row with plain-language descriptions.
+- Added MuckRack verified author visual examples for tooltip and inline text, clearer selected states, and icon previews.
+- Added MuckRack verified publication display style and accent color controls with block, compact, and minimalist previews.
 
 ## 0.4.8 Updates
 
