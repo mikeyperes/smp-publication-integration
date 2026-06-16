@@ -44,7 +44,7 @@ final class DebugEndpoint {
 
     private function counts(): array {
         $out = [];
-        foreach ( [ 'post', 'page', 'publication', 'profile', 'press-release' ] as $type ) {
+        foreach ( [ 'post', 'page', 'profile', 'press-release' ] as $type ) {
             $count = wp_count_posts( $type );
             $out[ $type ] = $count && isset( $count->publish ) ? (int) $count->publish : 0;
         }

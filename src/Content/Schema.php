@@ -3,149 +3,115 @@ namespace smp_publication_integration\Content;
 
 use smp_publication_integration\Support\Fields;
 
-if ( ! defined( 'ABSPATH' ) ) {
+if ( ! defined( "ABSPATH" ) ) {
     exit;
 }
 
 final class Schema {
     public function register(): void {
-        add_action( 'save_post_' . PublicationPostType::POST_TYPE, [ $this, 'save_schema' ], 20, 2 );
-        add_action( 'wp_head', [ $this, 'inject_schema' ], 1 );
-        add_action( 'wp_ajax_smpi_reprocess_schema', [ $this, 'ajax_reprocess_schema' ] );
-    }
-
-    public function save_schema( int $post_id, \WP_Post $post ): void {
-        if ( wp_is_post_revision( $post_id ) || wp_is_post_autosave( $post_id ) || PublicationPostType::POST_TYPE !== $post->post_type ) {
-            return;
-        }
-
-        $this->store_schema( $post_id );
+        add_action( "wp_head", [ $this, "inject_schema" ], 1 );
+        add_action( "wp_ajax_smpi_reprocess_schema", [ $this, "ajax_reprocess_schema" ] );
     }
 
     public function inject_schema(): void {
-        if ( ! is_singular( PublicationPostType::POST_TYPE ) ) {
+        if ( ! is_front_page() && ! is_home() ) {
             return;
         }
 
-        $post_id = get_queried_object_id();
-        if ( ! $post_id ) {
-            return;
+        $schema = $this->get_stored_schema();
+        if ( "" === $schema ) {
+            $schema = $this->generate_schema_json();
         }
 
-        $schema = $this->get_stored_schema( $post_id );
-        if ( '' === $schema ) {
-            $schema = $this->generate_schema_json( $post_id );
-        }
-
-        if ( '' !== $schema ) {
-            echo "\n" . '<script type="application/ld+json">' . $schema . '</script>' . "\n";
+        if ( "" !== $schema ) {
+            echo "\n" . "<script type=\"application/ld+json\">" . $schema . "</script>" . "\n";
         }
     }
 
     public function ajax_reprocess_schema(): void {
-        if ( ! current_user_can( 'manage_options' ) ) {
-            wp_send_json_error( [ 'message' => 'Permission denied.' ], 403 );
+        if ( ! current_user_can( "manage_options" ) ) {
+            wp_send_json_error( [ "message" => "Permission denied." ], 403 );
         }
+        check_ajax_referer( \smp_publication_integration\Admin\Ajax::NONCE, "nonce" );
 
-        $offset     = isset( $_POST['offset'] ) ? max( 0, (int) $_POST['offset'] ) : 0;
-        $batch_size = isset( $_POST['batch_size'] ) ? min( 50, max( 1, (int) $_POST['batch_size'] ) ) : 20;
-        $counts     = wp_count_posts( PublicationPostType::POST_TYPE );
-        $total      = $counts && isset( $counts->publish ) ? (int) $counts->publish : 0;
-
-        $query = new \WP_Query(
-            [
-                'post_type'      => PublicationPostType::POST_TYPE,
-                'post_status'    => 'publish',
-                'posts_per_page' => $batch_size,
-                'offset'         => $offset,
-                'fields'         => 'ids',
-                'no_found_rows'  => true,
-            ]
-        );
-
-        $items = [];
-        foreach ( $query->posts as $post_id ) {
-            $schema  = $this->store_schema( (int) $post_id );
-            $items[] = [
-                'post_id'        => (int) $post_id,
-                'title'          => get_the_title( $post_id ),
-                'schema'         => $schema,
-                'admin_link'     => get_edit_post_link( $post_id ),
-                'view_link'      => get_permalink( $post_id ),
-                'validator_link' => 'https://validator.schema.org/#url=' . rawurlencode( get_permalink( $post_id ) ),
-            ];
-        }
-
+        $schema = $this->store_schema();
         wp_send_json_success(
             [
-                'total'  => $total,
-                'batch'  => count( $items ),
-                'offset' => $offset,
-                'items'  => $items,
+                "total" => 1,
+                "batch" => 1,
+                "offset" => 0,
+                "items" => [
+                    [
+                        "title" => get_bloginfo( "name" ),
+                        "schema" => $schema,
+                        "admin_link" => admin_url( "options-general.php?page=smpi-publication-options" ),
+                        "view_link" => home_url( "/" ),
+                        "validator_link" => "https://validator.schema.org/#url=" . rawurlencode( home_url( "/" ) ),
+                    ],
+                ],
             ]
         );
     }
 
-    public function store_schema( int $post_id ): string {
-        $schema = $this->generate_schema_json( $post_id );
+    public function store_schema(): string {
+        $schema = $this->generate_schema_json();
 
-        if ( function_exists( 'update_field' ) ) {
-            update_field( 'smpi_schema_markup', $schema, $post_id );
+        if ( function_exists( "update_field" ) ) {
+            update_field( "smpi_schema_markup", $schema, "option" );
         }
 
-        update_post_meta( $post_id, '_smpi_schema_markup', $schema );
+        update_option( "_smpi_schema_markup", $schema, false );
         return $schema;
     }
 
-    public function get_stored_schema( int $post_id ): string {
-        $schema = '';
-        if ( function_exists( 'get_field' ) ) {
-            $schema = (string) get_field( 'smpi_schema_markup', $post_id, false );
+    public function get_stored_schema(): string {
+        $schema = "";
+        if ( function_exists( "get_field" ) ) {
+            $schema = (string) get_field( "smpi_schema_markup", "option", false );
         }
 
-        if ( '' === trim( $schema ) ) {
-            $schema = (string) get_post_meta( $post_id, '_smpi_schema_markup', true );
+        if ( "" === trim( $schema ) ) {
+            $schema = (string) get_option( "_smpi_schema_markup", "" );
         }
 
         return trim( $schema );
     }
 
-    public function generate_schema_json( int $post_id ): string {
-        $schema = $this->generate_schema_array( $post_id );
+    public function generate_schema_json(): string {
+        $schema = $this->generate_schema_array();
         return wp_json_encode( $schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT );
     }
 
+    public function generate_schema_array(): array {
+        $website = Fields::option( "website", home_url( "/" ) );
+        $summary = Fields::option( "summary" );
+        $mission = Fields::option( "mission_statement" );
+        $logo = Fields::option( "logo" );
+        $founders = Fields::option( "founders", [] );
+        $founder_users = Fields::option( "founder_users", [] );
+        $founding_date = Fields::option( "founding_date" );
+        $headquarters = Fields::option( "headquarters" );
+        $headquarters_wiki = Fields::option( "headquarters_wikipedia_url" );
+        $contact_email = Fields::option( "contact_email" );
+        $google_news_url = Fields::option( "google_news_url" );
 
-    public function generate_schema_array( int $post_id ): array {
-        $website  = Fields::get( $post_id, "website" );
-        $summary  = Fields::get( $post_id, "summary" );
-        $mission  = Fields::get( $post_id, "mission_statement" );
-        $logo     = Fields::get( $post_id, "logo" );
-        $founders = Fields::get( $post_id, "founders", [] );
-        $founder_users = Fields::get( $post_id, "founder_users", [] );
-        $founding_date = Fields::get( $post_id, "founding_date" );
-        $headquarters = Fields::get( $post_id, "headquarters" );
-        $headquarters_wiki = Fields::get( $post_id, "headquarters_wikipedia_url" );
-        $contact_email = Fields::get( $post_id, "contact_email" );
-        $google_news_url = Fields::get( $post_id, "google_news_url" );
-
-        $founder_items = array_merge( $this->normalize_founders( $founders ), $this->normalize_founder_users( $founder_users ) );
         $same_as = array_values( array_filter( [ $google_news_url, $headquarters_wiki ] ) );
+        $logo_url = $this->normalize_logo( $logo ) ?: get_site_icon_url( 512 );
 
         $schema = [
             "@context" => "https://schema.org",
-            "@type"    => "NewsMediaOrganization",
-            "@id"      => trailingslashit( get_permalink( $post_id ) ) . "#organization",
-            "name"     => get_the_title( $post_id ),
-            "url"      => $website ?: get_permalink( $post_id ),
-            "mainEntityOfPage" => get_permalink( $post_id ),
-            "description"      => wp_strip_all_tags( (string) ( $summary ?: $mission ?: get_the_excerpt( $post_id ) ) ),
-            "slogan"           => wp_strip_all_tags( (string) $mission ),
-            "logo"             => $this->normalize_logo( $logo ),
-            "founder"          => $founder_items,
-            "foundingDate"     => $founding_date,
-            "email"            => $contact_email ? sanitize_email( (string) $contact_email ) : null,
-            "sameAs"           => $same_as,
+            "@type" => "NewsMediaOrganization",
+            "@id" => trailingslashit( home_url( "/" ) ) . "#organization",
+            "name" => get_bloginfo( "name" ),
+            "url" => $website ?: home_url( "/" ),
+            "mainEntityOfPage" => home_url( "/" ),
+            "description" => wp_strip_all_tags( (string) ( $summary ?: $mission ?: get_bloginfo( "description" ) ) ),
+            "slogan" => wp_strip_all_tags( (string) $mission ),
+            "logo" => $logo_url,
+            "founder" => array_merge( $this->normalize_founders( $founders ), $this->normalize_founder_users( $founder_users ) ),
+            "foundingDate" => $founding_date,
+            "email" => $contact_email ? sanitize_email( (string) $contact_email ) : null,
+            "sameAs" => $same_as,
         ];
 
         if ( $headquarters ) {
@@ -160,12 +126,12 @@ final class Schema {
     }
 
     private function normalize_logo( $logo ) {
-        if ( is_array( $logo ) && ! empty( $logo['url'] ) ) {
-            return esc_url_raw( (string) $logo['url'] );
+        if ( is_array( $logo ) && ! empty( $logo["url"] ) ) {
+            return esc_url_raw( (string) $logo["url"] );
         }
 
         if ( is_numeric( $logo ) ) {
-            return wp_get_attachment_image_url( (int) $logo, 'full' ) ?: null;
+            return wp_get_attachment_image_url( (int) $logo, "full" ) ?: null;
         }
 
         return is_string( $logo ) ? esc_url_raw( $logo ) : null;
@@ -173,7 +139,7 @@ final class Schema {
 
     private function normalize_founders( $founders ): array {
         $founders = is_array( $founders ) ? $founders : [ $founders ];
-        $items    = [];
+        $items = [];
 
         foreach ( $founders as $founder ) {
             $founder_id = is_object( $founder ) && isset( $founder->ID ) ? (int) $founder->ID : (int) $founder;
@@ -182,15 +148,14 @@ final class Schema {
             }
 
             $items[] = [
-                '@type' => 'Person',
-                'name'  => get_the_title( $founder_id ),
-                'url'   => get_permalink( $founder_id ),
+                "@type" => "Person",
+                "name" => get_the_title( $founder_id ),
+                "url" => get_permalink( $founder_id ),
             ];
         }
 
         return $items;
     }
-
 
     private function normalize_founder_users( $users ): array {
         $users = is_array( $users ) ? $users : [ $users ];
@@ -219,7 +184,7 @@ final class Schema {
                 $value = $this->clean_schema( $value );
             }
 
-            if ( null === $value || false === $value || '' === $value || [] === $value ) {
+            if ( null === $value || false === $value || "" === $value || [] === $value ) {
                 unset( $schema[ $key ] );
             } else {
                 $schema[ $key ] = $value;
@@ -229,4 +194,3 @@ final class Schema {
         return $schema;
     }
 }
-

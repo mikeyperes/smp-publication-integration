@@ -23,7 +23,6 @@ final class Settings {
             'muckrack_verified_style' => 'tooltip',
             'press_release_include_enabled' => true,
             'press_release_include_contexts' => [ 'home', 'category_tag', 'author', 'single_recent' ],
-            'system_publication_id' => 0,
             'system_publication_user_id' => 0,
             'page_assignments'      => [],
             'page_templates'        => self::default_page_templates(),
@@ -58,7 +57,7 @@ final class Settings {
                 continue;
             }
 
-            if ( in_array( $key, [ "system_publication_id", "system_publication_user_id" ], true ) ) {
+            if ( "system_publication_user_id" === $key ) {
                 $settings[ $key ] = absint( $value );
                 continue;
             }

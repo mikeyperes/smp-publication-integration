@@ -3,11 +3,9 @@ namespace smp_publication_integration\Admin;
 
 use smp_publication_integration\Config;
 use smp_publication_integration\Content\AuthorShortcodes;
-use smp_publication_integration\Content\PublicationPostType;
 use smp_publication_integration\Content\Schema;
 use smp_publication_integration\Content\Shortcodes;
 use smp_publication_integration\Support\Dependencies;
-use smp_publication_integration\Support\Fields;
 use smp_publication_integration\Support\PluginRegistry;
 use smp_publication_integration\Support\Settings;
 
@@ -90,33 +88,30 @@ final class Dashboard {
 
 
     private function publication_mapping_panel( array $settings ): void {
-        $publication_id = isset( $settings["system_publication_id"] ) ? absint( $settings["system_publication_id"] ) : 0;
         $user_id = isset( $settings["system_publication_user_id"] ) ? absint( $settings["system_publication_user_id"] ) : 0;
-        echo "<div class=\"smpi-panel smpi-publication-map\"><h2>Publication</h2><p>Bind this publication system to one WordPress user.php author record. The selected user powers publication profile reporting and gives non-developers one obvious place to verify the mapped record.</p>";
+
+        echo "<div class=\"smpi-panel smpi-publication-map smpi-publication-author-panel\">";
+        echo "<div class=\"smpi-overview-section\"><p class=\"smpi-kicker\">Current Publication</p><h2>Publication Author</h2><p>Select the WordPress author profile that represents this publication on the front end. Search by name, username, or email, then choose the right profile.</p></div>";
+        echo "<div class=\"smpi-author-binding-layout\"><div class=\"smpi-author-search-card\">";
+        echo "<label for=\"smpi-publication-user-search\"><strong>Find a WordPress author</strong></label><p class=\"smpi-muted\">Start typing a name, username, or email. The selected profile saves automatically.</p>";
         echo "<div class=\"smpi-user-picker\" data-selected-user=\"" . esc_attr( (string) $user_id ) . "\">";
-        echo "<label for=\"smpi-publication-user-search\"><strong>Publication user.php record</strong></label><br>";
-        echo "<input id=\"smpi-publication-user-search\" type=\"search\" class=\"regular-text smpi-user-search\" placeholder=\"Search users by name, email, or login\" value=\"" . esc_attr( $this->selected_user_label( $user_id ) ) . "\" autocomplete=\"off\">";
+        echo "<input id=\"smpi-publication-user-search\" type=\"search\" class=\"regular-text smpi-user-search\" placeholder=\"Name, username, or email\" value=\"" . esc_attr( $this->selected_user_label( $user_id ) ) . "\" autocomplete=\"off\">";
         echo "<input type=\"hidden\" class=\"smpi-setting smpi-publication-user-setting\" data-key=\"system_publication_user_id\" value=\"" . esc_attr( (string) $user_id ) . "\"> ";
-        echo "<button type=\"button\" class=\"button smpi-clear-user\">Clear</button><span class=\"spinner\"></span><span class=\"smpi-save-state\"></span><div class=\"smpi-user-results\" aria-live=\"polite\"></div></div>";
-        echo "<div class=\"smpi-current-user-summary\">" . $this->publication_user_card_html( $user_id ) . "</div>";
-        echo "<details class=\"smpi-advanced-map\"><summary>Advanced publication CPT mapping</summary><p>Optional. Select the publication CPT record when this site also maintains a formal publication post. Saving either value syncs ACF/meta when both sides are selected.</p><table class=\"widefat striped\"><tbody>";
-        echo "<tr><th>Publication CPT profile</th><td>" . $this->publication_select_html( $publication_id ) . "<span class=\"spinner\"></span><span class=\"smpi-save-state\"></span></td></tr>";
-        echo "<tr><th>Status</th><td>" . $this->mapping_status_html( $publication_id, $user_id ) . "</td></tr>";
-        echo "</tbody></table></details></div>";
+        echo "<button type=\"button\" class=\"button smpi-clear-user\">Clear selection</button><span class=\"spinner\"></span><span class=\"smpi-save-state\"></span><div class=\"smpi-user-results\" aria-live=\"polite\"></div></div></div>";
+        echo "<div class=\"smpi-current-user-summary\">" . $this->publication_user_card_html( $user_id ) . "</div></div></div>";
     }
 
     private function selected_user_label( int $user_id ): string {
         $user = $user_id ? get_user_by( "id", $user_id ) : false;
-        return $user ? $user->display_name . " (#" . $user->ID . ")" : "";
+        return $user ? $user->display_name : "";
     }
 
     private function publication_user_card_html( int $user_id ): string {
         $user = $user_id ? get_user_by( "id", $user_id ) : false;
         if ( ! $user ) {
-            return "<div class=\"smpi-alert smpi-alert-warning\"><strong>No publication user selected.</strong><br>Search and select the WordPress user.php record for this publication.</div>";
+            return "<div class=\"smpi-empty-state\"><strong>No author selected.</strong><p>Search by name, username, or email and choose the front-end author profile for this publication.</p></div>";
         }
 
-        $user_key = "user_" . $user_id;
         $title = $this->acf_user_value( $user_id, "title" );
         $bio_short = $this->acf_user_value( $user_id, "biography_short" );
         $bio = $this->acf_user_value( $user_id, "biography" );
@@ -131,7 +126,7 @@ final class Dashboard {
         if ( $roles ) {
             $html .= "<p class=\"smpi-muted\">Roles: " . esc_html( $roles ) . "</p>";
         }
-        $html .= "<p><a class=\"button button-secondary\" target=\"_blank\" rel=\"noopener noreferrer\" href=\"" . esc_url( get_edit_user_link( $user_id ) ) . "\">Edit Profile</a> <a class=\"button button-secondary\" target=\"_blank\" rel=\"noopener noreferrer\" href=\"" . esc_url( get_author_posts_url( $user_id ) ) . "\">View Author Archive</a></p></div></div>";
+        $html .= "<p><a class=\"button button-secondary\" target=\"_blank\" rel=\"noopener noreferrer\" href=\"" . esc_url( get_edit_user_link( $user_id ) ) . "\">Edit Profile</a> <a class=\"button button-secondary\" target=\"_blank\" rel=\"noopener noreferrer\" href=\"" . esc_url( get_author_posts_url( $user_id ) ) . "\">View Author Page</a></p></div></div>";
 
         $rows = [
             [ "Title", "title", $title, "[smp_publication_user field=\"title\"]" ],
@@ -150,7 +145,6 @@ final class Dashboard {
             $html .= "<div class=\"smpi-field-preview\"><div><strong>" . esc_html( $row[0] ) . "</strong> <code>" . esc_html( $row[3] ) . "</code></div><p>" . esc_html( wp_trim_words( wp_strip_all_tags( $preview ), 36, "..." ) ) . "</p></div>";
         }
         $html .= "</div>";
-        $html .= "<p class=\"smpi-muted\">ACF context: <code>" . esc_html( $user_key ) . "</code></p>";
         return $html;
     }
 
@@ -180,37 +174,16 @@ final class Dashboard {
         return trim( (string) $value );
     }
 
-    private function publication_select_html( int $current ): string {
-        $posts = get_posts( [ "post_type" => PublicationPostType::POST_TYPE, "post_status" => "any", "posts_per_page" => 200, "orderby" => "title", "order" => "ASC" ] );
-        $html = "<select class=\"smpi-setting smpi-mapping-select\" data-key=\"system_publication_id\"><option value=\"0\">Select publication CPT profile</option>";
-        foreach ( $posts as $post ) {
-            $html .= "<option value=\"" . esc_attr( (string) $post->ID ) . "\"" . selected( $current, $post->ID, false ) . ">" . esc_html( $post->post_title . " (#" . $post->ID . ")" ) . "</option>";
-        }
-        return $html . "</select>";
-    }
-
-    private function mapping_status_html( int $publication_id, int $user_id ): string {
-        $items = [];
-        $user = $user_id ? get_user_by( "id", $user_id ) : false;
-        $items[] = $user ? "<span class=\"smpi-ok\">GREEN CHECK</span> Publication user selected: " . esc_html( $user->display_name ) : "<span class=\"smpi-warn\">YELLOW !</span> No publication user selected.";
-        $items[] = $publication_id && PublicationPostType::POST_TYPE === get_post_type( $publication_id ) ? "<span class=\"smpi-ok\">GREEN CHECK</span> Publication CPT selected: " . esc_html( get_the_title( $publication_id ) ) : "<span class=\"smpi-warn\">YELLOW !</span> No publication CPT selected. User-only binding still works.";
-        if ( $publication_id && $user_id ) {
-            $bound_user = (int) Fields::get( $publication_id, "publication_user", 0 );
-            $items[] = $bound_user && $bound_user === $user_id ? "<span class=\"smpi-ok\">GREEN CHECK</span> Publication ACF binding matches this user." : "<span class=\"smpi-warn\">YELLOW !</span> Publication ACF binding will sync after saving both mapping fields.";
-        }
-        return "<p>" . implode( "</p><p>", $items ) . "</p>";
-    }
-
     private function profiles(): void {
-        echo '<div class="smpi-panel"><h2>Publication Profile Structure</h2><p>The plugin registers the public <code>publication</code> CPT only when missing. Publications bind to a WordPress user and can bind multiple founders from the Verified Profiles <code>profile</code> CPT.</p><table class="widefat striped"><tbody>';
-        foreach ( [ 'smpi_publication_user' => 'Publication user binding', 'smpi_founder_users' => 'Founder author.php user bindings', 'smpi_founders' => 'Optional founder profile bindings', 'smpi_headquarters' => 'Headquarters', 'smpi_founding_date' => 'Founding Date', 'smpi_mission_statement' => 'Mission Statement WYSIWYG', 'smpi_contact_email' => 'Public contact email', 'smpi_google_news_url' => 'Google News URL', '_smpi_shadow_home' => 'Hide from home query', '_smpi_shadow_archives' => 'Hide from category/tag query' ] as $field => $label ) {
-            echo '<tr><th><code>' . esc_html( $field ) . '</code></th><td>' . esc_html( $label ) . '</td></tr>';
+        echo "<div class=\"smpi-panel\"><h2>Publication Field Structure</h2><p>Publication details live on the site options page for the current publication. Author and founder fields connect those options to existing WordPress author profiles.</p><table class=\"widefat striped\"><tbody>";
+        foreach ( [ "smpi_publication_user" => "Selected publication author", "smpi_founder_users" => "Founder author accounts", "smpi_founders" => "Optional verified profile bindings", "smpi_headquarters" => "Headquarters", "smpi_founding_date" => "Founding Date", "smpi_mission_statement" => "Mission Statement", "smpi_contact_email" => "Public contact email", "smpi_google_news_url" => "Google News URL", "_smpi_shadow_home" => "Hide from home query", "_smpi_shadow_archives" => "Hide from category/tag query" ] as $field => $label ) {
+            echo "<tr><th><code>" . esc_html( $field ) . "</code></th><td>" . esc_html( $label ) . "</td></tr>";
         }
-        echo '</tbody></table></div>';
+        echo "</tbody></table></div>";
     }
 
     private function shortcodes(): void {
-        $publication_sample = $this->latest_publication_id();
+        $publication_sample = 0;
         $post_sample = $this->latest_post_id();
         echo "<div class=\"smpi-panel\"><h2>Shortcodes</h2><p>Author shortcodes resolve the current post author inside single.php loops. Pass post_id or user_id when debugging outside the loop.</p><table class=\"widefat striped\"><thead><tr><th>Group</th><th>Shortcode</th><th>Current Value</th></tr></thead><tbody>";
         foreach ( Shortcodes::shortcodes() as $tag => $callback ) {
@@ -230,17 +203,16 @@ final class Dashboard {
     }
 
     private function schema(): void {
-        $sample = $this->latest_publication_id();
-        $schema = $sample ? ( new Schema() )->generate_schema_json( $sample ) : '';
+        $schema = ( new Schema() )->generate_schema_json();
         $rank = Dependencies::plugin_active( 'seo-by-rank-math-pro/rank-math-pro.php' );
         echo '<div class="smpi-grid">';
         $this->status_card( 'Rank Math Pro', $rank, $rank ? 'Rank Math Pro active.' : 'Rank Math Pro is recommended for schema edits.' );
         $this->status_card( 'Verified Profiles', Dependencies::sfpf_active(), Dependencies::sfpf_active() ? 'Founder profile schema source active.' : 'Founder profile schema source inactive.' );
         $this->status_card( 'Homepage Schema', (bool) $this->extract_schema_types( home_url( '/' ) ), 'Homepage JSON-LD fetch checked.' );
         $this->status_card( 'Recent Posts', $this->recent_posts_schema_count() >= 8, $this->recent_posts_schema_count() . ' of 10 recent posts returned JSON-LD.' );
-        echo '</div><div class="smpi-panel"><h2>Reprocess Publication Schema Objects</h2><button id="smpi-reprocess-schema" type="button" class="button button-primary">Reprocess all publication schema objects</button><div id="smpi-schema-report" class="smpi-code-panel"></div></div>';
+        echo '</div><div class="smpi-panel"><h2>Refresh Publication Schema</h2><button id="smpi-reprocess-schema" type="button" class="button button-primary">Refresh publication schema</button><div id="smpi-schema-report" class="smpi-code-panel"></div></div>';
         if ( $schema ) {
-            echo '<div class="smpi-panel"><h2>Latest Publication Schema Preview</h2><pre class="smpi-code">' . esc_html( $schema ) . '</pre></div>';
+            echo '<div class="smpi-panel"><h2>Publication Schema Preview</h2><pre class="smpi-code">' . esc_html( $schema ) . '</pre></div>';
         }
     }
 
@@ -450,16 +422,11 @@ final class Dashboard {
 
     private function counts(): array {
         $out = [];
-        foreach ( [ 'post', 'page', 'publication', 'profile', 'press-release' ] as $type ) {
+        foreach ( [ 'post', 'page', 'profile', 'press-release' ] as $type ) {
             $count = wp_count_posts( $type );
             $out[ $type ] = $count && isset( $count->publish ) ? (int) $count->publish : 0;
         }
         return $out;
-    }
-
-    private function latest_publication_id(): int {
-        $query = new \WP_Query( [ 'post_type' => PublicationPostType::POST_TYPE, 'post_status' => 'publish', 'posts_per_page' => 1, 'fields' => 'ids', 'no_found_rows' => true ] );
-        return ! empty( $query->posts ) ? (int) $query->posts[0] : 0;
     }
 
     private function latest_post_id(): int {
@@ -506,8 +473,8 @@ final class Dashboard {
             $(document).on(`change`,`.smpi-setting`,function(){saveSetting($(this))});
             var userTimer=null;
             $(document).on(`input`,`.smpi-user-search`,function(){var input=$(this),picker=input.closest(`.smpi-user-picker`),box=picker.find(`.smpi-user-results`),term=input.val();clearTimeout(userTimer);if(term.length<2){box.empty();return}userTimer=setTimeout(function(){picker.find(`.spinner`).addClass(`is-active`);$.post(smpiAdmin.ajaxUrl,{action:`smpi_search_users`,nonce:smpiAdmin.nonce,term:term}).done(function(x){box.empty();if(!x.success||!x.data.users.length){box.html(`<p class="smpi-muted">No matching users.</p>`);return}$.each(x.data.users,function(i,u){var b=$(`<button type="button" class="button smpi-user-result"></button>`).text(u.label+` - `+u.email).data(`user`,u);box.append(b)})}).always(function(){picker.find(`.spinner`).removeClass(`is-active`)})},250)});
-            $(document).on(`click`,`.smpi-user-result`,function(){var u=$(this).data(`user`),picker=$(this).closest(`.smpi-user-picker`);picker.find(`.smpi-user-search`).val(u.label);picker.find(`.smpi-publication-user-setting`).val(u.id);picker.find(`.smpi-user-results`).html(`<p><span class="smpi-ok">GREEN CHECK</span> Selected ${u.label}. Saved by AJAX.</p>`);$(`.smpi-current-user-summary`).html(`<div class="smpi-profile-card"><div class="smpi-profile-avatar"><img src="${u.avatar}" alt=""></div><div class="smpi-profile-info"><h3>${u.name}</h3><p>${u.email}</p><p><a class="button button-secondary" target="_blank" rel="noopener noreferrer" href="${u.edit_url}">Edit Profile</a> <a class="button button-secondary" target="_blank" rel="noopener noreferrer" href="${u.view_url}">View Author Archive</a></p></div></div>`);saveSetting(picker.find(`.smpi-publication-user-setting`))});
-            $(document).on(`click`,`.smpi-clear-user`,function(){var picker=$(this).closest(`.smpi-user-picker`);picker.find(`.smpi-user-search`).val(``);picker.find(`.smpi-publication-user-setting`).val(0);picker.find(`.smpi-user-results`).empty();$(`.smpi-current-user-summary`).html(`<div class="smpi-alert smpi-alert-warning"><strong>No publication user selected.</strong><br>Search and select the WordPress user.php record for this publication.</div>`);saveSetting(picker.find(`.smpi-publication-user-setting`))});
+            $(document).on(`click`,`.smpi-user-result`,function(){var u=$(this).data(`user`),picker=$(this).closest(`.smpi-user-picker`);picker.find(`.smpi-user-search`).val(u.label);picker.find(`.smpi-publication-user-setting`).val(u.id);picker.find(`.smpi-user-results`).html(`<p><span class="smpi-ok">GREEN CHECK</span> Selected ${u.label}. Saved by AJAX.</p>`);$(`.smpi-current-user-summary`).html(`<div class="smpi-profile-card"><div class="smpi-profile-avatar"><img src="${u.avatar}" alt=""></div><div class="smpi-profile-info"><h3>${u.name}</h3><p>${u.email}</p><p><a class="button button-secondary" target="_blank" rel="noopener noreferrer" href="${u.edit_url}">Edit Profile</a> <a class="button button-secondary" target="_blank" rel="noopener noreferrer" href="${u.view_url}">View Author Page</a></p></div></div>`);saveSetting(picker.find(`.smpi-publication-user-setting`))});
+            $(document).on(`click`,`.smpi-clear-user`,function(){var picker=$(this).closest(`.smpi-user-picker`);picker.find(`.smpi-user-search`).val(``);picker.find(`.smpi-publication-user-setting`).val(0);picker.find(`.smpi-user-results`).empty();$(`.smpi-current-user-summary`).html(`<div class="smpi-empty-state"><strong>No author selected.</strong><p>Search by name, username, or email and choose the front-end author profile for this publication.</p></div>`);saveSetting(picker.find(`.smpi-publication-user-setting`))});
             $(document).on(`click`,`.smpi-save-page`,function(){var r=$(this).closest(`.smpi-page-row`),d={action:`smpi_save_page_assignment`,nonce:smpiAdmin.nonce,page_type:r.data(`page-type`),page_id:r.find(`.smpi-page-select`).val(),template:r.find(`.smpi-page-template`).val()||``};r.find(`.spinner`).addClass(`is-active`);$.post(smpiAdmin.ajaxUrl,d).done(function(x){r.find(`.smpi-save-state`).text(x.success?` Saved`:` Error`)}).always(function(){r.find(`.spinner`).removeClass(`is-active`)})});
             $(document).on(`click`,`.smpi-create-page`,function(){var r=$(this).closest(`.smpi-page-row`),d={action:`smpi_create_page_assignment`,nonce:smpiAdmin.nonce,page_type:r.data(`page-type`)};r.find(`.spinner`).addClass(`is-active`);$.post(smpiAdmin.ajaxUrl,d).done(function(x){if(x.success&&x.data.page){var p=x.data.page,sel=r.find(`.smpi-page-select`);if(!sel.find(`option[value=`+p.id+`]`).length){sel.append($(`<option></option>`).attr(`value`,p.id).text(p.title+` (#`+p.id+`)`))}sel.val(p.id);r.find(`.smpi-save-state`).html(` Created draft page. <a target="_blank" rel="noopener noreferrer" href="${p.edit_url}">Edit</a>`)}else{r.find(`.smpi-save-state`).text(` Error`)}}).always(function(){r.find(`.spinner`).removeClass(`is-active`)})});
             $(`#smpi-refresh-optimization`).on(`click`,function(){var s=$(this).next(`.spinner`);s.addClass(`is-active`);$.post(smpiAdmin.ajaxUrl,{action:`smpi_refresh_optimization`,nonce:smpiAdmin.nonce}).done(function(x){if(x.success)$(`#smpi-optimization-report`).html(x.data.html)}).always(function(){s.removeClass(`is-active`)})});
@@ -517,6 +484,6 @@ final class Dashboard {
     <?php }
 
     private function styles(): void { ?>
-        <style>.smpi-dashboard{max-width:1280px}.smpi-tabs-nav{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0;border-bottom:1px solid #dcdcde}.smpi-tab-btn{border:1px solid #dcdcde;border-bottom:none;background:#f6f7f7;padding:10px 14px;border-radius:8px 8px 0 0;cursor:pointer}.smpi-tab-btn.active{background:#fff;color:#2271b1;font-weight:700}.smpi-tab-content{display:none}.smpi-tab-content.active{display:block}.smpi-hero{margin:18px 0;padding:28px 30px;border:1px solid #dcdcde;border-radius:14px;background:linear-gradient(135deg,#fff 0%,#eef6fb 100%);box-shadow:0 10px 28px rgba(0,0,0,.05)}.smpi-kicker{margin:0 0 8px;color:#2271b1;font-weight:700;letter-spacing:.08em;text-transform:uppercase}.smpi-hero h2{margin:0 0 10px;font-size:28px}.smpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;margin:18px 0}.smpi-card,.smpi-panel{padding:18px;border:1px solid #dcdcde;border-radius:12px;background:#fff;margin:16px 0}.smpi-card h3,.smpi-panel h2{margin-top:0}.smpi-ok{color:#008a20;font-weight:700}.smpi-warn{color:#996800;font-weight:700}.smpi-bad{color:#b32d2e;font-weight:700}.smpi-code,.smpi-code-panel{white-space:pre-wrap;background:#101517;color:#e6edf3;border:1px solid #1f2933;border-radius:10px;padding:14px;max-height:520px;overflow:auto}.smpi-page-select,.smpi-mapping-select{min-width:320px}.smpi-save-state{margin-left:8px;font-weight:700}.smpi-user-picker{padding:14px;border:1px solid #dcdcde;border-radius:10px;background:#f9fafb;margin:12px 0}.smpi-user-results{display:grid;gap:6px;margin-top:10px;max-width:720px}.smpi-user-result{text-align:left;justify-content:flex-start}.smpi-profile-card{display:flex;gap:18px;align-items:center;padding:18px;border:1px solid #e5e7eb;border-radius:12px;background:#f9fafb;margin:14px 0}.smpi-profile-avatar img{width:96px;height:96px;border-radius:999px;background:#fff;object-fit:cover;box-shadow:0 2px 10px rgba(0,0,0,.08)}.smpi-profile-info h3{margin:0 0 6px}.smpi-profile-fields{display:grid;gap:10px;margin-top:12px}.smpi-field-preview{padding:11px 14px;border:1px solid #e5e7eb;border-radius:8px;background:#fff}.smpi-field-preview p{margin:6px 0 0}.smpi-muted{color:#646970}.smpi-alert{padding:12px 14px;border-radius:8px;border:1px solid #f0c36d;background:#fff8e5}.smpi-alert-warning{color:#664d03}.smpi-advanced-map{margin-top:14px}.smpi-advanced-map summary{cursor:pointer;font-weight:700}</style>
+        <style>.smpi-dashboard{max-width:1280px}.smpi-tabs-nav{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0;border-bottom:1px solid #dcdcde}.smpi-tab-btn{border:1px solid #dcdcde;border-bottom:none;background:#f6f7f7;padding:10px 14px;border-radius:8px 8px 0 0;cursor:pointer}.smpi-tab-btn.active{background:#fff;color:#2271b1;font-weight:700}.smpi-tab-content{display:none}.smpi-tab-content.active{display:block}.smpi-hero{margin:18px 0;padding:28px 30px;border:1px solid #dcdcde;border-radius:14px;background:linear-gradient(135deg,#fff 0%,#eef6fb 100%);box-shadow:0 10px 28px rgba(0,0,0,.05)}.smpi-kicker{margin:0 0 8px;color:#2271b1;font-weight:700;letter-spacing:.08em;text-transform:uppercase}.smpi-hero h2{margin:0 0 10px;font-size:28px}.smpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;margin:18px 0}.smpi-card,.smpi-panel{padding:18px;border:1px solid #dcdcde;border-radius:12px;background:#fff;margin:16px 0}.smpi-card h3,.smpi-panel h2{margin-top:0}.smpi-ok{color:#008a20;font-weight:700}.smpi-warn{color:#996800;font-weight:700}.smpi-bad{color:#b32d2e;font-weight:700}.smpi-code,.smpi-code-panel{white-space:pre-wrap;background:#101517;color:#e6edf3;border:1px solid #1f2933;border-radius:10px;padding:14px;max-height:520px;overflow:auto}.smpi-page-select,.smpi-mapping-select{min-width:320px}.smpi-save-state{margin-left:8px;font-weight:700}.smpi-user-picker{padding:14px;border:1px solid #dcdcde;border-radius:10px;background:#f9fafb;margin:12px 0}.smpi-user-results{display:grid;gap:6px;margin-top:10px;max-width:720px}.smpi-user-result{text-align:left;justify-content:flex-start}.smpi-profile-card{display:flex;gap:18px;align-items:center;padding:18px;border:1px solid #e5e7eb;border-radius:12px;background:#f9fafb;margin:14px 0}.smpi-profile-avatar img{width:96px;height:96px;border-radius:999px;background:#fff;object-fit:cover;box-shadow:0 2px 10px rgba(0,0,0,.08)}.smpi-profile-info h3{margin:0 0 6px}.smpi-profile-fields{display:grid;gap:10px;margin-top:12px}.smpi-field-preview{padding:11px 14px;border:1px solid #e5e7eb;border-radius:8px;background:#fff}.smpi-field-preview p{margin:6px 0 0}.smpi-muted{color:#646970}.smpi-alert{padding:12px 14px;border-radius:8px;border:1px solid #f0c36d;background:#fff8e5}.smpi-alert-warning{color:#664d03}.smpi-publication-author-panel{padding:0;overflow:hidden}.smpi-publication-author-panel .smpi-overview-section{padding:24px 28px;background:linear-gradient(135deg,#111827 0%,#1f3a5f 100%);color:#fff}.smpi-publication-author-panel .smpi-overview-section .smpi-kicker{color:#9bd4ff}.smpi-publication-author-panel .smpi-overview-section h2{font-size:30px;margin:0 0 8px}.smpi-publication-author-panel .smpi-overview-section p:last-child{max-width:760px;font-size:15px;color:#e5edf7}.smpi-author-binding-layout{display:grid;grid-template-columns:minmax(320px,520px) 1fr;gap:22px;padding:24px 28px}.smpi-author-search-card{padding:18px;border:1px solid #d8dee8;border-radius:14px;background:#f8fafc}.smpi-user-picker{padding:0;border:0;background:transparent;margin:12px 0 0}.smpi-user-search{width:min(100%,420px);font-size:16px;padding:8px 12px}.smpi-empty-state{padding:22px;border:1px dashed #b9c2cf;border-radius:14px;background:#fbfcfe;color:#334155}.smpi-empty-state p{margin:8px 0 0}.smpi-advanced-map{display:none}</style>
     <?php }
 }

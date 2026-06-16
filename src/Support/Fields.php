@@ -138,6 +138,35 @@ final class Fields {
         ];
     }
 
+    public static function option( string $field, $default = "" ) {
+        $aliases = self::aliases()[ $field ] ?? [ $field ];
+
+        foreach ( $aliases as $alias ) {
+            $value = self::raw_option( $alias );
+            if ( self::has_value( $value ) ) {
+                return $value;
+            }
+        }
+
+        return $default;
+    }
+
+    public static function raw_option( string $field ) {
+        if ( function_exists( "get_field" ) ) {
+            $value = get_field( $field, "option" );
+            if ( self::has_value( $value ) ) {
+                return $value;
+            }
+        }
+
+        $value = get_option( "options_" . $field, null );
+        if ( self::has_value( $value ) ) {
+            return $value;
+        }
+
+        return get_option( $field, "" );
+    }
+
     public static function raw( int $post_id, string $field ) {
         if ( function_exists( 'get_field' ) ) {
             $value = get_field( $field, $post_id );

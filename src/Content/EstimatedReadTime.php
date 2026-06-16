@@ -58,7 +58,7 @@ final class EstimatedReadTime {
 
     public static function content_for_post( int $post_id ): string {
         $post = get_post( $post_id );
-        if ( ! $post || ! in_array( $post->post_type, [ "post", "page", PublicationPostType::POST_TYPE, "press-release" ], true ) ) {
+        if ( ! $post || ! in_array( $post->post_type, [ "post", "page", "press-release" ], true ) ) {
             return "";
         }
 
