@@ -7,7 +7,7 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.5.8`
+- Version: `0.5.9`
 
 ## Structure
 
@@ -61,6 +61,12 @@ WordPress plugin for Scale My Publication publication profiles.
 
 - Added a plugin-registered Publication Theme Options quotes repeater with quote, name, and title subfields.
 
+
+## 0.5.9 Updates
+
+- Tightened MuckRack Elementor injection so publication below-author placement ignores lower author bio/profile and related-article author links after the post content.
+- Removed author-footer verification from the default MuckRack author placement contexts so publication footer verification does not stack with an author footer block by default.
+- Added the inline photo treatment, caption, Post Summary style, and Post FAQ style work item to the Pending Work Queue.
 
 ## 0.5.8 Updates
 
@@ -116,6 +122,8 @@ WordPress plugin for Scale My Publication publication profiles.
 - Registers the supplied Post - Header ACF group on post and imported-news only when at least one add-on toggle is enabled.
 
 ## Pending Work Queue
+- Feature: inline photo styles for posts and `press-release` CPTs. Import visual treatments 1, 2, 4, and 5 from `https://herforward.com/inline-redesign/`, use MashViral caption styling from `https://mashviral.com/article-styles/`, provide visual selectable previews, and include a `No style` option.
+- Feature: Post Summary and Post FAQs style pickers. Import the Summary and FAQ designs from `https://mashviral.com/article-styles/`, show visual previews below the ACF add-on controls, allow click-to-apply selection, and include a `No style` option for each.
 - Shortcodes tab: add a dynamic user selector that loads one row per shortcode/field with the selected user, the exact shortcode, and the rendered shortcode value for that user.
 - Features tab / MuckRack verified authors: re-check narrower responsive widths after the full-width report fix and clean up any remaining status-label wrapping if it appears.
 

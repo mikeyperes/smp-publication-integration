@@ -21,7 +21,7 @@ final class Settings {
             'publication_social_cleanup' => true,
             'muckrack_verified_enabled' => true,
             'muckrack_author_always_show' => false,
-            'muckrack_verified_contexts' => [ 'single_author', 'single_footer', 'author', 'home' ],
+            'muckrack_verified_contexts' => [ 'single_author', 'author', 'home' ],
             'muckrack_verified_style' => 'tooltip',
             'muckrack_icon_color' => '#2d5277',
             'muckrack_icon_style' => 'circle_check',
