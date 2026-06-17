@@ -11,6 +11,7 @@ final class Settings {
     public static function defaults(): array {
         return [
             'founders_enabled'      => true,
+            'shadow_posts_enabled' => true,
             'shadow_press_releases' => false,
             'post_time_mode'        => 'native',
             'author_social_cleanup' => true,
@@ -76,13 +77,13 @@ final class Settings {
                 continue;
             }
 
-            if ( in_array( $key, [ 'founders_enabled', 'shadow_press_releases', 'author_social_cleanup', 'public_debug_enabled', 'estimated_read_time_enabled', 'elementor_css_cache_busting', 'publication_social_cleanup', 'muckrack_verified_enabled', 'muckrack_author_always_show', 'publication_muckrack_verified_enabled', 'press_release_include_enabled', 'post_summary_acf_enabled', 'post_faqs_acf_enabled', 'table_of_contents_enabled', 'table_of_contents_auto_single', 'rank_math_breadcrumb_check_enabled', 'hws_masked_admin_report_enabled' ], true ) ) {
+            if ( in_array( $key, [ 'founders_enabled', 'shadow_posts_enabled', 'shadow_press_releases', 'author_social_cleanup', 'public_debug_enabled', 'estimated_read_time_enabled', 'elementor_css_cache_busting', 'publication_social_cleanup', 'muckrack_verified_enabled', 'muckrack_author_always_show', 'publication_muckrack_verified_enabled', 'press_release_include_enabled', 'post_summary_acf_enabled', 'post_faqs_acf_enabled', 'table_of_contents_enabled', 'table_of_contents_auto_single', 'rank_math_breadcrumb_check_enabled', 'hws_masked_admin_report_enabled' ], true ) ) {
                 $settings[ $key ] = (bool) $value;
                 continue;
             }
 
             if ( 'muckrack_verified_style' === $key ) {
-                $allowed = [ 'tooltip', 'text' ];
+                $allowed = [ 'tooltip', 'text', 'compact_block' ];
                 $settings[ $key ] = in_array( $value, $allowed, true ) ? $value : 'tooltip';
                 continue;
             }

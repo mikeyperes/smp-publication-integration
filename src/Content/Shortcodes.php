@@ -9,6 +9,8 @@ if ( ! defined( "ABSPATH" ) ) {
 }
 
 final class Shortcodes {
+    private const POST_ACF_FIELDS = [ "post_summary", "post_faqs" ];
+
     public function register(): void {
         add_action( "init", [ $this, "register_shortcodes" ] );
     }
@@ -29,18 +31,66 @@ final class Shortcodes {
             "smp_publication_validate_schema" => "render_validate_schema",
             "smp_publication_page" => "render_page_assignment",
             "smp_publication_debug_url" => "render_debug_url",
+            "smp_post_acf" => "render_post_acf",
+            "smp_post_summary" => "render_post_summary",
+            "smp_post_faqs" => "render_post_faqs",
         ];
     }
 
     public function render_field( array $atts = [] ): string {
-        $atts = shortcode_atts( [ "field" => "" ], $atts, "smp_publication_field" );
+        $atts = shortcode_atts(
+            [
+                "field" => "",
+                "format" => "html",
+                "row" => "",
+                "index" => "",
+                "sub_field" => "",
+                "separator" => ", ",
+            ],
+            $atts,
+            "smp_publication_field"
+        );
         $field = sanitize_key( (string) $atts["field"] );
         if ( "" === $field ) {
             return "";
         }
 
         $value = Fields::option( $field );
-        return is_array( $value ) || is_object( $value ) ? esc_html( wp_json_encode( $value ) ) : wp_kses_post( (string) $value );
+        $value = $this->extract_indexed_value( $value, (string) $atts["row"], (string) $atts["index"] );
+        $value = $this->extract_sub_field( $value, sanitize_key( (string) $atts["sub_field"] ) );
+        return $this->format_value( $value, sanitize_key( (string) $atts["format"] ), (string) $atts["separator"] );
+    }
+
+    public function render_post_acf( array $atts = [] ): string {
+        $atts = shortcode_atts(
+            [
+                "field" => "",
+                "post_id" => 0,
+                "format" => "html",
+                "separator" => ", ",
+            ],
+            $atts,
+            "smp_post_acf"
+        );
+        $field = sanitize_key( (string) $atts["field"] );
+        if ( ! in_array( $field, self::POST_ACF_FIELDS, true ) ) {
+            return "";
+        }
+        $post_id = $this->resolve_post_id( (int) $atts["post_id"] );
+        if ( ! $post_id ) {
+            return "";
+        }
+        return $this->format_value( Fields::get( $post_id, $field ), sanitize_key( (string) $atts["format"] ), (string) $atts["separator"] );
+    }
+
+    public function render_post_summary( array $atts = [] ): string {
+        $atts["field"] = "post_summary";
+        return $this->render_post_acf( $atts );
+    }
+
+    public function render_post_faqs( array $atts = [] ): string {
+        $atts["field"] = "post_faqs";
+        return $this->render_post_acf( $atts );
     }
 
     public function render_mission_statement( array $atts = [] ): string {
@@ -107,6 +157,83 @@ final class Shortcodes {
 
     public function render_debug_url(): string {
         return esc_url( rest_url( "smpi/v1/debug" ) );
+    }
+
+
+    private function resolve_post_id( int $explicit_post_id = 0 ): int {
+        if ( $explicit_post_id > 0 && get_post( $explicit_post_id ) ) {
+            return $explicit_post_id;
+        }
+        $post = get_post();
+        return $post ? (int) $post->ID : 0;
+    }
+
+    private function extract_indexed_value( $value, string $row, string $index ) {
+        if ( ! is_array( $value ) ) {
+            return $value;
+        }
+        $offset = null;
+        if ( "" !== $row && is_numeric( $row ) ) {
+            $offset = max( 0, (int) $row - 1 );
+        } elseif ( "" !== $index && is_numeric( $index ) ) {
+            $offset = max( 0, (int) $index );
+        }
+        if ( null === $offset ) {
+            return $value;
+        }
+        $values = array_values( $value );
+        return $values[ $offset ] ?? "";
+    }
+
+    private function extract_sub_field( $value, string $sub_field ) {
+        if ( "" === $sub_field || ! is_array( $value ) ) {
+            return $value;
+        }
+        return array_key_exists( $sub_field, $value ) ? $value[ $sub_field ] : "";
+    }
+
+    private function format_value( $value, string $format = "html", string $separator = ", " ): string {
+        if ( null === $value || false === $value || "" === $value || ( is_array( $value ) && empty( $value ) ) ) {
+            return "";
+        }
+        if ( "json" === $format ) {
+            return esc_html( wp_json_encode( $value ) );
+        }
+        if ( is_array( $value ) || is_object( $value ) ) {
+            return esc_html( $this->flatten_value( $value, $separator ) );
+        }
+        if ( is_bool( $value ) ) {
+            return $value ? "1" : "";
+        }
+        $value = (string) $value;
+        if ( "text" === $format ) {
+            return esc_html( wp_strip_all_tags( $value ) );
+        }
+        return wp_kses_post( $value );
+    }
+
+    private function flatten_value( $value, string $separator ): string {
+        if ( is_object( $value ) ) {
+            $value = get_object_vars( $value );
+        }
+        if ( ! is_array( $value ) ) {
+            return is_scalar( $value ) ? trim( (string) $value ) : "";
+        }
+        foreach ( [ "url", "value", "label", "title", "name", "ID" ] as $key ) {
+            if ( isset( $value[ $key ] ) && is_scalar( $value[ $key ] ) ) {
+                return trim( (string) $value[ $key ] );
+            }
+        }
+        $flat = [];
+        array_walk_recursive(
+            $value,
+            static function ( $item ) use ( &$flat ): void {
+                if ( is_scalar( $item ) && "" !== trim( (string) $item ) ) {
+                    $flat[] = trim( (string) $item );
+                }
+            }
+        );
+        return implode( $separator, array_slice( array_unique( $flat ), 0, 20 ) );
     }
 
     private function founder_profile_items( $founders ): array {

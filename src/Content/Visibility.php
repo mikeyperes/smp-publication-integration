@@ -11,6 +11,7 @@ if ( ! defined( "ABSPATH" ) ) {
 final class Visibility {
     private const HOME_META = "_smpi_shadow_home";
     private const ARCHIVE_META = "_smpi_shadow_archives";
+    private const COMPLETE_META = "_smpi_shadow_complete";
     private const PR_OVERRIDE_META = "_smpi_pr_shadow_override";
 
     public function register(): void {
@@ -34,12 +35,17 @@ final class Visibility {
 
     public function render_meta_box( \WP_Post $post ): void {
         wp_nonce_field( "smpi_visibility_save", "smpi_visibility_nonce" );
+        $shadow_enabled = Settings::bool( "shadow_posts_enabled" );
         $hide_home = (bool) get_post_meta( $post->ID, self::HOME_META, true );
-        $hide_archives = (bool) get_post_meta( $post->ID, self::ARCHIVE_META, true );
+        $hide_complete = (bool) get_post_meta( $post->ID, self::COMPLETE_META, true );
         $pr_override = (string) get_post_meta( $post->ID, self::PR_OVERRIDE_META, true );
         ?>
-        <p><label><input type="checkbox" name="smpi_shadow_home" value="1" <?php checked( $hide_home ); ?>> Hide this post from the home page query.</label></p>
-        <p><label><input type="checkbox" name="smpi_shadow_archives" value="1" <?php checked( $hide_archives ); ?>> Hide this post from category and tag archive queries.</label></p>
+        <?php if ( $shadow_enabled && "post" === $post->post_type ) : ?>
+            <p><label><input type="checkbox" name="smpi_shadow_complete" value="1" <?php checked( $hide_complete ); ?>> Completely shadow this post. It remains link-accessible only and is hidden from home, category, and tag pages.</label></p>
+            <p><label><input type="checkbox" name="smpi_shadow_home" value="1" <?php checked( $hide_home ); ?>> Shadow from home page only. It can still show on category and tag pages.</label></p>
+        <?php elseif ( "post" === $post->post_type ) : ?>
+            <p>Shadow Posts is disabled in SMP Publication Integration > Features.</p>
+        <?php endif; ?>
         <?php if ( "press-release" === $post->post_type ) : ?>
             <p><label for="smpi_pr_shadow_override"><strong>Press-release force include/exclude</strong></label></p>
             <select id="smpi_pr_shadow_override" name="smpi_pr_shadow_override" style="width:100%;">
@@ -58,8 +64,11 @@ final class Visibility {
         if ( ! isset( $_POST["smpi_visibility_nonce"] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST["smpi_visibility_nonce"] ) ), "smpi_visibility_save" ) || ! current_user_can( "edit_post", $post_id ) ) {
             return;
         }
-        update_post_meta( $post_id, self::HOME_META, isset( $_POST["smpi_shadow_home"] ) ? "1" : "" );
-        update_post_meta( $post_id, self::ARCHIVE_META, isset( $_POST["smpi_shadow_archives"] ) ? "1" : "" );
+        if ( Settings::bool( "shadow_posts_enabled" ) && "post" === $post->post_type ) {
+            update_post_meta( $post_id, self::COMPLETE_META, isset( $_POST["smpi_shadow_complete"] ) ? "1" : "" );
+            update_post_meta( $post_id, self::HOME_META, isset( $_POST["smpi_shadow_home"] ) ? "1" : "" );
+            update_post_meta( $post_id, self::ARCHIVE_META, isset( $_POST["smpi_shadow_complete"] ) ? "1" : "" );
+        }
         if ( "press-release" === $post->post_type ) {
             $override = isset( $_POST["smpi_pr_shadow_override"] ) ? sanitize_key( wp_unslash( $_POST["smpi_pr_shadow_override"] ) ) : "";
             update_post_meta( $post_id, self::PR_OVERRIDE_META, in_array( $override, [ "show", "hide" ], true ) ? $override : "" );
@@ -74,10 +83,12 @@ final class Visibility {
         if ( "" === $context ) {
             return;
         }
-        if ( $query->is_main_query() && "home" === $context ) {
+        if ( Settings::bool( "shadow_posts_enabled" ) && $query->is_main_query() && "home" === $context ) {
+            $this->append_meta_exclusion( $query, self::COMPLETE_META );
             $this->append_meta_exclusion( $query, self::HOME_META );
         }
-        if ( $query->is_main_query() && "category_tag" === $context ) {
+        if ( Settings::bool( "shadow_posts_enabled" ) && $query->is_main_query() && "category_tag" === $context ) {
+            $this->append_meta_exclusion( $query, self::COMPLETE_META );
             $this->append_meta_exclusion( $query, self::ARCHIVE_META );
         }
         if ( $this->should_include_press_releases( $context, $query ) ) {
@@ -141,7 +152,8 @@ final class Visibility {
     }
 
     private function append_meta_exclusion( \WP_Query $query, string $meta_key ): void {
-        $meta_query = (array) $query->get( "meta_query" );
+        $current = $query->get( "meta_query" );
+        $meta_query = is_array( $current ) ? $current : [];
         $meta_query[] = [ "relation" => "OR", [ "key" => $meta_key, "compare" => "NOT EXISTS" ], [ "key" => $meta_key, "value" => "1", "compare" => "!=" ] ];
         $query->set( "meta_query", $meta_query );
     }

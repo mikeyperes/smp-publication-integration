@@ -19,7 +19,6 @@ final class AcfFields {
         }
         $this->register_publication_profile_fields();
         $this->register_muckrack_user_fields();
-        $this->register_visibility_fields();
         $this->register_post_header_fields();
     }
 
@@ -36,7 +35,6 @@ final class AcfFields {
                     [ 'key' => 'field_smpi_publication_website', 'label' => 'Publication Website Fallback', 'name' => 'smpi_publication_website', 'type' => 'url', 'instructions' => 'Fallback URL. Existing imported website/url fields are preferred by shortcodes.' ],
                     [ 'key' => 'field_smpi_publication_logo', 'label' => 'Publication Logo Fallback', 'name' => 'smpi_publication_logo', 'type' => 'image', 'instructions' => 'Fallback logo when no imported logo/publication_logo field exists.', 'return_format' => 'array', 'preview_size' => 'medium', 'library' => 'all' ],
 
-                    [ "key" => "field_smpi_publication_info_tab", "label" => "Publication Info", "name" => "", "type" => "tab", "placement" => "top" ],
                     [ "key" => "field_smpi_headquarters", "label" => "Headquarters", "name" => "smpi_headquarters", "type" => "text", "instructions" => "Primary headquarters location for this publication." ],
                     [ "key" => "field_smpi_headquarters_wikipedia_url", "label" => "Headquarters Wikipedia URL", "name" => "smpi_headquarters_wikipedia_url", "type" => "url", "instructions" => "Optional Wikipedia URL for the headquarters location." ],
                     [ "key" => "field_smpi_founding_date", "label" => "Founding Date", "name" => "smpi_founding_date", "type" => "date_picker", "display_format" => "F j, Y", "return_format" => "Y-m-d", "first_day" => 1 ],
@@ -50,23 +48,19 @@ final class AcfFields {
                         [ "key" => "field_smpi_quotes_name", "label" => "Name", "name" => "name", "type" => "text" ],
                         [ "key" => "field_smpi_quotes_title", "label" => "Title", "name" => "title", "type" => "text" ],
                     ] ],
-                    [ "key" => "field_smpi_content_tab", "label" => "Publication Copy", "name" => "", "type" => "tab", "placement" => "top" ],
                     [ "key" => "field_smpi_mission_statement", "label" => "Mission Statement", "name" => "smpi_mission_statement", "type" => "wysiwyg", "tabs" => "all", "toolbar" => "basic", "media_upload" => 0 ],
                     [ "key" => "field_smpi_mission_statement_extended", "label" => "Mission Statement Extended", "name" => "smpi_mission_statement_extended", "type" => "wysiwyg", "tabs" => "all", "toolbar" => "basic", "media_upload" => 0 ],
                     [ "key" => "field_smpi_founding_date_extended", "label" => "Founding Date Extended", "name" => "smpi_founding_date_extended", "type" => "wysiwyg", "tabs" => "all", "toolbar" => "basic", "media_upload" => 0 ],
                     [ "key" => "field_smpi_headquarters_extended", "label" => "Headquarters Extended", "name" => "smpi_headquarters_extended", "type" => "wysiwyg", "tabs" => "all", "toolbar" => "basic", "media_upload" => 0 ],
-                    [ "key" => "field_smpi_legal_contact_tab", "label" => "Legal and Contact", "name" => "", "type" => "tab", "placement" => "top" ],
                     [ "key" => "field_smpi_contact", "label" => "Contact", "name" => "smpi_contact", "type" => "wysiwyg", "tabs" => "all", "toolbar" => "basic", "media_upload" => 0 ],
                     [ "key" => "field_smpi_contact_email", "label" => "Contact Email Public", "name" => "smpi_contact_email", "type" => "email" ],
                     [ "key" => "field_smpi_dmca", "label" => "DMCA", "name" => "smpi_dmca", "type" => "wysiwyg", "tabs" => "all", "toolbar" => "basic", "media_upload" => 0 ],
                     [ "key" => "field_smpi_terms_of_use", "label" => "Terms of Use", "name" => "smpi_terms_of_use", "type" => "wysiwyg", "tabs" => "all", "toolbar" => "basic", "media_upload" => 0 ],
                     [ "key" => "field_smpi_privacy_policy", "label" => "Privacy Policy", "name" => "smpi_privacy_policy", "type" => "wysiwyg", "tabs" => "all", "toolbar" => "basic", "media_upload" => 0 ],
                     [ "key" => "field_smpi_become_contributor", "label" => "Become a Contributor", "name" => "smpi_become_contributor", "type" => "wysiwyg", "tabs" => "all", "toolbar" => "basic", "media_upload" => 0 ],
-                    [ "key" => "field_smpi_distribution_tab", "label" => "Distribution", "name" => "", "type" => "tab", "placement" => "top" ],
                     [ "key" => "field_smpi_has_podcast", "label" => "Publication Has a Podcast", "name" => "smpi_has_podcast", "type" => "true_false", "ui" => 1 ],
                     [ "key" => "field_smpi_rss_feed", "label" => "RSS Feed", "name" => "smpi_rss_feed", "type" => "text" ],
                     [ "key" => "field_smpi_google_news_url", "label" => "Google News URL", "name" => "smpi_google_news_url", "type" => "url" ],
-                    [ "key" => "field_smpi_publication_verification_tab", "label" => "Verification", "name" => "", "type" => "tab", "placement" => "top" ],
                     [ "key" => "field_smpi_publication_muckrack_verified", "label" => "Publication Verified by MuckRack", "name" => "smpi_publication_muckrack_verified", "type" => "true_false", "ui" => 1, "instructions" => "Marks this news outlet as verified by the MuckRack editorial team. Display placement is controlled in Settings > SMP Publication Integration > Features." ],
                     [ "key" => "field_smpi_publication_muckrack_url", "label" => "Publication MuckRack URL", "name" => "smpi_publication_muckrack_url", "type" => "url", "instructions" => "Public MuckRack outlet/profile URL used by the publication verification text." ],
                     [ 'key' => 'field_smpi_imported_source_url', 'label' => 'Imported Source URL', 'name' => 'smpi_imported_source_url', 'type' => 'url', 'instructions' => 'Reference-only source URL for imported publication records.' ],
@@ -188,18 +182,29 @@ A: Just XYZ.",
     }
 
     private function register_visibility_fields(): void {
+        $fields = [];
+
+        if ( Settings::bool( "shadow_posts_enabled" ) ) {
+            $fields[] = [ "key" => "field_smpi_shadow_complete", "label" => "Completely Shadow Post", "name" => "_smpi_shadow_complete", "type" => "true_false", "ui" => 1, "instructions" => "Link-accessible only. Hide this post from home, category, and tag archive queries." ];
+            $fields[] = [ "key" => "field_smpi_shadow_home", "label" => "Shadow From Home Page Only", "name" => "_smpi_shadow_home", "type" => "true_false", "ui" => 1, "instructions" => "Hide this post from the home page query only. Category and tag pages can still show it." ];
+        }
+
+        if ( Settings::bool( "press_release_include_enabled" ) || Settings::bool( "shadow_press_releases" ) ) {
+            $fields[] = [ "key" => "field_smpi_pr_shadow_override", "label" => "Press Release Shadow Override", "name" => "_smpi_pr_shadow_override", "type" => "select", "choices" => [ "" => "Use global setting", "show" => "Always show", "hide" => "Always hide" ], "ui" => 1 ];
+        }
+
+        if ( empty( $fields ) ) {
+            return;
+        }
+
         acf_add_local_field_group(
             [
-                'key' => 'group_smpi_visibility_controls',
-                'title' => 'SMP Visibility Controls',
-                'fields' => [
-                    [ 'key' => 'field_smpi_shadow_home', 'label' => 'Hide From Home Page', 'name' => '_smpi_shadow_home', 'type' => 'true_false', 'ui' => 1, 'instructions' => 'Hide this item from the home page main query.' ],
-                    [ 'key' => 'field_smpi_shadow_archives', 'label' => 'Hide From Category/Tag Archives', 'name' => '_smpi_shadow_archives', 'type' => 'true_false', 'ui' => 1, 'instructions' => 'Hide this item from category and tag main queries.' ],
-                    [ 'key' => 'field_smpi_pr_shadow_override', 'label' => 'Press Release Shadow Override', 'name' => '_smpi_pr_shadow_override', 'type' => 'select', 'choices' => [ '' => 'Use global setting', 'show' => 'Always show', 'hide' => 'Always hide' ], 'ui' => 1 ],
-                ],
-                'location' => [ [ [ 'param' => 'post_type', 'operator' => '==', 'value' => 'post' ] ], [ [ 'param' => 'post_type', 'operator' => '==', 'value' => 'press-release' ] ] ],
-                'position' => 'side',
-                'style' => 'default',
+                "key" => "group_smpi_visibility_controls",
+                "title" => "SMP Visibility Controls",
+                "fields" => $fields,
+                "location" => [ [ [ "param" => "post_type", "operator" => "==", "value" => "post" ] ], [ [ "param" => "post_type", "operator" => "==", "value" => "press-release" ] ] ],
+                "position" => "side",
+                "style" => "default",
             ]
         );
     }

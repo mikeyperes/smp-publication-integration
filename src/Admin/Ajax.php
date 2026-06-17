@@ -46,7 +46,7 @@ final class Ajax {
     public function save_settings(): void {
         $this->guard();
         $changes = [];
-        foreach ( [ 'founders_enabled', 'shadow_press_releases', 'author_social_cleanup', 'public_debug_enabled', 'estimated_read_time_enabled', 'elementor_css_cache_busting', 'publication_social_cleanup', 'muckrack_verified_enabled', 'muckrack_author_always_show', 'publication_muckrack_verified_enabled', 'press_release_include_enabled', 'post_summary_acf_enabled', 'post_faqs_acf_enabled', 'table_of_contents_enabled', 'table_of_contents_auto_single', 'rank_math_breadcrumb_check_enabled', 'hws_masked_admin_report_enabled' ] as $key ) {
+        foreach ( [ 'founders_enabled', 'shadow_posts_enabled', 'shadow_press_releases', 'author_social_cleanup', 'public_debug_enabled', 'estimated_read_time_enabled', 'elementor_css_cache_busting', 'publication_social_cleanup', 'muckrack_verified_enabled', 'muckrack_author_always_show', 'publication_muckrack_verified_enabled', 'press_release_include_enabled', 'post_summary_acf_enabled', 'post_faqs_acf_enabled', 'table_of_contents_enabled', 'table_of_contents_auto_single', 'rank_math_breadcrumb_check_enabled', 'hws_masked_admin_report_enabled' ] as $key ) {
             if ( isset( $_POST[ $key ] ) ) {
                 $changes[ $key ] = (bool) absint( $_POST[ $key ] );
             }
@@ -85,7 +85,12 @@ final class Ajax {
         }
         $settings = Settings::update( $changes );
         $this->sync_publication_mapping( $settings );
-        wp_send_json_success( [ "settings" => $settings ] );
+        $response = [ "settings" => $settings ];
+        $tab = isset( $_POST["tab"] ) ? sanitize_key( wp_unslash( $_POST["tab"] ) ) : "";
+        if ( "features" === $tab ) {
+            $response["fragment"] = ( new Dashboard() )->tab_fragment( "features" );
+        }
+        wp_send_json_success( $response );
     }
 
 
