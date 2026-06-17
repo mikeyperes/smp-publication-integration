@@ -7,7 +7,7 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.5.1`
+- Version: `0.5.4`
 
 ## Structure
 
@@ -61,6 +61,11 @@ WordPress plugin for Scale My Publication publication profiles.
 
 - Added a plugin-registered Publication Theme Options quotes repeater with quote, name, and title subfields.
 
+
+## 0.5.4 Updates
+
+- Fixed ACF WYSIWYG fields inside AJAX-loaded Publication Options by running the ACF append lifecycle after tab content swaps.
+- Prevented stale TinyMCE instances from surviving tab changes before the next tab fragment is inserted.
 
 ## 0.5.1 Updates
 

@@ -31,8 +31,8 @@ final class AcfFields {
                 'fields' => [
                     [ 'key' => 'field_smpi_publication_user', 'label' => 'Publication User', 'name' => 'smpi_publication_user', 'type' => 'user', 'instructions' => 'Select the WordPress author profile that represents this publication on the front end.', 'return_format' => 'id', 'multiple' => 0 ],
                     [ "key" => "field_smpi_founder_profiles_notice", "label" => "Founder Profiles Setup", "name" => "", "type" => "message", "message" => self::founder_profiles_message(), "esc_html" => 0, "new_lines" => "wpautop" ],
-                    [ 'key' => 'field_smpi_mission_statement_override', 'label' => 'Mission Statement Fallback', 'name' => 'smpi_mission_statement_override', 'type' => 'textarea', 'instructions' => 'Shortcodes read existing imported fields such as mission_statement first. Use this only when no imported mission statement exists.', 'rows' => 4, 'new_lines' => 'wpautop' ],
-                    [ 'key' => 'field_smpi_publication_summary', 'label' => 'Publication Summary Fallback', 'name' => 'smpi_publication_summary', 'type' => 'textarea', 'instructions' => 'Fallback summary for publication cards and profile shortcodes.', 'rows' => 4, 'new_lines' => 'wpautop' ],
+                    [ 'key' => 'field_smpi_mission_statement_override', 'label' => 'Mission Statement Fallback', 'name' => 'smpi_mission_statement_override', 'type' => 'wysiwyg', 'instructions' => 'Shortcodes read existing imported fields such as mission_statement first. Use this only when no imported mission statement exists.', 'tabs' => 'all', 'toolbar' => 'full', 'media_upload' => 1 ],
+                    [ 'key' => 'field_smpi_publication_summary', 'label' => 'Publication Summary Fallback', 'name' => 'smpi_publication_summary', 'type' => 'wysiwyg', 'instructions' => 'Fallback summary for publication cards and profile shortcodes.', 'tabs' => 'all', 'toolbar' => 'full', 'media_upload' => 1 ],
                     [ 'key' => 'field_smpi_publication_website', 'label' => 'Publication Website Fallback', 'name' => 'smpi_publication_website', 'type' => 'url', 'instructions' => 'Fallback URL. Existing imported website/url fields are preferred by shortcodes.' ],
                     [ 'key' => 'field_smpi_publication_logo', 'label' => 'Publication Logo Fallback', 'name' => 'smpi_publication_logo', 'type' => 'image', 'instructions' => 'Fallback logo when no imported logo/publication_logo field exists.', 'return_format' => 'array', 'preview_size' => 'medium', 'library' => 'all' ],
 
@@ -83,9 +83,9 @@ final class AcfFields {
     private static function founder_profiles_message(): string {
         $state = Dependencies::verified_profiles_readiness();
         $lines = [];
-        $lines[] = ! empty( $state["plugin_active"] ) ? "GREEN CHECK Verified Profiles plugin is active." : "RED X Verified Profiles plugin is not active.";
-        $lines[] = ! empty( $state["profile_cpt"] ) ? "GREEN CHECK Profile content type is active." : "RED X Profile content type is not active.";
-        $lines[] = ! empty( $state["profile_acf"] ) ? "GREEN CHECK Profile ACF fields are enabled." : "RED X Profile ACF fields are not enabled.";
+        $lines[] = ! empty( $state["plugin_active"] ) ? "✓Verified Profiles plugin is active." : "✗Verified Profiles plugin is not active.";
+        $lines[] = ! empty( $state["profile_cpt"] ) ? "✓Profile content type is active." : "✗Profile content type is not active.";
+        $lines[] = ! empty( $state["profile_acf"] ) ? "✓Profile ACF fields are enabled." : "✗Profile ACF fields are not enabled.";
         $message = "Founder selection is managed in the SMP Overview tab. The selector appears only when all three checks pass.<br>" . implode( "<br>", array_map( "esc_html", $lines ) );
         $actions = [];
         $actions[] = "<a class=\"button\" target=\"_blank\" rel=\"noopener noreferrer\" href=\"" . esc_url( $state["settings_url"] ) . "\">Open Verified Profiles settings</a>";
