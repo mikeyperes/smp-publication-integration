@@ -89,7 +89,7 @@ final class Settings {
             }
 
             if ( 'muckrack_icon_style' === $key ) {
-                $allowed = [ 'circle_check', 'check' ];
+                $allowed = [ "circle_check", "circle_outline_check", "check" ];
                 $settings[ $key ] = in_array( $value, $allowed, true ) ? $value : 'circle_check';
                 continue;
             }

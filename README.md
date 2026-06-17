@@ -7,7 +7,7 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.5.7`
+- Version: `0.5.8`
 
 ## Structure
 
@@ -62,13 +62,15 @@ WordPress plugin for Scale My Publication publication profiles.
 - Added a plugin-registered Publication Theme Options quotes repeater with quote, name, and title subfields.
 
 
-## 0.5.7 Updates
+## 0.5.8 Updates
 
 - Removed ACF tab controls from the Publication Options field group so all publication fields render in one continuous settings page.
+- Replaced MuckRack author verification icons with the supplied inline SVG paths for solid circle, outline circle, and plain check styles.
+- Fixed MuckRack verified publication below-author placement for MashViral Elementor heading author links and verified both frontend placements with Puppeteer.
 
 ## 0.5.5 Updates
 
-- Replaced handmade MuckRack author checkmarks with Font Awesome badge markup.
+- Replaced handmade MuckRack author checkmarks with selectable badge markup.
 - Added Elementor-aware MuckRack author and publication placement fallbacks.
 - Refreshed the Features tab markup after Ajax saves so selected states and previews match immediately.
 - Exposed copy-ready MuckRack author shortcodes directly in the feature card.
