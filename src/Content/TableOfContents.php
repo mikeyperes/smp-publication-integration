@@ -14,25 +14,27 @@ final class TableOfContents {
         add_shortcode( self::SHORTCODE, [ $this, "render_shortcode" ] );
         add_filter( "the_content", [ $this, "filter_content" ], 11 );
         add_action( "wp_head", [ $this, "print_styles" ], 32 );
+        add_action( "wp_footer", [ $this, "print_auto_inject_script" ], 32 );
     }
 
     public function render_shortcode( array $atts = [] ): string {
         if ( ! Settings::bool( "table_of_contents_enabled" ) ) {
             return "";
         }
-        $atts = shortcode_atts( [ "post_id" => 0, "title" => "Table of Contents" ], $atts, self::SHORTCODE );
+        $atts = shortcode_atts( [ "post_id" => 0, "title" => "Table of Contents", "style" => "" ], $atts, self::SHORTCODE );
         $post = $this->resolve_post( (int) $atts["post_id"] );
         if ( ! $post ) {
             return "";
         }
-        return self::build_toc( (string) $post->post_content, (string) $atts["title"] );
+        return self::build_toc( (string) $post->post_content, (string) $atts["title"], sanitize_key( (string) $atts["style"] ) );
     }
 
     public function filter_content( string $content ): string {
         if ( is_admin() || ! Settings::bool( "table_of_contents_enabled" ) || ! Settings::bool( "table_of_contents_auto_single" ) ) {
             return $content;
         }
-        if ( ! is_singular( "post" ) || ! in_the_loop() || ! is_main_query() ) {
+        static $inserted = false;
+        if ( $inserted || ! is_singular( "post" ) ) {
             return $content;
         }
         if ( has_shortcode( $content, self::SHORTCODE ) ) {
@@ -42,6 +44,7 @@ final class TableOfContents {
         if ( empty( $items ) ) {
             return $content;
         }
+        $inserted = true;
         return self::build_toc_from_items( $items, "Table of Contents" ) . self::add_heading_ids( $content, $items );
     }
 
@@ -49,7 +52,7 @@ final class TableOfContents {
         if ( ! Settings::bool( "table_of_contents_enabled" ) ) {
             return;
         }
-        echo "<style id=smpi-table-of-contents-styles>.smpi-table-of-contents{max-width:var(--content-width,1140px);margin:0 auto 24px;padding:18px 20px;border:1px solid #d8dee8;border-radius:14px;background:#f8fafc}.smpi-table-of-contents h2{margin:0 0 10px;font-size:18px}.smpi-table-of-contents ol{margin:0;padding-left:20px}.smpi-table-of-contents li{margin:5px 0}.smpi-table-of-contents a{text-decoration:none}</style>";
+        echo "<style id=smpi-table-of-contents-styles>" . ArticleStyles::toc_css() . "</style>";
     }
 
     private function resolve_post( int $post_id ): ?\WP_Post {
@@ -61,15 +64,25 @@ final class TableOfContents {
         return $post instanceof \WP_Post ? $post : null;
     }
 
-    public static function build_toc( string $content, string $title = "Table of Contents" ): string {
-        return self::build_toc_from_items( self::items( $content ), $title );
+    public static function build_toc( string $content, string $title = "Table of Contents", string $style = "" ): string {
+        return self::build_toc_from_items( self::items( $content ), $title, $style );
     }
 
-    private static function build_toc_from_items( array $items, string $title ): string {
+    private static function build_toc_from_items( array $items, string $title, string $style = "" ): string {
         if ( empty( $items ) ) {
             return "";
         }
-        $html = "<nav class=smpi-table-of-contents><h2>" . esc_html( $title ) . "</h2><ol>";
+        $style = ArticleStyles::normalize_toc_style( $style );
+        $class = "smpi-table-of-contents smpi-" . $style;
+        if ( "toc04" === $style ) {
+            $html = "<nav class=\"" . esc_attr( $class ) . "\" aria-label=\"Table of contents\"><span class=\"smpi-toc-label\">" . esc_html( "Jump to" ) . "</span>";
+            foreach ( $items as $item ) {
+                $html .= "<a href=#" . esc_attr( $item["id"] ) . ">" . esc_html( $item["text"] ) . "</a>";
+            }
+            return $html . "</nav>";
+        }
+        $label = "toc00" === $style ? "In this article" : ( "toc02" === $style ? "On this page" : $title );
+        $html = "<nav class=\"" . esc_attr( $class ) . "\" aria-label=\"Table of contents\"><p class=\"smpi-toc-label\">" . esc_html( $label ) . "</p><ol>";
         foreach ( $items as $item ) {
             $html .= "<li class=smpi-toc-level-" . esc_attr( (string) $item["level"] ) . "><a href=#" . esc_attr( $item["id"] ) . ">" . esc_html( $item["text"] ) . "</a></li>";
         }
@@ -86,44 +99,44 @@ final class TableOfContents {
             if ( "" === $text ) {
                 continue;
             }
-            $items[] = [
-                "level" => (int) $match[1],
-                "text" => $text,
-                "id" => "smpi-toc-" . sanitize_title( $text ) . "-" . ( $index + 1 ),
-            ];
+            $items[] = [ "level" => (int) $match[1], "text" => $text, "id" => "smpi-toc-" . sanitize_title( $text ) . "-" . ( $index + 1 ) ];
         }
         return $items;
     }
 
     private static function add_heading_ids( string $content, array $items ): string {
         $index = 0;
-        return (string) preg_replace_callback(
-            "/<h([2-4])([^>]*)>(.*?)<\/h\1>/is",
-            static function ( array $match ) use ( &$index, $items ): string {
-                if ( ! isset( $items[ $index ] ) ) {
-                    return $match[0];
-                }
-                $id = $items[ $index ]["id"];
-                $index++;
-                if ( preg_match( "/\sid=/i", $match[2] ) ) {
-                    return $match[0];
-                }
-                return "<h" . $match[1] . $match[2] . " id=" . esc_attr( $id ) . ">" . $match[3] . "</h" . $match[1] . ">";
-            },
-            $content
-        );
+        return (string) preg_replace_callback( "/<h([2-4])([^>]*)>(.*?)<\/h\1>/is", static function ( array $match ) use ( &$index, $items ): string {
+            if ( ! isset( $items[ $index ] ) ) {
+                return $match[0];
+            }
+            $id = $items[ $index ]["id"];
+            $index++;
+            if ( preg_match( "/\sid=/i", $match[2] ) ) {
+                return $match[0];
+            }
+            return "<h" . $match[1] . $match[2] . " id=" . esc_attr( $id ) . ">" . $match[3] . "</h" . $match[1] . ">";
+        }, $content );
     }
 
+    public function print_auto_inject_script(): void {
+        if ( is_admin() || ! Settings::bool( "table_of_contents_enabled" ) || ! Settings::bool( "table_of_contents_auto_single" ) || ! is_singular( "post" ) ) {
+            return;
+        }
+        $style = ArticleStyles::normalize_toc_style( (string) Settings::get( "table_of_contents_style", "toc02" ) );
+        if ( "none" === $style ) {
+            return;
+        }
+        $payload = wp_json_encode( [ "style" => $style ] );
+        $script = <<<SMPI_JS
+(function(data){if(!data||document.querySelector(".smpi-table-of-contents"))return;function visible(el){var r=el.getBoundingClientRect();return r.width>1&&r.height>1&&window.getComputedStyle(el).display!=="none";}function slug(text,index){return "smpi-toc-"+text.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")+"-"+index;}var selectors=[".elementor-widget-theme-post-content .elementor-widget-container",".elementor-widget-theme-post-content",".elementor-widget-post-content","article .entry-content",".entry-content",".post-content"];var target=null;for(var i=0;i<selectors.length;i++){target=document.querySelector(selectors[i]);if(target)break;}if(!target)return;var headings=Array.from(target.querySelectorAll("h2,h3,h4")).filter(function(h){return visible(h)&&(h.textContent||"").trim();});if(!headings.length)return;var nav=document.createElement("nav");nav.className="smpi-table-of-contents smpi-"+(data.style||"toc02");nav.setAttribute("aria-label","Table of contents");if(data.style==="toc04"){var span=document.createElement("span");span.className="smpi-toc-label";span.textContent="Jump to";nav.appendChild(span);headings.forEach(function(h,idx){if(!h.id)h.id=slug(h.textContent,idx+1);var a=document.createElement("a");a.href="#"+h.id;a.textContent=h.textContent.trim();nav.appendChild(a);});}else{var label=document.createElement("p");label.className="smpi-toc-label";label.textContent=data.style==="toc00"?"In this article":(data.style==="toc02"?"On this page":"Table of Contents");nav.appendChild(label);var ol=document.createElement("ol");headings.forEach(function(h,idx){if(!h.id)h.id=slug(h.textContent,idx+1);var li=document.createElement("li");li.className="smpi-toc-level-"+h.tagName.slice(1);var a=document.createElement("a");a.href="#"+h.id;a.textContent=h.textContent.trim();li.appendChild(a);ol.appendChild(li);});nav.appendChild(ol);}target.parentNode.insertBefore(nav,target);})(
+SMPI_JS;
+        echo "<script id=\"smpi-toc-auto-inject\">" . $script . $payload . ");</script>";
+    }
     public static function integrity_report(): array {
         $post = get_posts( [ "post_type" => "post", "post_status" => "publish", "posts_per_page" => 1 ] );
         $post = $post[0] ?? null;
         $items = $post instanceof \WP_Post ? self::items( (string) $post->post_content ) : [];
-        return [
-            "enabled" => Settings::bool( "table_of_contents_enabled" ),
-            "auto_single" => Settings::bool( "table_of_contents_auto_single" ),
-            "shortcode" => "[smp_table_of_contents]",
-            "sample_post_id" => $post instanceof \WP_Post ? (int) $post->ID : 0,
-            "heading_count" => count( $items ),
-        ];
+        return [ "enabled" => Settings::bool( "table_of_contents_enabled" ), "auto_single" => Settings::bool( "table_of_contents_auto_single" ), "style" => (string) Settings::get( "table_of_contents_style", "toc02" ), "shortcode" => "[smp_table_of_contents]", "sample_post_id" => $post instanceof \WP_Post ? (int) $post->ID : 0, "heading_count" => count( $items ) ];
     }
 }

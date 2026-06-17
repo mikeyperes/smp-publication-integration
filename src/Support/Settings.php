@@ -25,10 +25,12 @@ final class Settings {
             'muckrack_verified_style' => 'tooltip',
             'muckrack_icon_color' => '#2d5277',
             'muckrack_icon_style' => 'circle_check',
+            "muckrack_icon_size" => 18,
             'publication_muckrack_verified_enabled' => false,
             'publication_muckrack_text_mode' => 'news_outlet',
             'publication_muckrack_style' => 'block',
             'publication_muckrack_color' => '#2d5277',
+            "publication_muckrack_font_size" => 14,
             'publication_muckrack_placements' => [ 'bottom_article' ],
             'press_release_include_enabled' => true,
             'press_release_include_contexts' => [ 'home', 'category_tag', 'author', 'single_recent' ],
@@ -36,6 +38,11 @@ final class Settings {
             'post_faqs_acf_enabled' => false,
             'table_of_contents_enabled' => false,
             'table_of_contents_auto_single' => false,
+            "table_of_contents_style" => "toc02",
+            "inline_photo_treatments_enabled" => false,
+            "inline_photo_treatment" => "none",
+            "post_summary_style" => "none",
+            "post_faqs_style" => "none",
             'rank_math_breadcrumb_check_enabled' => true,
             'hws_masked_admin_report_enabled' => true,
             'system_publication_user_id' => 0,
@@ -74,6 +81,30 @@ final class Settings {
 
             if ( "system_publication_user_id" === $key ) {
                 $settings[ $key ] = absint( $value );
+                continue;
+            }
+
+            if ( in_array( $key, [ "muckrack_icon_size", "publication_muckrack_font_size" ], true ) ) {
+                $value = absint( $value );
+                $default = "publication_muckrack_font_size" === $key ? 14 : 18;
+                $settings[ $key ] = max( 8, min( 64, $value ?: $default ) );
+                continue;
+            }
+
+            $style_options = [
+                "table_of_contents_style" => [ "none", "toc00", "toc01", "toc02", "toc03", "toc04" ],
+                "inline_photo_treatment" => [ "none", "fig1", "fig2", "fig4", "fig5" ],
+                "post_summary_style" => [ "none", "sum00", "sum01", "sum02", "sum03", "sum04" ],
+                "post_faqs_style" => [ "none", "faq00", "faq01", "faq02", "faq03", "faq04" ],
+            ];
+            if ( isset( $style_options[ $key ] ) ) {
+                $value = sanitize_key( (string) $value );
+                $settings[ $key ] = in_array( $value, $style_options[ $key ], true ) ? $value : $style_options[ $key ][0];
+                continue;
+            }
+
+            if ( "inline_photo_treatments_enabled" === $key ) {
+                $settings[ $key ] = (bool) $value;
                 continue;
             }
 

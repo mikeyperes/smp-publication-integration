@@ -46,7 +46,7 @@ final class Ajax {
     public function save_settings(): void {
         $this->guard();
         $changes = [];
-        foreach ( [ 'founders_enabled', 'shadow_posts_enabled', 'shadow_press_releases', 'author_social_cleanup', 'public_debug_enabled', 'estimated_read_time_enabled', 'elementor_css_cache_busting', 'publication_social_cleanup', 'muckrack_verified_enabled', 'muckrack_author_always_show', 'publication_muckrack_verified_enabled', 'press_release_include_enabled', 'post_summary_acf_enabled', 'post_faqs_acf_enabled', 'table_of_contents_enabled', 'table_of_contents_auto_single', 'rank_math_breadcrumb_check_enabled', 'hws_masked_admin_report_enabled' ] as $key ) {
+        foreach ( [ "founders_enabled", "shadow_posts_enabled", "shadow_press_releases", "author_social_cleanup", "public_debug_enabled", "estimated_read_time_enabled", "elementor_css_cache_busting", "publication_social_cleanup", "muckrack_verified_enabled", "muckrack_author_always_show", "publication_muckrack_verified_enabled", "press_release_include_enabled", "post_summary_acf_enabled", "post_faqs_acf_enabled", "table_of_contents_enabled", "table_of_contents_auto_single", "inline_photo_treatments_enabled", "rank_math_breadcrumb_check_enabled", "hws_masked_admin_report_enabled" ] as $key ) {
             if ( isset( $_POST[ $key ] ) ) {
                 $changes[ $key ] = (bool) absint( $_POST[ $key ] );
             }
@@ -54,6 +54,17 @@ final class Ajax {
         foreach ( [ "system_publication_user_id" ] as $key ) {
             if ( isset( $_POST[ $key ] ) ) {
                 $changes[ $key ] = absint( $_POST[ $key ] );
+            }
+        }
+        foreach ( [ "muckrack_icon_size" => [ 8, 64, 18 ], "publication_muckrack_font_size" => [ 8, 64, 14 ] ] as $key => $limits ) {
+            if ( isset( $_POST[ $key ] ) ) {
+                $value = absint( $_POST[ $key ] );
+                $changes[ $key ] = max( $limits[0], min( $limits[1], $value ?: $limits[2] ) );
+            }
+        }
+        foreach ( [ "table_of_contents_style", "inline_photo_treatment", "post_summary_style", "post_faqs_style" ] as $key ) {
+            if ( isset( $_POST[ $key ] ) ) {
+                $changes[ $key ] = sanitize_key( wp_unslash( $_POST[ $key ] ) );
             }
         }
         if ( isset( $_POST['post_time_mode'] ) ) {
@@ -326,6 +337,7 @@ final class Ajax {
         if ( is_wp_error( $result ) ) {
             wp_send_json_error( [ 'message' => $result->get_error_message() ] );
         }
-        wp_send_json_success( [ 'plugin' => PluginRegistry::info( $plugin_file ) ] );
+        $dashboard = new Dashboard();
+        wp_send_json_success( [ 'plugin' => PluginRegistry::info( $plugin_file ), 'row_html' => $dashboard->plugin_row_fragment( $plugin_file ) ] );
     }
 }

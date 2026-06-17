@@ -99,7 +99,7 @@ final class PluginRegistry {
             }
             return delete_plugins( [ $plugin_file ] );
         }
-        if ( 'update' === $operation ) {
+        if ( 'install' === $operation || 'update' === $operation ) {
             $repo = $catalog[ $plugin_file ]['repo'];
             if ( ! $repo ) {
                 return new \WP_Error( 'smpi_no_repo', 'No GitHub repository is configured for this plugin.' );

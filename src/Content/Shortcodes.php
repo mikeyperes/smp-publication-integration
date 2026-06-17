@@ -84,13 +84,17 @@ final class Shortcodes {
     }
 
     public function render_post_summary( array $atts = [] ): string {
+        $atts = shortcode_atts( [ "post_id" => 0, "format" => "html", "style" => "" ], $atts, "smp_post_summary" );
         $atts["field"] = "post_summary";
-        return $this->render_post_acf( $atts );
+        $html = $this->render_post_acf( $atts );
+        return "html" === sanitize_key( (string) $atts["format"] ) ? ArticleStyles::wrap_post_summary( $html, sanitize_key( (string) $atts["style"] ) ) : $html;
     }
 
     public function render_post_faqs( array $atts = [] ): string {
+        $atts = shortcode_atts( [ "post_id" => 0, "format" => "html", "style" => "" ], $atts, "smp_post_faqs" );
         $atts["field"] = "post_faqs";
-        return $this->render_post_acf( $atts );
+        $html = $this->render_post_acf( $atts );
+        return "html" === sanitize_key( (string) $atts["format"] ) ? ArticleStyles::wrap_post_faqs( $html, sanitize_key( (string) $atts["style"] ) ) : $html;
     }
 
     public function render_mission_statement( array $atts = [] ): string {
