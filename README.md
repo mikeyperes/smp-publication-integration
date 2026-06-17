@@ -7,7 +7,7 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.6.5`
+- Version: `0.6.7`
 
 ## Structure
 
@@ -35,6 +35,10 @@ WordPress plugin for Scale My Publication publication profiles.
 ## Completed
 
 - Updater flow fixed: SMP uses GitHub API version detection and HWS Base Tools post-install handling. Verified 0.3.8 to 0.3.9 updates on HerForward and Mashviral.
+
+## 0.6.7 Updates
+
+- Removed the plugin-owned author user ACF group for MuckRack fields. `muckrack_verified` and `muckrack_url` are now owned by `hws-base-tools`; this plugin only reads them for display and shortcodes.
 
 ## 0.4.0 Updates
 
