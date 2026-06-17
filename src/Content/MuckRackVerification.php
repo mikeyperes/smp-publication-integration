@@ -74,27 +74,7 @@ final class MuckRackVerification {
     }
 
     public function filter_content( string $content ): string {
-        if ( is_admin() || ! is_singular( "post" ) || ! in_the_loop() || ! is_main_query() ) {
-            return $content;
-        }
-
-        $append = "";
-        if ( Settings::bool( "muckrack_verified_enabled" ) && in_array( "single_footer", Settings::array( "muckrack_verified_contexts" ), true ) ) {
-            $author_id = $this->resolve_author_id( 0 );
-            if ( $author_id && self::author_verified( $author_id ) ) {
-                $color = sanitize_hex_color( (string) Settings::get( "muckrack_icon_color", "#2d5277" ) ) ?: "#2d5277";
-                $append .= '<div class="smpi-muckrack-footer-note" style="--smpi-muckrack-color:' . esc_attr( $color ) . '">' . self::verification_text( $author_id ) . '</div>';
-            }
-        }
-
-        if ( in_array( "bottom_article", Settings::array( "publication_muckrack_placements" ), true ) ) {
-            $publication_note = self::publication_verification_text( "smpi-muckrack-publication-footer" );
-            if ( "" !== $publication_note ) {
-                $append .= "<div class=\"smpi-muckrack-publication-footer-wrap\">" . $publication_note . "</div>";
-            }
-        }
-
-        return $content . $append;
+        return $content;
     }
 
     public function print_elementor_injection_script(): void {
@@ -102,22 +82,28 @@ final class MuckRackVerification {
             return;
         }
 
+        $contexts = Settings::array( "muckrack_verified_contexts" );
+        $style = (string) Settings::get( "muckrack_verified_style", "tooltip" );
+        $author_id = $this->resolve_author_id( 0 );
+        $author_name = "";
         $author_header_badge = "";
         $author_footer_badge = "";
-        $author_name = "";
+        $author_map = [];
+
         if ( Settings::bool( "muckrack_verified_enabled" ) ) {
-            $context = $this->author_context();
-            $author_id = $this->resolve_author_id( 0 );
             if ( $author_id && self::author_verified( $author_id ) ) {
                 $user = get_user_by( "id", $author_id );
                 $author_name = $user ? (string) $user->display_name : "";
-                $style = (string) Settings::get( "muckrack_verified_style", "tooltip" );
-                if ( in_array( $context, [ "single_author", "author", "home" ], true ) && in_array( $context, Settings::array( "muckrack_verified_contexts" ), true ) ) {
+                if ( in_array( $this->author_context(), [ "single_author", "author", "home" ], true ) && in_array( $this->author_context(), $contexts, true ) ) {
                     $author_header_badge = self::verification_icon( $author_id, $style );
                 }
-                if ( is_singular( "post" ) && in_array( "single_footer", Settings::array( "muckrack_verified_contexts" ), true ) ) {
+                if ( is_singular( "post" ) && in_array( "single_footer", $contexts, true ) ) {
                     $author_footer_badge = self::verification_icon( $author_id, $style );
                 }
+            }
+
+            if ( in_array( "loop_cards", $contexts, true ) || in_array( "home", $contexts, true ) || is_author() ) {
+                $author_map = self::author_badge_map( $style );
             }
         }
 
@@ -132,15 +118,95 @@ final class MuckRackVerification {
             }
         }
 
-        if ( "" === $author_header_badge && "" === $author_footer_badge && "" === $publication_below && "" === $publication_bottom ) {
+        if ( "" === $author_header_badge && "" === $author_footer_badge && empty( $author_map ) && "" === $publication_below && "" === $publication_bottom ) {
             return;
         }
 
-        $payload = wp_json_encode( [ "authorHeaderBadge" => $author_header_badge, "authorFooterBadge" => $author_footer_badge, "authorName" => $author_name, "context" => $this->author_context(), "publicationBelow" => $publication_below, "publicationBottom" => $publication_bottom ] );
+        $payload = wp_json_encode(
+            [
+                "authorHeaderBadge" => $author_header_badge,
+                "authorFooterBadge" => $author_footer_badge,
+                "authorName" => $author_name,
+                "authors" => $author_map,
+                "contexts" => $contexts,
+                "context" => $this->author_context(),
+                "publicationBelow" => $publication_below,
+                "publicationBottom" => $publication_bottom,
+            ]
+        );
         $script = <<<SMPI_JS
-(function(data){if(!data)return;function htmlNode(html){var t=document.createElement("template");t.innerHTML=(html||"").trim();return t.content.firstElementChild;}function text(el){return (el&&((el.innerText||el.textContent)||"")||"").replace(/\s+/g," ").trim();}function visible(el){if(!el)return false;var r=el.getBoundingClientRect();return r.width>1&&r.height>1&&window.getComputedStyle(el).visibility!=="hidden";}function unique(nodes){var out=[];nodes.forEach(function(n){if(n&&out.indexOf(n)<0)out.push(n);});return out;}function boxTop(el){var r=el.getBoundingClientRect();return r.top+window.scrollY;}function firstContentTop(){var selectors=[".elementor-widget-theme-post-content",".elementor-widget-post-content","article .entry-content",".entry-content",".post-content"];for(var i=0;i<selectors.length;i++){var target=document.querySelector(selectors[i]);if(target)return boxTop(target);}return null;}function normalizeName(s){return (s||"").toLowerCase().replace(/[^a-z0-9]+/g,"");}function inAboutAuthor(el){var n=el,depth=0;while(n&&n!==document.body&&depth<10){var tx=text(n).toLowerCase();if(tx.indexOf("about the author")!==-1||tx.indexOf("twitter / x")!==-1||(tx.indexOf("linkedin")!==-1&&tx.indexOf("email")!==-1))return true;n=n.parentElement;depth++;}return false;}function rejectedTop(el){var top=boxTop(el),ct=firstContentTop();if(ct!==null&&top>ct)return true;return false;}function targetSelectors(){return [".elementor-post-info__item--type-author",".elementor-widget-theme-post-author .elementor-author-box__name",".elementor-icon-list-item a[href*=\"/author/\"] .elementor-icon-list-text",".elementor-icon-list-item a[href*=\"/author/\"]",".elementor-widget-heading a[href*=\"/author/\"]",".elementor-heading-title a[href*=\"/author/\"]","a[rel=\"author\"]",".byline .author"];}function topAuthorTargets(){var found=[];targetSelectors().forEach(function(sel){document.querySelectorAll(sel).forEach(function(el){if(visible(el)&&text(el)&&!rejectedTop(el))found.push(el);});});found=unique(found).sort(function(a,b){return boxTop(a)-boxTop(b);});if(data.context==="single_author"&&found.length){var first=boxTop(found[0]);found=found.filter(function(el){return Math.abs(boxTop(el)-first)<160;});}return found;}function footerAuthorTargets(){var ct=firstContentTop(),want=normalizeName(data.authorName);var all=Array.from(document.querySelectorAll("a[href*=\"/author/\"],.elementor-author-box__name,h1,h2,h3,h4,strong,b"));var found=[];all.forEach(function(el){if(!visible(el)||!text(el))return;if(ct!==null&&boxTop(el)<ct)return;if(!inAboutAuthor(el))return;var tx=normalizeName(text(el));if(want&&tx.indexOf(want)<0&&want.indexOf(tx)<0)return;found.push(el);});return unique(found).sort(function(a,b){return boxTop(a)-boxTop(b);});}function cleanBadges(root){if(!root)return;root.querySelectorAll(".smpi-muckrack-icon").forEach(function(b){var r=b.getBoundingClientRect();if(!b.querySelector("svg")||r.width<2||r.height<2)b.remove();});}function hasBadgeNear(el){var root=el.closest(".elementor-widget,.elementor-icon-list-item,.byline,.elementor-author-box,h1,h2,h3,h4")||el.parentElement;cleanBadges(root);return !!(root&&Array.prototype.some.call(root.querySelectorAll(".smpi-muckrack-icon,.smpi-muckrack-author-note"),function(b){var r=b.getBoundingClientRect();return r.width>2&&r.height>2;}));}function insertBadge(el,html){if(!el||!html||hasBadgeNear(el))return;var node=htmlNode(html);if(node)el.insertAdjacentElement("afterend",node);}function injectHeader(){if(!data.authorHeaderBadge)return;topAuthorTargets().forEach(function(el){insertBadge(el,data.authorHeaderBadge);});}function injectFooter(){if(!data.authorFooterBadge)return;footerAuthorTargets().forEach(function(el){insertBadge(el,data.authorFooterBadge);});}function authorContainer(){var targets=topAuthorTargets();if(!targets.length)return null;var el=targets[0];return el.closest(".elementor-widget-theme-post-author,.elementor-widget-post-info,.elementor-icon-list-item,.elementor-widget,.byline,.elementor-element")||el;}function insertAfter(target,html,marker){if(!target||!html||document.querySelector("."+marker))return;var wrap=document.createElement("div");wrap.className=marker;wrap.innerHTML=html;target.insertAdjacentElement("afterend",wrap);}function injectBelowAuthor(){insertAfter(authorContainer(),data.publicationBelow,"smpi-muckrack-js-below-author");}function injectBottom(){if(!data.publicationBottom||document.querySelector(".smpi-muckrack-publication-footer-wrap,.smpi-muckrack-js-bottom-article"))return;var selectors=[".elementor-widget-theme-post-content",".elementor-widget-post-content","article .entry-content",".entry-content",".post-content"];for(var i=0;i<selectors.length;i++){var target=document.querySelector(selectors[i]);if(target){insertAfter(target,data.publicationBottom,"smpi-muckrack-js-bottom-article");return;}}}function run(){injectHeader();injectFooter();injectBelowAuthor();injectBottom();}if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",run);}else{run();}setTimeout(run,500);setTimeout(run,1300);})(
+(function(data){
+if(!data)return;
+function clean(s){return String(s||"").replace(/\s+/g," ").trim();}
+function norm(s){return clean(s).toLowerCase().replace(/[^a-z0-9]+/g,"");}
+function htmlNode(html){var t=document.createElement("template");t.innerHTML=(html||"").trim();return t.content.firstElementChild;}
+function visible(el){if(!el)return false;var r=el.getBoundingClientRect();var st=window.getComputedStyle(el);return r.width>1&&r.height>1&&st.display!=="none"&&st.visibility!=="hidden"&&st.opacity!=="0";}
+function unique(nodes){var out=[];nodes.forEach(function(n){if(n&&out.indexOf(n)<0)out.push(n);});return out;}
+function y(el){var r=el.getBoundingClientRect();return r.top+window.scrollY;}
+function q(sel,root){return Array.prototype.slice.call((root||document).querySelectorAll(sel));}
+function contentWidget(){var selectors=[".elementor-widget-theme-post-content",".elementor-widget-post-content","article .entry-content",".entry-content",".post-content"];for(var i=0;i<selectors.length;i++){var el=document.querySelector(selectors[i]);if(el&&visible(el))return el;}return null;}
+function contentTop(){var el=contentWidget();return el?y(el):null;}
+function isLoop(el){return !!(el&&el.closest(".e-loop-item,.elementor-loop-item,.elementor-post,.elementor-grid-item,.elementor-widget-loop-grid article,.elementor-posts-container article"));}
+function isAdminOrHidden(el){return !!(el&&el.closest("#wpadminbar,.elementor-editor-active,.elementor-location-popup,script,style,noscript"));}
+var bySlug={},byName={};
+(data.authors||[]).forEach(function(a){if(!a||!a.badge)return;if(a.slug)bySlug[String(a.slug).toLowerCase()]=a;if(a.name)byName[norm(a.name)]=a;});
+function slugFromHref(href){var m=String(href||"").match(/\/author\/([^\/?#]+)/i);return m?decodeURIComponent(m[1]).toLowerCase():"";}
+function recordFor(el,fallbackName){if(!el)return null;var link=el.matches&&el.matches("a[href]")?el:el.closest&&el.closest("a[href]");var slug=link?slugFromHref(link.getAttribute("href")):"";if(slug&&bySlug[slug])return bySlug[slug];var txt=norm(fallbackName||clean(el.textContent));if(txt&&byName[txt])return byName[txt];return null;}
+function badgeFor(el,fallbackBadge,fallbackName){var rec=recordFor(el,fallbackName);return rec&&rec.badge?rec.badge:(fallbackBadge||"");}
+function authorRoot(el){return el.closest(".elementor-post-info__item,.elementor-widget-post-info,.elementor-widget-theme-post-author,.elementor-author-box,.elementor-widget-author-box,.elementor-widget-heading,.elementor-icon-list-item,.byline,.author,.e-loop-item,.elementor-post,.elementor-grid-item")||el.parentElement;}
+function hasBadge(root){return !!(root&&root.querySelector(".smpi-muckrack-icon,.smpi-muckrack-author-note"));}
+function insertAfter(el,html,root){if(!el||!html)return false;var scope=root||authorRoot(el);if(hasBadge(scope))return false;var node=htmlNode(html);if(!node)return false;var textHost=!el.matches("a[href]")&&!el.closest("a[href]")&&norm(el.textContent)===norm(data.authorName||el.textContent);if(textHost){el.appendChild(node);}else{el.insertAdjacentElement("afterend",node);}return true;}
+function exactTextTargets(root,name){var target=norm(name);if(!root||!target)return [];var out=[];q("a[href*=\"/author/\"],a[rel=\"author\"],.elementor-heading-title,.elementor-icon-list-text,.elementor-author-box__name,*",root).forEach(function(el){if(!visible(el)||isAdminOrHidden(el))return;var tx=norm(el.textContent);if(tx!==target)return;var childExact=Array.prototype.some.call(el.children||[],function(ch){return norm(ch.textContent)===target;});if(childExact)return;out.push(el);});return unique(out).sort(function(a,b){return a.getBoundingClientRect().height-b.getBoundingClientRect().height;});}
+function structuralAuthorLinks(root){var selectors=[".elementor-post-info__item--type-author a[href*=\"/author/\"]",".elementor-widget-post-info a[href*=\"/author/\"]",".elementor-widget-theme-post-author a[href*=\"/author/\"]",".elementor-author-box a[href*=\"/author/\"]",".elementor-widget-heading a[href*=\"/author/\"]",".elementor-icon-list-item a[href*=\"/author/\"]","a[rel=\"author\"]",".byline a[href*=\"/author/\"]","[class*=\"author\"] a[href*=\"/author/\"]"];var out=[];selectors.forEach(function(sel){q(sel,root).forEach(function(el){if(visible(el)&&!isAdminOrHidden(el))out.push(el);});});return unique(out);}
+function topAuthorTargets(){var ct=contentTop();return structuralAuthorLinks(document).filter(function(el){if(isLoop(el))return false;if(ct!==null&&y(el)>ct)return false;return true;}).sort(function(a,b){return y(a)-y(b);});}
+function authorCardContainers(){var ct=contentTop();var want=norm(data.authorName);var out=[];q(".elementor-author-box,.elementor-widget-theme-post-author,.elementor-widget-author-box").forEach(function(el){if(visible(el)&&!isLoop(el))out.push(el);});q(".e-con,.elementor-section,.elementor-container,.elementor-element").forEach(function(el){if(!visible(el)||isLoop(el)||isAdminOrHidden(el))return;if(ct!==null&&y(el)<ct)return;var tx=clean(el.textContent);var ntx=norm(tx);if(want&&ntx.indexOf(want)===-1)return;var lower=tx.toLowerCase();var hasAbout=lower.indexOf("about the author")!==-1;var hasSocial=/twitter\s*\/\s*x|linkedin|email/.test(lower);var hasImage=!!el.querySelector("img,.elementor-widget-image");var isReasonable=el.getBoundingClientRect().height<900&&el.getBoundingClientRect().width>120;if((hasAbout||hasSocial||hasImage)&&isReasonable)out.push(el);});return unique(out).sort(function(a,b){return a.getBoundingClientRect().height-b.getBoundingClientRect().height;});}
+function footerAuthorTargets(){var out=[];authorCardContainers().forEach(function(card){exactTextTargets(card,data.authorName).forEach(function(el){out.push({el:el,root:card});});});return out;}
+function loopCards(){return unique(q(".e-loop-item,.elementor-loop-item,.elementor-post,.elementor-grid-item,.elementor-widget-loop-grid article,.elementor-posts-container article").filter(visible));}
+function injectTop(){if(!data.authorHeaderBadge)return;topAuthorTargets().forEach(function(el){insertAfter(el,badgeFor(el,data.authorHeaderBadge,data.authorName),authorRoot(el));});}
+function injectFooter(){if(!data.authorFooterBadge)return;footerAuthorTargets().forEach(function(pair){insertAfter(pair.el,data.authorFooterBadge,pair.root);});}
+function injectLoops(){if((data.contexts||[]).indexOf("loop_cards")<0)return;loopCards().forEach(function(card){var targets=structuralAuthorLinks(card);if(!targets.length){Object.keys(byName).forEach(function(key){exactTextTargets(card,byName[key].name).forEach(function(el){targets.push(el);});});targets=unique(targets);}targets.forEach(function(el){var badge=badgeFor(el,"",clean(el.textContent));if(badge)insertAfter(el,badge,authorRoot(el));});});}
+function contentPlacementRoot(){var cw=contentWidget();return cw||document.querySelector("article")||null;}
+function footerAuthorPlacementRoot(){var cards=authorCardContainers();return cards.length?cards[0]:null;}
+function markerExists(cls){return !!document.querySelector("."+cls);}
+function insertBlockAfter(target,html,cls){if(!target||!html||markerExists(cls))return false;var wrap=document.createElement("div");wrap.className=cls;wrap.innerHTML=html;target.insertAdjacentElement("afterend",wrap);return true;}
+function injectPublicationBottom(){if(!data.publicationBottom)return;insertBlockAfter(contentPlacementRoot(),data.publicationBottom,"smpi-muckrack-js-bottom-article");}
+function injectPublicationBelowAuthor(){if(!data.publicationBelow)return;insertBlockAfter(footerAuthorPlacementRoot(),data.publicationBelow,"smpi-muckrack-js-below-author");}
+function run(){injectTop();injectFooter();injectLoops();injectPublicationBottom();injectPublicationBelowAuthor();}
+if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",run);}else{run();}
+setTimeout(run,500);setTimeout(run,1300);setTimeout(run,2600);
+})(
 SMPI_JS;
         echo "<script id=\"smpi-muckrack-elementor-placement\">" . $script . $payload . ");</script>";
+    }
+
+    private static function author_badge_map( string $style ): array {
+        $users = get_users(
+            [
+                "has_published_posts" => [ "post" ],
+                "fields" => [ "ID", "display_name", "user_nicename" ],
+                "number" => 300,
+                "orderby" => "post_count",
+                "order" => "DESC",
+            ]
+        );
+        $out = [];
+        foreach ( $users as $user ) {
+            $author_id = (int) $user->ID;
+            if ( ! self::author_verified( $author_id ) ) {
+                continue;
+            }
+            $badge = self::verification_icon( $author_id, $style );
+            if ( "" === $badge ) {
+                continue;
+            }
+            $out[] = [
+                "id" => $author_id,
+                "name" => (string) $user->display_name,
+                "slug" => (string) $user->user_nicename,
+                "badge" => $badge,
+            ];
+        }
+        return $out;
     }
 
     private function author_context(): string {

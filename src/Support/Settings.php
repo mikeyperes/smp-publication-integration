@@ -21,7 +21,7 @@ final class Settings {
             'publication_social_cleanup' => true,
             'muckrack_verified_enabled' => true,
             'muckrack_author_always_show' => false,
-            'muckrack_verified_contexts' => [ 'single_author', 'author', 'home' ],
+            'muckrack_verified_contexts' => [ 'single_author', 'single_footer', 'author', 'home', 'loop_cards' ],
             'muckrack_verified_style' => 'tooltip',
             'muckrack_icon_color' => '#2d5277',
             'muckrack_icon_style' => 'circle_check',
@@ -150,7 +150,7 @@ final class Settings {
             }
 
             if ( 'muckrack_verified_contexts' === $key ) {
-                $allowed = [ 'single_author', 'single_footer', 'author', 'home' ];
+                $allowed = [ 'single_author', 'single_footer', 'author', 'home', 'loop_cards' ];
                 $items = is_array( $value ) ? array_map( 'sanitize_key', $value ) : [];
                 $settings[ $key ] = array_values( array_intersect( $allowed, $items ) );
                 continue;
