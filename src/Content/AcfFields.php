@@ -160,6 +160,7 @@ final class AcfFields {
                 "fields" => $fields,
                 "location" => [
                     [ [ "param" => "post_type", "operator" => "==", "value" => "post" ] ],
+                    [ [ "param" => "post_type", "operator" => "==", "value" => "press-release" ] ],
                     [ [ "param" => "post_type", "operator" => "==", "value" => "imported-news" ] ],
                 ],
                 "menu_order" => 0,

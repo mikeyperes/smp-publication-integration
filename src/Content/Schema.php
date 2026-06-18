@@ -339,8 +339,14 @@ final class Schema {
 
     private function publication_entity(): array {
         $website = Fields::option( "website", home_url( "/" ) );
-        $summary = Fields::option( "summary" );
-        $mission = Fields::option( "mission_statement" );
+        $summary = Fields::raw_option( "smpi_publication_summary" );
+        if ( ! Fields::has_value( $summary ) ) {
+            $summary = Fields::option( "summary" );
+        }
+        $mission = Fields::raw_option( "smpi_mission_statement" );
+        if ( ! Fields::has_value( $mission ) ) {
+            $mission = Fields::option( "mission_statement" );
+        }
         $logo = $this->normalize_logo( Fields::option( "logo" ) );
         $org_id = trailingslashit( home_url( "/" ) ) . "#organization";
         $publication_user_id = absint( Fields::option( "publication_user", Settings::get( "system_publication_user_id", 0 ) ) );
