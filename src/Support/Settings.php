@@ -26,6 +26,16 @@ final class Settings {
             'muckrack_icon_color' => '#2d5277',
             'muckrack_icon_style' => 'circle_check',
             "muckrack_icon_size" => 18,
+            "muckrack_icon_color_single_author" => "",
+            "muckrack_icon_size_single_author" => 0,
+            "muckrack_icon_color_single_footer" => "",
+            "muckrack_icon_size_single_footer" => 0,
+            "muckrack_icon_color_loop_cards" => "",
+            "muckrack_icon_size_loop_cards" => 0,
+            "muckrack_icon_color_home" => "",
+            "muckrack_icon_size_home" => 0,
+            "muckrack_icon_color_author" => "",
+            "muckrack_icon_size_author" => 0,
             'publication_muckrack_verified_enabled' => false,
             'publication_muckrack_text_mode' => 'news_outlet',
             'publication_muckrack_style' => 'block',
@@ -84,8 +94,12 @@ final class Settings {
                 continue;
             }
 
-            if ( in_array( $key, [ "muckrack_icon_size", "publication_muckrack_font_size" ], true ) ) {
+            if ( in_array( $key, [ "muckrack_icon_size", "publication_muckrack_font_size", "muckrack_icon_size_single_author", "muckrack_icon_size_single_footer", "muckrack_icon_size_loop_cards", "muckrack_icon_size_home", "muckrack_icon_size_author" ], true ) ) {
                 $value = absint( $value );
+                if ( 0 === strpos( $key, "muckrack_icon_size_" ) ) {
+                    $settings[ $key ] = 0 === $value ? 0 : max( 8, min( 64, $value ) );
+                    continue;
+                }
                 $default = "publication_muckrack_font_size" === $key ? 14 : 18;
                 $settings[ $key ] = max( 8, min( 64, $value ?: $default ) );
                 continue;
@@ -125,9 +139,14 @@ final class Settings {
                 continue;
             }
 
-            if ( 'muckrack_icon_color' === $key ) {
-                $color = sanitize_hex_color( (string) $value );
-                $settings[ $key ] = $color ?: '#2d5277';
+            if ( 'muckrack_icon_color' === $key || 0 === strpos( $key, 'muckrack_icon_color_' ) ) {
+                $raw = trim( (string) $value );
+                if ( 0 === strpos( $key, 'muckrack_icon_color_' ) && '' === $raw ) {
+                    $settings[ $key ] = '';
+                    continue;
+                }
+                $color = sanitize_hex_color( $raw );
+                $settings[ $key ] = $color ?: ( 0 === strpos( $key, 'muckrack_icon_color_' ) ? '' : '#2d5277' );
                 continue;
             }
 
@@ -138,7 +157,7 @@ final class Settings {
             }
 
             if ( 'publication_muckrack_style' === $key ) {
-                $allowed = [ 'block', 'compact', 'minimalist' ];
+                $allowed = [ 'block', 'mini_block', 'compact', 'minimalist' ];
                 $settings[ $key ] = in_array( $value, $allowed, true ) ? $value : 'block';
                 continue;
             }

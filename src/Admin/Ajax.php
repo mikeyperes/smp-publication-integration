@@ -56,10 +56,10 @@ final class Ajax {
                 $changes[ $key ] = absint( $_POST[ $key ] );
             }
         }
-        foreach ( [ "muckrack_icon_size" => [ 8, 64, 18 ], "publication_muckrack_font_size" => [ 8, 64, 14 ] ] as $key => $limits ) {
+        foreach ( [ "muckrack_icon_size" => [ 8, 64, 18 ], "publication_muckrack_font_size" => [ 8, 64, 14 ], "muckrack_icon_size_single_author" => [ 0, 64, 0 ], "muckrack_icon_size_single_footer" => [ 0, 64, 0 ], "muckrack_icon_size_loop_cards" => [ 0, 64, 0 ], "muckrack_icon_size_home" => [ 0, 64, 0 ], "muckrack_icon_size_author" => [ 0, 64, 0 ] ] as $key => $limits ) {
             if ( isset( $_POST[ $key ] ) ) {
                 $value = absint( $_POST[ $key ] );
-                $changes[ $key ] = max( $limits[0], min( $limits[1], $value ?: $limits[2] ) );
+                $changes[ $key ] = 0 === strpos( $key, "muckrack_icon_size_" ) && 0 === $value ? 0 : max( $limits[0], min( $limits[1], $value ?: $limits[2] ) );
             }
         }
         foreach ( [ "table_of_contents_style", "inline_photo_treatment", "post_summary_style", "post_faqs_style" ] as $key ) {
@@ -76,8 +76,11 @@ final class Ajax {
         if ( isset( $_POST['muckrack_icon_style'] ) ) {
             $changes['muckrack_icon_style'] = sanitize_key( wp_unslash( $_POST['muckrack_icon_style'] ) );
         }
-        if ( isset( $_POST['muckrack_icon_color'] ) ) {
-            $changes['muckrack_icon_color'] = sanitize_hex_color( wp_unslash( $_POST['muckrack_icon_color'] ) );
+        foreach ( [ 'muckrack_icon_color', 'muckrack_icon_color_single_author', 'muckrack_icon_color_single_footer', 'muckrack_icon_color_loop_cards', 'muckrack_icon_color_home', 'muckrack_icon_color_author' ] as $color_key ) {
+            if ( isset( $_POST[ $color_key ] ) ) {
+                $raw = trim( (string) wp_unslash( $_POST[ $color_key ] ) );
+                $changes[ $color_key ] = '' === $raw ? '' : sanitize_hex_color( $raw );
+            }
         }
         if ( isset( $_POST['publication_muckrack_text_mode'] ) ) {
             $changes['publication_muckrack_text_mode'] = sanitize_key( wp_unslash( $_POST['publication_muckrack_text_mode'] ) );

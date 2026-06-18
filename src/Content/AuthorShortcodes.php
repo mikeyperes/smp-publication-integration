@@ -99,12 +99,22 @@ final class AuthorShortcodes {
     }
 
     public function render_muckrack_verified( array $atts = [] ): string {
-        $atts = shortcode_atts( [ "user_id" => 0, "post_id" => 0, "type" => "icon", "style" => "" ], $atts, "author_muckrack_verified" );
+        $atts = shortcode_atts( [ "user_id" => 0, "post_id" => 0, "type" => "icon", "style" => "", "context" => "" ], $atts, "author_muckrack_verified" );
         $author_id = $this->resolve_author_id( (int) $atts["user_id"], (int) $atts["post_id"] );
         if ( ! $author_id || ! MuckRackVerification::author_verified( $author_id ) ) {
             return "";
         }
-        return "text" === sanitize_key( (string) $atts["type"] ) ? MuckRackVerification::verification_text( $author_id ) : MuckRackVerification::verification_icon( $author_id, sanitize_key( (string) $atts["style"] ) );
+        $context = sanitize_key( (string) $atts["context"] );
+        if ( "" === $context ) {
+            if ( is_singular( "post" ) ) {
+                $context = "single_author";
+            } elseif ( is_author() ) {
+                $context = "author";
+            } elseif ( is_home() || is_front_page() ) {
+                $context = "home";
+            }
+        }
+        return "text" === sanitize_key( (string) $atts["type"] ) ? MuckRackVerification::verification_text( $author_id ) : MuckRackVerification::verification_icon( $author_id, sanitize_key( (string) $atts["style"] ), $context );
     }
 
     public function render_image( array $atts = [] ): string {
