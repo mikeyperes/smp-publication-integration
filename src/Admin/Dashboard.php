@@ -503,6 +503,8 @@ final class Dashboard {
     private function features(): void {
         $settings = Settings::all();
         echo "<div class=\"smpi-hero\"><p class=\"smpi-kicker\">Features</p><h2>Feature controls, implementation notes, code examples, live test reports, and activity logs.</h2><p>Each feature is isolated behind settings so it can be enabled, tested, or removed without mixing concerns.</p></div>";
+        echo "<style id=smpi-design-preview-css>" . \smp_publication_integration\Content\ArticleStyles::preview_bundle_css() . "</style>";
+        echo "<div class=\"smpi-design-host\">";
         $this->feature_card( "Elementor CSS cache busting", "elementor_css_cache_busting", "No custom ACF fields needed.", "Adds filemtime mv_css query args only to Elementor upload CSS files under /wp-content/uploads/elementor/css/. This prevents stale Elementor CSS after rebuilds without touching global assets.", "add_filter(\"style_loader_src\",function(\$src){if(false===strpos(\$src,\"/wp-content/uploads/elementor/css/\"))return \$src;\$path=wp_parse_url(\$src,PHP_URL_PATH);\$file=ABSPATH.ltrim(\$path,\"/\");return is_readable(\$file)?add_query_arg(\"mv_css\",filemtime(\$file),\$src):\$src;},9999,1);", $this->elementor_css_report_html(), $this->activity_log_html() );
         $this->feature_card( "Shadow posts", "shadow_posts_enabled", "Registers post meta controls: <code>_smpi_shadow_complete</code> and <code>_smpi_shadow_home</code>.", "When enabled, post editors get two visibility toggles. Completely shadowed posts remain link-accessible only and are excluded from home, category, and tag main queries. Home-only shadowed posts are excluded from the home query but still appear in category and tag pages.", "Post editor toggles: Completely shadow post / Shadow from home page only. Query guard: front-end main query only; single URLs remain accessible.", $this->shadow_posts_report_html(), $this->activity_log_html() );
         $author_muckrack_controls = $this->author_muckrack_mode_help_html( $settings ) . $this->author_muckrack_shortcodes_html() . $this->context_select_html( "muckrack_verified_contexts", [ "single_author" => "single.php header author mention", "single_footer" => "single.php footer/about-author mention", "loop_cards" => "Loop card authors: show checkmark", "home" => "Home page author mention", "author" => "author.php author mention" ], $settings, "Placement contexts" ) . $this->select_setting_html( "muckrack_verified_style", [ "tooltip" => [ "label" => "Tooltip icon", "description" => "Small badge beside the author name. Hover or focus explains the verification without adding sentence-length text.", "preview" => $this->author_tooltip_preview_html( $settings ) ], "text" => [ "label" => "Inline text", "description" => "Writes the full verification sentence directly into the author area.", "preview" => $this->author_inline_preview_html( $settings ) ], "compact_block" => [ "label" => "Small editorial block", "description" => "Smaller author version of the editorial verification block with left accent and compact text.", "preview" => $this->author_compact_block_preview_html( $settings ) ] ], $settings, "Display style" ) . $this->icon_style_setting_html( $settings ) . $this->color_setting_html( "muckrack_icon_color", "Default icon color", $settings ) . $this->number_setting_html( "muckrack_icon_size", "Default checkmark size", $settings, 8, 64, "px" ) . $this->author_context_overrides_html( $settings ) . $this->inline_toggle_setting_html( "muckrack_author_always_show", "Always show for every author" );
@@ -525,6 +527,7 @@ final class Dashboard {
         $this->feature_card( "Publication social icons", "publication_social_cleanup", "No dedicated ACF change. Reads rendered Elementor/social-icon anchors in global publication areas.", "Runs the same empty-social cleanup safely across frontend pages for publication-level header and footer social widgets. Empty href, #, and javascript anchors are hidden without touching valid social links.", "No shortcode needed. Toggle this on and inspect header/footer publication social widgets.", $this->simple_status_html( Settings::bool( "publication_social_cleanup" ), "Publication social cleanup script active on frontend pages." ), $this->activity_log_html() );
         $this->feature_card( "Rank Math breadcrumb check", "rank_math_breadcrumb_check_enabled", "No ACF changes.", "Reports Rank Math breadcrumb status from rank-math-options-general. Mutation filters should only be added after exact breadcrumb rules are supplied.", "add_filter(\"rank_math/frontend/breadcrumb/items\", function(\$crumbs){ return \$crumbs; }, 10, 1);", $this->rank_math_breadcrumb_report_html(), $this->activity_log_html() );
         $this->feature_card( "HWS masked admin URL", "hws_masked_admin_report_enabled", "HWS Base Tools owns this feature. SMP only reports status and links to it.", "Confirms whether HWS Base Tools masked login is enabled and exposes the masked URL in the Overview and Features tabs.", "HWS option: hws_login_mask_options with slug hexa-admin.", $this->hws_masked_login_report_html(), $this->activity_log_html() );
+        echo "</div>";
     }
 
 
@@ -651,41 +654,47 @@ final class Dashboard {
         ];
     }
 
+    private function preview_image_url(): string {
+        return "https://picsum.photos/seed/smpi-inline/720/420";
+    }
+
+    private function toc_preview_label( string $style ): string {
+        if ( "toc00" === $style ) { return "In this article"; }
+        if ( "toc02" === $style ) { return "On this page"; }
+        if ( "toc04" === $style ) { return "Jump to"; }
+        return "Table of Contents";
+    }
+
     private function toc_design_preview_html( string $style ): string {
-        $settings = Settings::all();
-        $vars = $this->style_vars( [
-            "smpi-toc-accent" => $settings["table_of_contents_accent_color"] ?? "#2563eb",
-            "smpi-toc-text-color" => $settings["table_of_contents_text_color"] ?? "#1f2937",
-            "smpi-toc-font-size" => absint( $settings["table_of_contents_text_font_size"] ?? 15 ) . "px",
-            "smpi-toc-font-style" => $this->font_style_value( (string) ( $settings["table_of_contents_text_font_style"] ?? "normal" ) ),
-        ] );
-        return "<nav class=\"smpi-design-preview smpi-design-toc smpi-" . esc_attr( $style ) . "\" style=\"" . esc_attr( $vars ) . "\"><span class=smpi-toc-label>In this article</span><ol><li><a href=#>The rise of new technology</a></li><li><a href=#>What the data reveals</a></li></ol></nav>";
+        $label = esc_html( $this->toc_preview_label( $style ) );
+        if ( "toc04" === $style ) {
+            return "<nav class=\"smpi-table-of-contents smpi-" . esc_attr( $style ) . "\"><span class=\"smpi-toc-label\">" . $label . "</span><a href=\"#\">The rise of new technology</a><a href=\"#\">What the data reveals</a></nav>";
+        }
+        return "<nav class=\"smpi-table-of-contents smpi-" . esc_attr( $style ) . "\"><p class=\"smpi-toc-label\">" . $label . "</p><ol><li><a href=\"#\">The rise of new technology</a></li><li><a href=\"#\">What the data reveals</a></li></ol></nav>";
     }
 
     private function inline_photo_preview_html( string $style ): string {
-        $settings = Settings::all();
-        $vars = $this->style_vars( [
-            "smpi-inline-photo-accent" => $settings["inline_photo_accent_color"] ?? "#d63428",
-            "smpi-inline-photo-caption-color" => $settings["inline_photo_caption_text_color"] ?? "#272727",
-            "smpi-inline-photo-caption-size" => absint( $settings["inline_photo_caption_font_size"] ?? 16 ) . "px",
-            "smpi-inline-photo-caption-style" => $this->font_style_value( (string) ( $settings["inline_photo_caption_font_style"] ?? "italic" ) ),
-        ] );
-        return "<figure class=\"smpi-design-preview smpi-design-photo smpi-design-" . esc_attr( $style ) . "\" style=\"" . esc_attr( $vars ) . "\"><span class=smpi-photo-block></span><figcaption>Collegiate summer leagues provide a platform for emerging talent.</figcaption></figure>";
+        $img = "<img src=\"" . esc_url( $this->preview_image_url() ) . "\" alt=\"\">";
+        $cap = "<figcaption>Collegiate summer leagues provide a platform for emerging talent.</figcaption>";
+        return "<figure class=\"smpi-pp smpi-pp-" . esc_attr( $style ) . "\">" . $img . $cap . "</figure>";
     }
 
     private function summary_design_preview_html( string $style ): string {
-        return "<aside class=\"smpi-design-preview smpi-design-summary smpi-" . esc_attr( $style ) . "\"><h2>What to know</h2><ul><li>Commitments exceed $150 billion across five regions.</li><li>The fund becomes operational after final approval.</li></ul></aside>";
+        $content = "<ul><li>Commitments exceed \$150 billion across five regions.</li><li>The fund becomes operational after final approval.</li></ul>";
+        if ( "none" === $style ) {
+            return "<aside class=\"smpi-post-summary smpi-none\">" . $content . "</aside>";
+        }
+        $title = esc_html( \smp_publication_integration\Content\ArticleStyles::summary_title( $style ) );
+        return "<aside class=\"smpi-post-summary smpi-" . esc_attr( $style ) . "\"><h2>" . $title . "</h2><div class=\"smpi-post-summary-content\">" . $content . "</div></aside>";
     }
 
     private function faq_design_preview_html( string $style ): string {
-        $settings = Settings::all();
-        $vars = $this->style_vars( [
-            "smpi-faq-accent" => $settings["post_faqs_accent_color"] ?? "#2563eb",
-            "smpi-faq-text-color" => $settings["post_faqs_text_color"] ?? "#1f2937",
-            "smpi-faq-font-size" => absint( $settings["post_faqs_text_font_size"] ?? 16 ) . "px",
-            "smpi-faq-font-style" => $this->font_style_value( (string) ( $settings["post_faqs_text_font_style"] ?? "normal" ) ),
-        ] );
-        return "<section class=\"smpi-design-preview smpi-design-faq smpi-" . esc_attr( $style ) . "\" style=\"" . esc_attr( $vars ) . "\"><h2>Frequently asked questions</h2><div><p><strong>What is this?</strong></p><p>A compact preview of the selected FAQ treatment.</p></div></section>";
+        $content = "<ul><li><strong>Q: What record did Messi tie?</strong><br><strong>A:</strong> He tied Klose's World Cup goals record with a hat trick against Algeria.</li><li><strong>Q: What injury did Jose Ramirez sustain?</strong><br><strong>A:</strong> Surgery on a broken hamate bone, about five to seven weeks of recovery.</li></ul>";
+        if ( "none" === $style ) {
+            return "<section class=\"smpi-post-faqs smpi-none\">" . $content . "</section>";
+        }
+        $title = esc_html( \smp_publication_integration\Content\ArticleStyles::faq_title( $style ) );
+        return "<section class=\"smpi-post-faqs smpi-" . esc_attr( $style ) . "\"><h2>" . $title . "</h2><div class=\"smpi-post-faqs-content\">" . $content . "</div></section>";
     }
 
     private function style_vars( array $vars ): string {
@@ -1172,6 +1181,8 @@ final class Dashboard {
             initDynamicEditors(tabPanel());
             function refreshActiveFragment(fragment){if(!fragment||!fragment.html)return;var panel=tabPanel(),y=window.scrollY||window.pageYOffset||0;destroyDynamicEditors(panel);panel.html(fragment.html).attr(`data-active-tab`,fragment.tab||smpiAdmin.activeTab).attr(`aria-busy`,`false`);initAcfFields(panel);initDynamicEditors(panel);if(window.scrollTo){window.scrollTo(0,y)}}function saveSetting(e, done){var k=e.data(`key`),d={action:`smpi_save_settings`,nonce:smpiAdmin.nonce,tab:smpiAdmin.activeTab},v;if(e.hasClass(`smpi-setting-array`)){var g=$(`.smpi-setting-array[data-key="${k}"]`);d[k+`_present`]=1;d[k]=g.filter(`:checked`).map(function(){return $(this).val()}).get()}else{v=e.is(`:checkbox`)?(e.is(`:checked`)?1:0):e.val();d[k]=v}var r=e.closest(`.smpi-feature-card,.smpi-control-group,td,.smpi-user-picker`);r.find(`.spinner`).addClass(`is-active`);$.post(smpiAdmin.ajaxUrl,d).done(function(x){var ok=!!(x&&x.success);r.find(`.smpi-save-state`).text(ok?` Saved`:` Error`);if(ok&&x.data&&x.data.fragment){refreshActiveFragment(x.data.fragment);$(`.smpi-tab-message`).text(`Saved and refreshed ${x.data.fragment.label}.`)}if(done)done(x)}).always(function(){r.find(`.spinner`).removeClass(`is-active`)})}
             $(document).on(`change`,`.smpi-setting,.smpi-setting-array`,function(){saveSetting($(this))});
+            var smpiPV={'table_of_contents_accent_color':['--smpi-toc-accent',''],'table_of_contents_text_color':['--smpi-toc-text',''],'table_of_contents_text_font_size':['--smpi-toc-size','px'],'table_of_contents_text_font_style':['--smpi-toc-fstyle',''],'post_faqs_accent_color':['--smpi-faq-accent',''],'post_faqs_text_color':['--smpi-faq-text',''],'post_faqs_text_font_size':['--smpi-faq-size','px'],'post_faqs_text_font_style':['--smpi-faq-fstyle',''],'inline_photo_accent_color':['--smpi-photo-accent',''],'inline_photo_caption_text_color':['--smpi-photo-cap-color',''],'inline_photo_caption_font_size':['--smpi-photo-cap-size','px'],'inline_photo_caption_font_style':['--smpi-photo-cap-fstyle','']};
+            $(document).on(`input change`,`.smpi-setting`,function(){var k=$(this).data(`key`),m=smpiPV[k];if(!m)return;var host=document.querySelector(`.smpi-design-host`);if(host){host.style.setProperty(m[0],String($(this).val())+m[1])}});
             var userTimer=null;
             function lockUserCard(u){return `<div class="smpi-profile-card"><div class="smpi-profile-avatar"><img src="${u.avatar}" alt=""></div><div class="smpi-profile-info"><h3>${u.name||u.label}</h3><p><span class="dashicons dashicons-email"></span> ${u.email||``}</p><p><a class="button button-secondary" target="_blank" rel="noopener noreferrer" href="${u.edit_url}">Edit Profile</a> <a class="button button-secondary" target="_blank" rel="noopener noreferrer" href="${u.view_url}">View Author Page</a></p></div></div>`}
             $(document).on(`input`,`.smpi-user-search`,function(){var input=$(this),picker=input.closest(`.smpi-user-picker`),box=picker.find(`.smpi-user-results`),term=input.val();clearTimeout(userTimer);if(term.length<2){box.empty();return}userTimer=setTimeout(function(){picker.find(`.spinner`).addClass(`is-active`);$.post(smpiAdmin.ajaxUrl,{action:`smpi_search_users`,nonce:smpiAdmin.nonce,term:term}).done(function(x){box.empty();if(!x.success||!x.data.users.length){box.html(`<p class="smpi-muted">No matching users.</p>`);return}$.each(x.data.users,function(i,u){var b=$(`<button type="button" class="button smpi-user-result"></button>`).html(`<strong>${u.label}</strong> <span class="smpi-muted">${u.email}</span>`).data(`user`,u);box.append(b)})}).always(function(){picker.find(`.spinner`).removeClass(`is-active`)})},250)});
