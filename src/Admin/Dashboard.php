@@ -425,7 +425,8 @@ final class Dashboard {
     private function post_acf_shortcode_reference_html(): string {
         $rows = [
             [ "Post Summary", "post_summary", "[smp_post_summary]", "[smp_post_acf field=post_summary] [smp_post_summary post_id=123 format=text]" ],
-            [ "Post FAQs", "post_faqs", "[smp_post_faqs]", "[smp_post_acf field=post_faqs] [smp_post_faqs post_id=123 format=text]" ],
+            [ "Post FAQs Structured Repeater", "post_faq_items", "[smp_post_faqs]", "[smp_post_acf field=post_faq_items format=json] [smp_post_faqs post_id=123 format=text]" ],
+            [ "Post FAQs Legacy WYSIWYG", "post_faqs", "[smp_post_faqs]", "[smp_post_acf field=post_faqs] [smp_post_faqs post_id=123 format=text]" ],
         ];
         $html = "<div class=smpi-panel><h2>Post ACF add-on shortcode examples</h2><p>These match the Post ACF add-ons toggles. They resolve the current post inside single.php; pass <code>post_id</code> when testing elsewhere.</p><table class=widefat><thead><tr><th>Field</th><th>ACF name</th><th>Primary shortcode</th><th>Variations / parameters</th></tr></thead><tbody>";
         foreach ( $rows as $row ) {
@@ -436,18 +437,53 @@ final class Dashboard {
 
 
     private function schema(): void {
-        $schema = ( new Schema() )->generate_schema_json();
-        $rank = Dependencies::plugin_active( 'seo-by-rank-math-pro/rank-math-pro.php' );
-        echo '<div class="smpi-grid">';
-        $this->status_card( 'Rank Math Pro', $rank, $rank ? 'Rank Math Pro active.' : 'Rank Math Pro is recommended for schema edits.' );
-        $this->status_card( 'Verified Profiles', Dependencies::sfpf_active(), Dependencies::sfpf_active() ? 'Founder profile schema source active.' : 'Founder profile schema source inactive.' );
-        $this->status_card( 'Homepage Schema', (bool) $this->extract_schema_types( home_url( '/' ) ), 'Homepage JSON-LD fetch checked.' );
-        $this->status_card( 'Recent Posts', $this->recent_posts_schema_count() >= 8, $this->recent_posts_schema_count() . ' of 10 recent posts returned JSON-LD.' );
-        echo '</div><div class="smpi-panel"><h2>Refresh Publication Schema</h2><button id="smpi-reprocess-schema" type="button" class="button button-primary">Refresh publication schema</button><div id="smpi-schema-report" class="smpi-code-panel"></div></div>';
-        if ( $schema ) {
-            echo '<div class="smpi-panel"><h2>Publication Schema Preview</h2><pre class="smpi-code">' . esc_html( $schema ) . '</pre></div>';
+        $schema = new Schema();
+        $post_id = $this->latest_post_id();
+        $home_schema = $schema->generate_home_schema_array();
+        $single_schema = $post_id ? $schema->generate_single_schema_array( $post_id ) : [];
+        $home_report = Schema::integrity_report( 0 );
+        $single_report = $post_id ? Schema::integrity_report( $post_id ) : [ "types" => [], "checks" => [] ];
+        $debug_url = rest_url( "smpi/v1/schema" );
+        $single_debug_url = $post_id ? add_query_arg( "post_id", $post_id, $debug_url ) : $debug_url;
+
+        echo "<div class=\"smpi-hero\"><p class=\"smpi-kicker\">Schema</p><h2>Publication and article schema integrity</h2><p>Home uses NewsMediaOrganization, WebSite, CollectionPage, and ItemList. Singles use WebPage, article schema, publisher, author, image, breadcrumbs, and FAQPage when structured FAQ rows exist.</p></div>";
+        echo "<div class=\"smpi-grid\">";
+        $this->status_card( "Home schema graph", in_array( "NewsMediaOrganization", $home_report["types"], true ) && in_array( "CollectionPage", $home_report["types"], true ), "Types: " . implode( ", ", $home_report["types"] ) );
+        $this->status_card( "Single schema graph", $post_id && in_array( "WebPage", $single_report["types"], true ), $post_id ? "Latest post #" . $post_id . " types: " . implode( ", ", $single_report["types"] ) : "No published post found." );
+        $this->status_card( "Article type taxonomy", taxonomy_exists( \smp_publication_integration\Content\ArticleTypes::TAXONOMY ), taxonomy_exists( \smp_publication_integration\Content\ArticleTypes::TAXONOMY ) ? "smpi_article_type exists." : "Taxonomy is not registered yet." );
+        $this->status_card( "Debug JSON URL", true, esc_url( $debug_url ) );
+        echo "</div>";
+
+        echo "<div class=\"smpi-panel\"><h2>Run Schema Integrity Test</h2><p><button id=\"smpi-reprocess-schema\" type=\"button\" class=\"button button-primary\">Run schema refresh and sample test</button></p><p><a class=\"button\" target=\"_blank\" rel=\"noopener noreferrer\" href=\"" . esc_url( $debug_url ) . "\">Open home schema JSON</a> " . ( $post_id ? "<a class=\"button\" target=\"_blank\" rel=\"noopener noreferrer\" href=\"" . esc_url( $single_debug_url ) . "\">Open latest post schema JSON</a>" : "" ) . "</p><div id=\"smpi-schema-report\" class=\"smpi-code-panel\"></div></div>";
+
+        echo "<div class=\"smpi-panel\"><h2>Home Page Integrity</h2><table class=\"widefat striped\"><tbody>";
+        foreach ( $home_report["checks"] as $check ) {
+            $class = "green" === $check["status"] ? "smpi-ok" : ( "red" === $check["status"] ? "smpi-bad" : "smpi-warn" );
+            echo "<tr><th>" . esc_html( $check["label"] ) . "</th><td><span class=\"" . esc_attr( $class ) . "\">" . esc_html( strtoupper( $check["status"] ) ) . "</span></td></tr>";
+        }
+        echo "</tbody></table></div>";
+
+        echo "<div class=\"smpi-panel\"><h2>Single Page Integrity</h2><table class=\"widefat striped\"><tbody>";
+        foreach ( $single_report["checks"] as $check ) {
+            $class = "green" === $check["status"] ? "smpi-ok" : ( "red" === $check["status"] ? "smpi-bad" : "smpi-warn" );
+            echo "<tr><th>" . esc_html( $check["label"] ) . "</th><td><span class=\"" . esc_attr( $class ) . "\">" . esc_html( strtoupper( $check["status"] ) ) . "</span></td></tr>";
+        }
+        echo "</tbody></table></div>";
+
+        echo "<div class=\"smpi-panel\"><h2>Article Type Taxonomy Mapping</h2><table class=\"widefat striped\"><thead><tr><th>Term</th><th>Schema Type</th><th>Use Case</th></tr></thead><tbody>";
+        foreach ( \smp_publication_integration\Content\ArticleTypes::terms() as $slug => $config ) {
+            echo "<tr><td><code>" . esc_html( $slug ) . "</code></td><td><code>" . esc_html( $config["schema_type"] ) . "</code></td><td>" . esc_html( $config["description"] ) . "</td></tr>";
+        }
+        echo "</tbody></table></div>";
+
+        $ideal_home = [ "@context" => "https://schema.org", "@graph" => [ [ "@type" => "NewsMediaOrganization" ], [ "@type" => "WebSite" ], [ "@type" => "CollectionPage" ], [ "@type" => "ItemList" ] ] ];
+        $ideal_single = [ "@context" => "https://schema.org", "@graph" => [ [ "@type" => "NewsMediaOrganization" ], [ "@type" => "WebSite" ], [ "@type" => "WebPage" ], [ "@type" => "NewsArticle" ], [ "@type" => "Person" ], [ "@type" => "ImageObject" ], [ "@type" => "BreadcrumbList" ], [ "@type" => "FAQPage" ] ] ];
+        echo "<div class=\"smpi-grid\"><div class=\"smpi-panel\"><h2>Ideal Home Graph</h2><pre class=\"smpi-code\">" . esc_html( wp_json_encode( $ideal_home, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) ) . "</pre></div><div class=\"smpi-panel\"><h2>Actual Home Graph</h2><pre class=\"smpi-code\">" . esc_html( wp_json_encode( $home_schema, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ) ) . "</pre></div></div>";
+        if ( $post_id ) {
+            echo "<div class=\"smpi-grid\"><div class=\"smpi-panel\"><h2>Ideal Single Graph</h2><pre class=\"smpi-code\">" . esc_html( wp_json_encode( $ideal_single, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) ) . "</pre></div><div class=\"smpi-panel\"><h2>Actual Latest Single Graph</h2><pre class=\"smpi-code\">" . esc_html( wp_json_encode( $single_schema, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ) ) . "</pre></div></div>";
         }
     }
+
 
     private function reports(): void {
         echo '<div class="smpi-grid">';

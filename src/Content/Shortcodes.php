@@ -9,7 +9,7 @@ if ( ! defined( "ABSPATH" ) ) {
 }
 
 final class Shortcodes {
-    private const POST_ACF_FIELDS = [ "post_summary", "post_faqs" ];
+    private const POST_ACF_FIELDS = [ "post_summary", "post_faqs", "post_faq_items" ];
 
     public function register(): void {
         add_action( "init", [ $this, "register_shortcodes" ] );
@@ -92,10 +92,32 @@ final class Shortcodes {
 
     public function render_post_faqs( array $atts = [] ): string {
         $atts = shortcode_atts( [ "post_id" => 0, "format" => "html", "style" => "" ], $atts, "smp_post_faqs" );
+        $post_id = $this->resolve_post_id( (int) $atts["post_id"] );
+        if ( ! $post_id ) {
+            return "";
+        }
+
+        $rows = Schema::faq_rows_for_post( $post_id, false );
+        if ( $rows ) {
+            if ( "text" === sanitize_key( (string) $atts["format"] ) ) {
+                $text = [];
+                foreach ( $rows as $row ) {
+                    $text[] = "Q: " . $row["question"] . " A: " . wp_strip_all_tags( (string) $row["answer"] );
+                }
+                return esc_html( implode( " ", $text ) );
+            }
+            $html = "";
+            foreach ( $rows as $row ) {
+                $html .= "<div class=\"smpi-faq-row\"><p><strong>Q: " . esc_html( $row["question"] ) . "</strong></p><div>" . wp_kses_post( wpautop( (string) $row["answer"] ) ) . "</div></div>";
+            }
+            return ArticleStyles::wrap_post_faqs( $html, sanitize_key( (string) $atts["style"] ) );
+        }
+
         $atts["field"] = "post_faqs";
         $html = $this->render_post_acf( $atts );
         return "html" === sanitize_key( (string) $atts["format"] ) ? ArticleStyles::wrap_post_faqs( $html, sanitize_key( (string) $atts["style"] ) ) : $html;
     }
+
 
     public function render_mission_statement( array $atts = [] ): string {
         $mission = Fields::option( "mission_statement" );

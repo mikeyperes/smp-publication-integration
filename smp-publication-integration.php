@@ -4,7 +4,7 @@
  * Description: Publication profile integration for Scale My Publication systems.
  * Author: Michael Peres
  * Plugin URI: https://github.com/mikeyperes/smp-publication-integration
- * Version: 0.6.12
+ * Version: 0.6.13
  * Text Domain: smp-publication-integration
  * Domain Path: /languages
  * Author URI: https://michaelperes.com
@@ -22,8 +22,25 @@ require_once __DIR__ . '/src/Support/Autoloader.php';
 
 Support\Autoloader::register( __DIR__ . '/src' );
 
+require_once __DIR__ . "/src/Content/AcfFields.php";
+require_once __DIR__ . "/src/Content/Shortcodes.php";
+require_once __DIR__ . "/src/Content/AuthorShortcodes.php";
+require_once __DIR__ . "/src/Content/Schema.php";
+require_once __DIR__ . "/src/Content/ArticleTypes.php";
+require_once __DIR__ . "/src/Content/Visibility.php";
+require_once __DIR__ . "/src/Content/PostTime.php";
+require_once __DIR__ . "/src/Content/EstimatedReadTime.php";
+require_once __DIR__ . "/src/Content/ElementorCssCacheBusting.php";
+require_once __DIR__ . "/src/Content/MuckRackVerification.php";
+require_once __DIR__ . "/src/Content/AuthorSocialCleanup.php";
+require_once __DIR__ . "/src/Content/TableOfContents.php";
+require_once __DIR__ . "/src/Content/ArticleStyles.php";
+require_once __DIR__ . "/src/Content/DebugEndpoint.php";
+require_once __DIR__ . "/src/Admin/Ajax.php";
+require_once __DIR__ . "/src/Admin/Dashboard.php";
+
 final class Config {
-    public const VERSION = "0.6.8";
+    public const VERSION = "0.6.13";
 
     public static string $plugin_name        = 'SMP Publication Integration';
     public static string $plugin_slug        = 'smp-publication-integration';
@@ -76,6 +93,7 @@ function boot_plugin(): void {
     ( new Content\Shortcodes() )->register();
     ( new Content\AuthorShortcodes() )->register();
     ( new Content\Schema() )->register();
+    ( new Content\ArticleTypes() )->register();
     ( new Content\Visibility() )->register();
     ( new Content\PostTime() )->register();
     ( new Content\EstimatedReadTime() )->register();
