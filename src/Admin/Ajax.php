@@ -56,13 +56,13 @@ final class Ajax {
                 $changes[ $key ] = absint( $_POST[ $key ] );
             }
         }
-        foreach ( [ "muckrack_icon_size" => [ 8, 64, 18 ], "publication_muckrack_font_size" => [ 8, 64, 14 ], "muckrack_icon_size_single_author" => [ 0, 64, 0 ], "muckrack_icon_size_single_footer" => [ 0, 64, 0 ], "muckrack_icon_size_loop_cards" => [ 0, 64, 0 ], "muckrack_icon_size_home" => [ 0, 64, 0 ], "muckrack_icon_size_author" => [ 0, 64, 0 ] ] as $key => $limits ) {
+        foreach ( [ "muckrack_icon_size" => [ 8, 64, 18 ], "publication_muckrack_font_size" => [ 8, 64, 14 ], "table_of_contents_text_font_size" => [ 8, 64, 15 ], "inline_photo_caption_font_size" => [ 8, 64, 16 ], "post_faqs_text_font_size" => [ 8, 64, 16 ], "muckrack_icon_size_single_author" => [ 0, 64, 0 ], "muckrack_icon_size_single_footer" => [ 0, 64, 0 ], "muckrack_icon_size_loop_cards" => [ 0, 64, 0 ], "muckrack_icon_size_home" => [ 0, 64, 0 ], "muckrack_icon_size_author" => [ 0, 64, 0 ] ] as $key => $limits ) {
             if ( isset( $_POST[ $key ] ) ) {
                 $value = absint( $_POST[ $key ] );
                 $changes[ $key ] = 0 === strpos( $key, "muckrack_icon_size_" ) && 0 === $value ? 0 : max( $limits[0], min( $limits[1], $value ?: $limits[2] ) );
             }
         }
-        foreach ( [ "table_of_contents_style", "inline_photo_treatment", "post_summary_style", "post_faqs_style" ] as $key ) {
+        foreach ( [ "table_of_contents_style", "inline_photo_treatment", "post_summary_style", "post_faqs_style", "table_of_contents_text_font_style", "inline_photo_caption_font_style", "post_faqs_text_font_style" ] as $key ) {
             if ( isset( $_POST[ $key ] ) ) {
                 $changes[ $key ] = sanitize_key( wp_unslash( $_POST[ $key ] ) );
             }
@@ -76,7 +76,7 @@ final class Ajax {
         if ( isset( $_POST['muckrack_icon_style'] ) ) {
             $changes['muckrack_icon_style'] = sanitize_key( wp_unslash( $_POST['muckrack_icon_style'] ) );
         }
-        foreach ( [ 'muckrack_icon_color', 'muckrack_icon_color_single_author', 'muckrack_icon_color_single_footer', 'muckrack_icon_color_loop_cards', 'muckrack_icon_color_home', 'muckrack_icon_color_author' ] as $color_key ) {
+        foreach ( [ 'muckrack_icon_color', 'muckrack_icon_color_single_author', 'muckrack_icon_color_single_footer', 'muckrack_icon_color_loop_cards', 'muckrack_icon_color_home', 'muckrack_icon_color_author', 'table_of_contents_accent_color', 'table_of_contents_text_color', 'inline_photo_accent_color', 'inline_photo_caption_text_color', 'post_faqs_accent_color', 'post_faqs_text_color' ] as $color_key ) {
             if ( isset( $_POST[ $color_key ] ) ) {
                 $raw = trim( (string) wp_unslash( $_POST[ $color_key ] ) );
                 $changes[ $color_key ] = '' === $raw ? '' : sanitize_hex_color( $raw );

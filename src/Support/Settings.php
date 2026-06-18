@@ -49,10 +49,22 @@ final class Settings {
             'table_of_contents_enabled' => false,
             'table_of_contents_auto_single' => false,
             "table_of_contents_style" => "toc02",
+            "table_of_contents_accent_color" => "#2563eb",
+            "table_of_contents_text_font_style" => "normal",
+            "table_of_contents_text_font_size" => 15,
+            "table_of_contents_text_color" => "#1f2937",
             "inline_photo_treatments_enabled" => false,
             "inline_photo_treatment" => "none",
+            "inline_photo_accent_color" => "#d63428",
+            "inline_photo_caption_font_style" => "italic",
+            "inline_photo_caption_font_size" => 16,
+            "inline_photo_caption_text_color" => "#272727",
             "post_summary_style" => "none",
             "post_faqs_style" => "none",
+            "post_faqs_accent_color" => "#2563eb",
+            "post_faqs_text_font_style" => "normal",
+            "post_faqs_text_font_size" => 16,
+            "post_faqs_text_color" => "#1f2937",
             'rank_math_breadcrumb_check_enabled' => true,
             'hws_masked_admin_report_enabled' => true,
             'system_publication_user_id' => 0,
@@ -94,13 +106,19 @@ final class Settings {
                 continue;
             }
 
-            if ( in_array( $key, [ "muckrack_icon_size", "publication_muckrack_font_size", "muckrack_icon_size_single_author", "muckrack_icon_size_single_footer", "muckrack_icon_size_loop_cards", "muckrack_icon_size_home", "muckrack_icon_size_author" ], true ) ) {
+            if ( in_array( $key, [ "muckrack_icon_size", "publication_muckrack_font_size", "table_of_contents_text_font_size", "inline_photo_caption_font_size", "post_faqs_text_font_size", "muckrack_icon_size_single_author", "muckrack_icon_size_single_footer", "muckrack_icon_size_loop_cards", "muckrack_icon_size_home", "muckrack_icon_size_author" ], true ) ) {
                 $value = absint( $value );
                 if ( 0 === strpos( $key, "muckrack_icon_size_" ) ) {
                     $settings[ $key ] = 0 === $value ? 0 : max( 8, min( 64, $value ) );
                     continue;
                 }
-                $default = "publication_muckrack_font_size" === $key ? 14 : 18;
+                $font_size_defaults = [
+                    "publication_muckrack_font_size" => 14,
+                    "table_of_contents_text_font_size" => 15,
+                    "inline_photo_caption_font_size" => 16,
+                    "post_faqs_text_font_size" => 16,
+                ];
+                $default = $font_size_defaults[ $key ] ?? 18;
                 $settings[ $key ] = max( 8, min( 64, $value ?: $default ) );
                 continue;
             }
@@ -110,6 +128,9 @@ final class Settings {
                 "inline_photo_treatment" => [ "none", "fig1", "fig2", "fig4", "fig5" ],
                 "post_summary_style" => [ "none", "sum00", "sum01", "sum02", "sum03", "sum04" ],
                 "post_faqs_style" => [ "none", "faq00", "faq01", "faq02", "faq03", "faq04" ],
+                "table_of_contents_text_font_style" => [ "normal", "italic" ],
+                "inline_photo_caption_font_style" => [ "normal", "italic" ],
+                "post_faqs_text_font_style" => [ "normal", "italic" ],
             ];
             if ( isset( $style_options[ $key ] ) ) {
                 $value = sanitize_key( (string) $value );
@@ -165,6 +186,20 @@ final class Settings {
             if ( 'publication_muckrack_color' === $key ) {
                 $color = sanitize_hex_color( (string) $value );
                 $settings[ $key ] = $color ?: '#2d5277';
+                continue;
+            }
+
+            if ( in_array( $key, [ "table_of_contents_accent_color", "table_of_contents_text_color", "inline_photo_accent_color", "inline_photo_caption_text_color", "post_faqs_accent_color", "post_faqs_text_color" ], true ) ) {
+                $color_defaults = [
+                    "table_of_contents_accent_color" => "#2563eb",
+                    "table_of_contents_text_color" => "#1f2937",
+                    "inline_photo_accent_color" => "#d63428",
+                    "inline_photo_caption_text_color" => "#272727",
+                    "post_faqs_accent_color" => "#2563eb",
+                    "post_faqs_text_color" => "#1f2937",
+                ];
+                $color = sanitize_hex_color( (string) $value );
+                $settings[ $key ] = $color ?: $color_defaults[ $key ];
                 continue;
             }
 
