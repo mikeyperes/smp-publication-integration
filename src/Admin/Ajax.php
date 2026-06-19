@@ -300,7 +300,8 @@ final class Ajax {
             $page_id = (int) $existing->ID;
         } else {
             $templates = Settings::default_page_templates();
-            $content = (string) ( $settings["page_templates"][ $type ] ?? $templates[ $type ] ?? "" );
+            $stored_template = isset( $settings["page_templates"][ $type ] ) ? trim( (string) $settings["page_templates"][ $type ] ) : "";
+            $content = "" !== $stored_template ? (string) $settings["page_templates"][ $type ] : (string) ( $templates[ $type ] ?? "" );
             $page_id = wp_insert_post(
                 [
                     "post_type" => "page",
@@ -368,7 +369,7 @@ final class Ajax {
         }
         $status = (string) $post->post_status;
         $status_obj = get_post_status_object( $status );
-        $permalink = get_permalink( $page_id );
+        $permalink = Settings::page_slug_url( $page_id );
         $edit_url = get_edit_post_link( $page_id, "raw" );
         return [
             "id" => $page_id,

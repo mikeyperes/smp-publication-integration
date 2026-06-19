@@ -174,12 +174,24 @@ final class Shortcodes {
         if ( ! $page_id ) {
             return "";
         }
-        if ( "content" === $atts["mode"] ) {
+        $mode = sanitize_key( (string) $atts["mode"] );
+        if ( "content" === $mode ) {
             $post = get_post( $page_id );
             return $post ? apply_filters( "the_content", $post->post_content ) : "";
         }
-        return sprintf( "<a href=\"%s\">%s</a>", esc_url( get_permalink( $page_id ) ), esc_html( get_the_title( $page_id ) ) );
+        if ( "id" === $mode ) {
+            return esc_html( (string) $page_id );
+        }
+        if ( "title" === $mode ) {
+            return esc_html( get_the_title( $page_id ) );
+        }
+        $url = Settings::page_slug_url( $page_id );
+        if ( "url" === $mode ) {
+            return esc_url( $url );
+        }
+        return sprintf( "<a href=\"%s\">%s</a>", esc_url( $url ), esc_html( get_the_title( $page_id ) ) );
     }
+
 
     public function render_debug_url(): string {
         return esc_url( rest_url( "smpi/v1/debug" ) );

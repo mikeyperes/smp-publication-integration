@@ -546,6 +546,49 @@ final class Dashboard {
         return $html . "</tbody></table></div>";
     }
 
+    private function pages_shortcode_reference_html(): string {
+        $settings = Settings::all();
+        $variables = [
+            [ "Publication name", "[smp_publication_field field=legal_name format=text]", get_bloginfo( "name" ) ],
+            [ "Publication URL", "[smp_publication_field field=website format=text]", home_url( "/" ) ],
+            [ "Mission statement", "[smp_publication_field field=mission_statement format=text]", "" ],
+            [ "Publication summary", "[smp_publication_field field=summary format=text]", "" ],
+            [ "Public contact email", "[smp_publication_field field=contact_email format=text]", "" ],
+            [ "Debug JSON URL", "[smp_publication_debug_url]", rest_url( "smpi/v1/debug" ) ],
+        ];
+
+        ob_start();
+        ?>
+        <div class="smpi-panel smpi-shortcode-reference smpi-pages-shortcodes">
+            <h2>Page and publication shortcodes</h2>
+            <p>Use these in starter pages so publication names, URLs, policy links, and profile values stay dynamic.</p>
+            <h3>Publication variables</h3>
+            <table class="widefat striped"><thead><tr><th>Use</th><th>Shortcode</th><th>Current value</th></tr></thead><tbody>
+            <?php foreach ( $variables as $row ) :
+                $value = self::shortcode_value_html( (string) $row[1] );
+                if ( false !== strpos( $value, "smpi-muted" ) && "" !== (string) $row[2] ) {
+                    $value = "<code>" . esc_html( (string) $row[2] ) . "</code>";
+                }
+            ?>
+                <tr><td><?php echo esc_html( (string) $row[0] ); ?></td><td><code><?php echo esc_html( (string) $row[1] ); ?></code></td><td><?php echo $value; ?></td></tr>
+            <?php endforeach; ?>
+            </tbody></table>
+            <h3>Assigned page links</h3>
+            <table class="widefat striped"><thead><tr><th>Page requirement</th><th>URL shortcode</th><th>Link shortcode</th><th>Current page URL</th></tr></thead><tbody>
+            <?php foreach ( Settings::page_types() as $type => $config ) :
+                $page_id = isset( $settings["page_assignments"][ $type ] ) ? absint( $settings["page_assignments"][ $type ] ) : 0;
+                $url = $page_id ? Settings::page_slug_url( $page_id ) : "";
+                $url_code = "[smp_publication_page type=" . $type . " mode=url]";
+                $link_code = "[smp_publication_page type=" . $type . " mode=link]";
+            ?>
+                <tr><td><?php echo esc_html( (string) $config["label"] ); ?></td><td><code><?php echo esc_html( $url_code ); ?></code></td><td><code><?php echo esc_html( $link_code ); ?></code></td><td><?php echo $url ? "<a href=\"" . esc_url( $url ) . "\" target=\"_blank\" rel=\"noopener noreferrer\">" . esc_html( $url ) . "</a>" : "<span class=\"smpi-muted\">Not assigned</span>"; ?></td></tr>
+            <?php endforeach; ?>
+            </tbody></table>
+        </div>
+        <?php
+        return (string) ob_get_clean();
+    }
+
     private function post_acf_shortcode_reference_html(): string {
         $rows = [
             [ "Post Summary", "post_summary", "[smp_post_summary]", "[smp_post_acf field=post_summary] [smp_post_summary post_id=123 format=text]" ],
@@ -1134,35 +1177,29 @@ final class Dashboard {
 
     private function pages(): void {
         $settings = Settings::all();
-        $pages = get_pages( [ 'sort_column' => 'post_title', 'sort_order' => 'ASC', 'post_status' => [ 'publish', 'draft', 'private' ] ] );
-        echo '<div class="smpi-panel"><h2>Publication Pages</h2><p>Assign canonical pages for dynamic retrieval and launch integrity checks.</p></div>';
+        $default_templates = Settings::default_page_templates();
+        $pages = get_pages( [ "sort_column" => "post_title", "sort_order" => "ASC", "post_status" => [ "publish", "draft", "private" ] ] );
+        echo "<div class=\"smpi-panel\"><h2>Publication Pages</h2><p>Assign canonical pages for dynamic retrieval and launch integrity checks.</p></div>";
+        echo $this->pages_shortcode_reference_html();
         foreach ( Settings::page_types() as $type => $config ) {
-            $page_id = isset( $settings['page_assignments'][ $type ] ) ? (int) $settings['page_assignments'][ $type ] : 0;
-            echo '<div class="smpi-panel smpi-page-row" data-page-type="' . esc_attr( $type ) . '"><h2>' . ( $page_id ? '<span class="smpi-ok">●</span> ' : '<span class="smpi-bad">●</span> ' ) . esc_html( $config['label'] ) . '</h2><p>' . esc_html( $config['description'] ) . '</p><select class="smpi-page-select"><option value="0">Not assigned</option>';
+            $page_id = isset( $settings["page_assignments"][ $type ] ) ? (int) $settings["page_assignments"][ $type ] : 0;
+            $status_dot = $page_id ? "<span class=\"smpi-ok\">●</span> " : "<span class=\"smpi-bad\">●</span> ";
+            echo "<div class=\"smpi-panel smpi-page-row\" data-page-type=\"" . esc_attr( $type ) . "\"><h2>" . $status_dot . esc_html( (string) $config["label"] ) . "</h2><p>" . esc_html( (string) $config["description"] ) . "</p><select class=\"smpi-page-select\"><option value=\"0\">Not assigned</option>";
             foreach ( $pages as $page ) {
-                echo '<option value="' . esc_attr( (string) $page->ID ) . '"' . selected( $page_id, $page->ID, false ) . '>' . esc_html( $page->post_title . ' (#' . $page->ID . ')' ) . '</option>';
+                echo "<option value=\"" . esc_attr( (string) $page->ID ) . "\"" . selected( $page_id, $page->ID, false ) . ">" . esc_html( $page->post_title . " (#" . $page->ID . ")" ) . "</option>";
             }
-            echo '</select><div class="smpi-page-detail-wrap" aria-live="polite">' . ( $page_id ? self::page_detail_html( $page_id ) : '' ) . '</div>';
-            if ( ! empty( $config['template'] ) ) {
-                $editor_id = 'smpi_page_template_' . sanitize_key( $type );
-                echo '<p><label><strong>Starter/template text</strong></label></p><div class="smpi-page-template-editor" data-editor-id="' . esc_attr( $editor_id ) . '">';
-                wp_editor(
-                    (string) ( $settings['page_templates'][ $type ] ?? '' ),
-                    $editor_id,
-                    [
-                        'textarea_name' => $editor_id,
-                        'textarea_rows' => 8,
-                        'media_buttons' => true,
-                        'teeny'         => false,
-                        'quicktags'     => true,
-                        'tinymce'       => true,
-                    ]
-                );
-                echo '</div>';
+            echo "</select><div class=\"smpi-page-detail-wrap\" aria-live=\"polite\">" . ( $page_id ? self::page_detail_html( $page_id ) : "" ) . "</div>";
+            if ( ! empty( $config["template"] ) ) {
+                $editor_id = "smpi_page_template_" . sanitize_key( $type );
+                $template_value = ( isset( $settings["page_templates"][ $type ] ) && "" !== trim( (string) $settings["page_templates"][ $type ] ) ) ? (string) $settings["page_templates"][ $type ] : (string) ( $default_templates[ $type ] ?? "" );
+                echo "<p><label><strong>Starter/template text</strong></label></p><div class=\"smpi-page-template-editor\" data-editor-id=\"" . esc_attr( $editor_id ) . "\">";
+                wp_editor( $template_value, $editor_id, [ "textarea_name" => $editor_id, "textarea_rows" => 8, "media_buttons" => true, "teeny" => false, "quicktags" => true, "tinymce" => true ] );
+                echo "</div>";
             }
             echo "<p><button class=\"button button-primary smpi-save-page\" type=\"button\">Save Page Assignment</button> <button class=\"button smpi-create-page\" type=\"button\">Create New Page</button><span class=\"spinner\"></span><span class=\"smpi-save-state\"></span></p></div>";
         }
     }
+
 
 
     public static function page_detail_html( int $page_id ): string {
@@ -1174,7 +1211,7 @@ final class Dashboard {
         $status = (string) $post->post_status;
         $status_obj = get_post_status_object( $status );
         $status_label = $status_obj ? (string) $status_obj->label : ucfirst( $status );
-        $permalink = (string) get_permalink( $page_id );
+        $permalink = (string) Settings::page_slug_url( $page_id );
         $edit_url = (string) get_edit_post_link( $page_id, "raw" );
         $date = get_the_date( "M j, Y g:i a", $page_id );
         $modified = get_the_modified_date( "M j, Y g:i a", $page_id );

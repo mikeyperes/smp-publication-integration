@@ -7,7 +7,7 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.6.8`
+- Version: `0.6.21`
 
 ## Structure
 
