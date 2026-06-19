@@ -81,7 +81,7 @@ WordPress plugin for Scale My Publication publication profiles.
 
 - Tightened MuckRack Elementor injection so publication below-author placement ignores lower author bio/profile and related-article author links after the post content.
 - Removed author-footer verification from the default MuckRack author placement contexts so publication footer verification does not stack with an author footer block by default.
-- Added the inline photo treatment, caption, Post Summary style, and Post FAQ style work item to the Pending Work Queue.
+- Added the inline photo treatment, caption, Post Summary style, and Post FAQ style work item to the Implementation Queue.
 
 ## 0.5.8 Updates
 
@@ -104,7 +104,7 @@ WordPress plugin for Scale My Publication publication profiles.
 ## 0.5.1 Updates
 
 - Added AJAX-loaded admin settings tabs so switching SMP tabs swaps server-rendered tab content without a full WordPress page reload.
-- Added the Shortcodes tab dynamic user selector/request to the Pending Work Queue.
+- Added the Shortcodes tab dynamic user selector/request to the Implementation Queue.
 
 ## 0.5.0 Updates
 
@@ -143,6 +143,6 @@ WordPress plugin for Scale My Publication publication profiles.
 - Expanded author shortcode coverage to include author_title, author_subtitle, author_linkedin, author_website, author_crunchbase, author_email, and the author_muck_rack alias.
 - External provider shortcodes are now flagged as external instead of executed inside the SMP debugger.
 
-## Pending Work Queue
+## Implementation Queue
 
 - No active README-tracked implementation queue remains. Optimization settings rerooting is intentionally parked in the UI until target values are supplied.

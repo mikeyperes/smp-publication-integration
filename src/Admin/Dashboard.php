@@ -1106,7 +1106,7 @@ final class Dashboard {
     }
 
     private function optimization(): void {
-        echo '<div class="smpi-panel"><h2>Optimization</h2><p>Settings rerooting is intentionally pending until target values are supplied. LiteSpeed checks report current concrete values.</p><button id="smpi-refresh-optimization" class="button button-primary" type="button">Refresh Optimization Report</button><span class="spinner"></span></div><div id="smpi-optimization-report">' . self::render_optimization_report_html() . '</div>';
+        echo '<div class="smpi-panel"><h2>Optimization</h2><p>Settings rerooting is intentionally parked until target values are supplied. LiteSpeed checks report current concrete values.</p><button id="smpi-refresh-optimization" class="button button-primary" type="button">Refresh Optimization Report</button><span class="spinner"></span></div><div id="smpi-optimization-report">' . self::render_optimization_report_html() . '</div>';
     }
 
     public static function render_optimization_report_html(): string {
