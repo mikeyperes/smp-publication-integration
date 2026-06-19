@@ -136,23 +136,13 @@ WordPress plugin for Scale My Publication publication profiles.
 - Added opt-in post ACF add-ons for Post Summary and Post FAQs with independent AJAX feature toggles.
 - Registers the supplied Post - Header ACF group on post and imported-news only when at least one add-on toggle is enabled.
 
-## Pending Work Queue
-- Feature: inline photo styles for posts and `press-release` CPTs. Import visual treatments 1, 2, 4, and 5 from `https://herforward.com/inline-redesign/`, use MashViral caption styling from `https://mashviral.com/article-styles/`, provide visual selectable previews, and include a `No style` option.
-- Feature: Post Summary and Post FAQs style pickers. Import the Summary and FAQ designs from `https://mashviral.com/article-styles/`, show visual previews below the ACF add-on controls, allow click-to-apply selection, and include a `No style` option for each.
-- Shortcodes tab: add a dynamic user selector that loads one row per shortcode/field with the selected user, the exact shortcode, and the rendered shortcode value for that user.
-- Shortcodes tab: scan and flag external shortcode providers. Import or list Verified Profiles discovered/provider shortcodes from `smp_vp_discover_shortcodes()` / `get_verified_profile_shortcodes()` when `smp-verified-profiles` is active, and flag HWS Base Tools shortcodes such as `[founder id="url_facebook"]` / `[company id="subtitle"]` as generated outside SMP. Clearly separate profile CPT shortcodes like `[get_profile_field field="title"]` from user.php author shortcodes.
-- Shortcodes tab: add complete author.php/user-author shortcode coverage. Include missing user-field shortcodes such as `[author_title]`, `[author_subtitle]`, `[author_linkedin]`, `[author_website]`, `[author_crunchbase]`, `[author_muckrack]` aliases including `muck_rack_url`, and any URL/social/additional fields shown on the WordPress user edit screen; show each shortcode with the current value for the selected user and the ACF/meta source.
-- Features tab / MuckRack verified authors: re-check narrower responsive widths after the full-width report fix and clean up any remaining status-label wrapping if it appears.
+## 0.6.19 Updates
 
-- Dependency UX: in the Founder Profiles options area, detect whether SMP Verified Profiles is active, whether the `profile` CPT is registered by `register_profile_custom_post_type`, and whether the Verified Profiles ACF/profile field structures are enabled. Show a clear disclaimer with status rows and direct links to the Verified Profiles Snippets tab to activate missing pieces.
-- Admin tab: add a `Brand` tab that reads HWS Base Tools brand assets/highlight colors for display and includes an edit link to `options-general.php?page=hws-core-tools&tab=brand-assets`.
-- Integrations tab: expand plugin reporting with plugin name, expected slug, GitHub URL, installed status, active status, local version, repository version, update state, and AJAX refresh per plugin.
-- Integrations tab: add AJAX download/install/activate flow for missing plugins with a real-time task-specific activity log.
-- Integrations tab: revise plugin action buttons so impossible actions are hidden or disabled based on plugin state. Missing plugins must not show Update, Activate, Deactivate, or Delete; show Download/Install only when a GitHub repo/package is available. Installed inactive plugins should show Activate/Delete and Update only when a version comparison exists. Active plugins should show Deactivate and Update only when a real update exists; Delete should be guarded or hidden for active/required dependencies. Every action should refresh the row via AJAX and write to a task-specific activity log.
-- Features tab: add one-row visual design selectors for Table of Contents, inline photo treatments, Post Summary/article summary, and Post FAQ blocks for single.php. Each selector must show the actual rendered design inside the selectable row, include a No style option, and avoid duplicate Visual examples sections. Import inline photo treatments 1, 2, 4, and 5 from https://herforward.com/inline-redesign/ and caption/Summary/FAQ styles from https://mashviral.com/article-styles/.
-- Integrations tab plugin list: `mikeyperes/hexa-pr-wire-distributor`, `mikeyperes/smp-publication-integration`, `mikeyperes/smp-core-podcast-integration`, `mikeyperes/smp-verified-profiles`, `mikeyperes/smp-contributor-network`, and `mikeyperes/sfpf-person-profile-integration`.
-- MuckRack verified authors: add an icon color picker.
-- MuckRack verified authors: add an icon style chooser with visual selectable previews for `circle with check inside` and `plain check`.
-- MuckRack verified authors: replace the native style dropdown with a UI that shows what `Tooltip icon` and `Inline text` look like before selection.
-- Feature: table of contents for single posts; add a setting toggle named display table of contents in the single page, add a shortcode for the Elementor/widget area above single.php content, and make the toggle activate that shortcode output.
-- Feature: highlight text override with enable/disable toggle, highlight background color, and highlight text color. When enabled, output cross-browser selection CSS for `::selection` and `::-moz-selection` so the site highlight colors override theme defaults.
+- Completed the Pages tab create/select flow: Create New Page now creates or reuses a WordPress page, assigns it immediately, displays ID/status/author/created/modified/permalink, and supports inline slug updates over AJAX.
+- Completed the Shortcodes tab debugger: select a WordPress author by name, username, or email and refresh shortcode rows over AJAX with provider, source, exact shortcode, and rendered value.
+- Expanded author shortcode coverage to include author_title, author_subtitle, author_linkedin, author_website, author_crunchbase, author_email, and the author_muck_rack alias.
+- External provider shortcodes are now flagged as external instead of executed inside the SMP debugger.
+
+## Pending Work Queue
+
+- No active README-tracked implementation queue remains. Optimization settings rerooting is intentionally parked in the UI until target values are supplied.

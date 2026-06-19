@@ -362,26 +362,150 @@ final class Dashboard {
         echo "</tbody></table></div>";
     }
 
+
     private function shortcodes(): void {
-        $publication_sample = 0;
-        $post_sample = $this->latest_post_id();
-        echo "<div class=\"smpi-panel\"><h2>Shortcodes</h2><p>Author shortcodes resolve the current post author inside single.php loops. Pass post_id or user_id when debugging outside the loop.</p><table class=\"widefat striped\"><thead><tr><th>Group</th><th>Shortcode</th><th>Current Value</th></tr></thead><tbody>";
-        foreach ( Shortcodes::shortcodes() as $tag => $callback ) {
-            $code = "[" . $tag . ( $publication_sample ? " id=\"" . $publication_sample . "\"" : "" ) . "]";
-            echo "<tr><td>Publication</td><td><code>" . esc_html( $code ) . "</code></td><td><code>" . esc_html( wp_trim_words( wp_strip_all_tags( do_shortcode( $code ) ), 18 ) ) . "</code></td></tr>";
-        }
-        foreach ( AuthorShortcodes::shortcodes() as $tag => $callback ) {
-            $code = "[" . $tag . ( $post_sample ? " post_id=\"" . $post_sample . "\"" : "" );
-            if ( "author_image" === $tag ) {
-                $code .= " size=\"thumbnail\"";
-            }
-            $code .= "]";
-            $value_code = "author_image" === $tag ? str_replace( "]", " output=\"url\"]", $code ) : $code;
-            echo "<tr><td>Single.php author</td><td><code>" . esc_html( $code ) . "</code></td><td><code>" . esc_html( wp_trim_words( wp_strip_all_tags( do_shortcode( $value_code ) ), 18 ) ) . "</code></td></tr>";
-        }
-        echo "<tr><td>Publication</td><td><code>[smp_publication_page type=privacy]</code></td><td>Assigned page link.</td></tr></tbody></table></div>";
+        $user_id = $this->default_shortcode_user_id();
+        ?>
+        <div class="smpi-panel smpi-shortcode-debugger">
+            <h2>Shortcodes</h2>
+            <p>Select a WordPress author to debug author.php and single.php shortcode output. Rows show the provider, source fields, exact shortcode, and rendered value.</p>
+            <div class="smpi-user-picker smpi-shortcode-user-picker" data-selected-user="<?php echo esc_attr( (string) $user_id ); ?>">
+                <label><strong>Select author</strong></label>
+                <p class="smpi-muted">Search by name, username, or email. The shortcode table refreshes without a page reload.</p>
+                <input type="search" class="regular-text smpi-shortcode-user-search" placeholder="Name, username, or email" autocomplete="off">
+                <span class="spinner"></span><span class="smpi-save-state"></span>
+                <div class="smpi-shortcode-user-results smpi-user-results" aria-live="polite"></div>
+            </div>
+            <div id="smpi-shortcode-selected-user"><?php echo self::shortcode_selected_user_html( $user_id ); ?></div>
+            <div id="smpi-shortcode-user-values"><?php echo self::shortcode_user_values_html( $user_id ); ?></div>
+        </div>
+        <?php
         echo $this->publication_acf_shortcode_reference_html();
         echo $this->post_acf_shortcode_reference_html();
+    }
+
+    private function default_shortcode_user_id(): int {
+        $configured = absint( Settings::get( "system_publication_user_id", 0 ) );
+        if ( $configured && get_user_by( "id", $configured ) ) {
+            return $configured;
+        }
+        $users = get_users( [ "number" => 1, "orderby" => "post_count", "order" => "DESC", "who" => "authors", "fields" => [ "ID" ] ] );
+        return ! empty( $users[0]->ID ) ? (int) $users[0]->ID : 0;
+    }
+
+    public static function shortcode_selected_user_html( int $user_id ): string {
+        $user = $user_id ? get_user_by( "id", $user_id ) : false;
+        if ( ! $user ) {
+            return "<div class=\"smpi-empty-state\"><strong>No author selected.</strong><p>Search above to load shortcode values for a WordPress author.</p></div>";
+        }
+        $avatar = get_avatar_url( $user_id, [ "size" => 96 ] );
+        $edit = get_edit_user_link( $user_id );
+        $view = get_author_posts_url( $user_id );
+        ob_start();
+        ?>
+        <div class="smpi-profile-card smpi-shortcode-selected-user">
+            <div class="smpi-profile-avatar"><img src="<?php echo esc_url( $avatar ); ?>" alt=""></div>
+            <div class="smpi-profile-info">
+                <h3><?php echo esc_html( $user->display_name ); ?> <code>#<?php echo esc_html( (string) $user_id ); ?></code></h3>
+                <p><span class="dashicons dashicons-email"></span> <?php echo esc_html( $user->user_email ); ?></p>
+                <p><a class="button button-secondary" target="_blank" rel="noopener noreferrer" href="<?php echo esc_url( $edit ); ?>">Edit User</a> <a class="button button-secondary" target="_blank" rel="noopener noreferrer" href="<?php echo esc_url( $view ); ?>">View Author Page</a></p>
+            </div>
+        </div>
+        <?php
+        return (string) ob_get_clean();
+    }
+
+    public static function shortcode_user_values_html( int $user_id ): string {
+        if ( $user_id <= 0 || ! get_user_by( "id", $user_id ) ) {
+            return "<div class=\"smpi-empty-state\"><strong>No shortcode values loaded.</strong><p>Select an author to render shortcode output.</p></div>";
+        }
+        $rows = self::shortcode_user_rows( $user_id );
+        ob_start();
+        ?>
+        <table class="widefat striped smpi-shortcode-debug-table">
+            <thead><tr><th>Group</th><th>Provider</th><th>Source</th><th>Shortcode</th><th>Rendered value</th></tr></thead>
+            <tbody>
+            <?php foreach ( $rows as $row ) : ?>
+                <tr>
+                    <td><?php echo esc_html( $row["group"] ); ?></td>
+                    <td><?php echo esc_html( $row["provider"] ); ?></td>
+                    <td><code><?php echo esc_html( $row["source"] ); ?></code></td>
+                    <td><code><?php echo esc_html( $row["shortcode"] ); ?></code></td>
+                    <td><?php echo $row["value"]; ?></td>
+                </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table>
+        <?php
+        return (string) ob_get_clean();
+    }
+
+    private static function shortcode_user_rows( int $user_id ): array {
+        $rows = [];
+        foreach ( Shortcodes::shortcodes() as $tag => $callback ) {
+            if ( 0 === strpos( $tag, "smp_post_" ) ) { continue; }
+            $code = "[" . $tag . "]";
+            $rows[] = [ "group" => "Publication/global", "provider" => "SMP Publication Integration", "source" => self::publication_shortcode_source( (string) $tag ), "shortcode" => $code, "value" => self::shortcode_value_html( $code ) ];
+        }
+        $aliases = AuthorShortcodes::field_aliases();
+        foreach ( AuthorShortcodes::shortcodes() as $tag => $callback ) {
+            $code = "[" . $tag . " user_id=\"" . $user_id . "\"";
+            if ( "author_image" === $tag ) { $code .= " size=\"thumbnail\" output=\"url\""; }
+            if ( "author_muckrack_verified" === $tag ) { $code .= " type=\"icon\" context=\"single_author\""; }
+            $code .= "]";
+            $rows[] = [ "group" => "Author/user.php", "provider" => "SMP Publication Integration", "source" => self::author_shortcode_source( (string) $tag, $aliases ), "shortcode" => $code, "value" => self::shortcode_value_html( $code ) ];
+        }
+        $legacy = [ "[acf_author_field field=\"muckrack_url\" user_id=\"" . $user_id . "\"]", "[muckrack_verified user_id=\"" . $user_id . "\" type=\"icon\"]", "[muckrack_verified user_id=\"" . $user_id . "\" type=\"text\"]" ];
+        foreach ( $legacy as $code ) {
+            $rows[] = [ "group" => "Compatibility", "provider" => "SMP MuckRack compatibility", "source" => "ACF/user fields: muckrack_verified, muckrack_url, what_best_describe_you", "shortcode" => $code, "value" => self::shortcode_value_html( $code ) ];
+        }
+        return array_merge( $rows, self::external_shortcode_rows( $user_id ) );
+    }
+
+    private static function publication_shortcode_source( string $tag ): string {
+        $map = [ "smp_publication_field" => "Publication option ACF field parameter", "smp_publication_mission_statement" => "mission_statement publication option", "smp_publication_founders" => "smpi_founder_profiles option / profile CPT", "smp_publication_user" => "system_publication_user_id setting", "smp_publication_profile" => "publication options and mapped user", "smp_publication_validate_schema" => "schema integrity report", "smp_publication_page" => "page_assignments option", "smp_publication_debug_url" => "public debug endpoint setting" ];
+        return $map[ $tag ] ?? "SMP publication option";
+    }
+
+    private static function author_shortcode_source( string $tag, array $aliases ): string {
+        $key = str_replace( "author_", "", $tag );
+        if ( "muck_rack" === $key ) { $key = "muckrack"; }
+        if ( "muckrack_verified" === $key ) { return "ACF/user fields: muckrack_verified, muckrack_url, what_best_describe_you"; }
+        return isset( $aliases[ $key ] ) ? "ACF/user meta aliases: " . implode( ", ", $aliases[ $key ] ) : "WordPress user meta";
+    }
+
+    private static function external_shortcode_rows( int $user_id ): array {
+        $rows = [];
+        $external = [ [ "HWS Base Tools", "[founder id=\"url_facebook\"]", "External founder/company shortcode provider" ], [ "HWS Base Tools", "[company id=\"subtitle\"]", "External founder/company shortcode provider" ], [ "SMP Verified Profiles", "[get_profile_field field=\"title\"]", "External profile CPT shortcode provider" ] ];
+        foreach ( $external as $row ) {
+            $rows[] = [ "group" => "External provider", "provider" => $row[0], "source" => $row[2], "shortcode" => $row[1], "value" => "<span class=\"smpi-muted\">External provider shortcode. SMP lists it but does not execute it in this debugger.</span>" ];
+        }
+        $providers = [];
+        if ( function_exists( "smp_vp_discover_shortcodes" ) ) { $providers[] = smp_vp_discover_shortcodes(); }
+        $fn = "smp_verified_profiles\get_verified_profile_shortcodes";
+        if ( function_exists( $fn ) ) { $providers[] = $fn(); }
+        foreach ( $providers as $provider_rows ) {
+            if ( ! is_array( $provider_rows ) ) { continue; }
+            foreach ( $provider_rows as $key => $value ) {
+                $tag = is_string( $key ) ? $key : ( is_string( $value ) ? $value : "" );
+                if ( "" === $tag ) { continue; }
+                $code = 0 === strpos( $tag, "[" ) ? $tag : "[" . trim( $tag ) . "]";
+                $rows[] = [ "group" => "External provider", "provider" => "SMP Verified Profiles", "source" => "Discovered provider shortcode", "shortcode" => $code, "value" => "<span class=\"smpi-muted\">External provider shortcode. SMP lists it but does not execute it in this debugger.</span>" ];
+            }
+        }
+        return $rows;
+    }
+
+    private static function shortcode_value_html( string $code ): string {
+        $value = do_shortcode( $code );
+        if ( $value === $code ) {
+            return "<span class=\"smpi-muted\">Provider not active or shortcode not registered here.</span>";
+        }
+        $text = trim( wp_strip_all_tags( (string) $value ) );
+        if ( "" === $text ) {
+            return "<span class=\"smpi-muted\">Empty</span>";
+        }
+        return "<code>" . esc_html( wp_trim_words( $text, 22 ) ) . "</code>";
     }
 
     private function publication_acf_shortcode_reference_html(): string {
@@ -1231,6 +1355,11 @@ final class Dashboard {
             $(document).on(`click`,`.smpi-change-user`,function(){var picker=$(this).closest(`.smpi-user-picker`);picker.removeClass(`is-locked`);picker.find(`.smpi-user-results`).empty();picker.find(`.smpi-user-search`).val(``).trigger(`focus`)});
             $(document).on(`click`,`.smpi-cancel-user`,function(){var picker=$(this).closest(`.smpi-user-picker`);if(parseInt(picker.find(`.smpi-publication-user-setting`).val(),10)>0){picker.addClass(`is-locked`)}picker.find(`.smpi-user-results`).empty()});
             $(document).on(`click`,`.smpi-clear-user`,function(){var picker=$(this).closest(`.smpi-user-picker`);picker.find(`.smpi-user-search`).val(``);picker.find(`.smpi-publication-user-setting`).val(0);picker.find(`.smpi-user-results`).empty();picker.removeClass(`is-locked`);picker.find(`.smpi-current-user-summary`).html(`<div class="smpi-empty-state"><strong>No main publication profile selected.</strong><p>Search by publication name, username, or email and choose the profile that represents this publication.</p></div>`);saveSetting(picker.find(`.smpi-publication-user-setting`))});
+            var shortcodeUserTimer=null;
+            function smpiLoadShortcodeUser(wrap,u){wrap.attr(`data-selected-user`,u.id);wrap.find(`.smpi-save-state`).text(`Loading...`);wrap.find(`.spinner`).addClass(`is-active`);$.post(smpiAdmin.ajaxUrl,{action:`smpi_shortcode_user_preview`,nonce:smpiAdmin.nonce,user_id:u.id}).done(function(x){if(x&&x.success){$(`#smpi-shortcode-selected-user`).html(x.data.user||``);$(`#smpi-shortcode-user-values`).html(x.data.html||``);wrap.find(`.smpi-save-state`).text(`Loaded `+u.label)}else{wrap.find(`.smpi-save-state`).text(`Error`)}}).fail(function(){wrap.find(`.smpi-save-state`).text(`Error`)}).always(function(){wrap.find(`.spinner`).removeClass(`is-active`)})}
+            $(document).on(`input` ,`.smpi-shortcode-user-search`,function(){var input=$(this),wrap=input.closest(`.smpi-shortcode-user-picker`),box=wrap.find(`.smpi-shortcode-user-results`),term=input.val();clearTimeout(shortcodeUserTimer);if(term.length<2){box.empty();return}shortcodeUserTimer=setTimeout(function(){wrap.find(`.spinner`).addClass(`is-active`);$.post(smpiAdmin.ajaxUrl,{action:`smpi_search_users`,nonce:smpiAdmin.nonce,term:term}).done(function(x){box.empty();if(!x.success||!x.data.users.length){box.html(`<p class="smpi-muted">No matching users.</p>`);return}$.each(x.data.users,function(i,u){var b=$(`<button type="button" class="button smpi-shortcode-user-result"></button>`).html(`<strong>`+u.label+`</strong> <span class="smpi-muted">`+u.email+`</span>`).data(`user`,u);box.append(b)})}).always(function(){wrap.find(`.spinner`).removeClass(`is-active`)})},250)});
+            $(document).on(`click` ,`.smpi-shortcode-user-result`,function(){var u=$(this).data(`user`),wrap=$(this).closest(`.smpi-shortcode-user-picker`);wrap.find(`.smpi-shortcode-user-results`).empty();wrap.find(`.smpi-shortcode-user-search`).val(u.name||u.label);smpiLoadShortcodeUser(wrap,u)});
+
             function founderIds(panel){return panel.find(`.smpi-founder-profile-card`).map(function(){return $(this).data(`profile-id`)}).get()}
             function founderEmptyHtml(){return `<div class="smpi-empty-state smpi-empty-founder-profiles"><strong>No founder profiles selected.</strong><p>Use the search above to add founder records from Verified Profiles.</p></div>`}
             function profileCard(p){var media=p.thumbnail?`<img src="${p.thumbnail}" alt="">`:`<span class="dashicons dashicons-id-alt"></span>`;return `<div class="smpi-founder-profile-card" data-profile-id="${p.id}"><div class="smpi-founder-thumb">${media}</div><div class="smpi-founder-info"><strong>${p.label}</strong><p class="smpi-muted">Profile #${p.id}</p><p><a class="button button-secondary" target="_blank" rel="noopener noreferrer" href="${p.edit_url}">Edit Profile</a> <a class="button button-secondary" target="_blank" rel="noopener noreferrer" href="${p.view_url}">View Profile</a> <button type="button" class="button smpi-remove-founder-profile">Remove</button></p></div></div>`}

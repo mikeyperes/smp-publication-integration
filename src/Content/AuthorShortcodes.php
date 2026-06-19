@@ -9,11 +9,17 @@ final class AuthorShortcodes {
     private const FIELD_ALIASES = [
         "bio_short" => [ "author_bio_short", "bio_short", "short_bio", "user_short_bio", "description_short", "what_best_describe_you" ],
         "bio" => [ "author_bio", "bio", "biography", "description", "user_description" ],
-        "facebook" => [ "author_facebook", "facebook", "facebook_url", "profile_facebook", "social_facebook" ],
-        "instagram" => [ "author_instagram", "instagram", "instagram_url", "profile_instagram", "social_instagram" ],
-        "x" => [ "author_x", "x", "x_url", "twitter", "twitter_url", "profile_twitter", "social_twitter" ],
-        "youtube" => [ "author_youtube", "youtube", "youtube_url", "profile_youtube", "social_youtube" ],
-        "muckrack" => [ "author_muckrack", "muckrack", "muckrack_url", "muckrack_profile" ],
+        "title" => [ "author_title", "title", "role", "job_title", "position", "profession", "what_best_describe_you" ],
+        "subtitle" => [ "author_subtitle", "subtitle", "tagline", "short_title", "headline" ],
+        "facebook" => [ "author_facebook", "facebook", "facebook_url", "profile_facebook", "social_facebook", "url_facebook" ],
+        "instagram" => [ "author_instagram", "instagram", "instagram_url", "profile_instagram", "social_instagram", "url_instagram" ],
+        "x" => [ "author_x", "x", "x_url", "twitter", "twitter_url", "profile_twitter", "social_twitter", "url_x", "url_twitter" ],
+        "linkedin" => [ "author_linkedin", "linkedin", "linkedin_url", "profile_linkedin", "social_linkedin", "url_linkedin" ],
+        "youtube" => [ "author_youtube", "youtube", "youtube_url", "profile_youtube", "social_youtube", "url_youtube" ],
+        "website" => [ "author_website", "website", "website_url", "user_url", "url", "url_website" ],
+        "crunchbase" => [ "author_crunchbase", "crunchbase", "crunchbase_url", "url_crunchbase" ],
+        "muckrack" => [ "author_muckrack", "author_muck_rack", "muckrack", "muckrack_url", "muck_rack_url", "muckrack_profile" ],
+        "email" => [ "author_email", "email", "user_email" ],
         "image" => [ "author_image", "profile_photo", "profile_image", "headshot", "photo", "avatar" ],
     ];
 
@@ -39,11 +45,18 @@ final class AuthorShortcodes {
         return [
             "author_bio_short" => "render_bio_short",
             "author_bio" => "render_bio",
+            "author_title" => "render_title",
+            "author_subtitle" => "render_subtitle",
             "author_facebook" => "render_facebook",
             "author_instagram" => "render_instagram",
             "author_x" => "render_x",
+            "author_linkedin" => "render_linkedin",
             "author_youtube" => "render_youtube",
+            "author_website" => "render_website",
+            "author_crunchbase" => "render_crunchbase",
             "author_muckrack" => "render_muckrack",
+            "author_muck_rack" => "render_muckrack",
+            "author_email" => "render_email",
             "author_muckrack_verified" => "render_muckrack_verified",
             "author_image" => "render_image",
         ];
@@ -78,6 +91,18 @@ final class AuthorShortcodes {
         return "<div class=\"smpi-author-bio\">" . wp_kses_post( wpautop( $value ) ) . "</div>";
     }
 
+    public static function field_aliases(): array {
+        return self::FIELD_ALIASES;
+    }
+
+    public function render_title( array $atts = [] ): string {
+        return $this->render_author_text( "title", $atts );
+    }
+
+    public function render_subtitle( array $atts = [] ): string {
+        return $this->render_author_text( "subtitle", $atts );
+    }
+
     public function render_facebook( array $atts = [] ): string {
         return $this->render_social_url( "facebook", $atts );
     }
@@ -90,12 +115,28 @@ final class AuthorShortcodes {
         return $this->render_social_url( "x", $atts );
     }
 
+    public function render_linkedin( array $atts = [] ): string {
+        return $this->render_social_url( "linkedin", $atts );
+    }
+
     public function render_youtube( array $atts = [] ): string {
         return $this->render_social_url( "youtube", $atts );
     }
 
+    public function render_website( array $atts = [] ): string {
+        return $this->render_social_url( "website", $atts );
+    }
+
+    public function render_crunchbase( array $atts = [] ): string {
+        return $this->render_social_url( "crunchbase", $atts );
+    }
+
     public function render_muckrack( array $atts = [] ): string {
         return $this->render_social_url( "muckrack", $atts );
+    }
+
+    public function render_email( array $atts = [] ): string {
+        return $this->render_author_text( "email", $atts );
     }
 
     public function render_muckrack_verified( array $atts = [] ): string {
@@ -136,6 +177,20 @@ final class AuthorShortcodes {
         }
         $name = get_the_author_meta( "display_name", $author_id );
         return sprintf( "<img class=\"%s\" src=\"%s\" alt=\"%s\" loading=\"lazy\" decoding=\"async\">", esc_attr( (string) $atts["class"] ), esc_url( $url ), esc_attr( $name ) );
+    }
+
+    private function render_author_text( string $key, array $atts = [] ): string {
+        $atts = shortcode_atts( [ "user_id" => 0, "post_id" => 0 ], $atts, "author_" . $key );
+        $author_id = $this->resolve_author_id( (int) $atts["user_id"], (int) $atts["post_id"] );
+        if ( ! $author_id ) {
+            return "";
+        }
+        if ( "email" === $key ) {
+            $user = get_user_by( "id", $author_id );
+            return $user ? esc_html( (string) $user->user_email ) : "";
+        }
+        $value = $this->first_author_field( $author_id, self::FIELD_ALIASES[ $key ] ?? [ $key ] );
+        return "" !== $value ? esc_html( wp_strip_all_tags( $value ) ) : "";
     }
 
     private function render_social_url( string $key, array $atts = [] ): string {
@@ -232,7 +287,9 @@ final class AuthorShortcodes {
             "facebook" => "https://facebook.com/",
             "instagram" => "https://instagram.com/",
             "x" => "https://x.com/",
+            "linkedin" => "https://linkedin.com/in/",
             "youtube" => "https://youtube.com/",
+            "crunchbase" => "https://crunchbase.com/person/",
             "muckrack" => "https://muckrack.com/",
         ];
         return isset( $bases[ $key ] ) ? $bases[ $key ] . rawurlencode( $handle ) : "";

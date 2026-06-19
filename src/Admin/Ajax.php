@@ -20,6 +20,7 @@ final class Ajax {
         add_action( "wp_ajax_smpi_page_details", [ $this, "page_details" ] );
         add_action( "wp_ajax_smpi_update_page_slug", [ $this, "update_page_slug" ] );
         add_action( "wp_ajax_smpi_search_users", [ $this, "search_users" ] );
+        add_action( "wp_ajax_smpi_shortcode_user_preview", [ $this, "shortcode_user_preview" ] );
         add_action( "wp_ajax_smpi_search_profiles", [ $this, "search_profiles" ] );
         add_action( "wp_ajax_smpi_save_founder_profiles", [ $this, "save_founder_profiles" ] );
         add_action( 'wp_ajax_smpi_refresh_optimization', [ $this, 'refresh_optimization' ] );
@@ -131,6 +132,15 @@ final class Ajax {
         }
 
         wp_send_json_success( [ "users" => $results ] );
+    }
+
+    public function shortcode_user_preview(): void {
+        $this->guard();
+        $user_id = isset( $_POST["user_id"] ) ? absint( $_POST["user_id"] ) : 0;
+        if ( $user_id <= 0 || ! get_user_by( "id", $user_id ) ) {
+            wp_send_json_error( [ "message" => "Selected user was not found." ], 404 );
+        }
+        wp_send_json_success( [ "user" => Dashboard::shortcode_selected_user_html( $user_id ), "html" => Dashboard::shortcode_user_values_html( $user_id ) ] );
     }
 
     private function user_result( \WP_User $user ): array {
