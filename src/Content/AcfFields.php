@@ -10,7 +10,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 final class AcfFields {
     public function register(): void {
-        add_action( 'acf/init', [ $this, 'register_fields' ] );
+        add_action( "acf/init", [ $this, "register_fields" ] );
+        add_action( "acf/input/admin_head", [ $this, "admin_faq_styles" ] );
+        add_action( "acf/input/admin_footer", [ $this, "admin_faq_scripts" ] );
     }
 
     public function register_fields(): void {
@@ -144,8 +146,10 @@ final class AcfFields {
         }
 
         if ( Settings::bool( "post_faqs_acf_enabled" ) ) {
-            $fields[] = [ "key" => "field_smpi_post_faq_items", "label" => "Post FAQ Items", "name" => "post_faq_items", "type" => "repeater", "instructions" => "Use structured FAQ rows for reliable FAQPage schema. Add one question and one answer per row. Row order controls schema order.", "layout" => "row", "button_label" => "Add FAQ", "sub_fields" => [ [ "key" => "field_smpi_post_faq_question", "label" => "Question", "name" => "question", "type" => "text", "instructions" => "Plain text question. Example: What record did Lionel Messi recently tie?" ], [ "key" => "field_smpi_post_faq_answer", "label" => "Answer", "name" => "answer", "type" => "wysiwyg", "instructions" => "Answer content. Keep it factual and concise. Sanitized HTML is allowed.", "tabs" => "all", "toolbar" => "basic", "media_upload" => 0 ], [ "key" => "field_smpi_post_faq_enabled_for_schema", "label" => "Enabled For Schema", "name" => "enabled_for_schema", "type" => "true_false", "ui" => 1, "default_value" => 1, "instructions" => "Turn off when the FAQ should display but not be included in JSON LD." ] ] ];
-            $fields[] = [ "key" => "field_65ab7bc1e849c", "label" => "Post FAQs Legacy WYSIWYG", "name" => "post_faqs", "type" => "wysiwyg", "instructions" => "Legacy freeform FAQ field. Use Post FAQ Items above for schema quality.", "tabs" => "all", "toolbar" => "full", "media_upload" => 1, "delay" => 0 ];
+            $fields[] = [ "key" => "field_smpi_post_faq_summary", "label" => "Post FAQ Summary", "name" => "", "type" => "message", "message" => "<div class=\"smpi-faq-summary-card\" data-smpi-faq-summary><strong>FAQ summary</strong><p class=\"smpi-faq-summary-empty\">No structured FAQ rows yet.</p></div>", "esc_html" => 0, "new_lines" => "wpautop", "instructions" => "Live read-only summary of the structured FAQ rows below. This updates as questions, answers, and schema toggles are edited." ];
+            $fields[] = [ "key" => "field_smpi_post_faq_accordion", "label" => "Structured FAQs", "name" => "", "type" => "accordion", "instructions" => "Expand to edit article-specific FAQ rows. Rows feed the FAQPage schema and the [smp_post_faqs] shortcode.", "open" => 0, "multi_expand" => 0, "endpoint" => 0 ];
+            $fields[] = [ "key" => "field_smpi_post_faq_items", "label" => "Post FAQ Items", "name" => "post_faq_items", "type" => "repeater", "instructions" => "Use structured FAQ rows for reliable FAQPage schema. Add one question and one answer per row. Row order controls schema order.", "layout" => "row", "button_label" => "Add FAQ", "collapsed" => "field_smpi_post_faq_question", "sub_fields" => [ [ "key" => "field_smpi_post_faq_question", "label" => "Question", "name" => "question", "type" => "text", "instructions" => "Plain text question. Example: What record did Lionel Messi recently tie?" ], [ "key" => "field_smpi_post_faq_answer", "label" => "Answer", "name" => "answer", "type" => "wysiwyg", "instructions" => "Answer content. Keep it factual and concise. Sanitized HTML is allowed.", "tabs" => "all", "toolbar" => "basic", "media_upload" => 0, "delay" => 0, "wrapper" => [ "class" => "smpi-faq-answer-field" ] ], [ "key" => "field_smpi_post_faq_enabled_for_schema", "label" => "Enabled For Schema", "name" => "enabled_for_schema", "type" => "true_false", "ui" => 1, "default_value" => 1, "instructions" => "Turn off when the FAQ should display but not be included in JSON LD." ] ] ];
+            $fields[] = [ "key" => "field_smpi_post_faq_accordion_end", "label" => "", "name" => "", "type" => "accordion", "endpoint" => 1 ];
         }
 
 
@@ -174,6 +178,55 @@ final class AcfFields {
                 "show_in_rest" => 0,
             ]
         );
+    }
+
+
+    private function should_render_post_faq_admin_assets(): bool {
+        if ( ! is_admin() || ! Settings::bool( "post_faqs_acf_enabled" ) ) {
+            return false;
+        }
+        if ( ! function_exists( "get_current_screen" ) ) {
+            return false;
+        }
+        $screen = get_current_screen();
+        if ( ! $screen || "post" !== $screen->base ) {
+            return false;
+        }
+        return in_array( (string) $screen->post_type, [ "post", "press-release", "imported-news" ], true );
+    }
+
+    public function admin_faq_styles(): void {
+        if ( ! $this->should_render_post_faq_admin_assets() ) {
+            return;
+        }
+        ?>
+        <style>.acf-field-smpi-post-faq-summary .acf-label label{font-size:15px;font-weight:700}.smpi-faq-summary-card{border:1px solid #d8dee8;border-radius:12px;background:#f8fafc;padding:12px 14px;color:#1f2937}.smpi-faq-summary-card strong{display:block;margin-bottom:8px}.smpi-faq-summary-card p{margin:0;color:#64748b}.smpi-faq-summary-card ol{margin:8px 0 0 20px}.smpi-faq-summary-card li{margin:6px 0}.smpi-faq-summary-card small{display:block;color:#64748b;margin-top:2px}.acf-field-smpi-post-faq-answer .wp-editor-area,.acf-field-smpi-post-faq-answer iframe,.acf-field-smpi-post-faq-answer .mce-edit-area iframe,.smpi-faq-answer-field .wp-editor-area,.smpi-faq-answer-field iframe,.smpi-faq-answer-field .mce-edit-area iframe{height:225px!important;min-height:225px!important}.acf-field-smpi-post-faq-items>.acf-label label{font-size:14px}.acf-field-smpi-post-faq-accordion .acf-accordion-title label{font-size:15px;font-weight:700}</style>
+        <?php
+    }
+
+    public function admin_faq_scripts(): void {
+        if ( ! $this->should_render_post_faq_admin_assets() ) {
+            return;
+        }
+        ?>
+        <script>
+        (function($){
+            function faqFields(){return $(".acf-field-smpi-post-faq-items,.acf-field-smpi-post-faq-accordion-end");}
+            function faqAccordion(){return $(".acf-field-smpi-post-faq-accordion").first();}
+            function setFaqCollapsed(closed){var a=faqAccordion();a.toggleClass("smpi-faq-collapsed",closed).toggleClass("smpi-faq-expanded",!closed);faqFields().toggle(!closed);}
+            function initFaqCollapse(){var a=faqAccordion();if(a.length&&!a.data("smpiFaqInit")){a.data("smpiFaqInit",1);setFaqCollapsed(true);}}
+            function clean(v){return $("<div>").html(v||"").text().replace(/\s+/g," ").trim();}
+            function ans(row){var f=row.find("[data-key=\"field_smpi_post_faq_answer\"]").first(),t=f.find("textarea.wp-editor-area,textarea").first(),id=t.attr("id");if(!t.length){return "";}if(window.tinymce&&id&&tinymce.get(id)&&!tinymce.get(id).isHidden()){return clean(tinymce.get(id).getContent());}return clean(t.val());}
+            function upd(){var s=$("[data-smpi-faq-summary]").first(),r=$(".acf-field-smpi-post-faq-items").first(),rows=[];if(!s.length||!r.length){return;}r.find("tr.acf-row:not(.acf-clone)").each(function(){var row=$(this),q=$.trim(row.find("[data-key=\"field_smpi_post_faq_question\"] input").first().val()||""),a=ans(row),e=row.find("[data-key=\"field_smpi_post_faq_enabled_for_schema\"] input[type=\"checkbox\"]").first(),on=!e.length||e.is(":checked");if(q||a){rows.push({q:q,a:a,on:on});}});if(!rows.length){s.html("<strong>FAQ summary</strong><p class=\"smpi-faq-summary-empty\">No structured FAQ rows yet.</p>");return;}var on=rows.filter(function(x){return x.on;}).length,h="<strong>FAQ summary</strong><p>"+rows.length+" FAQ row"+(rows.length===1?"":"s")+" entered. "+on+" included in JSON-LD schema.</p><ol>";rows.slice(0,6).forEach(function(x){h+="<li><b>"+_.escape(x.q||"Untitled question")+"</b><small>"+_.escape((x.a||"No answer yet").slice(0,180))+(x.on?"":" schema off")+"</small></li>";});if(rows.length>6){h+="<li><small>"+(rows.length-6)+" more row"+(rows.length-6===1?"":"s")+"</small></li>";}s.html(h+"</ol>");}
+            $(document).on("input change keyup",".acf-field-smpi-post-faq-items input,.acf-field-smpi-post-faq-items textarea",upd);
+            $(document).on("click",".acf-field-smpi-post-faq-items .acf-icon.-minus,.acf-field-smpi-post-faq-items .acf-icon.-plus,.acf-field-smpi-post-faq-items .acf-button",function(){setTimeout(upd,250);});
+            $(document).on("click",".acf-field-smpi-post-faq-accordion .acf-accordion-title",function(e){e.preventDefault();setFaqCollapsed(!faqAccordion().hasClass("smpi-faq-collapsed"));setTimeout(upd,50);});
+            if(window.acf){acf.addAction("append remove sortstop ready",function(){initFaqCollapse();setTimeout(upd,200);});}
+            $(document).on("tinymce-editor-init",function(ev,ed){if(ed&&ed.on){ed.on("keyup change undo redo SetContent",upd);}setTimeout(upd,200);});
+            $(function(){initFaqCollapse();upd();});setTimeout(function(){initFaqCollapse();upd();},700);
+        })(jQuery);
+        </script>
+        <?php
     }
 
     private function register_visibility_fields(): void {

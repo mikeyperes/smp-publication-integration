@@ -9,7 +9,7 @@ if ( ! defined( "ABSPATH" ) ) {
 }
 
 final class Shortcodes {
-    private const POST_ACF_FIELDS = [ "post_summary", "post_faqs", "post_faq_items" ];
+    private const POST_ACF_FIELDS = [ "post_summary", "post_faq_items" ];
 
     public function register(): void {
         add_action( "init", [ $this, "register_shortcodes" ] );
@@ -113,9 +113,7 @@ final class Shortcodes {
             return ArticleStyles::wrap_post_faqs( $html, sanitize_key( (string) $atts["style"] ) );
         }
 
-        $atts["field"] = "post_faqs";
-        $html = $this->render_post_acf( $atts );
-        return "html" === sanitize_key( (string) $atts["format"] ) ? ArticleStyles::wrap_post_faqs( $html, sanitize_key( (string) $atts["style"] ) ) : $html;
+        return "";
     }
 
 
