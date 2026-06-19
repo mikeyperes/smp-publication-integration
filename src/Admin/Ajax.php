@@ -17,6 +17,8 @@ final class Ajax {
         add_action( 'wp_ajax_smpi_save_settings', [ $this, 'save_settings' ] );
         add_action( 'wp_ajax_smpi_save_page_assignment', [ $this, 'save_page_assignment' ] );
         add_action( "wp_ajax_smpi_create_page_assignment", [ $this, "create_page_assignment" ] );
+        add_action( "wp_ajax_smpi_page_details", [ $this, "page_details" ] );
+        add_action( "wp_ajax_smpi_update_page_slug", [ $this, "update_page_slug" ] );
         add_action( "wp_ajax_smpi_search_users", [ $this, "search_users" ] );
         add_action( "wp_ajax_smpi_search_profiles", [ $this, "search_profiles" ] );
         add_action( "wp_ajax_smpi_save_founder_profiles", [ $this, "save_founder_profiles" ] );
@@ -254,10 +256,15 @@ final class Ajax {
 
     public function save_page_assignment(): void {
         $this->guard();
-        $type = isset( $_POST['page_type'] ) ? sanitize_key( wp_unslash( $_POST['page_type'] ) ) : '';
-        $page_id = isset( $_POST['page_id'] ) ? absint( $_POST['page_id'] ) : 0;
-        $template = isset( $_POST['template'] ) ? wp_kses_post( wp_unslash( $_POST['template'] ) ) : '';
-        wp_send_json_success( [ 'settings' => Settings::update_page( $type, $page_id, $template ) ] );
+        $type = isset( $_POST["page_type"] ) ? sanitize_key( wp_unslash( $_POST["page_type"] ) ) : "";
+        $page_id = isset( $_POST["page_id"] ) ? absint( $_POST["page_id"] ) : 0;
+        $template = isset( $_POST["template"] ) ? wp_kses_post( wp_unslash( $_POST["template"] ) ) : "";
+        $settings = Settings::update_page( $type, $page_id, $template );
+        $response = [ "settings" => $settings, "page" => null ];
+        if ( $page_id > 0 ) {
+            $response["page"] = $this->page_result( $page_id );
+        }
+        wp_send_json_success( $response );
     }
 
 
@@ -272,13 +279,14 @@ final class Ajax {
         $settings = Settings::all();
         $current = isset( $settings["page_assignments"][ $type ] ) ? absint( $settings["page_assignments"][ $type ] ) : 0;
         if ( $current && get_post( $current ) ) {
-            wp_send_json_success( [ "page" => $this->page_result( $current ), "settings" => $settings ] );
+            wp_send_json_success( [ "mode" => "already_assigned", "message" => "Already assigned.", "page" => $this->page_result( $current ), "settings" => $settings ] );
         }
 
         $title = (string) $page_types[ $type ]["label"];
         $slug = sanitize_title( $title );
-        $existing = get_page_by_path( $slug );
-        if ( $existing instanceof \WP_Post ) {
+        $existing = get_page_by_path( $slug, OBJECT, "page" );
+        $mode = "reused_existing";
+        if ( is_a( $existing, "WP_Post" ) ) {
             $page_id = (int) $existing->ID;
         } else {
             $templates = Settings::default_page_templates();
@@ -296,18 +304,76 @@ final class Ajax {
             if ( is_wp_error( $page_id ) ) {
                 wp_send_json_error( [ "message" => $page_id->get_error_message() ], 500 );
             }
+            $mode = "created";
         }
 
         $settings = Settings::update_page( $type, (int) $page_id, (string) ( $settings["page_templates"][ $type ] ?? "" ) );
-        wp_send_json_success( [ "page" => $this->page_result( (int) $page_id ), "settings" => $settings ] );
+        $message = "created" === $mode ? "Created draft page and assigned it." : "Reused existing page and assigned it.";
+        wp_send_json_success( [ "mode" => $mode, "message" => $message, "page" => $this->page_result( (int) $page_id ), "settings" => $settings ] );
+    }
+
+    public function page_details(): void {
+        $this->guard();
+        $page_id = isset( $_POST["page_id"] ) ? absint( $_POST["page_id"] ) : 0;
+        if ( $page_id <= 0 ) {
+            wp_send_json_success( [ "page" => null ] );
+        }
+        $post = get_post( $page_id );
+        if ( ! $post || "page" !== $post->post_type ) {
+            wp_send_json_error( [ "message" => "Selected page was not found." ], 404 );
+        }
+        wp_send_json_success( [ "page" => $this->page_result( $page_id ) ] );
+    }
+
+    public function update_page_slug(): void {
+        $this->guard();
+        $type = isset( $_POST["page_type"] ) ? sanitize_key( wp_unslash( $_POST["page_type"] ) ) : "";
+        if ( ! isset( Settings::page_types()[ $type ] ) ) {
+            wp_send_json_error( [ "message" => "Unknown page type." ], 400 );
+        }
+        $page_id = isset( $_POST["page_id"] ) ? absint( $_POST["page_id"] ) : 0;
+        $post = get_post( $page_id );
+        if ( ! $post || "page" !== $post->post_type ) {
+            wp_send_json_error( [ "message" => "Selected page was not found." ], 404 );
+        }
+        $requested = isset( $_POST["slug"] ) ? sanitize_title( wp_unslash( $_POST["slug"] ) ) : "";
+        if ( "" === $requested ) {
+            wp_send_json_error( [ "message" => "Slug cannot be empty." ], 400 );
+        }
+        $unique = wp_unique_post_slug( $requested, $page_id, $post->post_status, "page", (int) $post->post_parent );
+        $updated = wp_update_post( [ "ID" => $page_id, "post_name" => $unique ], true );
+        if ( is_wp_error( $updated ) ) {
+            wp_send_json_error( [ "message" => $updated->get_error_message() ], 500 );
+        }
+        clean_post_cache( $page_id );
+        Settings::log( "Page slug updated: " . $type . " -> " . $unique );
+        $message = $unique === $requested ? "Slug updated." : "Slug updated with a unique suffix because the requested slug was unavailable.";
+        wp_send_json_success( [ "message" => $message, "requested_slug" => $requested, "slug_adjusted" => $unique !== $requested, "page" => $this->page_result( $page_id ) ] );
     }
 
     private function page_result( int $page_id ): array {
+        $post = get_post( $page_id );
+        if ( ! $post ) {
+            return [];
+        }
+        $status = (string) $post->post_status;
+        $status_obj = get_post_status_object( $status );
+        $permalink = get_permalink( $page_id );
+        $edit_url = get_edit_post_link( $page_id, "raw" );
         return [
             "id" => $page_id,
             "title" => get_the_title( $page_id ),
-            "edit_url" => get_edit_post_link( $page_id, "raw" ),
-            "view_url" => get_permalink( $page_id ),
+            "status" => $status,
+            "status_label" => $status_obj ? (string) $status_obj->label : ucfirst( $status ),
+            "slug" => (string) $post->post_name,
+            "post_type" => (string) $post->post_type,
+            "permalink" => $permalink,
+            "view_url" => $permalink,
+            "edit_url" => $edit_url,
+            "date" => get_the_date( "M j, Y g:i a", $page_id ),
+            "modified" => get_the_modified_date( "M j, Y g:i a", $page_id ),
+            "author" => get_the_author_meta( "display_name", (int) $post->post_author ),
+            "detail_html" => Dashboard::page_detail_html( $page_id ),
         ];
     }
 
