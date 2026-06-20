@@ -7,7 +7,7 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.6.34`
+- Version: `0.6.35`
 
 ## Structure
 
@@ -43,6 +43,11 @@ WordPress plugin for Scale My Publication publication profiles.
 - Replaced SMP admin-AJAX action registration with `Hexa\PluginCore\WpAdminAjax\AjaxActionRegistry` and request parsing with `AjaxRequest`.
 - Replaced the Shortcodes debugger table with `Hexa\PluginCore\ShortcodeRegistry\ShortcodeDisplayRenderer`.
 - Updater flow fixed: SMP uses GitHub API version detection and Hexa WordPress Plugin Core post-install handling.
+
+## 0.6.35 Updates
+
+- Added schema-object, current-page, and Schema.org validator links to each Article Type radio option.
+- Kept the Article Type selector predefined and single-choice only while making validation paths visible in the editor.
 
 ## 0.6.23 Updates
 

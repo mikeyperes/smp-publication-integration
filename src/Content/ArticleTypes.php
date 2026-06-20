@@ -97,15 +97,30 @@ final class ArticleTypes {
             $current = self::default_slug_for_post( (int) $post->ID );
         }
 
-        echo "<p class=\"description\">Select exactly one predefined schema article type. Free-text article types are disabled.</p>";
+        $page_url = self::current_page_url( $post );
+        $validator_url = $page_url ? "https://validator.schema.org/#url=" . rawurlencode( $page_url ) : "";
+
+        echo "<p class=\"description\">Select exactly one predefined schema article type. Free-text article types are disabled. Each type links to its schema object and the current page validator. Save/update after changing the type before validating.</p>";
         echo "<div class=\"smpi-article-type-radio-list\" role=\"radiogroup\" aria-label=\"Article Type\">";
         foreach ( self::terms() as $slug => $config ) {
             $id = self::FIELD_NAME . "-" . sanitize_html_class( $slug );
-            echo "<label for=\"" . esc_attr( $id ) . "\" style=\"display:block;margin:0 0 10px;line-height:1.35;\">";
+            $schema_url = "https://schema.org/" . rawurlencode( (string) $config["schema_type"] );
+            echo "<div class=\"smpi-article-type-option\" style=\"display:block;margin:0 0 14px;line-height:1.35;\">";
+            echo "<label for=\"" . esc_attr( $id ) . "\" style=\"display:block;margin:0;\">";
             echo "<input id=\"" . esc_attr( $id ) . "\" type=\"radio\" name=\"" . esc_attr( self::FIELD_NAME ) . "\" value=\"" . esc_attr( $slug ) . "\" " . checked( $current, $slug, false ) . "> ";
             echo "<strong>" . esc_html( $config["label"] ) . "</strong> <code>" . esc_html( $config["schema_type"] ) . "</code><br>";
-            echo "<span class=\"description\">" . esc_html( $config["description"] ) . "</span>";
+            echo "<span class=\"description\" style=\"display:block;margin-left:28px;\">" . esc_html( $config["description"] ) . "</span>";
             echo "</label>";
+            echo "<span class=\"smpi-article-type-actions\" style=\"display:flex;gap:8px;flex-wrap:wrap;margin:5px 0 0 28px;\">";
+            echo "<a href=\"" . esc_url( $schema_url ) . "\" target=\"_blank\" rel=\"noopener noreferrer\">Schema object</a>";
+            if ( "" !== $page_url ) {
+                echo "<a href=\"" . esc_url( $page_url ) . "\" target=\"_blank\" rel=\"noopener noreferrer\">Open current page</a>";
+                echo "<a href=\"" . esc_url( $validator_url ) . "\" target=\"_blank\" rel=\"noopener noreferrer\">Verify schema</a>";
+            } else {
+                echo "<span class=\"description\">Save this post before page validation links are available.</span>";
+            }
+            echo "</span>";
+            echo "</div>";
         }
         echo "</div>";
     }
@@ -189,6 +204,17 @@ final class ArticleTypes {
             }
         }
         return $type;
+    }
+
+    private static function current_page_url( \WP_Post $post ): string {
+        $url = (string) get_permalink( $post );
+        if ( ! in_array( (string) $post->post_status, [ "publish", "future" ], true ) ) {
+            $preview_url = get_preview_post_link( $post );
+            if ( is_string( $preview_url ) && "" !== $preview_url ) {
+                $url = $preview_url;
+            }
+        }
+        return $url ? esc_url_raw( $url ) : "";
     }
 
     private static function selected_slug_for_post( int $post_id ): string {
