@@ -34,6 +34,7 @@ final class SmartSearchAjaxController {
 
         $results = match ( $source ) {
             'post_types' => $this->search_post_types( $query, $limit ),
+            "users"      => $this->search_users( $query, $limit ),
             default      => $this->search_posts( $query, $limit ),
         };
 
@@ -75,11 +76,15 @@ final class SmartSearchAjaxController {
             $results[] = [
                 'id'       => (int) $post_id,
                 'value'    => (int) $post_id,
+                "label"    => get_the_title( $post_id ) ?: "(no title)",
                 'name'     => get_the_title( $post_id ) ?: '(no title)',
                 'subtitle' => $type_label . ' - ' . $post->post_status,
                 'type'     => $post->post_type,
                 'status'   => $post->post_status,
                 'url'      => get_edit_post_link( $post_id, 'raw' ),
+                "edit_url" => get_edit_post_link( $post_id, "raw" ),
+                "view_url" => get_permalink( $post_id ),
+                "thumbnail" => get_the_post_thumbnail_url( $post_id, "thumbnail" ) ?: "",
             ];
         }
 
@@ -89,6 +94,44 @@ final class SmartSearchAjaxController {
     /**
      * @return array<int, array<string, mixed>>
      */
+    private function search_users( string $query, int $limit ): array {
+        $users = get_users(
+            [
+                "number"         => $limit,
+                "orderby"        => "display_name",
+                "order"          => "ASC",
+                "fields"         => "all",
+                "search"         => "*" . $query . "*",
+                "search_columns" => [ "user_login", "user_nicename", "user_email", "display_name" ],
+            ]
+        );
+
+        $results = [];
+        foreach ( $users as $user ) {
+            if ( ! $user instanceof \WP_User ) {
+                continue;
+            }
+
+            $results[] = [
+                "id"        => (int) $user->ID,
+                "value"     => (int) $user->ID,
+                "label"     => $user->display_name,
+                "name"      => $user->display_name,
+                "subtitle"  => $user->user_email,
+                "type"      => "user",
+                "status"    => implode( ", ", (array) $user->roles ),
+                "url"       => function_exists( "get_edit_user_link" ) ? get_edit_user_link( $user->ID ) : "",
+                "edit_url"  => function_exists( "get_edit_user_link" ) ? get_edit_user_link( $user->ID ) : "",
+                "view_url"  => function_exists( "get_author_posts_url" ) ? get_author_posts_url( $user->ID ) : "",
+                "thumbnail" => function_exists( "get_avatar_url" ) ? get_avatar_url( $user->ID, [ "size" => 96 ] ) : "",
+                "email"     => $user->user_email,
+                "login"     => $user->user_login,
+            ];
+        }
+
+        return $results;
+    }
+
     private function search_post_types( string $query, int $limit ): array {
         $objects = get_post_types( [ 'show_ui' => true ], 'objects' );
         $results = [];

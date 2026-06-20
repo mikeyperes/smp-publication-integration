@@ -865,3 +865,23 @@ Before changing a plugin that consumes this core:
 5. Do not invent new names for existing concepts.
 6. Update this file when adding public core behavior.
 7. For new plugin audits, start with `docs/new-plugin-master-checklist.md`.
+
+
+## Host Dashboard Tabs
+
+Namespace: `Hexa\PluginCore\WpAdminTabs`
+
+Use `HostTabsRenderer` for the visible host plugin tab shell. It owns the shared Hexa tab bar, AJAX tab loading, status text, history updates, and load events. Host plugins provide the tab array, active tab, admin page URL, AJAX action, nonce, and first-render callback.
+
+```php
+( new \Hexa\PluginCore\WpAdminTabs\HostTabsRenderer() )->render(
+    [
+        "tabs"            => $tabs,
+        "active"          => $active,
+        "page_url"        => admin_url( "options-general.php?page=example-plugin" ),
+        "ajax_action"     => "example_load_tab",
+        "nonce"           => $nonce,
+        "render_callback" => [ $dashboard, "tab" ],
+    ]
+);
+```

@@ -39,6 +39,15 @@ final class CoreUi {
             .hpc-core-tab.active{background:var(--hpc-blue);border-color:var(--hpc-blue);color:#fff}
             .hpc-core-pane{display:none}
             .hpc-core-pane.active{display:block}
+            .hpc-host-tabs-shell{margin:16px 0 0}
+            .hpc-host-tabs{align-items:flex-end;border-bottom:1px solid var(--hpc-line);display:flex;flex-wrap:wrap;gap:8px;margin:18px 0 0}
+            .hpc-host-tab{background:#fff;border:1px solid var(--hpc-line);border-bottom:0;border-radius:8px 8px 0 0;color:#253650;display:inline-flex;font-weight:800;line-height:1;padding:12px 16px;text-decoration:none}
+            .hpc-host-tab:hover{background:#f8fbff;color:var(--hpc-blue)}
+            .hpc-host-tab.active{background:#fff;box-shadow:inset 0 3px 0 var(--hpc-blue);color:var(--hpc-blue)}
+            .hpc-host-tab-status{align-items:center;color:var(--hpc-muted);display:flex;font-size:12px;gap:6px;min-height:28px;padding:7px 0 0}
+            .hpc-host-tab-status .spinner{float:none;margin:0}
+            .hpc-host-tab-panel{display:block;position:relative}
+            .hpc-host-tab-panel.is-loading{opacity:.58;pointer-events:none}
             .hpc-section{background:#fff;border:1px solid var(--hpc-line);border-radius:8px;margin:0 0 14px;overflow:hidden}
             .hpc-section summary{align-items:center;cursor:pointer;display:flex;font-size:15px;font-weight:800;gap:10px;justify-content:space-between;padding:15px 16px}
             .hpc-section summary::-webkit-details-marker{display:none}

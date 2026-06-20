@@ -351,3 +351,21 @@ use Hexa\PluginCore\LogFiles\ErrorLogSource;
     ]
 );
 ```
+
+
+## Host Dashboard Tabs
+
+Use `Hexa\PluginCore\WpAdminTabs\HostTabsRenderer` when the host dashboard itself needs the shared Hexa tab bar, AJAX loader, loading status, and browser-history behavior.
+
+```php
+( new \Hexa\PluginCore\WpAdminTabs\HostTabsRenderer() )->render(
+    [
+        "tabs"            => $tabs,
+        "active"          => $active,
+        "page_url"        => admin_url( "options-general.php?page=example-plugin" ),
+        "ajax_action"     => "example_load_tab",
+        "nonce"           => $nonce,
+        "render_callback" => [ $dashboard, "tab" ],
+    ]
+);
+```

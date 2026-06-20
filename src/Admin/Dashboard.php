@@ -2,6 +2,8 @@
 namespace smp_publication_integration\Admin;
 
 use Hexa\PluginCore\ShortcodeRegistry\ShortcodeDisplayRenderer;
+use Hexa\PluginCore\SmartSearch\SmartSearchRenderer;
+use Hexa\PluginCore\WpAdminTabs\HostTabsRenderer;
 use Hexa\PluginCore\SiteStructure\SiteStructureRenderer;
 use smp_publication_integration\Config;
 use smp_publication_integration\Content\AuthorShortcodes;
@@ -54,9 +56,22 @@ final class Dashboard {
         <div class="wrap smpi-dashboard">
             <h1><?php echo esc_html( Config::$settings_page_display_title ); ?></h1>
             <?php $this->styles(); ?>
-            <div class="smpi-tabs-nav" role="tablist"><?php foreach ( $tabs as $id => $label ) : $tab_url = admin_url( "options-general.php?page=" . Config::$settings_page_slug . "&tab=" . $id ); ?><a class="smpi-tab-btn<?php echo $id === $active ? " active" : ""; ?>" href="<?php echo esc_url( $tab_url ); ?>" data-tab="<?php echo esc_attr( $id ); ?>" role="tab" aria-selected="<?php echo $id === $active ? "true" : "false"; ?>"><?php echo esc_html( $label ); ?></a><?php endforeach; ?></div>
-            <div class="smpi-tab-status" aria-live="polite"><span class="spinner"></span><span class="smpi-tab-message"></span></div>
-            <section id="smpi-tab-panel" data-active-tab="<?php echo esc_attr( $active ); ?>" class="smpi-tab-content active" aria-live="polite"><?php $this->tab( $active ); ?></section>
+            <?php
+            ( new HostTabsRenderer() )->render(
+                [
+                    "tabs"            => $tabs,
+                    "active"          => $active,
+                    "page_url"        => admin_url( "options-general.php?page=" . Config::$settings_page_slug ),
+                    "ajax_action"     => "smpi_load_tab",
+                    "nonce"           => Ajax::nonce(),
+                    "nonce_field"     => "nonce",
+                    "root_id"         => "smpi-core-tabs",
+                    "panel_id"        => "smpi-tab-panel",
+                    "label"           => "SMP Publication Integration sections",
+                    "render_callback" => function( string $tab ): void { $this->tab( $tab ); },
+                ]
+            );
+            ?>
         </div>
         <?php $this->scripts(); ?>
         <?php
@@ -180,8 +195,18 @@ final class Dashboard {
         }
 
         $ids = $this->founder_profile_ids();
-        echo "<div class=\"smpi-profile-picker\"><label for=\"smpi-founder-profile-search\"><strong>Add founder profile</strong></label><p class=\"smpi-muted\">Search verified profile posts by name, then add the founder profile to this publication.</p>";
-        echo "<input id=\"smpi-founder-profile-search\" type=\"search\" class=\"regular-text smpi-profile-search\" placeholder=\"Search founder profile records\" autocomplete=\"off\"><span class=\"spinner\"></span><span class=\"smpi-save-state\"></span><div class=\"smpi-profile-results\" aria-live=\"polite\"></div>";
+        echo "<div class=\"smpi-profile-picker\"><div class=\"smpi-smart-profile-search\">";
+        ( new SmartSearchRenderer() )->render(
+            [
+                "id"          => "smpi-founder-profile-core-search",
+                "label"       => "Add founder profile",
+                "placeholder" => "Search verified profile records",
+                "source"      => "posts",
+                "post_type"   => "profile",
+                "limit"       => 20,
+            ]
+        );
+        echo "<p class=\"smpi-muted\">Search verified profile posts by name, then add the founder profile to this publication.</p></div><span class=\"spinner\"></span><span class=\"smpi-save-state\"></span><div class=\"smpi-profile-results\" aria-live=\"polite\"></div>";
         echo "<div class=\"smpi-founder-selected\">";
         if ( empty( $ids ) ) {
             echo $this->empty_founder_profiles_html();
@@ -1457,9 +1482,9 @@ final class Dashboard {
             function initDynamicEditors(root){if(!window.wp||!wp.editor)return;root.find(`.smpi-page-template-editor textarea,.hpc-template-editor textarea`).each(function(){var id=this.id;if(!id)return;if(window.tinymce&&tinymce.get(id)){tinymce.get(id).remove()}try{wp.editor.initialize(id,{tinymce:true,quicktags:true,mediaButtons:$(this).closest(`.smpi-page-template-editor`).length>0})}catch(e){}})}
             function setActiveTab(tab){$(`.smpi-tab-btn`).removeClass(`active`).attr(`aria-selected`,`false`);$(`.smpi-tab-btn[data-tab="${tab}"]`).addClass(`active`).attr(`aria-selected`,`true`);smpiAdmin.activeTab=tab}
             function loadTab(tab,href,push){var panel=tabPanel(),status=$(`.smpi-tab-status`),msg=status.find(`.smpi-tab-message`);if(!tab||panel.data(`loading`))return;panel.data(`loading`,1).addClass(`is-loading`).attr(`aria-busy`,`true`);status.find(`.spinner`).addClass(`is-active`);msg.text(`Loading...`);$.post(smpiAdmin.ajaxUrl,{action:`smpi_load_tab`,nonce:smpiAdmin.nonce,tab:tab}).done(function(x){if(!x||!x.success){msg.text(`Error loading tab.`);return}destroyDynamicEditors(panel);panel.html(x.data.html||``).attr(`data-active-tab`,x.data.tab).attr(`aria-busy`,`false`);setActiveTab(x.data.tab);msg.text(`Loaded ${x.data.label}.`);if(push!==false&&window.history&&history.pushState){history.pushState({smpiTab:x.data.tab},``,href||tabUrl(x.data.tab))}initAcfFields(panel);initDynamicEditors(panel)}).fail(function(){msg.text(`Error loading tab.`)}).always(function(){panel.removeData(`loading`).removeClass(`is-loading`).attr(`aria-busy`,`false`);status.find(`.spinner`).removeClass(`is-active`)})}
-            $(document).on(`click`,`.smpi-tab-btn`,function(e){var b=$(this),tab=b.data(`tab`);if(!tab)return;e.preventDefault();if(tab===smpiAdmin.activeTab)return;loadTab(tab,b.attr(`href`),true)});
-            $(window).on(`popstate`,function(){var params=new URLSearchParams(window.location.search),tab=params.get(`tab`)||`overview`;loadTab(tab,tabUrl(tab),false)});
             initDynamicEditors(tabPanel());
+            document.addEventListener("hexa-core-host-tab-before-load",function(ev){if(!ev.detail||!ev.detail.panel||ev.detail.panel.id!=="smpi-tab-panel")return;destroyDynamicEditors($(ev.detail.panel))});
+            document.addEventListener("hexa-core-host-tab-loaded",function(ev){if(!ev.detail||!ev.detail.panel||ev.detail.panel.id!=="smpi-tab-panel")return;smpiAdmin.activeTab=ev.detail.tab||smpiAdmin.activeTab;initAcfFields($(ev.detail.panel));initDynamicEditors($(ev.detail.panel))});
             function refreshActiveFragment(fragment){if(!fragment||!fragment.html)return;var panel=tabPanel(),y=window.scrollY||window.pageYOffset||0;destroyDynamicEditors(panel);panel.html(fragment.html).attr(`data-active-tab`,fragment.tab||smpiAdmin.activeTab).attr(`aria-busy`,`false`);initAcfFields(panel);initDynamicEditors(panel);if(window.scrollTo){window.scrollTo(0,y)}}function saveSetting(e, done){var k=e.data(`key`),d={action:`smpi_save_settings`,nonce:smpiAdmin.nonce,tab:smpiAdmin.activeTab},v;if(e.hasClass(`smpi-setting-array`)){var g=$(`.smpi-setting-array[data-key="${k}"]`);d[k+`_present`]=1;d[k]=g.filter(`:checked`).map(function(){return $(this).val()}).get()}else{v=e.is(`:checkbox`)?(e.is(`:checked`)?1:0):e.val();d[k]=v}var r=e.closest(`.smpi-feature-card,.smpi-control-group,td,.smpi-user-picker`);r.find(`.spinner`).addClass(`is-active`);$.post(smpiAdmin.ajaxUrl,d).done(function(x){var ok=!!(x&&x.success);r.find(`.smpi-save-state`).text(ok?` Saved`:` Error`);if(ok&&x.data&&x.data.fragment){refreshActiveFragment(x.data.fragment);$(`.smpi-tab-message`).text(`Saved and refreshed ${x.data.fragment.label}.`)}if(done)done(x)}).always(function(){r.find(`.spinner`).removeClass(`is-active`)})}
             $(document).on(`change`,`.smpi-setting,.smpi-setting-array`,function(){saveSetting($(this))});
             var smpiPV={'table_of_contents_accent_color':['--smpi-toc-accent',''],'table_of_contents_text_color':['--smpi-toc-text',''],'table_of_contents_text_font_size':['--smpi-toc-size','px'],'table_of_contents_text_font_style':['--smpi-toc-fstyle',''],'post_faqs_accent_color':['--smpi-faq-accent',''],'post_faqs_text_color':['--smpi-faq-text',''],'post_faqs_text_font_size':['--smpi-faq-size','px'],'post_faqs_text_font_style':['--smpi-faq-fstyle',''],'inline_photo_accent_color':['--smpi-photo-accent',''],'inline_photo_caption_text_color':['--smpi-photo-cap-color',''],'inline_photo_caption_font_size':['--smpi-photo-cap-size','px'],'inline_photo_caption_font_style':['--smpi-photo-cap-fstyle','']};
@@ -1479,6 +1504,8 @@ final class Dashboard {
             function founderIds(panel){return panel.find(`.smpi-founder-profile-card`).map(function(){return $(this).data(`profile-id`)}).get()}
             function founderEmptyHtml(){return `<div class="smpi-empty-state smpi-empty-founder-profiles"><strong>No founder profiles selected.</strong><p>Use the search above to add founder records from Verified Profiles.</p></div>`}
             function profileCard(p){var media=p.thumbnail?`<img src="${p.thumbnail}" alt="">`:`<span class="dashicons dashicons-id-alt"></span>`;return `<div class="smpi-founder-profile-card" data-profile-id="${p.id}"><div class="smpi-founder-thumb">${media}</div><div class="smpi-founder-info"><strong>${p.label}</strong><p class="smpi-muted">Profile #${p.id}</p><p><a class="button button-secondary" target="_blank" rel="noopener noreferrer" href="${p.edit_url}">Edit Profile</a> <a class="button button-secondary" target="_blank" rel="noopener noreferrer" href="${p.view_url}">View Profile</a> <button type="button" class="button smpi-remove-founder-profile">Remove</button></p></div></div>`}
+            function smpiProfileFromCoreItem(item){var id=parseInt(item.id||item.value,10)||0;return{id:id,label:item.label||item.name||(`Profile #`+id),status:item.status||``,edit_url:item.edit_url||item.url||``,view_url:item.view_url||``,thumbnail:item.thumbnail||``}}
+            document.addEventListener("hexa-search-selected",function(ev){if(!ev.detail||ev.detail.component_id!=="smpi-founder-profile-core-search")return;var p=smpiProfileFromCoreItem(ev.detail.item||{});if(!p.id)return;var wrap=$("#smpi-founder-profile-core-search").closest(".smpi-profile-picker"),selected=wrap.find(".smpi-founder-selected");if(!selected.find(".smpi-founder-profile-card[data-profile-id=\""+p.id+"\"]").length){selected.find(".smpi-empty-founder-profiles").remove();selected.append(profileCard(p));saveFounderProfiles(selected)}wrap.find(".hpc-smart-search-input").val("");wrap.find(".hpc-smart-search-selected").attr("hidden",true).empty();wrap.find(".hpc-smart-search-status").text("Added founder profile.")});
             function saveFounderProfiles(panel){var ids=founderIds(panel),wrap=panel.closest(`.smpi-profile-picker`);wrap.find(`.spinner`).addClass(`is-active`);$.post(smpiAdmin.ajaxUrl,{action:`smpi_save_founder_profiles`,nonce:smpiAdmin.nonce,founder_profile_ids:ids}).done(function(x){wrap.find(`.smpi-save-state`).text(x.success?` Saved`:` Error`)}).always(function(){wrap.find(`.spinner`).removeClass(`is-active`)})}
             function pageTemplateValue(row){var wrap=row.find(`.smpi-page-template-editor`).first(),id=wrap.data(`editor-id`);if(!id)return ``;if(window.tinymce&&tinymce.get(id)){tinymce.get(id).save()}return $(`#${id}`).val()||``}
             var profileTimer=null;

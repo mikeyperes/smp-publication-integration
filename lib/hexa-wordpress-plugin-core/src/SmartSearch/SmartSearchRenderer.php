@@ -62,7 +62,7 @@ final class SmartSearchRenderer {
                     button.querySelector('strong').textContent = item.name || 'Untitled';
                     button.querySelector('span').textContent = item.subtitle || '';
                     button.querySelector('em').textContent = item.id ? '#' + item.id : '';
-                    button.addEventListener('mouseenter', function(){ active = index; renderResults(); });
+                    button.addEventListener("mouseenter", function(){ active = index; Array.prototype.slice.call(resultsBox.children).forEach(function(child, childIndex){ child.classList.toggle("active", childIndex === active); }); });
                     button.addEventListener('click', function(){ selectItem(index); });
                     resultsBox.appendChild(button);
                 });
