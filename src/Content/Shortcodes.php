@@ -1,7 +1,6 @@
 <?php
 namespace smp_publication_integration\Content;
 
-use Hexa\PluginCore\FaqSets\FaqSetManager;
 use smp_publication_integration\Support\Fields;
 use smp_publication_integration\Support\Settings;
 
@@ -103,8 +102,7 @@ final class Shortcodes {
             return "";
         }
 
-        $manager = new FaqSetManager();
-        $items = $manager->normalizeItems( $rows );
+        $items = $this->normalize_post_faq_items( $rows );
         if ( empty( $items ) ) {
             return "";
         }
@@ -117,17 +115,37 @@ final class Shortcodes {
             return esc_html( implode( " ", $text ) );
         }
 
-        $set = [
-            "name"  => "Post FAQs",
-            "slug"  => "post-" . $post_id . "-faqs",
-            "items" => $items,
-        ];
-        $html = $manager->renderFaqs( $set, [
-            "style"         => "list",
-            "inject_schema" => false,
-        ] );
+        return ArticleStyles::wrap_post_faqs( $this->render_post_faq_items( $items ), sanitize_key( (string) $atts["style"] ) );
+    }
 
-        return ArticleStyles::wrap_post_faqs( $html, sanitize_key( (string) $atts["style"] ) );
+    private function normalize_post_faq_items( array $rows ): array {
+        $items = [];
+        foreach ( $rows as $row ) {
+            if ( ! is_array( $row ) ) {
+                continue;
+            }
+            $question = trim( wp_strip_all_tags( (string) ( $row["question"] ?? "" ) ) );
+            $answer = $this->sanitize_post_faq_answer( (string) ( $row["answer"] ?? "" ) );
+            if ( "" === $question || "" === trim( wp_strip_all_tags( $answer ) ) ) {
+                continue;
+            }
+            $items[] = [ "question" => $question, "answer" => $answer ];
+        }
+        return $items;
+    }
+
+    private function render_post_faq_items( array $items ): string {
+        $html = "<ul class=\"smpi-post-faq-list\">";
+        foreach ( $items as $item ) {
+            $html .= "<li class=\"smpi-post-faq-item\"><h3 class=\"smpi-post-faq-question\">" . esc_html( (string) $item["question"] ) . "</h3><div class=\"smpi-post-faq-answer\">" . $item["answer"] . "</div></li>";
+        }
+        return $html . "</ul>";
+    }
+
+    private function sanitize_post_faq_answer( string $answer ): string {
+        $answer = preg_replace( "#<style[^>]*>.*?</style>#is", "", $answer ) ?? $answer;
+        $answer = preg_replace( "#<script[^>]*>.*?</script>#is", "", $answer ) ?? $answer;
+        return wp_kses_post( wpautop( $answer ) );
     }
 
     public function render_mission_statement( array $atts = [] ): string {
