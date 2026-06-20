@@ -7,7 +7,7 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.6.35`
+- Version: `0.6.36`
 
 ## Structure
 
@@ -43,6 +43,11 @@ WordPress plugin for Scale My Publication publication profiles.
 - Replaced SMP admin-AJAX action registration with `Hexa\PluginCore\WpAdminAjax\AjaxActionRegistry` and request parsing with `AjaxRequest`.
 - Replaced the Shortcodes debugger table with `Hexa\PluginCore\ShortcodeRegistry\ShortcodeDisplayRenderer`.
 - Updater flow fixed: SMP uses GitHub API version detection and Hexa WordPress Plugin Core post-install handling.
+
+## 0.6.36 Updates
+
+- Added schema graph connection coverage for homepage ItemList entries, article pages, FAQPage nodes, images, authors, taxonomy fallback mappings, and publisher references.
+- Added schema-safe fallbacks for missing post authors and image dimensions, plus category/tag based article type fallback for press releases, sponsored content, opinion, analysis, and reportage.
 
 ## 0.6.35 Updates
 

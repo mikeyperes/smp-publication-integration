@@ -177,33 +177,42 @@ final class Schema {
 
     public function generate_home_schema_array(): array {
         $org = $this->publication_entity();
-        $website_id = trailingslashit( home_url( "/" ) ) . "#website";
-        $page_id = trailingslashit( home_url( "/" ) ) . "#webpage";
-        $list_id = trailingslashit( home_url( "/" ) ) . "#homepage-itemlist";
+        $home_url = trailingslashit( home_url( "/" ) );
+        $website_id = $home_url . "#website";
+        $page_id = $home_url . "#webpage";
+        $list_id = $home_url . "#homepage-itemlist";
+        $org_id = (string) ( $org["@id"] ?? $home_url . "#organization" );
+        $description = get_bloginfo( "description" );
+        $last_modified = $this->site_last_modified();
 
         $website = $this->clean_schema( [
             "@type" => "WebSite",
             "@id" => $website_id,
-            "url" => home_url( "/" ),
+            "url" => $home_url,
             "name" => get_bloginfo( "name" ),
-            "publisher" => [ "@id" => $org["@id"] ],
+            "description" => $description,
+            "publisher" => [ "@id" => $org_id ],
+            "about" => [ "@id" => $org_id ],
             "inLanguage" => get_bloginfo( "language" ) ?: "en-US",
-            "potentialAction" => [ "@type" => "SearchAction", "target" => home_url( "/?s={search_term_string}" ), "query-input" => "required name=search_term_string" ],
+            "dateModified" => $last_modified,
+            "potentialAction" => [ "@type" => "SearchAction", "target" => $home_url . "?s={search_term_string}", "query-input" => "required name=search_term_string" ],
         ] );
 
-        $item_list = $this->homepage_item_list( $list_id );
+        $item_list = $this->homepage_item_list( $list_id, $org_id );
         $collection = $this->clean_schema( [
             "@type" => "CollectionPage",
             "@id" => $page_id,
-            "url" => home_url( "/" ),
+            "url" => $home_url,
             "name" => get_bloginfo( "name" ),
-            "description" => get_bloginfo( "description" ),
+            "headline" => get_bloginfo( "name" ),
+            "description" => $description,
             "isPartOf" => [ "@id" => $website_id ],
-            "about" => [ "@id" => $org["@id"] ],
-            "publisher" => [ "@id" => $org["@id"] ],
+            "about" => [ "@id" => $org_id ],
+            "publisher" => [ "@id" => $org_id ],
             "mainEntity" => [ "@id" => $list_id ],
+            "hasPart" => [ [ "@id" => $list_id ] ],
             "inLanguage" => get_bloginfo( "language" ) ?: "en-US",
-            "dateModified" => get_lastpostmodified( "c" ),
+            "dateModified" => $last_modified,
         ] );
 
         return [ "@context" => "https://schema.org", "@graph" => [ $org, $website, $collection, $item_list ] ];
@@ -216,24 +225,31 @@ final class Schema {
         }
 
         $org = $this->publication_entity();
-        $website_id = trailingslashit( home_url( "/" ) ) . "#website";
+        $home_url = trailingslashit( home_url( "/" ) );
+        $org_id = (string) ( $org["@id"] ?? $home_url . "#organization" );
+        $website_id = $home_url . "#website";
         $permalink = get_permalink( $post );
         $webpage_id = $permalink . "#webpage";
         $article_id = $permalink . "#article";
         $article_type = ArticleTypes::schema_type_for_post( $post_id );
-        $image = $this->featured_image_entity( $post_id, $permalink . "#primaryimage" );
+        $image = $this->primary_image_entity( $post_id, $permalink . "#primaryimage", $org["logo"] ?? null );
         $author = $this->author_entity( (int) $post->post_author );
+        $author_ref = $author ? [ "@id" => $author["@id"] ] : [ "@id" => $org_id ];
         $faq_rows = self::faq_rows_for_post( $post_id, true );
-        $faq = $faq_rows ? $this->faq_entity( $post_id, $permalink . "#faq", $faq_rows ) : [];
+        $faq = $faq_rows ? $this->faq_entity( $post_id, $permalink . "#faq", $faq_rows, $webpage_id ) : [];
         $breadcrumb = $this->breadcrumb_entity( $post_id, $permalink . "#breadcrumb" );
+        $description = $this->post_description( $post );
+        $language = get_bloginfo( "language" ) ?: "en-US";
 
         $website = $this->clean_schema( [
             "@type" => "WebSite",
             "@id" => $website_id,
-            "url" => home_url( "/" ),
+            "url" => $home_url,
             "name" => get_bloginfo( "name" ),
-            "publisher" => [ "@id" => $org["@id"] ],
-            "inLanguage" => get_bloginfo( "language" ) ?: "en-US",
+            "description" => get_bloginfo( "description" ),
+            "publisher" => [ "@id" => $org_id ],
+            "about" => [ "@id" => $org_id ],
+            "inLanguage" => $language,
         ] );
 
         $webpage = $this->clean_schema( [
@@ -241,31 +257,48 @@ final class Schema {
             "@id" => $webpage_id,
             "url" => $permalink,
             "name" => get_the_title( $post ),
+            "description" => $description,
             "isPartOf" => [ "@id" => $website_id ],
+            "about" => [ "@id" => $org_id ],
+            "publisher" => [ "@id" => $org_id ],
             "primaryImageOfPage" => $image ? [ "@id" => $image["@id"] ] : null,
             "breadcrumb" => $breadcrumb ? [ "@id" => $breadcrumb["@id"] ] : null,
             "mainEntity" => [ "@id" => $article_id ],
+            "hasPart" => $faq ? [ [ "@id" => $faq["@id"] ] ] : null,
             "datePublished" => get_the_date( DATE_W3C, $post ),
             "dateModified" => get_the_modified_date( DATE_W3C, $post ),
-            "inLanguage" => get_bloginfo( "language" ) ?: "en-US",
+            "inLanguage" => $language,
         ] );
 
         $article = $this->clean_schema( [
             "@type" => $article_type,
             "@id" => $article_id,
             "mainEntityOfPage" => [ "@id" => $webpage_id ],
+            "isPartOf" => [ "@id" => $webpage_id ],
             "headline" => get_the_title( $post ),
-            "description" => $this->post_description( $post ),
+            "name" => get_the_title( $post ),
+            "description" => $description,
+            "articleBody" => $this->post_article_body( $post ),
+            "wordCount" => $this->post_word_count( $post ),
             "url" => $permalink,
             "datePublished" => get_the_date( DATE_W3C, $post ),
             "dateModified" => get_the_modified_date( DATE_W3C, $post ),
-            "author" => $author ? [ "@id" => $author["@id"] ] : null,
-            "publisher" => [ "@id" => $org["@id"] ],
+            "author" => $author_ref,
+            "publisher" => [ "@id" => $org_id ],
             "image" => $image ? [ "@id" => $image["@id"] ] : null,
+            "thumbnailUrl" => $image["url"] ?? null,
             "articleSection" => $this->article_sections( $post_id ),
             "keywords" => $this->post_keywords( $post_id ),
+            "about" => $this->post_things( $post_id, "category" ),
+            "mentions" => $this->post_things( $post_id, "post_tag" ),
             "isAccessibleForFree" => true,
-            "genre" => "press-release" === get_post_type( $post_id ) ? "Press Release" : ArticleTypes::schema_type_label( $article_type ),
+            "inLanguage" => $language,
+            "genre" => ArticleTypes::schema_type_label( $article_type ),
+            "copyrightYear" => get_the_date( "Y", $post ),
+            "copyrightHolder" => [ "@id" => $org_id ],
+            "commentCount" => (int) get_comments_number( $post_id ),
+            "discussionUrl" => get_comments_link( $post_id ),
+            "speakable" => [ "@type" => "SpeakableSpecification", "cssSelector" => [ "h1", ".entry-content p:first-of-type", "article p:first-of-type" ] ],
             "hasPart" => $faq ? [ [ "@id" => $faq["@id"] ] ] : null,
         ] );
 
@@ -413,7 +446,7 @@ final class Schema {
         return $this->clean_schema( $schema );
     }
 
-    private function homepage_item_list( string $list_id ): array {
+    private function homepage_item_list( string $list_id, string $org_id ): array {
         $post_types = [ "post" ];
         if ( post_type_exists( "press-release" ) ) {
             $post_types[] = "press-release";
@@ -422,10 +455,26 @@ final class Schema {
         $items = [];
         $position = 1;
         foreach ( $posts as $post ) {
-            $items[] = [ "@type" => "ListItem", "position" => $position, "url" => get_permalink( $post ) ];
+            $permalink = get_permalink( $post );
+            $items[] = $this->clean_schema( [
+                "@type" => "ListItem",
+                "position" => $position,
+                "url" => $permalink,
+                "name" => get_the_title( $post ),
+                "item" => [
+                    "@type" => ArticleTypes::schema_type_for_post( (int) $post->ID ),
+                    "@id" => $permalink . "#article",
+                    "url" => $permalink,
+                    "name" => get_the_title( $post ),
+                    "headline" => get_the_title( $post ),
+                    "datePublished" => get_the_date( DATE_W3C, $post ),
+                    "dateModified" => get_the_modified_date( DATE_W3C, $post ),
+                    "publisher" => [ "@id" => $org_id ],
+                ],
+            ] );
             $position++;
         }
-        return $this->clean_schema( [ "@type" => "ItemList", "@id" => $list_id, "numberOfItems" => count( $items ), "itemListElement" => $items ] );
+        return $this->clean_schema( [ "@type" => "ItemList", "@id" => $list_id, "itemListOrder" => "https://schema.org/ItemListOrderDescending", "numberOfItems" => count( $items ), "itemListElement" => $items ] );
     }
 
     private function author_entity( int $user_id ): array {
@@ -448,6 +497,21 @@ final class Schema {
         ] );
     }
 
+    private function primary_image_entity( int $post_id, string $id, $fallback_logo = null ): array {
+        $image = $this->featured_image_entity( $post_id, $id );
+        if ( $image ) {
+            return $image;
+        }
+
+        if ( is_array( $fallback_logo ) && ! empty( $fallback_logo["url"] ) ) {
+            $width = isset( $fallback_logo["width"] ) && (int) $fallback_logo["width"] > 0 ? (int) $fallback_logo["width"] : null;
+            $height = isset( $fallback_logo["height"] ) && (int) $fallback_logo["height"] > 0 ? (int) $fallback_logo["height"] : null;
+            return $this->clean_schema( [ "@type" => "ImageObject", "@id" => $id, "url" => $fallback_logo["url"], "contentUrl" => $fallback_logo["url"], "thumbnailUrl" => $fallback_logo["url"], "width" => $width, "height" => $height, "caption" => get_bloginfo( "name" ) ] );
+        }
+
+        return [];
+    }
+
     private function featured_image_entity( int $post_id, string $id ): array {
         $attachment_id = get_post_thumbnail_id( $post_id );
         if ( ! $attachment_id ) {
@@ -457,7 +521,10 @@ final class Schema {
         if ( ! $src ) {
             return [];
         }
-        return $this->clean_schema( [ "@type" => "ImageObject", "@id" => $id, "url" => $src[0], "width" => isset( $src[1] ) ? (int) $src[1] : null, "height" => isset( $src[2] ) ? (int) $src[2] : null ] );
+        $width = isset( $src[1] ) && (int) $src[1] > 0 ? (int) $src[1] : null;
+        $height = isset( $src[2] ) && (int) $src[2] > 0 ? (int) $src[2] : null;
+        $url = esc_url_raw( (string) $src[0] );
+        return $this->clean_schema( [ "@type" => "ImageObject", "@id" => $id, "url" => $url, "contentUrl" => $url, "thumbnailUrl" => $url, "width" => $width, "height" => $height, "name" => get_the_title( $attachment_id ), "caption" => wp_strip_all_tags( (string) wp_get_attachment_caption( $attachment_id ) ), "representativeOfPage" => true ] );
     }
 
     private function breadcrumb_entity( int $post_id, string $id ): array {
@@ -473,12 +540,43 @@ final class Schema {
         return $this->clean_schema( [ "@type" => "BreadcrumbList", "@id" => $id, "itemListElement" => $items ] );
     }
 
-    private function faq_entity( int $post_id, string $id, array $rows ): array {
+    private function faq_entity( int $post_id, string $id, array $rows, string $webpage_id ): array {
         $items = [];
         foreach ( $rows as $row ) {
             $items[] = [ "@type" => "Question", "name" => $row["question"], "acceptedAnswer" => [ "@type" => "Answer", "text" => wp_strip_all_tags( (string) $row["answer"] ) ] ];
         }
-        return $this->clean_schema( [ "@type" => "FAQPage", "@id" => $id, "url" => get_permalink( $post_id ) . "#faq", "mainEntity" => $items ] );
+        return $this->clean_schema( [ "@type" => "FAQPage", "@id" => $id, "url" => get_permalink( $post_id ) . "#faq", "isPartOf" => [ "@id" => $webpage_id ], "mainEntityOfPage" => [ "@id" => $webpage_id ], "mainEntity" => $items ] );
+    }
+
+    private function post_article_body( \WP_Post $post ): string {
+        $content = strip_shortcodes( (string) $post->post_content );
+        $content = wp_strip_all_tags( $content );
+        $content = preg_replace( "/\s+/", " ", $content );
+        return trim( (string) $content );
+    }
+
+    private function post_word_count( \WP_Post $post ): int {
+        $body = $this->post_article_body( $post );
+        return $body ? count( preg_split( "/\s+/", $body ) ?: [] ) : 0;
+    }
+
+    private function post_things( int $post_id, string $taxonomy ): array {
+        $terms = get_the_terms( $post_id, $taxonomy );
+        if ( ! is_array( $terms ) ) {
+            return [];
+        }
+
+        $items = [];
+        foreach ( $terms as $term ) {
+            $url = get_term_link( $term, $taxonomy );
+            $items[] = $this->clean_schema( [ "@type" => "Thing", "name" => $term->name ?? "", "url" => is_wp_error( $url ) ? "" : $url ] );
+        }
+        return array_values( array_filter( $items ) );
+    }
+
+    private function site_last_modified(): string {
+        $modified = get_lastpostmodified( "blog" );
+        return $modified ? mysql2date( DATE_W3C, $modified, false ) : current_time( DATE_W3C );
     }
 
     private function post_description( \WP_Post $post ): string {

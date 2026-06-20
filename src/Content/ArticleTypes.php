@@ -179,22 +179,11 @@ final class ArticleTypes {
             return "NewsArticle";
         }
 
-        $terms = get_the_terms( $post_id, self::TAXONOMY );
-        if ( is_array( $terms ) ) {
-            foreach ( $terms as $term ) {
-                $slug = isset( $term->slug ) ? (string) $term->slug : "";
-                $config = self::terms()[ $slug ] ?? null;
-                if ( $config && ! empty( $config["schema_type"] ) ) {
-                    return (string) $config["schema_type"];
-                }
-            }
-        }
+        $selected = self::selected_slug_for_post( $post_id );
+        $slug = "" !== $selected ? $selected : self::default_slug_for_post( $post_id );
+        $config = self::terms()[ $slug ] ?? null;
 
-        if ( "press-release" === get_post_type( $post_id ) ) {
-            return "Article";
-        }
-
-        return "NewsArticle";
+        return $config && ! empty( $config["schema_type"] ) ? (string) $config["schema_type"] : "NewsArticle";
     }
 
     public static function schema_type_label( string $type ): string {
@@ -232,6 +221,41 @@ final class ArticleTypes {
     }
 
     private static function default_slug_for_post( int $post_id ): string {
-        return "press-release" === get_post_type( $post_id ) ? "press-release" : "editorial-news";
+        if ( "press-release" === get_post_type( $post_id ) ) {
+            return "press-release";
+        }
+
+        $taxonomy_slug = self::taxonomy_fallback_slug_for_post( $post_id );
+        return "" !== $taxonomy_slug ? $taxonomy_slug : "editorial-news";
+    }
+
+    private static function taxonomy_fallback_slug_for_post( int $post_id ): string {
+        $aliases = [
+            "sponsored" => [ "sponsored", "sponsored-content", "partner-content", "advertiser-content", "advertorial" ],
+            "press-release" => [ "press-release", "press-releases", "news-release", "press", "pr" ],
+            "opinion" => [ "opinion", "opinions", "column", "columns", "editorial" ],
+            "analysis" => [ "analysis", "analyses", "news-analysis", "market-analysis", "data-analysis" ],
+            "reportage" => [ "reportage", "reporting", "investigation", "investigations", "investigative" ],
+        ];
+
+        foreach ( [ "category", "post_tag" ] as $taxonomy ) {
+            $terms = get_the_terms( $post_id, $taxonomy );
+            if ( ! is_array( $terms ) ) {
+                continue;
+            }
+            foreach ( $terms as $term ) {
+                $candidates = array_filter( [
+                    isset( $term->slug ) ? sanitize_key( (string) $term->slug ) : "",
+                    isset( $term->name ) ? sanitize_title( (string) $term->name ) : "",
+                ] );
+                foreach ( $aliases as $article_type_slug => $matches ) {
+                    if ( array_intersect( $candidates, $matches ) ) {
+                        return $article_type_slug;
+                    }
+                }
+            }
+        }
+
+        return "";
     }
 }
