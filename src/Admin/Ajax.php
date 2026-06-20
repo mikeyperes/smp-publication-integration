@@ -58,6 +58,8 @@ final class Ajax {
             ]
         ) )->register();
 
+        add_filter( "hexa_plugin_core_smart_search_results", [ $this, "filter_smart_search_results" ], 10, 4 );
+
         add_action( 'admin_post_smpi_enable_verified_profile_snippet', [ $this, 'enable_verified_profile_snippet' ] );
     }
 
@@ -180,6 +182,42 @@ final class Ajax {
         return [ "profiles" => $profiles ];
     }
 
+    public function filter_smart_search_results( array $results, string $source, string $query, int $limit ): array {
+        if ( "smpi_profiles" !== $source ) {
+            return $results;
+        }
+
+        if ( ! post_type_exists( "profile" ) ) {
+            return [];
+        }
+
+        global $wpdb;
+
+        $like = "%" . $wpdb->esc_like( $query ) . "%";
+        $statuses = [ "publish", "draft", "pending", "private" ];
+        $placeholders = implode( ",", array_fill( 0, count( $statuses ), "%s" ) );
+        $prepared = $wpdb->prepare(
+            "SELECT DISTINCT p.ID FROM {$wpdb->posts} p LEFT JOIN {$wpdb->postmeta} pm ON pm.post_id = p.ID WHERE p.post_type = %s AND p.post_status IN (" . $placeholders . ") AND (p.post_title LIKE %s OR p.post_content LIKE %s OR pm.meta_value LIKE %s) ORDER BY p.post_title ASC LIMIT %d",
+            array_merge( [ "profile" ], $statuses, [ $like, $like, $like, max( 1, min( 50, $limit ) ) ] )
+        );
+
+        if ( ! is_string( $prepared ) || "" === $prepared ) {
+            return [];
+        }
+
+        $ids = $wpdb->get_col( $prepared );
+        $profiles = [];
+
+        foreach ( $ids as $id ) {
+            $post = get_post( absint( $id ) );
+            if ( $post && "profile" === get_post_type( $post ) ) {
+                $profiles[] = $this->profile_result( $post );
+            }
+        }
+
+        return $profiles;
+    }
+
     public function save_founder_profiles( AjaxRequest $request ): array {
         $this->require_verified_profiles();
         $ids = [];
@@ -213,12 +251,19 @@ final class Ajax {
     }
 
     private function profile_result( \WP_Post $post ): array {
+        $title = get_the_title( $post ) ?: "Profile #" . (string) $post->ID;
+        $status = get_post_status( $post ) ?: "unknown";
+
         return [
-            "id" => (int) $post->ID,
-            "label" => get_the_title( $post ),
-            "status" => get_post_status( $post ),
-            "edit_url" => get_edit_post_link( $post->ID, "raw" ),
-            "view_url" => get_permalink( $post ),
+            "id"        => (int) $post->ID,
+            "value"     => (int) $post->ID,
+            "label"     => $title,
+            "name"      => $title,
+            "subtitle"  => "Verified profile - " . $status,
+            "type"      => "profile",
+            "status"    => $status,
+            "edit_url"  => get_edit_post_link( $post->ID, "raw" ),
+            "view_url"  => get_permalink( $post ),
             "thumbnail" => get_the_post_thumbnail_url( $post, "thumbnail" ) ?: "",
         ];
     }

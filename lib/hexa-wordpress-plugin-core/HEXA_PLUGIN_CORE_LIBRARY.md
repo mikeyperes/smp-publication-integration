@@ -25,11 +25,13 @@ src/CoreContracts/      Hexa\PluginCore\CoreContracts
 src/CorePackageUpdates/ Hexa\PluginCore\CorePackageUpdates
 src/CoreRuntime/        Hexa\PluginCore\CoreRuntime
 src/CredentialVault/    Hexa\PluginCore\CredentialVault
+src/FaqSets/            Hexa\PluginCore\FaqSets
 src/LogFiles/           Hexa\PluginCore\LogFiles
 src/PluginProvisioning/ Hexa\PluginCore\PluginProvisioning
 src/PluginUpdates/      Hexa\PluginCore\PluginUpdates
 src/ShortcodeRegistry/  Hexa\PluginCore\ShortcodeRegistry
 src/SiteStructure/      Hexa\PluginCore\SiteStructure
+src/SchemaDetection/    Hexa\PluginCore\SchemaDetection
 src/SmartSearch/        Hexa\PluginCore\SmartSearch
 src/SystemEnvironment/  Hexa\PluginCore\SystemEnvironment
 src/WpAdminAjax/        Hexa\PluginCore\WpAdminAjax
@@ -885,3 +887,93 @@ Use `HostTabsRenderer` for the visible host plugin tab shell. It owns the shared
     ]
 );
 ```
+
+## System Checks
+
+`Hexa\PluginCore\SystemChecks\SystemChecksRenderer` renders grouped pass/fail/warn/info checklists from a flat item array. Use it for launch readiness, plugin health, schema audits, and environment checks instead of duplicating checklist HTML in host plugins. See `docs/system-checks.md`.
+
+## Schema Detection
+
+Namespace:
+
+```text
+Hexa\PluginCore\SchemaDetection
+```
+
+Use schema detection for plugin pages that fetch frontend URLs and inspect JSON-LD output. Host plugins own the list of URLs and expected schema types. The core owns fetching, JSON-LD extraction, source labels, duplicate-type conflicts, FAQPage validation, and the dark report UI.
+
+Primary classes:
+
+```text
+SchemaPageScanner
+SchemaScanRenderer
+```
+
+```php
+use Hexa\PluginCore\SchemaDetection\SchemaPageScanner;
+use Hexa\PluginCore\SchemaDetection\SchemaScanRenderer;
+
+$scanner = new SchemaPageScanner();
+$scan = $scanner->scanUrl(
+    home_url( "/" ),
+    [
+        "title" => "Homepage",
+        "cache_bust" => true,
+    ]
+);
+
+echo ( new SchemaScanRenderer() )->renderReport(
+    [ $scan ],
+    [
+        "title" => "Schema Detection Results: HOMEPAGE",
+        "expected" => [ "Expected: Person" ],
+    ]
+);
+```
+
+## FAQ Sets
+
+Namespace:
+
+```text
+Hexa\PluginCore\FaqSets
+```
+
+Use FAQ sets for repeatable question and answer collections that need shortcode output and FAQPage schema.
+
+Primary class:
+
+```text
+FaqSetManager
+```
+
+```php
+use Hexa\PluginCore\FaqSets\FaqSetManager;
+
+$manager = new FaqSetManager();
+$sets = $manager->sanitizeSets( $raw_sets );
+$set = $manager->resolveSet(
+    $sets,
+    "primary",
+    $primary_slug
+);
+
+echo $manager->renderFaqs(
+    $set,
+    [
+        "style" => "accordion",
+        "inject_schema" => true,
+    ]
+);
+```
+
+Core owns:
+
+- sanitizing FAQ set arrays
+- normalizing question and answer item arrays
+- resolving primary sets
+- safe answer link attributes
+- FAQPage schema arrays and JSON-LD script output
+- reusable list and accordion output
+
+Host plugins own option names, shortcode names, and any plugin-specific source of truth messaging.

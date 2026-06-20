@@ -2,7 +2,7 @@
 /**
  * Legacy bootstrap for SMP Publication Integration.
  * Canonical main plugin file: smp-publication-integration.php
- * Version: 0.6.27
+ * Version: 0.6.31
  */
 
 if ( ! defined( "ABSPATH" ) ) {

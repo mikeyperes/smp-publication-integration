@@ -201,7 +201,7 @@ final class Dashboard {
                 "id"          => "smpi-founder-profile-core-search",
                 "label"       => "Add founder profile",
                 "placeholder" => "Search verified profile records",
-                "source"      => "posts",
+                "source"      => "smpi_profiles",
                 "post_type"   => "profile",
                 "limit"       => 20,
             ]
