@@ -1,6 +1,10 @@
 <?php
 namespace smp_publication_integration\Support;
 
+use Hexa\PluginCore\ActivityLog\ActivityLogConfig;
+use Hexa\PluginCore\ActivityLog\ActivityLogEntry;
+use Hexa\PluginCore\ActivityLog\ActivityLogger;
+
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
@@ -248,14 +252,50 @@ final class Settings {
     }
 
     public static function activity_log(): array {
-        $log = get_option( 'smpi_activity_log', [] );
-        return is_array( $log ) ? array_slice( $log, 0, 25 ) : [];
+        $entries = array_reverse( self::activity_logger()->all() );
+        $log     = [];
+
+        foreach ( array_slice( $entries, 0, 25 ) as $entry ) {
+            $data      = $entry->to_array();
+            $timestamp = strtotime( (string) ( $data['timestamp'] ?? '' ) );
+            $log[]     = [
+                'time'    => $timestamp ? date_i18n( 'Y-m-d H:i:s', $timestamp ) : current_time( 'mysql' ),
+                'message' => sanitize_text_field( (string) ( $data['message'] ?? '' ) ),
+                'level'   => sanitize_key( (string) ( $data['level'] ?? 'info' ) ),
+                'source'  => sanitize_text_field( (string) ( $data['source'] ?? '' ) ),
+            ];
+        }
+
+        return $log;
     }
 
     public static function log( string $message ): void {
-        $log = self::activity_log();
-        array_unshift( $log, [ 'time' => current_time( 'mysql' ), 'message' => sanitize_text_field( $message ) ] );
-        update_option( 'smpi_activity_log', array_slice( $log, 0, 50 ), false );
+        self::activity_logger()->add(
+            new ActivityLogEntry(
+                sanitize_text_field( $message ),
+                [],
+                is_user_logged_in() ? wp_get_current_user()->user_login : 'system',
+                'smp-publication-integration',
+                null,
+                'info'
+            )
+        );
+    }
+
+    private static function activity_logger(): ActivityLogger {
+        return new ActivityLogger(
+            new ActivityLogConfig(
+                [
+                    'id'          => 'smpi-activity-log',
+                    'title'       => 'SMP Publication Activity',
+                    'storage'     => ActivityLogConfig::STORAGE_PERMANENT,
+                    'storage_key' => 'smpi_activity_log',
+                    'max_entries' => 50,
+                    'collapsed'   => true,
+                    'dark'        => true,
+                ]
+            )
+        );
     }
 
     public static function page_slug_url( int $page_id ): string {

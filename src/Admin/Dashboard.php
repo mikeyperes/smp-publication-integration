@@ -78,7 +78,7 @@ final class Dashboard {
     }
 
     private function tabs(): array {
-        return [
+        return apply_filters( 'smpi_dashboard_tabs', [
             'overview' => 'Overview',
             'publication_options' => 'Publication Options',
             'profiles' => 'Publication Profiles',
@@ -92,10 +92,14 @@ final class Dashboard {
             'verified_profiles' => 'Verified Profiles',
             'integrations' => 'Integrations',
             'quick_run' => 'Quick Run',
-        ];
+        ] );
     }
 
     private function tab( string $id ): void {
+        if ( apply_filters( 'smpi_render_dashboard_tab', false, $id ) ) {
+            return;
+        }
+
         if ( 'publication_options' === $id ) { $this->publication_options(); return; }
         if ( 'profiles' === $id ) { $this->profiles(); return; }
         if ( 'brand' === $id ) { $this->brand(); return; }

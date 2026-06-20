@@ -7,12 +7,13 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.6.22`
+- Version: `0.6.23`
 
 ## Structure
 
 - `smp-publication-integration.php`: canonical plugin bootstrap, dependency check, updater bootstrap. `initialization.php` is a legacy no-header loader for old installs.
-- `GitHub_Updater.php`: HWS-style GitHub update integration.
+- `GitHub_Updater.php`: legacy compatibility shim. GitHub update detection now delegates to bundled Hexa WordPress Plugin Core.
+- `lib/hexa-wordpress-plugin-core`: vendored Hexa WordPress Plugin Core library used for shared updater, admin-AJAX guard, tab, activity log, and plugin provisioning primitives.
 - `src/Content`: site publication options, ACF fields, shortcodes, and publication schema.
 - `src/Admin`: tabbed admin dashboard.
 - `src/Support`: autoloading, dependencies, and field alias helpers.
@@ -34,7 +35,18 @@ WordPress plugin for Scale My Publication publication profiles.
 
 ## Completed
 
-- Updater flow fixed: SMP uses GitHub API version detection and HWS Base Tools post-install handling. Verified 0.3.8 to 0.3.9 updates on HerForward and Mashviral.
+- Bundled Hexa WordPress Plugin Core and registered the Hexa Core tab through dashboard filters.
+- Replaced the standalone GitHub updater with `Hexa\PluginCore\PluginUpdates`.
+- Replaced repeated AJAX nonce/capability checks with `Hexa\PluginCore\WpAdminAjax\AjaxGuard`.
+- Replaced the SMP activity log writer with `Hexa\PluginCore\ActivityLog` permanent option storage.
+- Replaced Integrations plugin install/update mechanics with `Hexa\PluginCore\PluginProvisioning` and `Hexa\PluginCore\PluginUpdates`.
+- Updater flow fixed: SMP uses GitHub API version detection and Hexa WordPress Plugin Core post-install handling.
+
+## 0.6.23 Updates
+
+- Integrated bundled Hexa WordPress Plugin Core v0.10.0.
+- Added SMP dashboard filters for core tab registration and rendering.
+- Swapped updater, AJAX guard, activity logging, GitHub version lookup, and plugin install/update mechanics to shared core classes.
 
 ## 0.6.7 Updates
 

@@ -1,6 +1,11 @@
 <?php
 namespace smp_publication_integration\Support;
 
+use Hexa\PluginCore\PluginProvisioning\PluginProvisioner;
+use Hexa\PluginCore\PluginUpdates\DirectPluginInstaller;
+use Hexa\PluginCore\PluginUpdates\GitHubVersionClient;
+use Hexa\PluginCore\PluginUpdates\UpdaterConfig;
+
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
@@ -33,15 +38,16 @@ final class PluginRegistry {
         $data = $installed[ $plugin_file ] ?? [];
         $config = $catalog[ $plugin_file ] ?? [ 'label' => $plugin_file, 'type' => 'external', 'repo' => '', 'starter' => basename( $plugin_file ) ];
         $response = is_object( $updates ) && isset( $updates->response[ $plugin_file ] ) ? $updates->response[ $plugin_file ] : null;
+        $core_status = PluginProvisioner::plugin_status_by_file( $plugin_file );
 
         return [
             'plugin_file' => $plugin_file,
             'label' => $config['label'],
             'type' => $config['type'],
             'github_repo' => $config['repo'],
-            'installed' => isset( $installed[ $plugin_file ] ),
-            'active' => Dependencies::plugin_active( $plugin_file ),
-            'version' => $data['Version'] ?? '',
+            'installed' => (bool) $core_status['installed'],
+            'active' => (bool) $core_status['active'],
+            'version' => $core_status['version'] ?? ( $data['Version'] ?? '' ),
             'name' => $data['Name'] ?? $config['label'],
             'author' => $data['Author'] ?? '',
             'update_available' => (bool) $response,
@@ -64,15 +70,21 @@ final class PluginRegistry {
         if ( false !== $cached ) {
             return (string) $cached;
         }
-        $response = wp_remote_get( 'https://raw.githubusercontent.com/' . $repo . '/main/' . ltrim( $starter, '/' ), [ 'timeout' => 8 ] );
-        if ( is_wp_error( $response ) ) {
-            set_transient( $cache_key, '', 15 * MINUTE_IN_SECONDS );
-            return '';
-        }
-        $version = '';
-        if ( preg_match( '/^\s*\*?\s*Version:\s*([^\r\n]+)/mi', wp_remote_retrieve_body( $response ), $matches ) ) {
-            $version = trim( $matches[1] );
-        }
+
+        $slug = basename( UpdaterConfig::normalize_github_repo( $repo ) );
+        $updater_config = UpdaterConfig::from_slug_and_github_url(
+            $slug,
+            $repo,
+            [
+                'plugin_starter_file' => basename( $starter ),
+                'plugin_name'         => $slug,
+                'version'             => '0.0.0',
+                'github_branch'       => 'main',
+            ]
+        );
+        $version = ( new GitHubVersionClient( $updater_config ) )->remote_version( true );
+        $version = is_string( $version ) ? $version : '';
+
         set_transient( $cache_key, $version, HOUR_IN_SECONDS );
         return $version;
     }
@@ -87,7 +99,7 @@ final class PluginRegistry {
         }
         require_once ABSPATH . 'wp-admin/includes/plugin.php';
         if ( 'activate' === $operation ) {
-            return activate_plugin( $plugin_file );
+            return PluginProvisioner::activate_plugin_file( $plugin_file );
         }
         if ( 'deactivate' === $operation ) {
             deactivate_plugins( $plugin_file );
@@ -104,10 +116,38 @@ final class PluginRegistry {
             if ( ! $repo ) {
                 return new \WP_Error( 'smpi_no_repo', 'No GitHub repository is configured for this plugin.' );
             }
-            require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
-            $skin = new \Automatic_Upgrader_Skin();
-            $upgrader = new \Plugin_Upgrader( $skin );
-            return $upgrader->install( 'https://github.com/' . $repo . '/archive/refs/heads/main.zip', [ 'overwrite_package' => true ] );
+
+            $slug = dirname( $plugin_file );
+            if ( 'install' === $operation ) {
+                return PluginProvisioner::ensure_github_plugin_active(
+                    $slug,
+                    $repo,
+                    [
+                        'branch'      => 'main',
+                        'work_prefix' => 'smpi-github-plugin',
+                    ]
+                );
+            }
+
+            $installed = get_plugins();
+            $data = $installed[ $plugin_file ] ?? [];
+            $updater_config = UpdaterConfig::from_slug_and_github_url(
+                $slug,
+                $repo,
+                [
+                    'plugin_starter_file'       => $catalog[ $plugin_file ]['starter'],
+                    'plugin_basename'           => $plugin_file,
+                    'canonical_plugin_basename' => $plugin_file,
+                    'proper_folder_name'        => $slug,
+                    'runtime_folder_name'       => $slug,
+                    'plugin_name'               => $catalog[ $plugin_file ]['label'],
+                    'version'                   => $data['Version'] ?? '0.0.0',
+                    'github_branch'             => 'main',
+                    'progress_key'              => 'smpi_plugin_update_progress_' . md5( $plugin_file ),
+                ]
+            );
+
+            return ( new DirectPluginInstaller( $updater_config ) )->run();
         }
         return new \WP_Error( 'smpi_bad_action', 'Unsupported action.' );
     }

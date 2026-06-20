@@ -4,7 +4,7 @@
  * Description: Publication profile integration for Scale My Publication systems.
  * Author: Michael Peres
  * Plugin URI: https://github.com/mikeyperes/smp-publication-integration
- * Version: 0.6.22
+ * Version: 0.6.23
  * Text Domain: smp-publication-integration
  * Domain Path: /languages
  * Author URI: https://michaelperes.com
@@ -21,6 +21,36 @@ if ( ! defined( 'ABSPATH' ) ) {
 require_once __DIR__ . '/src/Support/Autoloader.php';
 
 Support\Autoloader::register( __DIR__ . '/src' );
+
+function register_hexa_plugin_core_autoloader(): void {
+    static $registered = false;
+
+    if ( $registered ) {
+        return;
+    }
+
+    $base_dir = __DIR__ . '/lib/hexa-wordpress-plugin-core/src/';
+    $prefix   = 'Hexa\\PluginCore\\';
+
+    spl_autoload_register(
+        static function( string $class_name ) use ( $base_dir, $prefix ): void {
+            if ( strncmp( $class_name, $prefix, strlen( $prefix ) ) !== 0 ) {
+                return;
+            }
+
+            $relative_class = substr( $class_name, strlen( $prefix ) );
+            $file           = $base_dir . str_replace( '\\', DIRECTORY_SEPARATOR, $relative_class ) . '.php';
+
+            if ( is_readable( $file ) ) {
+                require_once $file;
+            }
+        }
+    );
+
+    $registered = true;
+}
+
+register_hexa_plugin_core_autoloader();
 
 require_once __DIR__ . "/src/Content/AcfFields.php";
 require_once __DIR__ . "/src/Content/Shortcodes.php";
@@ -40,7 +70,7 @@ require_once __DIR__ . "/src/Admin/Ajax.php";
 require_once __DIR__ . "/src/Admin/Dashboard.php";
 
 final class Config {
-    public const VERSION = "0.6.22";
+    public const VERSION = "0.6.23";
 
     public static string $plugin_name        = 'SMP Publication Integration';
     public static string $plugin_slug        = 'smp-publication-integration';
@@ -61,6 +91,58 @@ final class Config {
 }
 
 Support\BootstrapMigration::register( Config::$plugin_folder_name, Config::$plugin_file );
+
+function hexa_plugin_core_updater_config(): \Hexa\PluginCore\PluginUpdates\UpdaterConfig {
+    static $config = null;
+
+    if ( $config instanceof \Hexa\PluginCore\PluginUpdates\UpdaterConfig ) {
+        return $config;
+    }
+
+    $config = \Hexa\PluginCore\PluginUpdates\UpdaterConfig::from_plugin_file(
+        __FILE__,
+        Config::$github_repo,
+        [
+            'plugin_slug'               => Config::$plugin_folder_name,
+            'proper_folder_name'        => Config::$plugin_folder_name,
+            'runtime_folder_name'       => Config::$plugin_folder_name,
+            'plugin_basename'           => Config::plugin_basename(),
+            'canonical_plugin_basename' => Config::$plugin_folder_name . '/' . Config::$plugin_file,
+            'plugin_starter_file'       => Config::$plugin_file,
+            'github_branch'             => Config::$github_branch,
+            'requires'                  => '5.0',
+            'tested'                    => '7.0',
+            'nonce_action'              => Admin\Ajax::NONCE,
+            'nonce_param'               => 'nonce',
+            'ajax_action_prefix'        => 'smpi_core_updater',
+            'progress_key'              => 'smpi_core_update_progress',
+        ]
+    );
+
+    return $config;
+}
+
+function hexa_plugin_core_package_config(): \Hexa\PluginCore\CorePackageUpdates\CorePackageConfig {
+    static $config = null;
+
+    if ( $config instanceof \Hexa\PluginCore\CorePackageUpdates\CorePackageConfig ) {
+        return $config;
+    }
+
+    $config = \Hexa\PluginCore\CorePackageUpdates\CorePackageConfig::from_core_root(
+        __DIR__ . '/lib/hexa-wordpress-plugin-core',
+        [
+            'github_repo'        => 'mikeyperes/hexa-wordpress-plugin-core',
+            'github_branch'      => 'main',
+            'nonce_action'       => Admin\Ajax::NONCE,
+            'nonce_param'        => 'nonce',
+            'ajax_action_prefix' => 'smpi_core_package',
+            'cache_key'          => 'smpi_hexa_plugin_core_package',
+        ]
+    );
+
+    return $config;
+}
 
 function boot_github_updater(): void {
     if ( ! is_admin() && ! wp_doing_ajax() && ! wp_doing_cron() && ! ( defined( 'WP_CLI' ) && WP_CLI ) ) {
@@ -105,6 +187,21 @@ function boot_plugin(): void {
     ( new Content\DebugEndpoint() )->register();
 
     if ( is_admin() || wp_doing_ajax() ) {
+        ( new \Hexa\PluginCore\PluginUpdates\UpdaterAjaxController( hexa_plugin_core_updater_config() ) )->register();
+        ( new \Hexa\PluginCore\CorePackageUpdates\CorePackageAjaxController( hexa_plugin_core_package_config() ) )->register();
+        ( new \Hexa\PluginCore\WpAdminTabs\CoreTabModule(
+            new \Hexa\PluginCore\WpAdminTabs\CoreTabConfig(
+                [
+                    'tabs_filter'   => 'smpi_dashboard_tabs',
+                    'render_filter' => 'smpi_render_dashboard_tab',
+                    'capability'    => Config::$settings_page_capability,
+                    'core_root'     => __DIR__ . '/lib/hexa-wordpress-plugin-core',
+                    'readme_path'   => __DIR__ . '/lib/hexa-wordpress-plugin-core/README.md',
+                    'library_path'  => __DIR__ . '/HEXA_PLUGIN_CORE_LIBRARY.md',
+                ]
+            )
+        ) )->register();
+
         ( new Admin\Ajax() )->register();
         ( new Admin\Dashboard() )->register();
     }

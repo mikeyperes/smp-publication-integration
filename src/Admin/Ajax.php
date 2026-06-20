@@ -1,6 +1,7 @@
 <?php
 namespace smp_publication_integration\Admin;
 
+use Hexa\PluginCore\WpAdminAjax\AjaxGuard;
 use smp_publication_integration\Support\Dependencies;
 use smp_publication_integration\Support\PluginRegistry;
 use smp_publication_integration\Support\Settings;
@@ -29,14 +30,12 @@ final class Ajax {
     }
 
     public static function nonce(): string {
-        return wp_create_nonce( self::NONCE );
+        return AjaxGuard::create_nonce( self::NONCE );
     }
 
     private function guard(): void {
-        if ( ! current_user_can( 'manage_options' ) ) {
-            wp_send_json_error( [ 'message' => 'Permission denied.' ], 403 );
-        }
-        check_ajax_referer( self::NONCE, 'nonce' );
+        AjaxGuard::require_capability_or_error( 'manage_options', 'Permission denied.' );
+        AjaxGuard::require_nonce_or_error( self::NONCE, 'nonce' );
     }
 
     public function load_tab(): void {
