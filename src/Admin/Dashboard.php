@@ -1097,7 +1097,7 @@ final class Dashboard {
     }
 
     private function faq_design_preview_html( string $style ): string {
-        $content = "<ul><li><strong>Q: What record did Messi tie?</strong><br><strong>A:</strong> He tied Klose's World Cup goals record with a hat trick against Algeria.</li><li><strong>Q: What injury did Jose Ramirez sustain?</strong><br><strong>A:</strong> Surgery on a broken hamate bone, about five to seven weeks of recovery.</li></ul>";
+        $content = "<ul class=\"smpi-post-faq-list\"><li class=\"smpi-post-faq-item\"><h3 class=\"smpi-post-faq-question\">What record did Messi tie?</h3><div class=\"smpi-post-faq-answer\"><p>He tied Klose's World Cup goals record with a hat trick against Algeria.</p></div></li><li class=\"smpi-post-faq-item\"><h3 class=\"smpi-post-faq-question\">What injury did Jose Ramirez sustain?</h3><div class=\"smpi-post-faq-answer\"><p>Surgery on a broken hamate bone, about five to seven weeks of recovery.</p></div></li></ul>";
         if ( "none" === $style ) {
             return "<section class=\"smpi-post-faqs smpi-none\">" . $content . "</section>";
         }
