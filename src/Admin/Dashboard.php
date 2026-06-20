@@ -3,6 +3,7 @@ namespace smp_publication_integration\Admin;
 
 use Hexa\PluginCore\ShortcodeRegistry\ShortcodeDisplayRenderer;
 use Hexa\PluginCore\SmartSearch\SmartSearchRenderer;
+use Hexa\PluginCore\FieldStructures\FieldStructureRenderer;
 use Hexa\PluginCore\WpAdminTabs\HostTabsRenderer;
 use Hexa\PluginCore\SiteStructure\SiteStructureRenderer;
 use smp_publication_integration\Config;
@@ -104,6 +105,7 @@ final class Dashboard {
             'shortcodes' => 'Shortcodes',
             'schema' => 'Schema',
             'reports' => 'Reports',
+            'custom_fields' => 'Custom Fields',
             'features' => 'Features',
             'optimization' => 'Optimization',
             'pages' => 'Pages',
@@ -124,6 +126,7 @@ final class Dashboard {
         if ( 'shortcodes' === $id ) { $this->shortcodes(); return; }
         if ( 'schema' === $id ) { $this->schema(); return; }
         if ( 'reports' === $id ) { $this->reports(); return; }
+        if ( "custom_fields" === $id ) { $this->custom_fields(); return; }
         if ( 'features' === $id ) { $this->features(); return; }
         if ( 'optimization' === $id ) { $this->optimization(); return; }
         if ( 'pages' === $id ) { $this->pages(); return; }
@@ -700,6 +703,14 @@ final class Dashboard {
     }
 
 
+
+    private function article_type_selector_report_text(): string {
+        $enabled = \smp_publication_integration\Content\ArticleTypes::is_enabled();
+        $registered = taxonomy_exists( \smp_publication_integration\Content\ArticleTypes::TAXONOMY );
+        $post_types = \smp_publication_integration\Content\ArticleTypes::supported_post_types();
+        return "Article type selector is " . ( $enabled ? "enabled" : "disabled" ) . "; taxonomy registered: " . ( $registered ? "yes" : "no" ) . "; post types: " . implode( ", ", $post_types ) . ".";
+    }
+
     private function schema(): void {
         $schema = new Schema();
         $post_id = $this->latest_post_id();
@@ -766,6 +777,132 @@ final class Dashboard {
 
 
 
+
+    private function custom_fields(): void {
+        $settings = Settings::all();
+        $acf_active = Dependencies::acf_active();
+        $post_header_group_registered = function(): bool {
+            return function_exists( "acf_get_field_group" ) && (bool) acf_get_field_group( "group_64a7290b61191" );
+        };
+        $visibility_group_registered = function(): bool {
+            return function_exists( "acf_get_field_group" ) && (bool) acf_get_field_group( "group_smpi_visibility_controls" );
+        };
+
+        $definitions = [
+            [
+                "id" => "publication_options_acf",
+                "label" => "Publication Options ACF",
+                "type" => "acf",
+                "enabled" => true,
+                "registered" => function() use ( $acf_active ): bool { return $acf_active && function_exists( "acf_get_field_group" ) && (bool) acf_get_field_group( "group_smpi_publication_profile" ); },
+                "acf_group_key" => "group_smpi_publication_profile",
+                "object_name" => "smp-publication-integration options page",
+                "location" => "ACF options page: smp-publication-integration",
+                "description" => "Main publication profile fields, schema policy references, contact points, founder setup guidance, and fallback publication identity fields.",
+                "instructions" => "Edit these fields from the Publication Options tab. They stay always on because SMP schema and shortcodes depend on them.",
+                "fields" => [ "smpi_publication_user", "smpi_founder_profiles", "smpi_publication_summary", "smpi_publication_logo", "schema policy pages", "contactPoint", "postalAddress", "smpi_schema_markup" ],
+                "dependencies" => [ "ACF Pro", "SMP publication options page" ],
+                "code_example" => "[smp_publication_field field=legal_name format=text]",
+                "test_report" => "ACF is " . ( $acf_active ? "active" : "inactive" ) . "; publication options group should be registered on the options page.",
+            ],
+            [
+                "id" => "post_summary_acf",
+                "label" => "Post Summary ACF",
+                "type" => "acf",
+                "setting_key" => "post_summary_acf_enabled",
+                "enabled" => Settings::bool( "post_summary_acf_enabled" ),
+                "registered" => function(): bool { return Settings::bool( "post_summary_acf_enabled" ) && function_exists( "acf_get_field" ) && (bool) acf_get_field( "field_65ab7ba0e849b" ); },
+                "acf_group_key" => "group_64a7290b61191",
+                "object_name" => "post_summary",
+                "location" => "post, press-release, imported-news editors",
+                "description" => "Optional article summary field used by shortcodes and single article treatments.",
+                "instructions" => "Enable this when editors need a reusable post summary separate from the article body. Styling controls remain in Features.",
+                "fields" => [ "post_summary" ],
+                "dependencies" => [ "ACF Pro", "Post Header local field group" ],
+                "code_example" => "[smp_post_summary style=\"sum00\"]",
+                "test_report" => $this->post_acf_addons_report_text(),
+            ],
+            [
+                "id" => "post_faq_acf",
+                "label" => "Post FAQ ACF",
+                "type" => "acf",
+                "setting_key" => "post_faqs_acf_enabled",
+                "enabled" => Settings::bool( "post_faqs_acf_enabled" ),
+                "registered" => function(): bool { return Settings::bool( "post_faqs_acf_enabled" ) && function_exists( "acf_get_field" ) && (bool) acf_get_field( "field_smpi_post_faq_items" ); },
+                "acf_group_key" => "group_64a7290b61191",
+                "object_name" => "post_faq_items",
+                "location" => "post, press-release, imported-news editors",
+                "description" => "Structured FAQ rows that power FAQPage schema and display shortcodes.",
+                "instructions" => "Enable this when article editors need repeatable question and answer rows. Schema rows can be disabled one by one in the editor.",
+                "fields" => [ "question", "answer", "enabled_for_schema" ],
+                "dependencies" => [ "ACF Pro", "FAQPage schema output", "SMP post FAQ shortcode" ],
+                "code_example" => "[smp_post_faqs style=\"faq02\"]",
+                "test_report" => $this->post_acf_addons_report_text(),
+            ],
+            [
+                "id" => "shadow_visibility_acf",
+                "label" => "Post Shadow Visibility ACF",
+                "type" => "acf",
+                "setting_key" => "shadow_posts_enabled",
+                "enabled" => Settings::bool( "shadow_posts_enabled" ),
+                "registered" => function() use ( $visibility_group_registered ): bool { return Settings::bool( "shadow_posts_enabled" ) && $visibility_group_registered(); },
+                "acf_group_key" => "group_smpi_visibility_controls",
+                "object_name" => "_smpi_shadow_complete, _smpi_shadow_home",
+                "location" => "post and press-release side metabox",
+                "description" => "Editor controls that hide posts from archive queries while keeping direct URLs accessible.",
+                "instructions" => "Enable this for editorial shadowing controls. The front end still allows direct single URLs.",
+                "fields" => [ "_smpi_shadow_complete", "_smpi_shadow_home" ],
+                "dependencies" => [ "ACF Pro", "pre_get_posts archive filters" ],
+                "code_example" => "get_field(\"_smpi_shadow_complete\", $post_id)",
+                "test_report" => "Shadow posts setting is " . ( Settings::bool( "shadow_posts_enabled" ) ? "enabled" : "disabled" ) . ".",
+            ],
+            [
+                "id" => "press_release_visibility_acf",
+                "label" => "Press Release Visibility ACF",
+                "type" => "acf",
+                "setting_key" => "press_release_include_enabled",
+                "enabled" => Settings::bool( "press_release_include_enabled" ) || Settings::bool( "shadow_press_releases" ),
+                "registered" => function() use ( $visibility_group_registered ): bool { return ( Settings::bool( "press_release_include_enabled" ) || Settings::bool( "shadow_press_releases" ) ) && $visibility_group_registered(); },
+                "acf_group_key" => "group_smpi_visibility_controls",
+                "object_name" => "_smpi_pr_shadow_override",
+                "location" => "press-release side metabox",
+                "description" => "Per-post override for global press-release inclusion or hiding rules.",
+                "instructions" => "Use this when press releases need force-show or force-hide control independent of global defaults.",
+                "fields" => [ "_smpi_pr_shadow_override" ],
+                "dependencies" => [ "ACF Pro", "press-release CPT" ],
+                "code_example" => "get_field(\"_smpi_pr_shadow_override\", $post_id)",
+                "test_report" => "Press-release inclusion setting is " . ( Settings::bool( "press_release_include_enabled" ) ? "enabled" : "disabled" ) . ".",
+            ],
+            [
+                "id" => "article_type_taxonomy",
+                "label" => "Article Type Taxonomy",
+                "type" => "taxonomy",
+                "setting_key" => "article_types_enabled",
+                "enabled" => Settings::bool( "article_types_enabled" ),
+                "registered" => function(): bool { return Settings::bool( "article_types_enabled" ) && taxonomy_exists( \smp_publication_integration\Content\ArticleTypes::TAXONOMY ); },
+                "object_name" => \smp_publication_integration\Content\ArticleTypes::TAXONOMY,
+                "location" => "post, press-release, imported-news editors",
+                "description" => "Controlled taxonomy that maps editorial selections to schema article types.",
+                "instructions" => "Enable this to show the radio-only Article Type selector. Terms are managed by code so editors cannot create arbitrary schema labels.",
+                "fields" => array_keys( \smp_publication_integration\Content\ArticleTypes::terms() ),
+                "dependencies" => [ "WordPress taxonomy API", "SMP article schema mapper" ],
+                "code_example" => "register_taxonomy(\"smpi_article_type\", [\"post\", \"press-release\", \"imported-news\"]);",
+                "test_report" => $this->article_type_selector_report_text(),
+            ],
+        ];
+
+        echo ( new FieldStructureRenderer() )->render(
+            $definitions,
+            [
+                "title" => "Custom Fields and Content Structures",
+                "description" => "SMP field groups, editor structures, taxonomies, dependencies, and live registration status rendered through Hexa WordPress Plugin Core.",
+                "save_action" => "smpi_save_settings",
+                "nonce" => Ajax::nonce(),
+                "nonce_field" => "nonce",
+            ]
+        );
+    }
+
     private function features(): void {
         $settings = Settings::all();
         echo "<div class=\"smpi-hero\"><p class=\"smpi-kicker\">Features</p><h2>Feature controls, implementation notes, code examples, live test reports, and activity logs.</h2><p>Each feature is isolated behind settings so it can be enabled, tested, or removed without mixing concerns.</p></div>";
@@ -782,14 +919,14 @@ final class Dashboard {
         $publication_muckrack_controls = $this->select_setting_html( "publication_muckrack_text_mode", [ "news_outlet" => [ "label" => "News outlet verified by MuckRack editorial team", "description" => "Generic wording when you do not want the site name in the sentence." ], "publication_name" => [ "label" => get_bloginfo( "name" ) . " verified by MuckRack editorial team", "description" => "Uses the current publication name in the verification sentence." ] ], $settings, "Text option" ) . $this->select_setting_html( "publication_muckrack_style", [ "block" => [ "label" => "Editorial block", "description" => "Small article footer block with a left accent bar.", "preview" => $this->publication_preview_sample_html( "block", $settings ) ], "mini_block" => [ "label" => "Mini editorial block", "description" => "Same left-accent editorial concept with smaller text and a quieter footprint.", "preview" => $this->publication_preview_sample_html( "mini_block", $settings ) ], "compact" => [ "label" => "Compact pill", "description" => "Small inline badge for tight author or header layouts.", "preview" => $this->publication_preview_sample_html( "compact", $settings ) ], "minimalist" => [ "label" => "Minimalist text", "description" => "Plain text treatment that blends into existing article copy.", "preview" => $this->publication_preview_sample_html( "minimalist", $settings ) ] ], $settings, "Display style" ) . $this->color_setting_html( "publication_muckrack_color", "Accent color", $settings ) . $this->number_setting_html( "publication_muckrack_font_size", "Verification text size", $settings, 8, 64, "px" ) . $this->context_select_html( "publication_muckrack_placements", [ "below_author" => "Below author", "bottom_article" => "Bottom of article" ], $settings );
         $this->feature_card( "MuckRack verified publication", "publication_muckrack_verified_enabled", "Registers site option ACF fields on Publication Theme Options: smpi_publication_muckrack_verified and smpi_publication_muckrack_url.", "Displays publication-level MuckRack verification text separately from journalist verification. Use this for the site/news-outlet claim, not the author badge.", "[smp_publication_muckrack_verified]", $this->publication_muckrack_report_html(), $this->activity_log_html(), $publication_muckrack_controls );
         $this->feature_card( "Press-release inclusion controls", "press_release_include_enabled", "Uses existing press-release CPT and _smpi_pr_shadow_override meta. ACF/local fields are registered for force include or force exclude.", "Includes Hexa PR Wire press-release posts in selected blog-like loops: home, category/tag, author.php, and single.php recent article secondary queries. Force exclude is honored through the press-release visibility meta box.", "add_action(\"pre_get_posts\", function (WP_Query \$q) { /* SMP uses the same main-query guard pattern and selected contexts. */ });", $this->press_release_report_html(), $this->activity_log_html(), $this->context_select_html( "press_release_include_contexts", [ "home" => "Home page", "category_tag" => "Category and tag pages", "author" => "author.php", "single_recent" => "single.php recent article queries" ], $settings ) );
-        $this->feature_card( "Article type schema selector", "article_types_enabled", "No ACF fields needed. Registers the <code>smpi_article_type</code> taxonomy only when this feature is enabled.", "Adds one radio-only Article Type box to supported article editors. The field is hidden when disabled and only allows predefined schema-backed values.", "editorial-news => NewsArticle\nanalysis => AnalysisNewsArticle\nopinion => OpinionNewsArticle\nreportage => ReportageNewsArticle\npress-release => Article\nsponsored => AdvertiserContentArticle", $this->article_type_selector_report_html(), $this->activity_log_html(), $this->article_type_selector_options_html() );
+        $this->feature_card( "Article type schema selector", "", "Moved to the Custom Fields tab. Registers the <code>smpi_article_type</code> taxonomy only when enabled there.", "Adds one radio-only Article Type box to supported article editors. The field is hidden when disabled and only allows predefined schema-backed values.", "editorial-news => NewsArticle\nanalysis => AnalysisNewsArticle\nopinion => OpinionNewsArticle\nreportage => ReportageNewsArticle\npress-release => Article\nsponsored => AdvertiserContentArticle", $this->article_type_selector_report_html(), $this->activity_log_html(), "<p class=\"smpi-muted\">Registration toggle lives in Custom Fields.</p>" . $this->article_type_selector_options_html() );
         $this->feature_card( "Estimated read time", "estimated_read_time_enabled", "No custom ACF fields needed. Reads the selected post content directly.", "Calculates reading time from post_content after stripping HTML and shortcodes. The shortcode returns a plain numeric value in minutes by default or seconds when unit=seconds is passed.", "[smp_estimated_read_time]\n[smp_estimated_read_time unit=\"seconds\"]\n[smp_estimated_read_time post_id=\"123\" unit=\"minutes\"]", $this->estimated_read_time_report_html(), $this->activity_log_html() );
         $toc_controls = $this->inline_toggle_setting_html( "table_of_contents_auto_single", "Automatically show above single.php content" ) . $this->select_setting_html( "table_of_contents_style", $this->toc_style_options(), $settings, "Table of contents design" ) . $this->color_setting_html( "table_of_contents_accent_color", "Table of contents accent color", $settings ) . $this->font_style_setting_html( "table_of_contents_text_font_style", "Table of contents text font style", $settings ) . $this->number_setting_html( "table_of_contents_text_font_size", "Table of contents text font size", $settings, 8, 64, "px" ) . $this->color_setting_html( "table_of_contents_text_color", "Table of contents text color", $settings );
         $this->feature_card( "Table of contents", "table_of_contents_enabled", "No ACF changes. Parses post headings from post_content.", "Adds [smp_table_of_contents] and optional automatic display above single.php content. Select the single.php display treatment here or use style= on the shortcode.", "[smp_table_of_contents]\n[smp_table_of_contents style=\"toc02\"]\n[smp_table_of_contents post_id=\"123\" title=\"In this article\"]", $this->table_of_contents_report_html(), $this->activity_log_html(), $toc_controls );
         $inline_photo_controls = $this->select_setting_html( "inline_photo_treatment", $this->inline_photo_treatment_options(), $settings, "Inline photo treatment" ) . $this->color_setting_html( "inline_photo_accent_color", "Inline photo accent color", $settings ) . $this->font_style_setting_html( "inline_photo_caption_font_style", "Caption text font style", $settings ) . $this->number_setting_html( "inline_photo_caption_font_size", "Caption text font size", $settings, 8, 64, "px" ) . $this->color_setting_html( "inline_photo_caption_text_color", "Caption text color", $settings );
         $this->feature_card( "Inline photo treatments", "inline_photo_treatments_enabled", "No ACF changes. Applies selected treatment to inline figures in posts and press-release articles.", "Prestyles inline photos and captions in single.php without editing each article. Treatments 1, 2, 4, and 5 are imported from the HerForward inline redesign page.", "No shortcode needed. Enable the feature and select a treatment.", $this->simple_status_html( Settings::bool( "inline_photo_treatments_enabled" ), "Current treatment: " . (string) Settings::get( "inline_photo_treatment", "none" ) . "." ), $this->activity_log_html(), $inline_photo_controls );
-        $post_acf_controls = $this->inline_toggle_setting_html( "post_summary_acf_enabled", "Register Post Summary on posts" ) . $this->select_setting_html( "post_summary_style", $this->post_summary_style_options(), $settings, "Post Summary design" ) . $this->inline_toggle_setting_html( "post_faqs_acf_enabled", "Register Post FAQs on posts" ) . $this->select_setting_html( "post_faqs_style", $this->post_faq_style_options(), $settings, "Post FAQ design" ) . $this->color_setting_html( "post_faqs_accent_color", "FAQ accent color", $settings ) . $this->font_style_setting_html( "post_faqs_text_font_style", "FAQ text font style", $settings ) . $this->number_setting_html( "post_faqs_text_font_size", "FAQ text font size", $settings, 8, 64, "px" ) . $this->color_setting_html( "post_faqs_text_color", "FAQ text color", $settings ) . $this->post_acf_shortcode_reference_html();
-        $this->feature_card( "Post ACF add-ons", "", "Optional post fields: <code>post_summary</code> and structured <code>post_faq_items</code>. Fields are registered only when their toggles are enabled.", "Adds the supplied Post - Header ACF field group to posts and imported-news items. Summary and structured FAQ shortcodes can render raw content or the selected single.php style.", "[smp_post_summary style=\"sum00\"]\n[smp_post_faqs style=\"faq02\"]\n[smp_post_acf field=\"post_summary\"]", $this->post_acf_addons_report_html(), $this->activity_log_html(), $post_acf_controls );
+        $post_acf_controls = "<div class=\"smpi-control-group\"><h3>Field registration</h3><p>Field registration toggles live in Custom Fields. Use this section only for display styling and shortcode reference.</p></div>" . $this->select_setting_html( "post_summary_style", $this->post_summary_style_options(), $settings, "Post Summary design" ) . $this->select_setting_html( "post_faqs_style", $this->post_faq_style_options(), $settings, "Post FAQ design" ) . $this->color_setting_html( "post_faqs_accent_color", "FAQ accent color", $settings ) . $this->font_style_setting_html( "post_faqs_text_font_style", "FAQ text font style", $settings ) . $this->number_setting_html( "post_faqs_text_font_size", "FAQ text font size", $settings, 8, 64, "px" ) . $this->color_setting_html( "post_faqs_text_color", "FAQ text color", $settings ) . $this->post_acf_shortcode_reference_html();
+        $this->feature_card( "Post ACF add-ons", "", "Registration moved to the Custom Fields tab. This card keeps style controls and shortcode examples for summary and FAQ output.", "Summary and structured FAQ shortcodes can render raw content or the selected single.php style.", "[smp_post_summary style=\"sum00\"]\n[smp_post_faqs style=\"faq02\"]\n[smp_post_acf field=\"post_summary\"]", $this->post_acf_addons_report_html(), $this->activity_log_html(), $post_acf_controls );
         $this->feature_card( "Author social icons", "author_social_cleanup", "No ACF changes. Reads rendered Elementor/social-icon anchors.", "Runs only on single posts and author archives. Empty social anchors are hidden when href is missing, blank, hash, or javascript. Fully empty Elementor social wrappers are collapsed.", "No shortcode needed. Toggle this feature on and inspect single.php or author.php social widgets.", $this->simple_status_html( Settings::bool( "author_social_cleanup" ), "Cleanup script active on single posts and author archives only." ), $this->activity_log_html() );
         $this->feature_card( "Publication social icons", "publication_social_cleanup", "No dedicated ACF change. Reads rendered Elementor/social-icon anchors in global publication areas.", "Runs the same empty-social cleanup safely across frontend pages for publication-level header and footer social widgets. Empty href, #, and javascript anchors are hidden without touching valid social links.", "No shortcode needed. Toggle this on and inspect header/footer publication social widgets.", $this->simple_status_html( Settings::bool( "publication_social_cleanup" ), "Publication social cleanup script active on frontend pages." ), $this->activity_log_html() );
         $this->feature_card( "Rank Math breadcrumb check", "rank_math_breadcrumb_check_enabled", "No ACF changes.", "Reports Rank Math breadcrumb status from rank-math-options-general. Mutation filters should only be added after exact breadcrumb rules are supplied.", "add_filter(\"rank_math/frontend/breadcrumb/items\", function(\$crumbs){ return \$crumbs; }, 10, 1);", $this->rank_math_breadcrumb_report_html(), $this->activity_log_html() );
@@ -1147,6 +1284,15 @@ final class Dashboard {
         return $html . "</tbody></table>";
     }
 
+
+
+    private function post_acf_addons_report_text(): string {
+        $summary_enabled = Settings::bool( "post_summary_acf_enabled" );
+        $faqs_enabled = Settings::bool( "post_faqs_acf_enabled" );
+        $summary_registered = function_exists( "acf_get_field" ) && (bool) acf_get_field( "field_65ab7ba0e849b" );
+        $faqs_registered = function_exists( "acf_get_field" ) && (bool) acf_get_field( "field_smpi_post_faq_items" );
+        return "Post Summary enabled: " . ( $summary_enabled ? "yes" : "no" ) . "; registered: " . ( $summary_registered ? "yes" : "no" ) . ". Post FAQs enabled: " . ( $faqs_enabled ? "yes" : "no" ) . "; registered: " . ( $faqs_registered ? "yes" : "no" ) . ".";
+    }
 
     private function table_of_contents_report_html(): string {
         $report = \smp_publication_integration\Content\TableOfContents::integrity_report();

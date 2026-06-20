@@ -25,6 +25,7 @@ src/CoreContracts/      Hexa\PluginCore\CoreContracts
 src/CorePackageUpdates/ Hexa\PluginCore\CorePackageUpdates
 src/CoreRuntime/        Hexa\PluginCore\CoreRuntime
 src/CredentialVault/    Hexa\PluginCore\CredentialVault
+src/FieldStructures/    Hexa\PluginCore\FieldStructures
 src/FaqSets/            Hexa\PluginCore\FaqSets
 src/LogFiles/           Hexa\PluginCore\LogFiles
 src/PluginProvisioning/ Hexa\PluginCore\PluginProvisioning
@@ -355,6 +356,18 @@ Example:
     'post_type' => 'any',
 ]);
 ```
+
+## Field Structures
+
+Namespace: Hexa\PluginCore\FieldStructures
+
+Classes: FieldStructureManager, FieldStructureRenderer
+
+Use this for admin displays that explain and test ACF field groups, custom post types, taxonomies, and option-backed structures. Host plugins provide definitions; Hexa Core normalizes them, renders one row per structure, shows enabled and registered status, exposes setting toggles through the host save AJAX action, and keeps fields, dependencies, code examples, test reports, and activity notes in a consistent layout.
+
+Definition keys: id, label, type, setting_key, enabled, registered, acf_group_key, object_name, location, fields, dependencies, instructions, code_example, test_report, activity, edit_url. The registered and test_report values may be callbacks. Do not move plugin-specific ACF registration arrays into core; core owns the display and status model only.
+
+Example use: create a FieldStructureRenderer, pass an array of structure definitions, and pass save_action plus nonce when toggles should save through AJAX.
 
 ## Error Logs
 

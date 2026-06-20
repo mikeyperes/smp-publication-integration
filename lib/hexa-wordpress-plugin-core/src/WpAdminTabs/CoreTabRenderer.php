@@ -8,6 +8,7 @@ use Hexa\PluginCore\ActivityLog\ActivityLogger;
 use Hexa\PluginCore\ActivityLog\ActivityLogRenderer;
 use Hexa\PluginCore\CredentialVault\CredentialFieldRenderer;
 use Hexa\PluginCore\SmartSearch\SmartSearchRenderer;
+use Hexa\PluginCore\FieldStructures\FieldStructureRenderer;
 use Hexa\PluginCore\CoreRuntime\CoreVersion;
 use Hexa\PluginCore\WpAdminComponents\CoreUi;
 
@@ -43,6 +44,7 @@ final class CoreTabRenderer {
                     <button type="button" class="hpc-core-tab" data-hpc-core-tab="search">Smart Search / X-Search</button>
                     <button type="button" class="hpc-core-tab" data-hpc-core-tab="api-keys">API Keys</button>
                     <button type="button" class="hpc-core-tab" data-hpc-core-tab="logs">Error Logs</button>
+                    <button type="button" class="hpc-core-tab" data-hpc-core-tab="field-structures">Field Structures</button>
                 </nav>
 
                 <section class="hpc-core-pane active" data-hpc-core-pane="readme">
@@ -67,6 +69,9 @@ final class CoreTabRenderer {
 
                 <section class="hpc-core-pane" data-hpc-core-pane="logs">
                     <?php echo $this->render_error_logs_section(); ?>
+                </section>
+                <section class="hpc-core-pane" data-hpc-core-pane="field-structures">
+                    <?php echo $this->render_field_structures_section(); ?>
                 </section>
             </div>
         </div>
@@ -111,6 +116,7 @@ Current core sections:
 - Logs
 - Updater
 - Shortcodes
+- Field Structures
 README;
 
         return '<div class="hpc-grid">'
@@ -310,4 +316,46 @@ CODE;
             )
             . '</div>';
     }
+
+    private function render_field_structures_section(): string {
+        return ( new FieldStructureRenderer() )->render(
+            [
+                [
+                    "id"           => "example_article_faqs",
+                    "label"        => "Article FAQ ACF",
+                    "type"         => "acf",
+                    "setting_key"  => "post_faqs_acf_enabled",
+                    "enabled"      => true,
+                    "registered"   => true,
+                    "acf_group_key" => "group_example_article_faqs",
+                    "location"     => "post, press-release, imported-news",
+                    "description"  => "Structured FAQ rows that feed shortcode output and FAQPage JSON-LD.",
+                    "instructions" => "Host plugins pass the setting key and save action. Core renders the row, toggle, docs, and status shell.",
+                    "fields"       => [ "question", "answer", "enabled_for_schema" ],
+                    "dependencies" => [ "ACF Pro", "host schema module" ],
+                    "code_example" => "[example_post_faqs]",
+                    "test_report"  => "The editor should show FAQ rows and the schema scanner should detect FAQPage when rows are enabled.",
+                ],
+                [
+                    "id"           => "example_article_type_taxonomy",
+                    "label"        => "Article Type Taxonomy",
+                    "type"         => "taxonomy",
+                    "setting_key"  => "article_types_enabled",
+                    "enabled"      => true,
+                    "registered"   => true,
+                    "object_name"  => "example_article_type",
+                    "location"     => "post editor taxonomy metabox",
+                    "description"  => "Controlled taxonomy choices that map editor selections to schema article types.",
+                    "fields"       => [ "editorial-news", "analysis", "opinion", "press-release" ],
+                    "code_example" => "register_taxonomy(\"example_article_type\", [\"post\"]);",
+                    "test_report"  => "The taxonomy exists and terms are available in the editor.",
+                ],
+            ],
+            [
+                "title"       => "Field Structures Catalog",
+                "description" => "Examples for ACF groups, CPTs, taxonomies, and option-backed toggles. Host plugins supply the real definitions.",
+            ]
+        );
+    }
+
 }

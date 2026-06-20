@@ -30,6 +30,7 @@ hexa-wordpress-plugin-core/
     CorePackageUpdates/ -> Hexa\PluginCore\CorePackageUpdates
     CoreRuntime/        -> Hexa\PluginCore\CoreRuntime
     CredentialVault/    -> Hexa\PluginCore\CredentialVault
+    FieldStructures/    -> Hexa\PluginCore\FieldStructures
     FaqSets/            -> Hexa\PluginCore\FaqSets
     LogFiles/           -> Hexa\PluginCore\LogFiles
     PluginProvisioning/ -> Hexa\PluginCore\PluginProvisioning
@@ -56,6 +57,7 @@ Do not create `HWS\BaseTools\PluginCore`, `HexaWordPressPluginCore`, `Hexa\Core`
 - `CorePackageUpdates`: compares and updates the vendored Hexa WordPress Plugin Core package.
 - `CoreRuntime`: runtime value objects such as plugin context and core version metadata.
 - `CredentialVault`: encrypted API-key/secret storage, masking, and credential field examples.
+- `FieldStructures`: reusable displays and status checks for ACF groups, custom post types, taxonomies, and option-backed feature structures.
 - `FaqSets`: shared FAQ set sanitizing, item normalization, primary-set resolution, safe answer links, FAQPage schema, and reusable list or accordion output.
 - `LogFiles`: shared error-log source definitions, tail readers, classifiers, search/highlight UI, and renderers.
 - `PluginProvisioning`: shared plugin discovery, status checks, WordPress.org installs, GitHub ZIP installs, folder normalization, and activation.
@@ -136,6 +138,7 @@ Before adding implementations in another Codex or Claude chat, read:
 - `docs/new-plugin-master-checklist.md`
 - `docs/site-structure.md`
 - `docs/schema-detection.md`
+- `docs/field-structures.md`
 - `docs/faq-sets.md`
 - the namespace-specific doc for the folder being changed
 
