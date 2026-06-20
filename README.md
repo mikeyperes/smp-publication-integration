@@ -7,7 +7,7 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.6.24`
+- Version: `0.6.25`
 
 ## Structure
 
@@ -40,6 +40,8 @@ WordPress plugin for Scale My Publication publication profiles.
 - Replaced repeated AJAX nonce/capability checks with `Hexa\PluginCore\WpAdminAjax\AjaxGuard`.
 - Replaced the SMP activity log writer with `Hexa\PluginCore\ActivityLog` permanent option storage.
 - Replaced Integrations plugin install/update mechanics with `Hexa\PluginCore\PluginProvisioning` and `Hexa\PluginCore\PluginUpdates`.
+- Replaced SMP admin-AJAX action registration with `Hexa\PluginCore\WpAdminAjax\AjaxActionRegistry` and request parsing with `AjaxRequest`.
+- Replaced the Shortcodes debugger table with `Hexa\PluginCore\ShortcodeRegistry\ShortcodeDisplayRenderer`.
 - Updater flow fixed: SMP uses GitHub API version detection and Hexa WordPress Plugin Core post-install handling.
 
 ## 0.6.23 Updates
@@ -51,6 +53,12 @@ WordPress plugin for Scale My Publication publication profiles.
 ## 0.6.24 Updates
 
 - Prepended the SMP Hexa core autoloader so SMP resolves `Hexa\PluginCore` classes from its bundled core instead of depending on HWS Base Tools load order.
+
+## 0.6.25 Updates
+
+- Updated bundled Hexa WordPress Plugin Core to v0.11.0.
+- Swapped SMP admin-AJAX actions to the shared core action registry and sanitized request object.
+- Swapped the Shortcodes tab debugger to the shared core shortcode display renderer with descriptions, examples, parameters, and rendered output.
 
 ## 0.6.7 Updates
 

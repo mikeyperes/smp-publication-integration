@@ -1,6 +1,8 @@
 <?php
 namespace smp_publication_integration\Content;
 
+use Hexa\PluginCore\WpAdminAjax\AjaxActionRegistry;
+use Hexa\PluginCore\WpAdminAjax\AjaxRequest;
 use smp_publication_integration\Support\Fields;
 use smp_publication_integration\Support\Settings;
 
@@ -13,7 +15,17 @@ final class Schema {
 
     public function register(): void {
         add_action( "wp_head", [ $this, "inject_schema" ], 1 );
-        add_action( "wp_ajax_smpi_reprocess_schema", [ $this, "ajax_reprocess_schema" ] );
+        ( new AjaxActionRegistry(
+            [
+                'capability'   => 'manage_options',
+                'nonce_action' => \smp_publication_integration\Admin\Ajax::NONCE,
+                'nonce_field'  => 'nonce',
+            ]
+        ) )->register(
+            [
+                'smpi_reprocess_schema' => [ 'callback' => [ $this, 'ajax_reprocess_schema' ] ],
+            ]
+        );
         add_action( "rest_api_init", [ $this, "register_rest_routes" ] );
         add_filter( "rank_math/json_ld", [ $this, "filter_rank_math_schema" ], 9999, 2 );
         add_action( "wp", [ $this, "disable_rank_math_schema_output" ], 1 );
@@ -97,12 +109,7 @@ final class Schema {
         );
     }
 
-    public function ajax_reprocess_schema(): void {
-        if ( ! current_user_can( "manage_options" ) ) {
-            wp_send_json_error( [ "message" => "Permission denied." ], 403 );
-        }
-        check_ajax_referer( \smp_publication_integration\Admin\Ajax::NONCE, "nonce" );
-
+    public function ajax_reprocess_schema( AjaxRequest $request ): array {
         $home = $this->store_schema();
         $items = [
             [
@@ -129,7 +136,7 @@ final class Schema {
             ];
         }
 
-        wp_send_json_success( [ "total" => count( $items ), "batch" => count( $items ), "offset" => 0, "items" => $items ] );
+        return [ "total" => count( $items ), "batch" => count( $items ), "offset" => 0, "items" => $items ];
     }
 
     public function store_schema(): string {

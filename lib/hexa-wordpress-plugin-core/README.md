@@ -56,11 +56,11 @@ Do not create `HWS\BaseTools\PluginCore`, `HexaWordPressPluginCore`, `Hexa\Core`
 - `LogFiles`: shared error-log source definitions, tail readers, classifiers, search/highlight UI, and renderers.
 - `PluginProvisioning`: shared plugin discovery, status checks, WordPress.org installs, GitHub ZIP installs, folder normalization, and activation.
 - `PluginUpdates`: shared GitHub/update configuration objects and host plugin updater.
-- `ShortcodeRegistry`: shortcode definition registry, dashboard metadata, and test runner contracts.
+- `ShortcodeRegistry`: shortcode definition registry, dashboard display renderer, examples, live output, and test runner contracts.
 - `SmartSearch`: smart search/X-Search AJAX endpoint and reusable typeahead renderer.
 - `SystemEnvironment`: safe constants, INI, shell wrappers, size parsing, CPU/memory detection, and byte formatting.
 - `WpAdminComponents`: shared visual primitives such as cards, subcards, buttons, pills, tooltips, and collapsible sections.
-- `WpAdminAjax`: WordPress admin-AJAX nonce, capability, and handler guards.
+- `WpAdminAjax`: WordPress admin-AJAX nonce, capability, request parsing, action registration, and handler guards.
 - `WpAdminTabs`: admin tab definitions, registry, host hook integration, and the automatic Hexa core documentation tab.
 - `WpConfigFile`: safe `wp-config.php` constant and `ini_set()` reads/writes with validation and rollback backup handling.
 - `WpCronTasks`: reusable WP-Cron interval registration, scheduling, unscheduling, event inspection, and health status payloads.
@@ -127,6 +127,7 @@ Before adding implementations in another Codex or Claude chat, read:
 - `docs/folder-map.md`
 - `docs/setup-protocol.md`
 - `docs/implementation-checklist.md`
+- `docs/new-plugin-master-checklist.md`
 - the namespace-specific doc for the folder being changed
 
 If a new feature does not fit an existing namespace, document the proposed namespace first before adding code.
@@ -275,6 +276,61 @@ The core module registers:
 
 ```text
 wp_ajax_hexa_plugin_core_smart_search
+```
+
+## WP Admin AJAX Registry
+
+Use `Hexa\PluginCore\WpAdminAjax\AjaxActionRegistry` for host plugin admin-AJAX actions. Host plugins provide action names and callbacks; core performs capability checks, nonce checks, request normalization, exception handling, and JSON responses.
+
+```php
+use Hexa\PluginCore\WpAdminAjax\AjaxActionRegistry;
+use Hexa\PluginCore\WpAdminAjax\AjaxRequest;
+
+( new AjaxActionRegistry(
+    [
+        'capability'   => 'manage_options',
+        'nonce_action' => 'example_admin',
+        'nonce_field'  => 'nonce',
+    ]
+) )->register(
+    [
+        'example_load_tab' => [
+            'callback' => static function ( AjaxRequest $request ): array {
+                return [ 'tab' => $request->key( 'tab', 'overview' ) ];
+            },
+        ],
+    ]
+);
+```
+
+## Shortcode Display Renderer
+
+Use `Hexa\PluginCore\ShortcodeRegistry\ShortcodeDisplayRenderer` for shortcode admin lists. Every row should show the shortcode, description, real output value, and examples with parameters.
+
+```php
+use Hexa\PluginCore\ShortcodeRegistry\ShortcodeDisplayRenderer;
+
+echo ( new ShortcodeDisplayRenderer() )->render(
+    [
+        [
+            'label'       => 'Publication Name',
+            'shortcode'   => '[smp_publication_field field="legal_name" format="text"]',
+            'description' => 'Outputs the publication legal name.',
+            'source'      => 'publication option: legal_name',
+            'examples'    => [
+                [
+                    'label'      => 'Text value',
+                    'shortcode'  => '[smp_publication_field field="legal_name" format="text"]',
+                    'parameters' => [ 'field' => 'legal_name', 'format' => 'text' ],
+                ],
+            ],
+        ],
+    ],
+    [
+        'title'       => 'Shortcodes',
+        'description' => 'Copy examples or inspect live output.',
+    ]
+);
 ```
 
 ## Error Log Viewer

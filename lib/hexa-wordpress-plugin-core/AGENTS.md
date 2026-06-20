@@ -74,11 +74,11 @@ Never make a module boot itself at file include time. Modules register hooks fro
 - Put reusable API-key/secret storage, masking, and credential setup UI in `src/CredentialVault`.
 - Put reusable smart search/X-Search endpoint and typeahead UI in `src/SmartSearch`.
 - Put activity log abstractions, storage modes, and the shared dark renderer in `src/ActivityLog`.
-- Put shortcode registries, definitions, and testing tools in `src/ShortcodeRegistry`.
+- Put shortcode registries, definitions, display renderers, examples, live output, and testing tools in `src/ShortcodeRegistry`.
 - Put safe constants, INI, shell wrappers, size parsing, CPU/memory detection, and byte formatting in `src/SystemEnvironment`.
 - Put host plugin GitHub/update configuration and updater abstractions in `src/PluginUpdates`.
 - Put vendored core package version checks and core package update UI in `src/CorePackageUpdates`; do not treat the shared core as a WordPress plugin.
-- Put WordPress admin-AJAX nonce/capability/handler guards in `src/WpAdminAjax`.
+- Put WordPress admin-AJAX nonce/capability/request parsing/action registry/handler guards in `src/WpAdminAjax`.
 - Put bootstrap/lifecycle orchestration in `src/CoreBootstrap`.
 - Put safe `wp-config.php` constant and `ini_set()` reads/writes in `src/WpConfigFile`.
 - Put reusable WP-Cron task scheduling, unscheduling, interval registration, and status inspection in `src/WpCronTasks`.
@@ -104,6 +104,8 @@ Minimum documentation for a new implementation:
 - host plugin responsibilities
 - example usage
 - testing method
+
+For new plugin audits, start with `docs/new-plugin-master-checklist.md`. Do not invent a new audit checklist inside a host plugin.
 
 Also update `HEXA_PLUGIN_CORE_LIBRARY.md` whenever a public namespace, class, setup protocol, or host integration pattern changes. That file is intended to be copied into every plugin that consumes the core.
 

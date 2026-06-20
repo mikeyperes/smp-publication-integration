@@ -1,7 +1,10 @@
 <?php
 namespace smp_publication_integration\Admin;
 
+use Hexa\PluginCore\WpAdminAjax\AjaxActionRegistry;
+use Hexa\PluginCore\WpAdminAjax\AjaxFailure;
 use Hexa\PluginCore\WpAdminAjax\AjaxGuard;
+use Hexa\PluginCore\WpAdminAjax\AjaxRequest;
 use smp_publication_integration\Support\Dependencies;
 use smp_publication_integration\Support\PluginRegistry;
 use smp_publication_integration\Support\Settings;
@@ -14,18 +17,32 @@ final class Ajax {
     public const NONCE = 'smpi_admin';
 
     public function register(): void {
-        add_action( 'wp_ajax_smpi_load_tab', [ $this, 'load_tab' ] );
-        add_action( 'wp_ajax_smpi_save_settings', [ $this, 'save_settings' ] );
-        add_action( 'wp_ajax_smpi_save_page_assignment', [ $this, 'save_page_assignment' ] );
-        add_action( "wp_ajax_smpi_create_page_assignment", [ $this, "create_page_assignment" ] );
-        add_action( "wp_ajax_smpi_page_details", [ $this, "page_details" ] );
-        add_action( "wp_ajax_smpi_update_page_slug", [ $this, "update_page_slug" ] );
-        add_action( "wp_ajax_smpi_search_users", [ $this, "search_users" ] );
-        add_action( "wp_ajax_smpi_shortcode_user_preview", [ $this, "shortcode_user_preview" ] );
-        add_action( "wp_ajax_smpi_search_profiles", [ $this, "search_profiles" ] );
-        add_action( "wp_ajax_smpi_save_founder_profiles", [ $this, "save_founder_profiles" ] );
-        add_action( 'wp_ajax_smpi_refresh_optimization', [ $this, 'refresh_optimization' ] );
-        add_action( 'wp_ajax_smpi_plugin_action', [ $this, 'plugin_action' ] );
+        ( new AjaxActionRegistry(
+            [
+                'capability'   => 'manage_options',
+                'nonce_action' => self::NONCE,
+                'nonce_field'  => 'nonce',
+                'logger'       => static function ( \Throwable $throwable ): void {
+                    error_log( '[SMP Publication Integration] AJAX error: ' . $throwable->getMessage() );
+                },
+            ]
+        ) )->register(
+            [
+                'smpi_load_tab'                => [ 'callback' => [ $this, 'load_tab' ] ],
+                'smpi_save_settings'           => [ 'callback' => [ $this, 'save_settings' ] ],
+                'smpi_save_page_assignment'    => [ 'callback' => [ $this, 'save_page_assignment' ] ],
+                'smpi_create_page_assignment'  => [ 'callback' => [ $this, 'create_page_assignment' ] ],
+                'smpi_page_details'            => [ 'callback' => [ $this, 'page_details' ] ],
+                'smpi_update_page_slug'        => [ 'callback' => [ $this, 'update_page_slug' ] ],
+                'smpi_search_users'            => [ 'callback' => [ $this, 'search_users' ] ],
+                'smpi_shortcode_user_preview'  => [ 'callback' => [ $this, 'shortcode_user_preview' ] ],
+                'smpi_search_profiles'         => [ 'callback' => [ $this, 'search_profiles' ] ],
+                'smpi_save_founder_profiles'   => [ 'callback' => [ $this, 'save_founder_profiles' ] ],
+                'smpi_refresh_optimization'    => [ 'callback' => [ $this, 'refresh_optimization' ] ],
+                'smpi_plugin_action'           => [ 'callback' => [ $this, 'plugin_action' ] ],
+            ]
+        );
+
         add_action( 'admin_post_smpi_enable_verified_profile_snippet', [ $this, 'enable_verified_profile_snippet' ] );
     }
 
@@ -33,86 +50,57 @@ final class Ajax {
         return AjaxGuard::create_nonce( self::NONCE );
     }
 
-    private function guard(): void {
-        AjaxGuard::require_capability_or_error( 'manage_options', 'Permission denied.' );
-        AjaxGuard::require_nonce_or_error( self::NONCE, 'nonce' );
-    }
-
-    public function load_tab(): void {
-        $this->guard();
-        $tab = isset( $_POST["tab"] ) ? sanitize_key( wp_unslash( $_POST["tab"] ) ) : "overview";
+    public function load_tab( AjaxRequest $request ): array {
+        $tab = $request->key( 'tab', 'overview', 'post' );
         $dashboard = new Dashboard();
-        wp_send_json_success( $dashboard->tab_fragment( $tab ) );
+        return $dashboard->tab_fragment( $tab );
     }
 
-    public function save_settings(): void {
-        $this->guard();
+    public function save_settings( AjaxRequest $request ): array {
         $changes = [];
         foreach ( [ "founders_enabled", "shadow_posts_enabled", "shadow_press_releases", "author_social_cleanup", "public_debug_enabled", "estimated_read_time_enabled", "elementor_css_cache_busting", "publication_social_cleanup", "muckrack_verified_enabled", "muckrack_author_always_show", "publication_muckrack_verified_enabled", "press_release_include_enabled", "post_summary_acf_enabled", "post_faqs_acf_enabled", "table_of_contents_enabled", "table_of_contents_auto_single", "inline_photo_treatments_enabled", "rank_math_breadcrumb_check_enabled", "hws_masked_admin_report_enabled" ] as $key ) {
-            if ( isset( $_POST[ $key ] ) ) {
-                $changes[ $key ] = (bool) absint( $_POST[ $key ] );
+            if ( $request->has( $key, 'post' ) ) {
+                $changes[ $key ] = $request->bool( $key, false, 'post' );
             }
         }
         foreach ( [ "system_publication_user_id" ] as $key ) {
-            if ( isset( $_POST[ $key ] ) ) {
-                $changes[ $key ] = absint( $_POST[ $key ] );
+            if ( $request->has( $key, 'post' ) ) {
+                $changes[ $key ] = $request->int( $key, 0, 'post' );
             }
         }
         foreach ( [ "muckrack_icon_size" => [ 8, 64, 18 ], "publication_muckrack_font_size" => [ 8, 64, 14 ], "table_of_contents_text_font_size" => [ 8, 64, 15 ], "inline_photo_caption_font_size" => [ 8, 64, 16 ], "post_faqs_text_font_size" => [ 8, 64, 16 ], "muckrack_icon_size_single_author" => [ 0, 64, 0 ], "muckrack_icon_size_single_footer" => [ 0, 64, 0 ], "muckrack_icon_size_loop_cards" => [ 0, 64, 0 ], "muckrack_icon_size_home" => [ 0, 64, 0 ], "muckrack_icon_size_author" => [ 0, 64, 0 ] ] as $key => $limits ) {
-            if ( isset( $_POST[ $key ] ) ) {
-                $value = absint( $_POST[ $key ] );
+            if ( $request->has( $key, 'post' ) ) {
+                $value = $request->int( $key, 0, 'post' );
                 $changes[ $key ] = 0 === strpos( $key, "muckrack_icon_size_" ) && 0 === $value ? 0 : max( $limits[0], min( $limits[1], $value ?: $limits[2] ) );
             }
         }
-        foreach ( [ "table_of_contents_style", "inline_photo_treatment", "post_summary_style", "post_faqs_style", "table_of_contents_text_font_style", "inline_photo_caption_font_style", "post_faqs_text_font_style" ] as $key ) {
-            if ( isset( $_POST[ $key ] ) ) {
-                $changes[ $key ] = sanitize_key( wp_unslash( $_POST[ $key ] ) );
+        foreach ( [ "table_of_contents_style", "inline_photo_treatment", "post_summary_style", "post_faqs_style", "table_of_contents_text_font_style", "inline_photo_caption_font_style", "post_faqs_text_font_style", 'post_time_mode', 'muckrack_verified_style', 'muckrack_icon_style', 'publication_muckrack_text_mode', 'publication_muckrack_style' ] as $key ) {
+            if ( $request->has( $key, 'post' ) ) {
+                $changes[ $key ] = $request->key( $key, '', 'post' );
             }
         }
-        if ( isset( $_POST['post_time_mode'] ) ) {
-            $changes['post_time_mode'] = sanitize_key( wp_unslash( $_POST['post_time_mode'] ) );
-        }
-        if ( isset( $_POST['muckrack_verified_style'] ) ) {
-            $changes['muckrack_verified_style'] = sanitize_key( wp_unslash( $_POST['muckrack_verified_style'] ) );
-        }
-        if ( isset( $_POST['muckrack_icon_style'] ) ) {
-            $changes['muckrack_icon_style'] = sanitize_key( wp_unslash( $_POST['muckrack_icon_style'] ) );
-        }
-        foreach ( [ 'muckrack_icon_color', 'muckrack_icon_color_single_author', 'muckrack_icon_color_single_footer', 'muckrack_icon_color_loop_cards', 'muckrack_icon_color_home', 'muckrack_icon_color_author', 'table_of_contents_accent_color', 'table_of_contents_text_color', 'inline_photo_accent_color', 'inline_photo_caption_text_color', 'post_faqs_accent_color', 'post_faqs_text_color' ] as $color_key ) {
-            if ( isset( $_POST[ $color_key ] ) ) {
-                $raw = trim( (string) wp_unslash( $_POST[ $color_key ] ) );
+        foreach ( [ 'muckrack_icon_color', 'muckrack_icon_color_single_author', 'muckrack_icon_color_single_footer', 'muckrack_icon_color_loop_cards', 'muckrack_icon_color_home', 'muckrack_icon_color_author', 'table_of_contents_accent_color', 'table_of_contents_text_color', 'inline_photo_accent_color', 'inline_photo_caption_text_color', 'post_faqs_accent_color', 'post_faqs_text_color', 'publication_muckrack_color' ] as $color_key ) {
+            if ( $request->has( $color_key, 'post' ) ) {
+                $raw = trim( (string) $request->raw( $color_key, '', 'post' ) );
                 $changes[ $color_key ] = '' === $raw ? '' : sanitize_hex_color( $raw );
             }
         }
-        if ( isset( $_POST['publication_muckrack_text_mode'] ) ) {
-            $changes['publication_muckrack_text_mode'] = sanitize_key( wp_unslash( $_POST['publication_muckrack_text_mode'] ) );
-        }
-        if ( isset( $_POST['publication_muckrack_style'] ) ) {
-            $changes['publication_muckrack_style'] = sanitize_key( wp_unslash( $_POST['publication_muckrack_style'] ) );
-        }
-        if ( isset( $_POST['publication_muckrack_color'] ) ) {
-            $changes['publication_muckrack_color'] = sanitize_hex_color( wp_unslash( $_POST['publication_muckrack_color'] ) );
-        }
         foreach ( [ 'muckrack_verified_contexts', 'publication_muckrack_placements', 'press_release_include_contexts' ] as $array_key ) {
-            if ( isset( $_POST[ $array_key ] ) || isset( $_POST[ $array_key . '_present' ] ) ) {
-                $raw = isset( $_POST[ $array_key ] ) ? wp_unslash( $_POST[ $array_key ] ) : [];
-                $changes[ $array_key ] = is_array( $raw ) ? array_map( 'sanitize_key', $raw ) : [];
+            if ( $request->has( $array_key, 'post' ) || $request->has( $array_key . '_present', 'post' ) ) {
+                $changes[ $array_key ] = $request->key_array( $array_key, 'post' );
             }
         }
         $settings = Settings::update( $changes );
         $this->sync_publication_mapping( $settings );
         $response = [ "settings" => $settings ];
-        $tab = isset( $_POST["tab"] ) ? sanitize_key( wp_unslash( $_POST["tab"] ) ) : "";
-        if ( "features" === $tab ) {
+        if ( "features" === $request->key( 'tab', '', 'post' ) ) {
             $response["fragment"] = ( new Dashboard() )->tab_fragment( "features" );
         }
-        wp_send_json_success( $response );
+        return $response;
     }
 
-
-    public function search_users(): void {
-        $this->guard();
-        $term = isset( $_POST["term"] ) ? sanitize_text_field( wp_unslash( $_POST["term"] ) ) : "";
+    public function search_users( AjaxRequest $request ): array {
+        $term = $request->text( 'term', '', 'post' );
         $args = [
             "number" => 20,
             "orderby" => "display_name",
@@ -130,16 +118,15 @@ final class Ajax {
             $results[] = $this->user_result( $user );
         }
 
-        wp_send_json_success( [ "users" => $results ] );
+        return [ "users" => $results ];
     }
 
-    public function shortcode_user_preview(): void {
-        $this->guard();
-        $user_id = isset( $_POST["user_id"] ) ? absint( $_POST["user_id"] ) : 0;
+    public function shortcode_user_preview( AjaxRequest $request ): array {
+        $user_id = $request->int( 'user_id', 0, 'post' );
         if ( $user_id <= 0 || ! get_user_by( "id", $user_id ) ) {
-            wp_send_json_error( [ "message" => "Selected user was not found." ], 404 );
+            throw AjaxFailure::not_found( "Selected user was not found." );
         }
-        wp_send_json_success( [ "user" => Dashboard::shortcode_selected_user_html( $user_id ), "html" => Dashboard::shortcode_user_values_html( $user_id ) ] );
+        return [ "user" => Dashboard::shortcode_selected_user_html( $user_id ), "html" => Dashboard::shortcode_user_values_html( $user_id ) ];
     }
 
     private function user_result( \WP_User $user ): array {
@@ -155,16 +142,9 @@ final class Ajax {
         ];
     }
 
-    public function search_profiles(): void {
-        $this->guard();
-        if ( ! Dependencies::sfpf_active() ) {
-            wp_send_json_error( [ "message" => "Verified Profiles integration is required to add founders." ], 400 );
-        }
-        if ( ! post_type_exists( "profile" ) ) {
-            wp_send_json_error( [ "message" => "Verified Profiles is active, but the profile post type is not registered. Enable register_profile_custom_post_type." ], 400 );
-        }
-
-        $term = isset( $_POST["term"] ) ? sanitize_text_field( wp_unslash( $_POST["term"] ) ) : "";
+    public function search_profiles( AjaxRequest $request ): array {
+        $this->require_verified_profiles();
+        $term = $request->text( 'term', '', 'post' );
         $query = new \WP_Query(
             [
                 "post_type" => "profile",
@@ -182,22 +162,13 @@ final class Ajax {
             $profiles[] = $this->profile_result( $post );
         }
 
-        wp_send_json_success( [ "profiles" => $profiles ] );
+        return [ "profiles" => $profiles ];
     }
 
-    public function save_founder_profiles(): void {
-        $this->guard();
-        if ( ! Dependencies::sfpf_active() ) {
-            wp_send_json_error( [ "message" => "Verified Profiles integration is required to add founders." ], 400 );
-        }
-        if ( ! post_type_exists( "profile" ) ) {
-            wp_send_json_error( [ "message" => "Verified Profiles is active, but the profile post type is not registered. Enable register_profile_custom_post_type." ], 400 );
-        }
-
-        $raw = isset( $_POST["founder_profile_ids"] ) ? wp_unslash( $_POST["founder_profile_ids"] ) : [];
-        $raw = is_array( $raw ) ? $raw : [ $raw ];
+    public function save_founder_profiles( AjaxRequest $request ): array {
+        $this->require_verified_profiles();
         $ids = [];
-        foreach ( $raw as $id ) {
+        foreach ( $request->items( 'founder_profile_ids', 'post' ) as $id ) {
             $id = absint( $id );
             if ( $id && "profile" === get_post_type( $id ) ) {
                 $ids[] = $id;
@@ -214,7 +185,16 @@ final class Ajax {
             }
         }
 
-        wp_send_json_success( [ "ids" => $ids, "profiles" => $profiles ] );
+        return [ "ids" => $ids, "profiles" => $profiles ];
+    }
+
+    private function require_verified_profiles(): void {
+        if ( ! Dependencies::sfpf_active() ) {
+            throw AjaxFailure::bad_request( "Verified Profiles integration is required to add founders." );
+        }
+        if ( ! post_type_exists( "profile" ) ) {
+            throw AjaxFailure::bad_request( "Verified Profiles is active, but the profile post type is not registered. Enable register_profile_custom_post_type." );
+        }
     }
 
     private function profile_result( \WP_Post $post ): array {
@@ -263,32 +243,29 @@ final class Ajax {
         Settings::log( "Publication author selected: user #" . $user_id );
     }
 
-    public function save_page_assignment(): void {
-        $this->guard();
-        $type = isset( $_POST["page_type"] ) ? sanitize_key( wp_unslash( $_POST["page_type"] ) ) : "";
-        $page_id = isset( $_POST["page_id"] ) ? absint( $_POST["page_id"] ) : 0;
-        $template = isset( $_POST["template"] ) ? wp_kses_post( wp_unslash( $_POST["template"] ) ) : "";
+    public function save_page_assignment( AjaxRequest $request ): array {
+        $type = $request->key( 'page_type', '', 'post' );
+        $page_id = $request->int( 'page_id', 0, 'post' );
+        $template = $request->html( 'template', '', 'post' );
         $settings = Settings::update_page( $type, $page_id, $template );
         $response = [ "settings" => $settings, "page" => null ];
         if ( $page_id > 0 ) {
             $response["page"] = $this->page_result( $page_id );
         }
-        wp_send_json_success( $response );
+        return $response;
     }
 
-
-    public function create_page_assignment(): void {
-        $this->guard();
-        $type = isset( $_POST["page_type"] ) ? sanitize_key( wp_unslash( $_POST["page_type"] ) ) : "";
+    public function create_page_assignment( AjaxRequest $request ): array {
+        $type = $request->key( 'page_type', '', 'post' );
         $page_types = Settings::page_types();
         if ( ! isset( $page_types[ $type ] ) ) {
-            wp_send_json_error( [ "message" => "Unknown page type." ], 400 );
+            throw AjaxFailure::bad_request( "Unknown page type." );
         }
 
         $settings = Settings::all();
         $current = isset( $settings["page_assignments"][ $type ] ) ? absint( $settings["page_assignments"][ $type ] ) : 0;
         if ( $current && get_post( $current ) ) {
-            wp_send_json_success( [ "mode" => "already_assigned", "message" => "Already assigned.", "page" => $this->page_result( $current ), "settings" => $settings ] );
+            return [ "mode" => "already_assigned", "message" => "Already assigned.", "page" => $this->page_result( $current ), "settings" => $settings ];
         }
 
         $title = (string) $page_types[ $type ]["label"];
@@ -312,53 +289,51 @@ final class Ajax {
                 true
             );
             if ( is_wp_error( $page_id ) ) {
-                wp_send_json_error( [ "message" => $page_id->get_error_message() ], 500 );
+                throw AjaxFailure::server_error( $page_id->get_error_message() );
             }
             $mode = "created";
         }
 
         $settings = Settings::update_page( $type, (int) $page_id, (string) ( $settings["page_templates"][ $type ] ?? "" ) );
         $message = "created" === $mode ? "Created draft page and assigned it." : "Reused existing page and assigned it.";
-        wp_send_json_success( [ "mode" => $mode, "message" => $message, "page" => $this->page_result( (int) $page_id ), "settings" => $settings ] );
+        return [ "mode" => $mode, "message" => $message, "page" => $this->page_result( (int) $page_id ), "settings" => $settings ];
     }
 
-    public function page_details(): void {
-        $this->guard();
-        $page_id = isset( $_POST["page_id"] ) ? absint( $_POST["page_id"] ) : 0;
+    public function page_details( AjaxRequest $request ): array {
+        $page_id = $request->int( 'page_id', 0, 'post' );
         if ( $page_id <= 0 ) {
-            wp_send_json_success( [ "page" => null ] );
+            return [ "page" => null ];
         }
         $post = get_post( $page_id );
         if ( ! $post || "page" !== $post->post_type ) {
-            wp_send_json_error( [ "message" => "Selected page was not found." ], 404 );
+            throw AjaxFailure::not_found( "Selected page was not found." );
         }
-        wp_send_json_success( [ "page" => $this->page_result( $page_id ) ] );
+        return [ "page" => $this->page_result( $page_id ) ];
     }
 
-    public function update_page_slug(): void {
-        $this->guard();
-        $type = isset( $_POST["page_type"] ) ? sanitize_key( wp_unslash( $_POST["page_type"] ) ) : "";
+    public function update_page_slug( AjaxRequest $request ): array {
+        $type = $request->key( 'page_type', '', 'post' );
         if ( ! isset( Settings::page_types()[ $type ] ) ) {
-            wp_send_json_error( [ "message" => "Unknown page type." ], 400 );
+            throw AjaxFailure::bad_request( "Unknown page type." );
         }
-        $page_id = isset( $_POST["page_id"] ) ? absint( $_POST["page_id"] ) : 0;
+        $page_id = $request->int( 'page_id', 0, 'post' );
         $post = get_post( $page_id );
         if ( ! $post || "page" !== $post->post_type ) {
-            wp_send_json_error( [ "message" => "Selected page was not found." ], 404 );
+            throw AjaxFailure::not_found( "Selected page was not found." );
         }
-        $requested = isset( $_POST["slug"] ) ? sanitize_title( wp_unslash( $_POST["slug"] ) ) : "";
+        $requested = $request->title_slug( 'slug', '', 'post' );
         if ( "" === $requested ) {
-            wp_send_json_error( [ "message" => "Slug cannot be empty." ], 400 );
+            throw AjaxFailure::bad_request( "Slug cannot be empty." );
         }
         $unique = wp_unique_post_slug( $requested, $page_id, $post->post_status, "page", (int) $post->post_parent );
         $updated = wp_update_post( [ "ID" => $page_id, "post_name" => $unique ], true );
         if ( is_wp_error( $updated ) ) {
-            wp_send_json_error( [ "message" => $updated->get_error_message() ], 500 );
+            throw AjaxFailure::server_error( $updated->get_error_message() );
         }
         clean_post_cache( $page_id );
         Settings::log( "Page slug updated: " . $type . " -> " . $unique );
         $message = $unique === $requested ? "Slug updated." : "Slug updated with a unique suffix because the requested slug was unavailable.";
-        wp_send_json_success( [ "message" => $message, "requested_slug" => $requested, "slug_adjusted" => $unique !== $requested, "page" => $this->page_result( $page_id ) ] );
+        return [ "message" => $message, "requested_slug" => $requested, "slug_adjusted" => $unique !== $requested, "page" => $this->page_result( $page_id ) ];
     }
 
     private function page_result( int $page_id ): array {
@@ -387,11 +362,9 @@ final class Ajax {
         ];
     }
 
-    public function refresh_optimization(): void {
-        $this->guard();
-        wp_send_json_success( [ 'html' => Dashboard::render_optimization_report_html() ] );
+    public function refresh_optimization(): array {
+        return [ 'html' => Dashboard::render_optimization_report_html() ];
     }
-
 
     public function enable_verified_profile_snippet(): void {
         if ( ! current_user_can( "manage_options" ) ) {
@@ -408,15 +381,14 @@ final class Ajax {
         exit;
     }
 
-    public function plugin_action(): void {
-        $this->guard();
-        $plugin_file = isset( $_POST['plugin_file'] ) ? sanitize_text_field( wp_unslash( $_POST['plugin_file'] ) ) : '';
-        $operation = isset( $_POST['operation'] ) ? sanitize_key( wp_unslash( $_POST['operation'] ) ) : '';
+    public function plugin_action( AjaxRequest $request ): array {
+        $plugin_file = $request->text( 'plugin_file', '', 'post' );
+        $operation = $request->key( 'operation', '', 'post' );
         $result = PluginRegistry::perform_action( $plugin_file, $operation );
         if ( is_wp_error( $result ) ) {
-            wp_send_json_error( [ 'message' => $result->get_error_message() ] );
+            throw AjaxFailure::bad_request( $result->get_error_message(), $result->get_error_code() ?: 'plugin_action_failed' );
         }
         $dashboard = new Dashboard();
-        wp_send_json_success( [ 'plugin' => PluginRegistry::info( $plugin_file ), 'row_html' => $dashboard->plugin_row_fragment( $plugin_file ) ] );
+        return [ 'plugin' => PluginRegistry::info( $plugin_file ), 'row_html' => $dashboard->plugin_row_fragment( $plugin_file ) ];
     }
 }

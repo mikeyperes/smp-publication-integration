@@ -22,6 +22,7 @@ It does not force every plugin to use the same shortcode tags. The host plugin p
 
 - `ShortcodeDefinition`: one shortcode's metadata and test template.
 - `ShortcodeRegistry`: collection of shortcode definitions.
+- `ShortcodeDisplayRenderer`: renders shortcode, description, real output value, and examples with parameters.
 - `ShortcodeTestResult`: normalized test result.
 - `ShortcodeTester`: runs one shortcode test at a time.
 
@@ -53,13 +54,36 @@ $registry->add(
 
 ## Admin UI Rule
 
-Shortcode admin UIs should show one row per shortcode:
+Shortcode admin UIs should use `ShortcodeDisplayRenderer` and show one row per shortcode:
 
 - shortcode
 - description
-- testing method
-- test input
-- output
+- real output value
+- examples with parameters
+- testing method, if available
+- source/provider metadata, if available
 
 Tests should run one at a time. A failed shortcode should show the shortcode as missing, empty, or errored instead of breaking the whole page.
 
+Example renderer:
+
+```php
+echo ( new \Hexa\PluginCore\ShortcodeRegistry\ShortcodeDisplayRenderer() )->render(
+    [
+        [
+            'label'       => 'Current Year',
+            'shortcode'   => '[display_year]',
+            'description' => 'Outputs the current four-digit year.',
+            'test_method' => 'Run and verify a non-empty numeric year.',
+            'examples'    => [
+                [
+                    'label'      => 'Default',
+                    'shortcode'  => '[display_year]',
+                    'parameters' => [],
+                ],
+            ],
+        ],
+    ],
+    [ 'title' => 'Plugin Shortcodes' ]
+);
+```

@@ -1,6 +1,7 @@
 <?php
 namespace smp_publication_integration\Admin;
 
+use Hexa\PluginCore\ShortcodeRegistry\ShortcodeDisplayRenderer;
 use smp_publication_integration\Config;
 use smp_publication_integration\Content\AuthorShortcodes;
 use smp_publication_integration\Content\Schema;
@@ -424,24 +425,67 @@ final class Dashboard {
             return "<div class=\"smpi-empty-state\"><strong>No shortcode values loaded.</strong><p>Select an author to render shortcode output.</p></div>";
         }
         $rows = self::shortcode_user_rows( $user_id );
-        ob_start();
-        ?>
-        <table class="widefat striped smpi-shortcode-debug-table">
-            <thead><tr><th>Group</th><th>Provider</th><th>Source</th><th>Shortcode</th><th>Rendered value</th></tr></thead>
-            <tbody>
-            <?php foreach ( $rows as $row ) : ?>
-                <tr>
-                    <td><?php echo esc_html( $row["group"] ); ?></td>
-                    <td><?php echo esc_html( $row["provider"] ); ?></td>
-                    <td><code><?php echo esc_html( $row["source"] ); ?></code></td>
-                    <td><code><?php echo esc_html( $row["shortcode"] ); ?></code></td>
-                    <td><?php echo $row["value"]; ?></td>
-                </tr>
-            <?php endforeach; ?>
-            </tbody>
-        </table>
-        <?php
-        return (string) ob_get_clean();
+        return ( new ShortcodeDisplayRenderer() )->render(
+            array_map( [ self::class, 'shortcode_row_display_item' ], $rows ),
+            [
+                'title'       => 'Rendered shortcode output',
+                'description' => 'Rows are generated through Hexa Plugin Core and show shortcode, description, current output, and parameter examples for the selected author.',
+            ]
+        );
+    }
+
+    private static function shortcode_row_display_item( array $row ): array {
+        $shortcode = (string) ( $row['shortcode'] ?? '' );
+        $tag = self::shortcode_tag_from_code( $shortcode );
+        $parameters = self::shortcode_parameters_from_code( $shortcode );
+
+        return [
+            'label'       => $tag ?: (string) ( $row['group'] ?? 'Shortcode' ),
+            'shortcode'   => $shortcode,
+            'description' => self::shortcode_description_from_row( $row, $tag ),
+            'provider'    => (string) ( $row['provider'] ?? '' ),
+            'source'      => (string) ( $row['source'] ?? '' ),
+            'output_html' => (string) ( $row['value'] ?? '' ),
+            'evaluate'    => false,
+            'examples'    => [
+                [
+                    'label'      => 'Current selected context',
+                    'shortcode'  => $shortcode,
+                    'parameters' => $parameters,
+                ],
+            ],
+        ];
+    }
+
+    private static function shortcode_description_from_row( array $row, string $tag ): string {
+        $group = (string) ( $row['group'] ?? '' );
+        if ( 'Publication/global' === $group ) {
+            return 'Renders publication-level data from SMP settings, publication options, assigned pages, or schema helpers.';
+        }
+        if ( 'Author/user.php' === $group ) {
+            return 'Renders user profile data for the selected WordPress author.';
+        }
+        if ( 'Compatibility' === $group ) {
+            return 'Legacy compatibility shortcode for existing MuckRack and ACF author-field templates.';
+        }
+        if ( 'External provider' === $group ) {
+            return 'External provider shortcode listed for reference; SMP does not execute this row in the debugger.';
+        }
+        return '' !== $tag ? 'Displays the live output for [' . $tag . '].' : 'Displays the live output for this shortcode.';
+    }
+
+    private static function shortcode_tag_from_code( string $shortcode ): string {
+        return preg_match( '/^\[([a-zA-Z0-9_\-]+)/', trim( $shortcode ), $matches ) ? (string) $matches[1] : '';
+    }
+
+    private static function shortcode_parameters_from_code( string $shortcode ): array {
+        $parameters = [];
+        if ( preg_match_all( '/([a-zA-Z0-9_\-]+)="([^"]*)"/', $shortcode, $matches, PREG_SET_ORDER ) ) {
+            foreach ( $matches as $match ) {
+                $parameters[ (string) $match[1] ] = (string) $match[2];
+            }
+        }
+        return $parameters;
     }
 
     private static function shortcode_user_rows( int $user_id ): array {

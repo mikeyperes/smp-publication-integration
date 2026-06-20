@@ -54,14 +54,34 @@ Namespace:
 Hexa\PluginCore\WpAdminAjax
 ```
 
-Use `AjaxGuard` for admin-AJAX nonce creation, nonce validation, capability checks, and callback wrapping.
+Use `AjaxActionRegistry` for host plugin admin-AJAX actions. Use `AjaxRequest` for sanitized request values. Use `AjaxFailure` for expected validation errors. `AjaxGuard` remains available for low-level nonce/capability checks.
 
 ```php
-use Hexa\PluginCore\WpAdminAjax\AjaxGuard;
+use Hexa\PluginCore\WpAdminAjax\AjaxActionRegistry;
+use Hexa\PluginCore\WpAdminAjax\AjaxFailure;
+use Hexa\PluginCore\WpAdminAjax\AjaxRequest;
 
-$nonce = AjaxGuard::create_nonce( 'example_action' );
-AjaxGuard::require_nonce_or_error( 'example_action' );
-AjaxGuard::handle( $callback, [ 'nonce_action' => 'example_action' ] );
+( new AjaxActionRegistry(
+    [
+        'capability'   => 'manage_options',
+        'nonce_action' => 'example_admin',
+        'nonce_field'  => 'nonce',
+    ]
+) )->register(
+    [
+        'example_search' => [
+            'callback' => static function ( AjaxRequest $request ): array {
+                $term = $request->text( 'term', '' );
+
+                if ( '' === $term ) {
+                    throw AjaxFailure::bad_request( 'Search term is required.' );
+                }
+
+                return [ 'results' => [] ];
+            },
+        ],
+    ]
+);
 ```
 
 ## System Environment
@@ -599,14 +619,16 @@ Purpose:
 
 - define shortcode metadata
 - collect shortcodes in a registry
+- render shortcode admin rows with real output
 - prepare one shortcode test at a time
-- support admin UIs that show shortcode, description, test method, test input, and output
+- support admin UIs that show shortcode, description, real output value, examples with parameters, test method, and source
 
 Core classes:
 
 ```text
 ShortcodeDefinition
 ShortcodeRegistry
+ShortcodeDisplayRenderer
 ShortcodeTestResult
 ShortcodeTester
 ```
@@ -627,6 +649,31 @@ $registry = ( new ShortcodeRegistry() )
             'Runs without input and checks for non-empty output.'
         )
     );
+```
+
+Display example:
+
+```php
+use Hexa\PluginCore\ShortcodeRegistry\ShortcodeDisplayRenderer;
+
+echo ( new ShortcodeDisplayRenderer() )->render(
+    [
+        [
+            'label'       => 'Publication Name',
+            'shortcode'   => '[smp_publication_field field="legal_name" format="text"]',
+            'description' => 'Outputs the publication legal name.',
+            'source'      => 'publication option: legal_name',
+            'examples'    => [
+                [
+                    'label'      => 'Text output',
+                    'shortcode'  => '[smp_publication_field field="legal_name" format="text"]',
+                    'parameters' => [ 'field' => 'legal_name', 'format' => 'text' ],
+                ],
+            ],
+        ],
+    ],
+    [ 'title' => 'Plugin Shortcodes' ]
+);
 ```
 
 ## Tabs
@@ -730,3 +777,4 @@ Before changing a plugin that consumes this core:
 4. Use the exact folder/namespace map above.
 5. Do not invent new names for existing concepts.
 6. Update this file when adding public core behavior.
+7. For new plugin audits, start with `docs/new-plugin-master-checklist.md`.

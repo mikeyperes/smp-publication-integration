@@ -28,6 +28,7 @@ Use this before adding code to any plugin that consumes `hexa/plugin-core`.
 - Shortcode registry/testing/display metadata: `src/ShortcodeRegistry/`
 - Host plugin GitHub/update shared configuration: `src/PluginUpdates/`
 - Vendored Hexa WordPress Plugin Core update checks: `src/CorePackageUpdates/`
+- WP admin-AJAX action registration/request handling: `src/WpAdminAjax/`
 - Generic helper/value object: `src/CoreRuntime/`
 
 ## Required Documentation
@@ -48,6 +49,8 @@ Namespace docs:
 - `docs/host-plugin-adapter-template.md`
 - `HEXA_PLUGIN_CORE_LIBRARY.md`
 - `docs/shortcodes.md`
+- `docs/new-plugin-master-checklist.md`
+- `docs/wp-admin-ajax.md`
 - `docs/support.md`
 - `docs/tabs.md`
 - `docs/updater.md`
