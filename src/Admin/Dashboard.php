@@ -2,11 +2,13 @@
 namespace smp_publication_integration\Admin;
 
 use Hexa\PluginCore\ShortcodeRegistry\ShortcodeDisplayRenderer;
+use Hexa\PluginCore\SiteStructure\SiteStructureRenderer;
 use smp_publication_integration\Config;
 use smp_publication_integration\Content\AuthorShortcodes;
 use smp_publication_integration\Content\Schema;
 use smp_publication_integration\Content\Shortcodes;
 use smp_publication_integration\Support\Dependencies;
+use smp_publication_integration\Support\PageStructure;
 use smp_publication_integration\Support\PluginRegistry;
 use smp_publication_integration\Support\Settings;
 
@@ -650,6 +652,29 @@ final class Dashboard {
     }
 
 
+    private function article_type_selector_options_html(): string {
+        $html = "<div class=smpi-control-group><h3>Allowed article type schema objects</h3><table class=widefat><thead><tr><th>Editor choice</th><th>Term slug</th><th>Schema object</th><th>Use case</th></tr></thead><tbody>";
+        foreach ( \smp_publication_integration\Content\ArticleTypes::terms() as $slug => $config ) {
+            $html .= "<tr><td>" . esc_html( $config["label"] ) . "</td><td><code>" . esc_html( $slug ) . "</code></td><td><code>" . esc_html( $config["schema_type"] ) . "</code></td><td>" . esc_html( $config["description"] ) . "</td></tr>";
+        }
+        return $html . "</tbody></table></div>";
+    }
+
+    private function article_type_selector_report_html(): string {
+        $enabled = \smp_publication_integration\Content\ArticleTypes::is_enabled();
+        $registered = taxonomy_exists( \smp_publication_integration\Content\ArticleTypes::TAXONOMY );
+        $post_types = \smp_publication_integration\Content\ArticleTypes::supported_post_types();
+        $html = $this->simple_status_html( ! $enabled || $registered, $enabled ? "Enabled: the taxonomy is registered and uses the radio-only metabox." : "Disabled: the Article Types metabox is hidden and schema falls back to post type defaults." );
+        $html .= "<table class=widefat><tbody>";
+        $html .= "<tr><th>Setting key</th><td><code>article_types_enabled</code></td></tr>";
+        $html .= "<tr><th>Taxonomy</th><td><code>" . esc_html( \smp_publication_integration\Content\ArticleTypes::TAXONOMY ) . "</code></td></tr>";
+        $html .= "<tr><th>Registered now</th><td>" . esc_html( $registered ? "yes" : "no" ) . "</td></tr>";
+        $html .= "<tr><th>Post types</th><td><code>" . esc_html( implode( ", ", $post_types ) ) . "</code></td></tr>";
+        $html .= "<tr><th>Editor behavior</th><td>One radio selection only. No Add field. No free-text term creation.</td></tr>";
+        return $html . "</tbody></table>";
+    }
+
+
     private function schema(): void {
         $schema = new Schema();
         $post_id = $this->latest_post_id();
@@ -664,7 +689,9 @@ final class Dashboard {
         echo "<div class=\"smpi-grid\">";
         $this->status_card( "Home schema graph", in_array( "NewsMediaOrganization", $home_report["types"], true ) && in_array( "CollectionPage", $home_report["types"], true ), "Types: " . implode( ", ", $home_report["types"] ) );
         $this->status_card( "Single schema graph", $post_id && in_array( "WebPage", $single_report["types"], true ), $post_id ? "Latest post #" . $post_id . " types: " . implode( ", ", $single_report["types"] ) : "No published post found." );
-        $this->status_card( "Article type taxonomy", taxonomy_exists( \smp_publication_integration\Content\ArticleTypes::TAXONOMY ), taxonomy_exists( \smp_publication_integration\Content\ArticleTypes::TAXONOMY ) ? "smpi_article_type exists." : "Taxonomy is not registered yet." );
+        $article_types_enabled = \smp_publication_integration\Content\ArticleTypes::is_enabled();
+        $article_types_taxonomy_ready = taxonomy_exists( \smp_publication_integration\Content\ArticleTypes::TAXONOMY );
+        $this->status_card( "Article type selector", ! $article_types_enabled || $article_types_taxonomy_ready, $article_types_enabled ? "Enabled and taxonomy registered." : "Feature disabled; schema falls back by post type." );
         $this->status_card( "Debug JSON URL", true, esc_url( $debug_url ) );
         echo "</div>";
 
@@ -730,6 +757,7 @@ final class Dashboard {
         $publication_muckrack_controls = $this->select_setting_html( "publication_muckrack_text_mode", [ "news_outlet" => [ "label" => "News outlet verified by MuckRack editorial team", "description" => "Generic wording when you do not want the site name in the sentence." ], "publication_name" => [ "label" => get_bloginfo( "name" ) . " verified by MuckRack editorial team", "description" => "Uses the current publication name in the verification sentence." ] ], $settings, "Text option" ) . $this->select_setting_html( "publication_muckrack_style", [ "block" => [ "label" => "Editorial block", "description" => "Small article footer block with a left accent bar.", "preview" => $this->publication_preview_sample_html( "block", $settings ) ], "mini_block" => [ "label" => "Mini editorial block", "description" => "Same left-accent editorial concept with smaller text and a quieter footprint.", "preview" => $this->publication_preview_sample_html( "mini_block", $settings ) ], "compact" => [ "label" => "Compact pill", "description" => "Small inline badge for tight author or header layouts.", "preview" => $this->publication_preview_sample_html( "compact", $settings ) ], "minimalist" => [ "label" => "Minimalist text", "description" => "Plain text treatment that blends into existing article copy.", "preview" => $this->publication_preview_sample_html( "minimalist", $settings ) ] ], $settings, "Display style" ) . $this->color_setting_html( "publication_muckrack_color", "Accent color", $settings ) . $this->number_setting_html( "publication_muckrack_font_size", "Verification text size", $settings, 8, 64, "px" ) . $this->context_select_html( "publication_muckrack_placements", [ "below_author" => "Below author", "bottom_article" => "Bottom of article" ], $settings );
         $this->feature_card( "MuckRack verified publication", "publication_muckrack_verified_enabled", "Registers site option ACF fields on Publication Theme Options: smpi_publication_muckrack_verified and smpi_publication_muckrack_url.", "Displays publication-level MuckRack verification text separately from journalist verification. Use this for the site/news-outlet claim, not the author badge.", "[smp_publication_muckrack_verified]", $this->publication_muckrack_report_html(), $this->activity_log_html(), $publication_muckrack_controls );
         $this->feature_card( "Press-release inclusion controls", "press_release_include_enabled", "Uses existing press-release CPT and _smpi_pr_shadow_override meta. ACF/local fields are registered for force include or force exclude.", "Includes Hexa PR Wire press-release posts in selected blog-like loops: home, category/tag, author.php, and single.php recent article secondary queries. Force exclude is honored through the press-release visibility meta box.", "add_action(\"pre_get_posts\", function (WP_Query \$q) { /* SMP uses the same main-query guard pattern and selected contexts. */ });", $this->press_release_report_html(), $this->activity_log_html(), $this->context_select_html( "press_release_include_contexts", [ "home" => "Home page", "category_tag" => "Category and tag pages", "author" => "author.php", "single_recent" => "single.php recent article queries" ], $settings ) );
+        $this->feature_card( "Article type schema selector", "article_types_enabled", "No ACF fields needed. Registers the <code>smpi_article_type</code> taxonomy only when this feature is enabled.", "Adds one radio-only Article Type box to supported article editors. The field is hidden when disabled and only allows predefined schema-backed values.", "editorial-news => NewsArticle\nanalysis => AnalysisNewsArticle\nopinion => OpinionNewsArticle\nreportage => ReportageNewsArticle\npress-release => Article\nsponsored => AdvertiserContentArticle", $this->article_type_selector_report_html(), $this->activity_log_html(), $this->article_type_selector_options_html() );
         $this->feature_card( "Estimated read time", "estimated_read_time_enabled", "No custom ACF fields needed. Reads the selected post content directly.", "Calculates reading time from post_content after stripping HTML and shortcodes. The shortcode returns a plain numeric value in minutes by default or seconds when unit=seconds is passed.", "[smp_estimated_read_time]\n[smp_estimated_read_time unit=\"seconds\"]\n[smp_estimated_read_time post_id=\"123\" unit=\"minutes\"]", $this->estimated_read_time_report_html(), $this->activity_log_html() );
         $toc_controls = $this->inline_toggle_setting_html( "table_of_contents_auto_single", "Automatically show above single.php content" ) . $this->select_setting_html( "table_of_contents_style", $this->toc_style_options(), $settings, "Table of contents design" ) . $this->color_setting_html( "table_of_contents_accent_color", "Table of contents accent color", $settings ) . $this->font_style_setting_html( "table_of_contents_text_font_style", "Table of contents text font style", $settings ) . $this->number_setting_html( "table_of_contents_text_font_size", "Table of contents text font size", $settings, 8, 64, "px" ) . $this->color_setting_html( "table_of_contents_text_color", "Table of contents text color", $settings );
         $this->feature_card( "Table of contents", "table_of_contents_enabled", "No ACF changes. Parses post headings from post_content.", "Adds [smp_table_of_contents] and optional automatic display above single.php content. Select the single.php display treatment here or use style= on the shortcode.", "[smp_table_of_contents]\n[smp_table_of_contents style=\"toc02\"]\n[smp_table_of_contents post_id=\"123\" title=\"In this article\"]", $this->table_of_contents_report_html(), $this->activity_log_html(), $toc_controls );
@@ -1223,28 +1251,32 @@ final class Dashboard {
     }
 
     private function pages(): void {
-        $settings = Settings::all();
-        $default_templates = Settings::default_page_templates();
-        $pages = get_pages( [ "sort_column" => "post_title", "sort_order" => "ASC", "post_status" => [ "publish", "draft", "private" ] ] );
-        echo "<div class=\"smpi-panel\"><h2>Publication Pages</h2><p>Assign canonical pages for dynamic retrieval and launch integrity checks.</p></div>";
+        $manager = PageStructure::manager();
+        echo "<div class=\"smpi-panel\"><h2>Publication Pages</h2><p>Assign canonical pages, manage starter templates, and build matching WordPress menus through Hexa Core SiteStructure.</p></div>";
         echo $this->pages_shortcode_reference_html();
-        foreach ( Settings::page_types() as $type => $config ) {
-            $page_id = isset( $settings["page_assignments"][ $type ] ) ? (int) $settings["page_assignments"][ $type ] : 0;
-            $status_dot = $page_id ? "<span class=\"smpi-ok\">●</span> " : "<span class=\"smpi-bad\">●</span> ";
-            echo "<div class=\"smpi-panel smpi-page-row\" data-page-type=\"" . esc_attr( $type ) . "\"><h2>" . $status_dot . esc_html( (string) $config["label"] ) . "</h2><p>" . esc_html( (string) $config["description"] ) . "</p><select class=\"smpi-page-select\"><option value=\"0\">Not assigned</option>";
-            foreach ( $pages as $page ) {
-                echo "<option value=\"" . esc_attr( (string) $page->ID ) . "\"" . selected( $page_id, $page->ID, false ) . ">" . esc_html( $page->post_title . " (#" . $page->ID . ")" ) . "</option>";
-            }
-            echo "</select><div class=\"smpi-page-detail-wrap\" aria-live=\"polite\">" . ( $page_id ? self::page_detail_html( $page_id ) : "" ) . "</div>";
-            if ( ! empty( $config["template"] ) ) {
-                $editor_id = "smpi_page_template_" . sanitize_key( $type );
-                $template_value = ( isset( $settings["page_templates"][ $type ] ) && "" !== trim( (string) $settings["page_templates"][ $type ] ) ) ? (string) $settings["page_templates"][ $type ] : (string) ( $default_templates[ $type ] ?? "" );
-                echo "<p><label><strong>Starter/template text</strong></label></p><div class=\"smpi-page-template-editor\" data-editor-id=\"" . esc_attr( $editor_id ) . "\">";
-                wp_editor( $template_value, $editor_id, [ "textarea_name" => $editor_id, "textarea_rows" => 8, "media_buttons" => true, "teeny" => false, "quicktags" => true, "tinymce" => true ] );
-                echo "</div>";
-            }
-            echo "<p><button class=\"button button-primary smpi-save-page\" type=\"button\">Save Page Assignment</button> <button class=\"button smpi-create-page\" type=\"button\">Create New Page</button><span class=\"spinner\"></span><span class=\"smpi-save-state\"></span></p></div>";
-        }
+        echo ( new SiteStructureRenderer(
+            $manager,
+            [
+                'instance_id'                   => 'smpi-publication-pages',
+                'nonce'                         => Ajax::nonce(),
+                'card_class'                    => 'smpi-panel hpc-card',
+                'table_class'                   => 'widefat striped hpc-table',
+                'enable_templates'              => true,
+                'enable_template_editors'       => true,
+                'template_editor_media_buttons' => false,
+                'template_editor_rows'          => 8,
+                'show_page_details'             => true,
+                'actions'                       => PageStructure::ajax_actions(),
+                'labels'                        => [
+                    'pages_title'       => 'Critical Publication Pages',
+                    'pages_heading'     => 'Publication page assignments',
+                    'pages_description' => 'Assign existing pages or create draft canonical pages using stored starter templates.',
+                    'menus_title'       => 'Publication Navigation Menus',
+                    'menus_heading'     => 'Create menus and attach assigned pages',
+                    'menus_description' => 'Create WordPress menus, custom menu items, attach assigned pages, and attach publication menu blueprints.',
+                ],
+            ]
+        ) )->render();
     }
 
 
@@ -1422,7 +1454,7 @@ final class Dashboard {
             function tabUrl(tab){return smpiAdmin.pageUrl+`&tab=`+encodeURIComponent(tab)}
             function destroyDynamicEditors(root){if(window.acf){try{acf.doAction(`remove`,root)}catch(e){}}if(!window.tinymce)return;root.find(`textarea.wp-editor-area`).each(function(){var id=this.id;if(id&&tinymce.get(id)){tinymce.get(id).remove()}})}
             function initAcfFields(root){if(window.acf){try{acf.doAction(`append`,root)}catch(e){}}}
-            function initDynamicEditors(root){if(!window.wp||!wp.editor)return;root.find(`.smpi-page-template-editor textarea`).each(function(){var id=this.id;if(!id)return;if(window.tinymce&&tinymce.get(id)){tinymce.get(id).remove()}try{wp.editor.initialize(id,{tinymce:true,quicktags:true,mediaButtons:true})}catch(e){}})}
+            function initDynamicEditors(root){if(!window.wp||!wp.editor)return;root.find(`.smpi-page-template-editor textarea,.hpc-template-editor textarea`).each(function(){var id=this.id;if(!id)return;if(window.tinymce&&tinymce.get(id)){tinymce.get(id).remove()}try{wp.editor.initialize(id,{tinymce:true,quicktags:true,mediaButtons:$(this).closest(`.smpi-page-template-editor`).length>0})}catch(e){}})}
             function setActiveTab(tab){$(`.smpi-tab-btn`).removeClass(`active`).attr(`aria-selected`,`false`);$(`.smpi-tab-btn[data-tab="${tab}"]`).addClass(`active`).attr(`aria-selected`,`true`);smpiAdmin.activeTab=tab}
             function loadTab(tab,href,push){var panel=tabPanel(),status=$(`.smpi-tab-status`),msg=status.find(`.smpi-tab-message`);if(!tab||panel.data(`loading`))return;panel.data(`loading`,1).addClass(`is-loading`).attr(`aria-busy`,`true`);status.find(`.spinner`).addClass(`is-active`);msg.text(`Loading...`);$.post(smpiAdmin.ajaxUrl,{action:`smpi_load_tab`,nonce:smpiAdmin.nonce,tab:tab}).done(function(x){if(!x||!x.success){msg.text(`Error loading tab.`);return}destroyDynamicEditors(panel);panel.html(x.data.html||``).attr(`data-active-tab`,x.data.tab).attr(`aria-busy`,`false`);setActiveTab(x.data.tab);msg.text(`Loaded ${x.data.label}.`);if(push!==false&&window.history&&history.pushState){history.pushState({smpiTab:x.data.tab},``,href||tabUrl(x.data.tab))}initAcfFields(panel);initDynamicEditors(panel)}).fail(function(){msg.text(`Error loading tab.`)}).always(function(){panel.removeData(`loading`).removeClass(`is-loading`).attr(`aria-busy`,`false`);status.find(`.spinner`).removeClass(`is-active`)})}
             $(document).on(`click`,`.smpi-tab-btn`,function(e){var b=$(this),tab=b.data(`tab`);if(!tab)return;e.preventDefault();if(tab===smpiAdmin.activeTab)return;loadTab(tab,b.attr(`href`),true)});

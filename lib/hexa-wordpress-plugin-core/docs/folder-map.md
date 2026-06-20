@@ -36,6 +36,7 @@ The package version is stored in the root `VERSION` file.
 | `src/PluginProvisioning/` | `Hexa\PluginCore\PluginProvisioning` | Plugin discovery, status checks, WordPress.org installs, GitHub ZIP installs, folder normalization, and activation. |
 | `src/PluginUpdates/` | `Hexa\PluginCore\PluginUpdates` | Host plugin GitHub version checks, update transients, zip downloads, and updater panels. |
 | `src/ShortcodeRegistry/` | `Hexa\PluginCore\ShortcodeRegistry` | Shortcode definitions, registries, dashboard display rows, examples, live output, and testing. |
+| `src/SiteStructure/` | `Hexa\PluginCore\SiteStructure` | Critical page blueprints, assigned page storage, WordPress navigation menu creation, menu structure attachment, and page-to-menu-item tools. |
 | `src/SmartSearch/` | `Hexa\PluginCore\SmartSearch` | Smart search/X-Search AJAX endpoints and reusable typeahead renderers. |
 | `src/SystemEnvironment/` | `Hexa\PluginCore\SystemEnvironment` | Safe constants, INI, shell wrappers, size parsing, CPU/memory detection, and byte formatting. |
 | `src/WpAdminAjax/` | `Hexa\PluginCore\WpAdminAjax` | WordPress admin-AJAX nonce, capability, request parsing, action registration, and callback guards. |

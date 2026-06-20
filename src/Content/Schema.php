@@ -313,7 +313,11 @@ final class Schema {
         if ( $post_id ) {
             $checks[] = [ "label" => "Article featured image populated", "status" => has_post_thumbnail( $post_id ) ? "green" : "yellow" ];
             $checks[] = [ "label" => "Article FAQ repeater rows available for schema", "status" => self::faq_rows_for_post( $post_id, true ) ? "green" : "yellow" ];
-            $checks[] = [ "label" => "Article type taxonomy exists", "status" => taxonomy_exists( ArticleTypes::TAXONOMY ) ? "green" : "red" ];
+            $article_types_enabled = ArticleTypes::is_enabled();
+            $checks[] = [
+                "label" => $article_types_enabled ? "Article type selector enabled and taxonomy exists" : "Article type selector disabled; schema fallback active",
+                "status" => ( ! $article_types_enabled || taxonomy_exists( ArticleTypes::TAXONOMY ) ) ? "green" : "red",
+            ];
         }
 
         return [ "context" => $post_id ? "single" : "home", "post_id" => $post_id, "types" => $types, "checks" => $checks ];

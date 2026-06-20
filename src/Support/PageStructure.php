@@ -1,0 +1,204 @@
+<?php
+namespace smp_publication_integration\Support;
+
+use Hexa\PluginCore\SiteStructure\PageStructureManager;
+
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+
+final class PageStructure {
+    /**
+     * @return array<string,string>
+     */
+    public static function ajax_actions(): array {
+        return [
+            'assign_page'              => 'smpi_site_assign_page',
+            'create_page'              => 'smpi_site_create_page',
+            'delete_page'              => 'smpi_site_delete_page',
+            'create_navigation_menu'   => 'smpi_site_create_navigation_menu',
+            'delete_navigation_menu'   => 'smpi_site_delete_navigation_menu',
+            'create_menu_item'         => 'smpi_site_create_menu_item',
+            'attach_page_to_menu_item' => 'smpi_site_attach_page_to_menu_item',
+            'attach_menu_structure'    => 'smpi_site_attach_menu_structure',
+            'add_pages_to_menu'        => 'smpi_site_add_pages_to_menu',
+            'save_template'            => 'smpi_site_save_template',
+            'apply_template'           => 'smpi_site_apply_template',
+            'page_details'             => 'smpi_site_page_details',
+            'update_page_slug'         => 'smpi_site_update_page_slug',
+        ];
+    }
+
+    public static function manager(): PageStructureManager {
+        return new PageStructureManager(
+            [
+                'pages'                => self::page_definitions(),
+                'menu_structures'      => self::menu_structures(),
+                'managed_meta_key'     => '_smpi_managed_page',
+                'managed_key_meta_key' => '_smpi_page_key',
+                'created_page_status'  => 'draft',
+                'select_post_statuses' => [ 'publish', 'draft', 'private', 'pending' ],
+                'assignment_statuses'  => [ 'publish', 'draft', 'private', 'pending' ],
+                'reuse_existing_pages' => true,
+                'default_templates'    => Settings::default_page_templates(),
+                'assignment_getter'    => [ self::class, 'assigned_page_id' ],
+                'assignment_saver'     => [ self::class, 'save_assignment' ],
+                'assignment_deleter'   => [ self::class, 'delete_assignment' ],
+                'template_getter'      => [ self::class, 'stored_template' ],
+                'template_saver'       => [ self::class, 'save_template' ],
+                'page_detail_renderer' => [ self::class, 'page_detail_html' ],
+                'logger'               => [ Settings::class, 'log' ],
+                'menu_guess_terms'     => [
+                    'header' => [ 'header', 'main', 'primary', 'top' ],
+                    'footer' => [ 'footer', 'bottom' ],
+                    'legal'  => [ 'legal', 'sub-footer', 'sub footer', 'subfooter', 'terms', 'privacy' ],
+                    'policy' => [ 'policy', 'policies', 'editorial' ],
+                    'team'   => [ 'team', 'about', 'staff' ],
+                ],
+            ]
+        );
+    }
+
+    /**
+     * @return array<string,array<string,mixed>>
+     */
+    public static function page_definitions(): array {
+        $pages = [];
+        foreach ( Settings::page_types() as $key => $config ) {
+            $title = (string) ( $config['label'] ?? $key );
+            $pages[ (string) $key ] = [
+                'title'       => $title,
+                'slug'        => sanitize_title( $title ),
+                'description' => (string) ( $config['description'] ?? '' ),
+                'template'    => ! empty( $config['template'] ),
+            ];
+        }
+
+        return $pages;
+    }
+
+    /**
+     * @return array<string,array<string,mixed>>
+     */
+    public static function menu_structures(): array {
+        return [
+            'header' => [
+                'title'       => 'Header Menu',
+                'description' => 'Primary reader navigation for publication identity, team, and contact pages.',
+                'page_keys'   => [ 'about_publication', 'writers', 'contributors', 'contact' ],
+            ],
+            'footer' => [
+                'title'       => 'Footer Menu',
+                'description' => 'Core transparency, team, contact, advertising, and legal links for the footer.',
+                'page_keys'   => [ 'about_publication', 'team', 'contact', 'advertise', 'privacy', 'terms', 'dmca' ],
+            ],
+            'legal' => [
+                'title'       => 'Legal Menu',
+                'description' => 'Legal and compliance pages for footer or sub-footer placement.',
+                'page_keys'   => [ 'privacy', 'terms', 'dmca', 'accessibility' ],
+            ],
+            'policy' => [
+                'title'       => 'Editorial Policy Menu',
+                'description' => 'Schema and reader-trust policy pages for NewsMediaOrganization transparency.',
+                'page_keys'   => [ 'editorial_guidelines', 'editorial_policy', 'publishing_principles', 'verification_fact_checking_policy', 'corrections_policy', 'ethics_policy', 'diversity_policy', 'masthead', 'mission_coverage_priorities_policy', 'no_bylines_policy', 'unnamed_sources_policy', 'actionable_feedback_policy', 'ownership_funding' ],
+            ],
+            'team' => [
+                'title'       => 'Team Menu',
+                'description' => 'Founder, writer, contributor, staff, and executive pages for publication profile navigation.',
+                'page_keys'   => [ 'founder_about', 'founders', 'writers', 'contributors', 'staff', 'executive_team', 'team' ],
+            ],
+        ];
+    }
+
+    public static function assigned_page_id( string $page_key ): int {
+        $settings = Settings::all();
+        return isset( $settings['page_assignments'][ $page_key ] ) ? absint( $settings['page_assignments'][ $page_key ] ) : 0;
+    }
+
+    public static function save_assignment( string $page_key, int $page_id ): void {
+        if ( ! isset( Settings::page_types()[ $page_key ] ) ) {
+            return;
+        }
+
+        $settings = Settings::all();
+        $settings['page_assignments'][ $page_key ] = max( 0, absint( $page_id ) );
+        if ( ! isset( $settings['page_templates'][ $page_key ] ) ) {
+            $settings['page_templates'][ $page_key ] = self::stored_template( $page_key );
+        }
+        update_option( Settings::OPTION, $settings, false );
+        Settings::log( 'Page assignment updated: ' . $page_key );
+    }
+
+    public static function delete_assignment( string $page_key ): void {
+        if ( ! isset( Settings::page_types()[ $page_key ] ) ) {
+            return;
+        }
+
+        $settings = Settings::all();
+        $settings['page_assignments'][ $page_key ] = 0;
+        update_option( Settings::OPTION, $settings, false );
+        Settings::log( 'Page assignment cleared: ' . $page_key );
+    }
+
+    public static function stored_template( string $page_key ): string {
+        $settings = Settings::all();
+        $stored = isset( $settings['page_templates'][ $page_key ] ) ? trim( (string) $settings['page_templates'][ $page_key ] ) : '';
+        if ( '' !== $stored ) {
+            return (string) $settings['page_templates'][ $page_key ];
+        }
+
+        $defaults = Settings::default_page_templates();
+        return (string) ( $defaults[ $page_key ] ?? '' );
+    }
+
+    public static function save_template( string $page_key, string $template ): void {
+        if ( ! isset( Settings::page_types()[ $page_key ] ) ) {
+            return;
+        }
+
+        $settings = Settings::all();
+        $settings['page_templates'][ $page_key ] = wp_kses_post( $template );
+        update_option( Settings::OPTION, $settings, false );
+        Settings::log( 'Page template updated: ' . $page_key );
+    }
+
+    public static function page_detail_html( int $page_id ): string {
+        $post = get_post( $page_id );
+        if ( ! $post || 'page' !== $post->post_type ) {
+            return '';
+        }
+
+        $status = (string) $post->post_status;
+        $status_obj = get_post_status_object( $status );
+        $status_label = $status_obj ? (string) $status_obj->label : ucfirst( $status );
+        $permalink = (string) Settings::page_slug_url( $page_id );
+        $edit_url = (string) get_edit_post_link( $page_id, 'raw' );
+        $date = get_the_date( 'M j, Y g:i a', $page_id );
+        $modified = get_the_modified_date( 'M j, Y g:i a', $page_id );
+        $author = get_the_author_meta( 'display_name', (int) $post->post_author );
+
+        ob_start();
+        ?>
+        <div class="smpi-page-detail hpc-page-detail" data-page-id="<?php echo esc_attr( (string) $page_id ); ?>">
+            <div class="smpi-page-detail-head">
+                <div>
+                    <h3><?php echo esc_html( get_the_title( $page_id ) ); ?></h3>
+                    <p class="smpi-muted">Selected WordPress page for this publication requirement.</p>
+                </div>
+                <span class="smpi-pill smpi-pill--saved"><?php echo esc_html( $status_label ); ?></span>
+            </div>
+            <dl class="smpi-page-meta">
+                <div><dt>ID</dt><dd><code>#<?php echo esc_html( (string) $page_id ); ?></code></dd></div>
+                <div><dt>Status</dt><dd><?php echo esc_html( $status_label ); ?> <code><?php echo esc_html( $status ); ?></code></dd></div>
+                <div><dt>Author</dt><dd><?php echo esc_html( $author ?: 'Unknown' ); ?></dd></div>
+                <div><dt>Created</dt><dd><?php echo esc_html( $date ); ?></dd></div>
+                <div><dt>Modified</dt><dd><?php echo esc_html( $modified ); ?></dd></div>
+                <div class="smpi-page-meta-wide"><dt>Permalink</dt><dd><a href="<?php echo esc_url( $permalink ); ?>" target="_blank" rel="noopener noreferrer"><?php echo esc_html( $permalink ); ?></a></dd></div>
+                <div class="smpi-page-meta-wide smpi-page-slug-row"><dt>Slug</dt><dd><input type="text" class="regular-text hpc-page-slug-input" value="<?php echo esc_attr( (string) $post->post_name ); ?>" aria-label="Page slug"><button type="button" class="button hpc-save-page-slug">Save Slug</button><span class="spinner"></span><span class="hpc-page-slug-status smpi-save-state"></span></dd></div>
+            </dl>
+            <p class="smpi-page-actions"><a class="button button-secondary" href="<?php echo esc_url( $edit_url ); ?>" target="_blank" rel="noopener noreferrer">Edit Page</a> <a class="button button-secondary" href="<?php echo esc_url( $permalink ); ?>" target="_blank" rel="noopener noreferrer">View Page</a></p>
+        </div>
+        <?php
+        return (string) ob_get_clean();
+    }
+}

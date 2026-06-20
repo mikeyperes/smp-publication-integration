@@ -1,27 +1,32 @@
 <?php
 namespace smp_publication_integration\Content;
 
+use smp_publication_integration\Support\Settings;
+
 if ( ! defined( "ABSPATH" ) ) {
     exit;
 }
 
 final class ArticleTypes {
     public const TAXONOMY = "smpi_article_type";
+    private const FIELD_NAME = "smpi_article_type_radio";
+    private const NONCE_NAME = "smpi_article_type_radio_nonce";
+    private const NONCE_ACTION = "smpi_article_type_radio";
 
     public function register(): void {
         add_action( "init", [ $this, "register_taxonomy" ], 8 );
         add_action( "init", [ $this, "ensure_terms" ], 20 );
+        add_action( "save_post", [ $this, "save_radio_selection" ], 20, 2 );
     }
 
     public function register_taxonomy(): void {
-        $post_types = [ "post" ];
-        if ( post_type_exists( "press-release" ) ) {
-            $post_types[] = "press-release";
+        if ( ! self::is_enabled() ) {
+            return;
         }
 
         register_taxonomy(
             self::TAXONOMY,
-            $post_types,
+            self::supported_post_types(),
             [
                 "labels" => [
                     "name" => "Article Types",
@@ -36,15 +41,19 @@ final class ArticleTypes {
                 ],
                 "public" => false,
                 "show_ui" => true,
+                "show_in_menu" => false,
                 "show_admin_column" => true,
+                "show_in_quick_edit" => false,
+                "show_tagcloud" => false,
                 "show_in_rest" => true,
-                "hierarchical" => false,
+                "hierarchical" => true,
+                "meta_box_cb" => [ $this, "render_radio_metabox" ],
                 "rewrite" => false,
                 "query_var" => true,
                 "capabilities" => [
-                    "manage_terms" => "manage_categories",
-                    "edit_terms" => "manage_categories",
-                    "delete_terms" => "manage_categories",
+                    "manage_terms" => "manage_options",
+                    "edit_terms" => "manage_options",
+                    "delete_terms" => "manage_options",
                     "assign_terms" => "edit_posts",
                 ],
             ]
@@ -57,7 +66,16 @@ final class ArticleTypes {
         }
 
         foreach ( self::terms() as $slug => $config ) {
-            if ( term_exists( $slug, self::TAXONOMY ) ) {
+            $term = term_exists( $slug, self::TAXONOMY );
+            if ( $term ) {
+                wp_update_term(
+                    is_array( $term ) ? (int) $term["term_id"] : (int) $term,
+                    self::TAXONOMY,
+                    [
+                        "name" => $config["label"],
+                        "description" => $config["description"],
+                    ]
+                );
                 continue;
             }
             wp_insert_term(
@@ -66,6 +84,67 @@ final class ArticleTypes {
                 [ "slug" => $slug, "description" => $config["description"] ]
             );
         }
+    }
+
+    public function render_radio_metabox( \WP_Post $post, array $box = [] ): void {
+        if ( ! self::is_supported_post_type( (string) $post->post_type ) ) {
+            return;
+        }
+
+        wp_nonce_field( self::NONCE_ACTION, self::NONCE_NAME );
+        $current = self::selected_slug_for_post( (int) $post->ID );
+        if ( "" === $current ) {
+            $current = self::default_slug_for_post( (int) $post->ID );
+        }
+
+        echo "<p class=\"description\">Select exactly one predefined schema article type. Free-text article types are disabled.</p>";
+        echo "<div class=\"smpi-article-type-radio-list\" role=\"radiogroup\" aria-label=\"Article Type\">";
+        foreach ( self::terms() as $slug => $config ) {
+            $id = self::FIELD_NAME . "-" . sanitize_html_class( $slug );
+            echo "<label for=\"" . esc_attr( $id ) . "\" style=\"display:block;margin:0 0 10px;line-height:1.35;\">";
+            echo "<input id=\"" . esc_attr( $id ) . "\" type=\"radio\" name=\"" . esc_attr( self::FIELD_NAME ) . "\" value=\"" . esc_attr( $slug ) . "\" " . checked( $current, $slug, false ) . "> ";
+            echo "<strong>" . esc_html( $config["label"] ) . "</strong> <code>" . esc_html( $config["schema_type"] ) . "</code><br>";
+            echo "<span class=\"description\">" . esc_html( $config["description"] ) . "</span>";
+            echo "</label>";
+        }
+        echo "</div>";
+    }
+
+    public function save_radio_selection( int $post_id, \WP_Post $post ): void {
+        if ( ! self::is_enabled() || ! self::is_supported_post_type( (string) $post->post_type ) || ! taxonomy_exists( self::TAXONOMY ) ) {
+            return;
+        }
+        if ( wp_is_post_autosave( $post_id ) || wp_is_post_revision( $post_id ) ) {
+            return;
+        }
+        if ( ! current_user_can( "edit_post", $post_id ) || ! current_user_can( "assign_terms", self::TAXONOMY ) ) {
+            return;
+        }
+        if ( ! isset( $_POST[ self::NONCE_NAME ] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST[ self::NONCE_NAME ] ) ), self::NONCE_ACTION ) ) {
+            return;
+        }
+
+        $posted = isset( $_POST[ self::FIELD_NAME ] ) ? sanitize_key( wp_unslash( $_POST[ self::FIELD_NAME ] ) ) : "";
+        $slug = array_key_exists( $posted, self::terms() ) ? $posted : self::default_slug_for_post( $post_id );
+        wp_set_object_terms( $post_id, $slug, self::TAXONOMY, false );
+    }
+
+    public static function is_enabled(): bool {
+        return Settings::bool( "article_types_enabled" );
+    }
+
+    public static function supported_post_types(): array {
+        $post_types = [ "post" ];
+        foreach ( [ "press-release", "imported-news" ] as $post_type ) {
+            if ( post_type_exists( $post_type ) ) {
+                $post_types[] = $post_type;
+            }
+        }
+        return array_values( array_unique( $post_types ) );
+    }
+
+    public static function is_supported_post_type( string $post_type ): bool {
+        return in_array( $post_type, self::supported_post_types(), true );
     }
 
     public static function terms(): array {
@@ -110,5 +189,23 @@ final class ArticleTypes {
             }
         }
         return $type;
+    }
+
+    private static function selected_slug_for_post( int $post_id ): string {
+        $terms = get_the_terms( $post_id, self::TAXONOMY );
+        if ( ! is_array( $terms ) ) {
+            return "";
+        }
+        foreach ( $terms as $term ) {
+            $slug = isset( $term->slug ) ? (string) $term->slug : "";
+            if ( array_key_exists( $slug, self::terms() ) ) {
+                return $slug;
+            }
+        }
+        return "";
+    }
+
+    private static function default_slug_for_post( int $post_id ): string {
+        return "press-release" === get_post_type( $post_id ) ? "press-release" : "editorial-news";
     }
 }

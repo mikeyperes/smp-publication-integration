@@ -7,7 +7,7 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.6.25`
+- Version: `0.6.26`
 
 ## Structure
 
@@ -53,6 +53,12 @@ WordPress plugin for Scale My Publication publication profiles.
 ## 0.6.24 Updates
 
 - Prepended the SMP Hexa core autoloader so SMP resolves `Hexa\PluginCore` classes from its bundled core instead of depending on HWS Base Tools load order.
+
+## 0.6.26 Updates
+
+- Added the opt-in Article type schema selector feature toggle.
+- Converted `smpi_article_type` to a hierarchical, radio-only, predefined taxonomy UI when enabled.
+- Hid the taxonomy when disabled and removed the free-text Add term workflow from post editors.
 
 ## 0.6.25 Updates
 

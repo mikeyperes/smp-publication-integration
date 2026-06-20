@@ -34,6 +34,7 @@ hexa-wordpress-plugin-core/
     PluginProvisioning/ -> Hexa\PluginCore\PluginProvisioning
     PluginUpdates/      -> Hexa\PluginCore\PluginUpdates
     ShortcodeRegistry/  -> Hexa\PluginCore\ShortcodeRegistry
+    SiteStructure/      -> Hexa\PluginCore\SiteStructure
     SmartSearch/        -> Hexa\PluginCore\SmartSearch
     SystemEnvironment/  -> Hexa\PluginCore\SystemEnvironment
     WpAdminComponents/  -> Hexa\PluginCore\WpAdminComponents
@@ -57,6 +58,7 @@ Do not create `HWS\BaseTools\PluginCore`, `HexaWordPressPluginCore`, `Hexa\Core`
 - `PluginProvisioning`: shared plugin discovery, status checks, WordPress.org installs, GitHub ZIP installs, folder normalization, and activation.
 - `PluginUpdates`: shared GitHub/update configuration objects and host plugin updater.
 - `ShortcodeRegistry`: shortcode definition registry, dashboard display renderer, examples, live output, and test runner contracts.
+- `SiteStructure`: reusable critical page blueprint management, assigned page storage, WordPress navigation menu creation, custom menu-item creation, add-all-assigned-pages actions, menu structure attachment, and page-to-menu-item tools.
 - `SmartSearch`: smart search/X-Search AJAX endpoint and reusable typeahead renderer.
 - `SystemEnvironment`: safe constants, INI, shell wrappers, size parsing, CPU/memory detection, and byte formatting.
 - `WpAdminComponents`: shared visual primitives such as cards, subcards, buttons, pills, tooltips, and collapsible sections.
@@ -128,6 +130,7 @@ Before adding implementations in another Codex or Claude chat, read:
 - `docs/setup-protocol.md`
 - `docs/implementation-checklist.md`
 - `docs/new-plugin-master-checklist.md`
+- `docs/site-structure.md`
 - the namespace-specific doc for the folder being changed
 
 If a new feature does not fit an existing namespace, document the proposed namespace first before adding code.

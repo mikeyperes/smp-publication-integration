@@ -29,6 +29,7 @@ src/LogFiles/           Hexa\PluginCore\LogFiles
 src/PluginProvisioning/ Hexa\PluginCore\PluginProvisioning
 src/PluginUpdates/      Hexa\PluginCore\PluginUpdates
 src/ShortcodeRegistry/  Hexa\PluginCore\ShortcodeRegistry
+src/SiteStructure/      Hexa\PluginCore\SiteStructure
 src/SmartSearch/        Hexa\PluginCore\SmartSearch
 src/SystemEnvironment/  Hexa\PluginCore\SystemEnvironment
 src/WpAdminAjax/        Hexa\PluginCore\WpAdminAjax
@@ -177,6 +178,60 @@ $status = WpCronTask::status(
         'schedule_key' => 'my_plugin_cleanup_interval',
     ]
 );
+```
+
+## Site Structure
+
+Namespace:
+
+```text
+Hexa\PluginCore\SiteStructure
+```
+
+Use `PageStructureManager` for critical page blueprints, assigned page options, managed page create/delete protection, and WordPress menu attachment. Use `SiteStructureAjaxController` to keep host-specific AJAX action names while sharing nonce, capability, and request handling. Use `SiteStructureRenderer` for the admin UI.
+
+```php
+use Hexa\PluginCore\SiteStructure\PageStructureManager;
+use Hexa\PluginCore\SiteStructure\SiteStructureAjaxController;
+use Hexa\PluginCore\SiteStructure\SiteStructureRenderer;
+
+$manager = new PageStructureManager([
+    'option_prefix' => 'my_plugin_page_',
+    'managed_meta_key' => '_my_plugin_managed_page',
+    'managed_key_meta_key' => '_my_plugin_page_key',
+    'pages' => [
+        'about' => ['title' => 'About', 'slug' => 'about', 'children' => []],
+    ],
+    'menu_structures' => [
+        'header' => ['title' => 'Header', 'page_keys' => ['about']],
+    ],
+]);
+
+(new SiteStructureAjaxController($manager, [
+    'nonce_action' => 'my_plugin_ajax',
+    'actions' => [
+        'assign_page' => 'my_plugin_assign_page',
+        'create_page' => 'my_plugin_create_page',
+        'delete_page' => 'my_plugin_delete_page',
+        'create_navigation_menu' => 'my_plugin_create_navigation_menu',
+        'delete_navigation_menu' => 'my_plugin_delete_navigation_menu',
+        'attach_page_to_menu_item' => 'my_plugin_attach_page_to_menu_item',
+        'attach_menu_structure' => 'my_plugin_attach_menu_structure',
+    ],
+]))->register();
+
+echo (new SiteStructureRenderer($manager, [
+    'nonce' => wp_create_nonce('my_plugin_ajax'),
+    'actions' => [
+        'assign_page' => 'my_plugin_assign_page',
+        'create_page' => 'my_plugin_create_page',
+        'delete_page' => 'my_plugin_delete_page',
+        'create_navigation_menu' => 'my_plugin_create_navigation_menu',
+        'delete_navigation_menu' => 'my_plugin_delete_navigation_menu',
+        'attach_page_to_menu_item' => 'my_plugin_attach_page_to_menu_item',
+        'attach_menu_structure' => 'my_plugin_attach_menu_structure',
+    ],
+]))->render();
 ```
 
 Class:

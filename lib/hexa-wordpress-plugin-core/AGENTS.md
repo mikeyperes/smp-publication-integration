@@ -40,6 +40,7 @@ src/LogFiles/           Hexa\PluginCore\LogFiles
 src/PluginProvisioning/ Hexa\PluginCore\PluginProvisioning
 src/PluginUpdates/      Hexa\PluginCore\PluginUpdates
 src/ShortcodeRegistry/  Hexa\PluginCore\ShortcodeRegistry
+src/SiteStructure/      Hexa\PluginCore\SiteStructure
 src/SmartSearch/        Hexa\PluginCore\SmartSearch
 src/SystemEnvironment/  Hexa\PluginCore\SystemEnvironment
 src/WpAdminAjax/        Hexa\PluginCore\WpAdminAjax
@@ -73,6 +74,7 @@ Never make a module boot itself at file include time. Modules register hooks fro
 - Put reusable plugin discovery, install, activation, GitHub ZIP provisioning, and folder-normalization helpers in `src/PluginProvisioning`.
 - Put reusable API-key/secret storage, masking, and credential setup UI in `src/CredentialVault`.
 - Put reusable smart search/X-Search endpoint and typeahead UI in `src/SmartSearch`.
+- Put reusable critical page blueprints, assigned page storage, navigation menu creation, menu structure attachment, and page-to-menu-item tools in `src/SiteStructure`.
 - Put activity log abstractions, storage modes, and the shared dark renderer in `src/ActivityLog`.
 - Put shortcode registries, definitions, display renderers, examples, live output, and testing tools in `src/ShortcodeRegistry`.
 - Put safe constants, INI, shell wrappers, size parsing, CPU/memory detection, and byte formatting in `src/SystemEnvironment`.
