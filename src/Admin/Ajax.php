@@ -1,11 +1,13 @@
 <?php
 namespace smp_publication_integration\Admin;
 
+use Hexa\PluginCore\SiteStructure\SiteStructureAjaxController;
 use Hexa\PluginCore\WpAdminAjax\AjaxActionRegistry;
 use Hexa\PluginCore\WpAdminAjax\AjaxFailure;
 use Hexa\PluginCore\WpAdminAjax\AjaxGuard;
 use Hexa\PluginCore\WpAdminAjax\AjaxRequest;
 use smp_publication_integration\Support\Dependencies;
+use smp_publication_integration\Support\PageStructure;
 use smp_publication_integration\Support\PluginRegistry;
 use smp_publication_integration\Support\Settings;
 
@@ -42,6 +44,19 @@ final class Ajax {
                 'smpi_plugin_action'           => [ 'callback' => [ $this, 'plugin_action' ] ],
             ]
         );
+
+        ( new SiteStructureAjaxController(
+            PageStructure::manager(),
+            [
+                'capability'   => 'manage_options',
+                'nonce_action' => self::NONCE,
+                'nonce_field'  => 'nonce',
+                'actions'      => PageStructure::ajax_actions(),
+                'logger'       => static function ( \Throwable $throwable ): void {
+                    error_log( '[SMP Publication Integration] SiteStructure AJAX error: ' . $throwable->getMessage() );
+                },
+            ]
+        ) )->register();
 
         add_action( 'admin_post_smpi_enable_verified_profile_snippet', [ $this, 'enable_verified_profile_snippet' ] );
     }

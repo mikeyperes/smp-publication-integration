@@ -622,6 +622,21 @@ final class SiteStructureRenderer {
                 if ($option.length && title) $option.text(title);
             }
 
+            function appendMenuOption(menuId, name) {
+                menuId = parseInt(menuId, 10) || 0;
+                name = name || "";
+                if (!menuId || !name) return;
+                var selectors = ".hpc-custom-item-menu,.hpc-add-pages-menu,.hpc-attach-menu,.hpc-structure-menu";
+                $root.find(selectors).each(function() {
+                    var $select = $(this);
+                    if (!$select.find("option[value=\"" + menuId + "\"]").length) {
+                        $select.append($("<option/>").val(menuId).text(name));
+                    }
+                    $select.prop("disabled", false);
+                });
+                $root.find(".hpc-custom-item-parent,.hpc-attach-parent-item,.hpc-structure-parent,.hpc-create-menu-item,.hpc-add-pages-to-menu,.hpc-attach-menu-structure,.hpc-custom-item-title,.hpc-custom-item-url").prop("disabled", false);
+            }
+
             $root.find(".hpc-structure-menu").each(function() {
                 var $card = $(this).closest(".hpc-menu-structure-card");
                 filterParentItems($card.find(".hpc-structure-parent"), $(this).val());
@@ -746,8 +761,11 @@ final class SiteStructureRenderer {
                 $btn.prop("disabled", true).text("Creating...");
                 post("create_navigation_menu", { menu_name: menuName }, function(response) {
                     if (response.success) {
-                        setStatus($status, "Created menu: " + (response.data.name || menuName), true);
-                        setTimeout(function() { location.reload(); }, 700);
+                        var data = response.data || {};
+                        appendMenuOption(data.menu_id, data.name || menuName);
+                        $root.find(".hpc-new-menu-name").val("");
+                        setStatus($status, "Created menu: " + (data.name || menuName), true);
+                        $btn.prop("disabled", false).text("Create Menu");
                     } else {
                         setStatus($status, message(response, "Menu creation failed."), false);
                         $btn.prop("disabled", false).text("Create Menu");

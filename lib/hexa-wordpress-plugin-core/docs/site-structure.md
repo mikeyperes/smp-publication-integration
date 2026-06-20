@@ -31,8 +31,11 @@ The host plugin provides:
 
 - `pages`: nested page blueprint keyed by stable page keys.
 - `menu_structures`: named menu blueprints with `page_keys`.
-- `option_prefix`: where assigned page IDs are stored.
+- `option_prefix`: where assigned page IDs are stored when callback storage is not used.
+- `template_option_prefix`, `default_templates`, or template callbacks when starter text should be stored or applied to created pages.
+- optional assignment callbacks when a host stores page IDs in one settings array.
 - `managed_meta_key` and `managed_key_meta_key`: used to prevent deleting pages the host did not create.
+- optional page detail renderer when the admin UI should expose slugs, edit/view links, or host-specific metadata under each row.
 - AJAX action names.
 - A nonce action and nonce value.
 
@@ -117,3 +120,6 @@ In a WordPress host plugin, verify:
 - creating a custom menu item validates the selected menu and parent item
 - adding all assigned pages skips unassigned pages and does not duplicate existing page items
 - attaching one assigned page validates that the parent menu item belongs to the selected menu
+- saving starter/template text persists through the host storage path
+- applying starter/template text updates the assigned page content only through the registered AJAX action
+- page detail rows refresh after assignment, creation, deletion, and slug changes

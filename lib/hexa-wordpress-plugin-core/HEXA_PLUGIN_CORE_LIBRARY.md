@@ -188,7 +188,7 @@ Namespace:
 Hexa\PluginCore\SiteStructure
 ```
 
-Use `PageStructureManager` for critical page blueprints, assigned page options, managed page create/delete protection, and WordPress menu attachment. Use `SiteStructureAjaxController` to keep host-specific AJAX action names while sharing nonce, capability, and request handling. Use `SiteStructureRenderer` for the admin UI.
+Use `PageStructureManager` for critical page blueprints, callback-backed assigned page storage, starter/template content, page details, managed page create/delete protection, WordPress navigation menu creation, custom menu items, add-all-pages menu actions, menu blueprint attachment, and page-to-menu-item attachment. Use `SiteStructureAjaxController` to keep host-specific AJAX action names while sharing nonce, capability, and request handling. Use `SiteStructureRenderer` for the admin UI.
 
 ```php
 use Hexa\PluginCore\SiteStructure\PageStructureManager;
@@ -197,10 +197,18 @@ use Hexa\PluginCore\SiteStructure\SiteStructureRenderer;
 
 $manager = new PageStructureManager([
     'option_prefix' => 'my_plugin_page_',
+    'template_option_prefix' => 'my_plugin_page_template_',
     'managed_meta_key' => '_my_plugin_managed_page',
     'managed_key_meta_key' => '_my_plugin_page_key',
+    'created_page_status' => 'draft',
+    'select_post_statuses' => ['publish', 'draft', 'private'],
+    'assignment_statuses' => ['publish', 'draft', 'private'],
+    'reuse_existing_pages' => true,
     'pages' => [
-        'about' => ['title' => 'About', 'slug' => 'about', 'children' => []],
+        'about' => ['title' => 'About', 'slug' => 'about', 'template' => true, 'children' => []],
+    ],
+    'default_templates' => [
+        'about' => '<h2>About</h2>',
     ],
     'menu_structures' => [
         'header' => ['title' => 'Header', 'page_keys' => ['about']],
@@ -215,23 +223,47 @@ $manager = new PageStructureManager([
         'delete_page' => 'my_plugin_delete_page',
         'create_navigation_menu' => 'my_plugin_create_navigation_menu',
         'delete_navigation_menu' => 'my_plugin_delete_navigation_menu',
+        'create_menu_item' => 'my_plugin_create_menu_item',
         'attach_page_to_menu_item' => 'my_plugin_attach_page_to_menu_item',
         'attach_menu_structure' => 'my_plugin_attach_menu_structure',
+        'add_pages_to_menu' => 'my_plugin_add_pages_to_menu',
+        'save_template' => 'my_plugin_save_template',
+        'apply_template' => 'my_plugin_apply_template',
+        'page_details' => 'my_plugin_page_details',
+        'update_page_slug' => 'my_plugin_update_page_slug',
     ],
 ]))->register();
 
 echo (new SiteStructureRenderer($manager, [
     'nonce' => wp_create_nonce('my_plugin_ajax'),
+    'enable_template_editors' => true,
+    'show_page_details' => true,
     'actions' => [
         'assign_page' => 'my_plugin_assign_page',
         'create_page' => 'my_plugin_create_page',
         'delete_page' => 'my_plugin_delete_page',
         'create_navigation_menu' => 'my_plugin_create_navigation_menu',
         'delete_navigation_menu' => 'my_plugin_delete_navigation_menu',
+        'create_menu_item' => 'my_plugin_create_menu_item',
         'attach_page_to_menu_item' => 'my_plugin_attach_page_to_menu_item',
         'attach_menu_structure' => 'my_plugin_attach_menu_structure',
+        'add_pages_to_menu' => 'my_plugin_add_pages_to_menu',
+        'save_template' => 'my_plugin_save_template',
+        'apply_template' => 'my_plugin_apply_template',
+        'page_details' => 'my_plugin_page_details',
+        'update_page_slug' => 'my_plugin_update_page_slug',
     ],
 ]))->render();
+```
+
+Host plugins can use plain option prefixes or callback storage. Use callbacks when assignments and starter templates live inside an existing settings array instead of one option per page. Keep action names plugin-specific; the core maps those names to generic handlers.
+
+Generic SiteStructure AJAX actions:
+
+```text
+assign_page, create_page, delete_page, create_navigation_menu, delete_navigation_menu,
+create_menu_item, attach_page_to_menu_item, attach_menu_structure, add_pages_to_menu,
+save_template, apply_template, page_details, update_page_slug
 ```
 
 Class:
