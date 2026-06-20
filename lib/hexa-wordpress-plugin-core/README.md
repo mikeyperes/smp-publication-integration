@@ -171,6 +171,10 @@ $core_config = CorePackageConfig::from_core_root(
 
 This panel compares the vendored `VERSION` in the host plugin with the public GitHub repository `VERSION`.
 
+## SiteStructure Section Rendering
+
+`Hexa\PluginCore\SiteStructure\SiteStructureRenderer` can render page assignments and menu tools together or separately. Use `show_pages => false` for a menu-only tab, and `show_menus => false` when a plugin keeps navigation tools somewhere else. This keeps menu building generic while host plugins provide their own page blueprint and action names.
+
 ## Activity Log Component
 
 Use the activity component for updater progress, imports, tests, maintenance tasks, and any admin workflow that benefits from a collapsible dark monitor.

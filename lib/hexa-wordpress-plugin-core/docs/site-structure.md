@@ -36,6 +36,7 @@ The host plugin provides:
 - optional assignment callbacks when a host stores page IDs in one settings array.
 - `managed_meta_key` and `managed_key_meta_key`: used to prevent deleting pages the host did not create.
 - optional page detail renderer when the admin UI should expose slugs, edit/view links, or host-specific metadata under each row.
+- renderer section flags: `show_pages` and `show_menus` when a host needs page assignment and menu building on separate tabs.
 - AJAX action names.
 - A nonce action and nonce value.
 
@@ -123,3 +124,7 @@ In a WordPress host plugin, verify:
 - saving starter/template text persists through the host storage path
 - applying starter/template text updates the assigned page content only through the registered AJAX action
 - page detail rows refresh after assignment, creation, deletion, and slug changes
+
+## Rendering Pages And Menus Separately
+
+`SiteStructureRenderer` defaults to showing both page assignment and menu builder sections. Set `show_pages => false` for a menu-only toolbox, or `show_menus => false` when the host page should only manage critical page assignments and starter/template content.

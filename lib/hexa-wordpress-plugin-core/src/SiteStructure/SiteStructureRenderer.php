@@ -26,7 +26,9 @@ final class SiteStructureRenderer {
                 'template_editor_media_buttons' => false,
                 'template_editor_rows' => 8,
                 'apply_template_action' => '',
-                'show_page_details' => false,
+                'show_pages'            => true,
+                'show_menus'            => true,
+                'show_page_details'     => false,
                 'actions'               => [],
                 'labels'                => [],
             ],
@@ -41,8 +43,12 @@ final class SiteStructureRenderer {
         ob_start();
         ?>
         <div id="<?php echo esc_attr( $instance_id ); ?>" class="hpc-site-structure" data-hpc-site-structure>
-            <?php echo $this->render_pages_card( $labels ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-            <?php echo $this->render_menu_card( $labels ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+            <?php if ( ! empty( $this->config['show_pages'] ) ) : ?>
+                <?php echo $this->render_pages_card( $labels ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+            <?php endif; ?>
+            <?php if ( ! empty( $this->config['show_menus'] ) ) : ?>
+                <?php echo $this->render_menu_card( $labels ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+            <?php endif; ?>
             <?php echo $this->render_script( $instance_id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
         </div>
         <?php
