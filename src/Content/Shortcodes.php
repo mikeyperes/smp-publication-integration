@@ -1,6 +1,7 @@
 <?php
 namespace smp_publication_integration\Content;
 
+use Hexa\PluginCore\FaqSets\FaqSetManager;
 use smp_publication_integration\Support\Fields;
 use smp_publication_integration\Support\Settings;
 
@@ -98,24 +99,36 @@ final class Shortcodes {
         }
 
         $rows = Schema::faq_rows_for_post( $post_id, false );
-        if ( $rows ) {
-            if ( "text" === sanitize_key( (string) $atts["format"] ) ) {
-                $text = [];
-                foreach ( $rows as $row ) {
-                    $text[] = "Q: " . $row["question"] . " A: " . wp_strip_all_tags( (string) $row["answer"] );
-                }
-                return esc_html( implode( " ", $text ) );
-            }
-            $html = "";
-            foreach ( $rows as $row ) {
-                $html .= "<div class=\"smpi-faq-row\"><p><strong>Q: " . esc_html( $row["question"] ) . "</strong></p><div>" . wp_kses_post( wpautop( (string) $row["answer"] ) ) . "</div></div>";
-            }
-            return ArticleStyles::wrap_post_faqs( $html, sanitize_key( (string) $atts["style"] ) );
+        if ( ! $rows ) {
+            return "";
         }
 
-        return "";
-    }
+        $manager = new FaqSetManager();
+        $items = $manager->normalizeItems( $rows );
+        if ( empty( $items ) ) {
+            return "";
+        }
 
+        if ( "text" === sanitize_key( (string) $atts["format"] ) ) {
+            $text = [];
+            foreach ( $items as $item ) {
+                $text[] = "Q: " . $item["question"] . " A: " . wp_strip_all_tags( (string) $item["answer"] );
+            }
+            return esc_html( implode( " ", $text ) );
+        }
+
+        $set = [
+            "name"  => "Post FAQs",
+            "slug"  => "post-" . $post_id . "-faqs",
+            "items" => $items,
+        ];
+        $html = $manager->renderFaqs( $set, [
+            "style"         => "list",
+            "inject_schema" => false,
+        ] );
+
+        return ArticleStyles::wrap_post_faqs( $html, sanitize_key( (string) $atts["style"] ) );
+    }
 
     public function render_mission_statement( array $atts = [] ): string {
         $mission = Fields::option( "mission_statement" );
