@@ -6,6 +6,8 @@ use Hexa\PluginCore\SmartSearch\SmartSearchRenderer;
 use Hexa\PluginCore\FieldStructures\FieldStructureRenderer;
 use Hexa\PluginCore\WpAdminTabs\HostTabsRenderer;
 use Hexa\PluginCore\SiteStructure\SiteStructureRenderer;
+use Hexa\PluginCore\SchemaDetection\SchemaPageScanner;
+use Hexa\PluginCore\SchemaDetection\SchemaScanRenderer;
 use smp_publication_integration\Config;
 use smp_publication_integration\Content\AuthorShortcodes;
 use smp_publication_integration\Content\Schema;
@@ -732,6 +734,8 @@ final class Dashboard {
         echo "</div>";
 
         echo "<div class=\"smpi-panel\"><h2>Run Schema Integrity Test</h2><p><button id=\"smpi-reprocess-schema\" type=\"button\" class=\"button button-primary\">Run schema refresh and sample test</button></p><p><a class=\"button\" target=\"_blank\" rel=\"noopener noreferrer\" href=\"" . esc_url( $debug_url ) . "\">Open home schema JSON</a> " . ( $post_id ? "<a class=\"button\" target=\"_blank\" rel=\"noopener noreferrer\" href=\"" . esc_url( $single_debug_url ) . "\">Open latest post schema JSON</a>" : "" ) . "</p><div id=\"smpi-schema-report\" class=\"smpi-code-panel\"></div></div>";
+
+        echo $this->schema_detection_report_html();
 
         echo "<div class=\"smpi-panel\"><h2>Home Page Integrity</h2><table class=\"widefat striped\"><tbody>";
         foreach ( $home_report["checks"] as $check ) {
@@ -1583,6 +1587,49 @@ final class Dashboard {
     private function latest_post_id(): int {
         $query = new \WP_Query( [ "post_type" => "post", "post_status" => "publish", "posts_per_page" => 1, "fields" => "ids", "no_found_rows" => true ] );
         return ! empty( $query->posts ) ? (int) $query->posts[0] : 0;
+    }
+
+
+    private function recent_schema_post_ids( int $limit = 10 ): array {
+        $query = new \WP_Query( [
+            "post_type"      => "post",
+            "post_status"    => "publish",
+            "posts_per_page" => max( 1, $limit ),
+            "fields"         => "ids",
+            "no_found_rows"  => true,
+        ] );
+
+        return array_map( "intval", (array) $query->posts );
+    }
+
+    private function schema_detection_report_html(): string {
+        $scanner = new SchemaPageScanner();
+        $scans = [];
+
+        $scans[] = $scanner->scanUrl( home_url( "/" ), [
+            "title"      => "Homepage",
+            "cache_bust" => true,
+            "timeout"    => 15,
+        ] );
+
+        foreach ( $this->recent_schema_post_ids( 10 ) as $post_id ) {
+            $title = get_the_title( $post_id );
+            $scans[] = $scanner->scanUrl( get_permalink( $post_id ), [
+                "title"      => "Post #" . $post_id . ( "" !== $title ? ": " . $title : "" ),
+                "cache_bust" => true,
+                "timeout"    => 15,
+            ] );
+        }
+
+        return ( new SchemaScanRenderer() )->renderReport( $scans, [
+            "title"    => "Hexa Core Schema Detection",
+            "subtitle" => "Scans the homepage and the 10 most recent published posts through Hexa WordPress Plugin Core.",
+            "expected" => [
+                "Homepage: NewsMediaOrganization, WebSite, CollectionPage, and ItemList.",
+                "Posts: NewsMediaOrganization, WebSite, WebPage, article schema, author, image, BreadcrumbList, and FAQPage when article FAQ rows are enabled.",
+            ],
+            "debug"    => false,
+        ] );
     }
 
     private function extract_schema_types( string $url ): array {
