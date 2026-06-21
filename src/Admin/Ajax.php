@@ -110,9 +110,6 @@ final class Ajax {
         $settings = Settings::update( $changes );
         $this->sync_publication_mapping( $settings );
         $response = [ "settings" => $settings ];
-        if ( "features" === $request->key( 'tab', '', 'post' ) ) {
-            $response["fragment"] = ( new Dashboard() )->tab_fragment( "features" );
-        }
         return $response;
     }
 

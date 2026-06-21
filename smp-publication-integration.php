@@ -4,7 +4,7 @@
  * Description: Publication profile integration for Scale My Publication systems.
  * Author: Michael Peres
  * Plugin URI: https://github.com/mikeyperes/smp-publication-integration
- * Version: 0.6.46
+ * Version: 0.6.47
  * Text Domain: smp-publication-integration
  * Domain Path: /languages
  * Author URI: https://michaelperes.com
@@ -73,7 +73,7 @@ require_once __DIR__ . "/src/Admin/Ajax.php";
 require_once __DIR__ . "/src/Admin/Dashboard.php";
 
 final class Config {
-    public const VERSION = "0.6.44";
+    public const VERSION = "0.6.47";
 
     public static string $plugin_name        = 'SMP Publication Integration';
     public static string $plugin_slug        = 'smp-publication-integration';
@@ -94,6 +94,8 @@ final class Config {
 }
 
 Support\BootstrapMigration::register( Config::$plugin_folder_name, Config::$plugin_file );
+add_action( 'smpi_refresh_schema_detection_report', [ Admin\Dashboard::class, 'refresh_schema_detection_report' ] );
+add_action( 'smpi_refresh_github_version', [ Support\PluginRegistry::class, 'refresh_github_version' ], 10, 2 );
 
 function hexa_plugin_core_updater_config(): \Hexa\PluginCore\PluginUpdates\UpdaterConfig {
     static $config = null;
@@ -162,6 +164,7 @@ function boot_github_updater(): void {
             'proper_folder_name' => Config::$plugin_folder_name,
             'requires'           => '5.0',
             'tested'             => '7.0',
+            'timeout'            => 5,
         ]
     );
 }

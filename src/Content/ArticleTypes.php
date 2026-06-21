@@ -65,11 +65,26 @@ final class ArticleTypes {
             return;
         }
 
+        $is_cli = defined( "WP_CLI" ) && WP_CLI;
+        if ( ! is_admin() && ! $is_cli ) {
+            return;
+        }
+
         foreach ( self::terms() as $slug => $config ) {
             $term = term_exists( $slug, self::TAXONOMY );
             if ( $term ) {
+                $term_id = is_array( $term ) ? (int) $term["term_id"] : (int) $term;
+                $current = get_term( $term_id, self::TAXONOMY );
+                if (
+                    $current instanceof \WP_Term
+                    && (string) $current->name === (string) $config["label"]
+                    && (string) $current->description === (string) $config["description"]
+                ) {
+                    continue;
+                }
+
                 wp_update_term(
-                    is_array( $term ) ? (int) $term["term_id"] : (int) $term,
+                    $term_id,
                     self::TAXONOMY,
                     [
                         "name" => $config["label"],

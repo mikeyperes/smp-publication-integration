@@ -22,6 +22,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 final class Dashboard {
+    private const SCHEMA_DETECTION_CACHE_KEY = 'smpi_schema_detection_report';
+    private const SCHEMA_DETECTION_REFRESH_LOCK_KEY = 'smpi_schema_detection_refresh_lock';
+
     public function register(): void {
         add_action( 'admin_menu', [ $this, 'add_settings_page' ] );
         add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_admin_assets' ] );
@@ -735,7 +738,7 @@ final class Dashboard {
 
         echo "<div class=\"smpi-panel\"><h2>Run Schema Integrity Test</h2><p><button id=\"smpi-reprocess-schema\" type=\"button\" class=\"button button-primary\">Run schema refresh and sample test</button></p><p><a class=\"button\" target=\"_blank\" rel=\"noopener noreferrer\" href=\"" . esc_url( $debug_url ) . "\">Open home schema JSON</a> " . ( $post_id ? "<a class=\"button\" target=\"_blank\" rel=\"noopener noreferrer\" href=\"" . esc_url( $single_debug_url ) . "\">Open latest post schema JSON</a>" : "" ) . "</p><div id=\"smpi-schema-report\" class=\"smpi-code-panel\"></div></div>";
 
-        echo $this->schema_detection_report_html();
+        echo $this->schema_detection_report_html(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 
         echo "<div class=\"smpi-panel\"><h2>Home Page Integrity</h2><table class=\"widefat striped\"><tbody>";
         foreach ( $home_report["checks"] as $check ) {
@@ -1689,38 +1692,54 @@ final class Dashboard {
         return ! empty( $query->posts ) ? (int) $query->posts[0] : 0;
     }
 
+    private function schema_detection_report_html(): string {
+        $cached = get_transient( self::SCHEMA_DETECTION_CACHE_KEY );
+        if ( is_array( $cached ) && isset( $cached["scans"] ) && is_array( $cached["scans"] ) ) {
+            $html = $this->render_schema_detection_report( $cached["scans"] );
+            $generated_at = isset( $cached["generated_at"] ) ? (int) $cached["generated_at"] : 0;
+            if ( $generated_at > 0 ) {
+                $html .= "<p class=\"smpi-muted\">Schema detection cache generated " . esc_html( human_time_diff( $generated_at, time() ) ) . " ago. The report refreshes in the background and no longer blocks this tab.</p>";
+            }
 
-    private function recent_schema_post_ids( int $limit = 10 ): array {
-        $query = new \WP_Query( [
-            "post_type"      => "post",
-            "post_status"    => "publish",
-            "posts_per_page" => max( 1, $limit ),
-            "fields"         => "ids",
-            "no_found_rows"  => true,
-        ] );
+            self::schedule_schema_detection_refresh();
+            return $html;
+        }
 
-        return array_map( "intval", (array) $query->posts );
+        self::schedule_schema_detection_refresh();
+        return "<div class=\"smpi-panel\"><h2>Hexa Core Schema Detection</h2><p>Schema detection is queued for background refresh. This tab no longer fetches the homepage and recent posts during page render.</p><p class=\"smpi-muted\">Refresh this tab after a minute to view the cached scan.</p></div>";
     }
 
-    private function schema_detection_report_html(): string {
+    public static function refresh_schema_detection_report(): void {
         $scanner = new SchemaPageScanner();
         $scans = [];
 
         $scans[] = $scanner->scanUrl( home_url( "/" ), [
             "title"      => "Homepage",
             "cache_bust" => true,
-            "timeout"    => 15,
+            "timeout"    => 5,
         ] );
 
-        foreach ( $this->recent_schema_post_ids( 10 ) as $post_id ) {
+        foreach ( self::recent_schema_post_ids( 10 ) as $post_id ) {
             $title = get_the_title( $post_id );
             $scans[] = $scanner->scanUrl( get_permalink( $post_id ), [
                 "title"      => "Post #" . $post_id . ( "" !== $title ? ": " . $title : "" ),
                 "cache_bust" => true,
-                "timeout"    => 15,
+                "timeout"    => 5,
             ] );
         }
 
+        set_transient(
+            self::SCHEMA_DETECTION_CACHE_KEY,
+            [
+                "generated_at" => time(),
+                "scans"        => $scans,
+            ],
+            6 * HOUR_IN_SECONDS
+        );
+        delete_transient( self::SCHEMA_DETECTION_REFRESH_LOCK_KEY );
+    }
+
+    private function render_schema_detection_report( array $scans ): string {
         return ( new SchemaScanRenderer() )->renderReport( $scans, [
             "title"    => "Hexa Core Schema Detection",
             "subtitle" => "Scans the homepage and the 10 most recent published posts through Hexa WordPress Plugin Core.",
@@ -1732,22 +1751,29 @@ final class Dashboard {
         ] );
     }
 
-    private function extract_schema_types( string $url ): array {
-        $response = wp_remote_get( $url, [ 'timeout' => 8 ] );
-        if ( is_wp_error( $response ) || ! preg_match_all( '#<script[^>]+type=["\']application/ld\+json["\'][^>]*>(.*?)</script>#is', wp_remote_retrieve_body( $response ), $matches ) ) {
-            return [];
+    private static function schedule_schema_detection_refresh(): void {
+        if ( false !== get_transient( self::SCHEMA_DETECTION_REFRESH_LOCK_KEY ) ) {
+            return;
         }
-        return $matches[1];
+
+        if ( ! wp_next_scheduled( "smpi_refresh_schema_detection_report" ) ) {
+            wp_schedule_single_event( time() + MINUTE_IN_SECONDS, "smpi_refresh_schema_detection_report" );
+        }
+
+        set_transient( self::SCHEMA_DETECTION_REFRESH_LOCK_KEY, "1", 15 * MINUTE_IN_SECONDS );
     }
 
-    private function recent_posts_schema_count(): int {
-        $count = 0;
-        foreach ( get_posts( [ 'post_type' => 'post', 'posts_per_page' => 10, 'post_status' => 'publish', 'fields' => 'ids' ] ) as $post_id ) {
-            $count += $this->extract_schema_types( get_permalink( $post_id ) ) ? 1 : 0;
-        }
-        return $count;
-    }
+    private static function recent_schema_post_ids( int $limit = 10 ): array {
+        $query = new \WP_Query( [
+            "post_type"      => "post",
+            "post_status"    => "publish",
+            "posts_per_page" => max( 1, $limit ),
+            "fields"         => "ids",
+            "no_found_rows"  => true,
+        ] );
 
+        return array_map( "intval", (array) $query->posts );
+    }
     private function toggle( string $key, string $label, array $settings ): void {
         echo '<tr><th>' . esc_html( $label ) . '</th><td><label><input class="smpi-setting" type="checkbox" data-key="' . esc_attr( $key ) . '" value="1" ' . checked( ! empty( $settings[ $key ] ), true, false ) . '> Enabled</label><span class="spinner"></span><span class="smpi-save-state"></span></td></tr>';
     }

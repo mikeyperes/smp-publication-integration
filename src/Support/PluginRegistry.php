@@ -65,12 +65,24 @@ final class PluginRegistry {
     }
 
     public static function github_latest_version( string $repo, string $starter ): string {
-        $cache_key = 'smpi_github_version_' . md5( $repo . '|' . $starter );
+        $cache_key = self::github_version_cache_key( $repo, $starter );
         $cached = get_transient( $cache_key );
         if ( false !== $cached ) {
             return (string) $cached;
         }
 
+        self::schedule_github_version_refresh( $repo, $starter );
+        return '';
+    }
+
+    public static function refresh_github_version( string $repo, string $starter ): void {
+        $cache_key = self::github_version_cache_key( $repo, $starter );
+        $version = self::fetch_github_latest_version( $repo, $starter );
+        set_transient( $cache_key, $version, HOUR_IN_SECONDS );
+        delete_transient( self::github_version_lock_key( $repo, $starter ) );
+    }
+
+    private static function fetch_github_latest_version( string $repo, string $starter ): string {
         $slug = basename( UpdaterConfig::normalize_github_repo( $repo ) );
         $updater_config = UpdaterConfig::from_slug_and_github_url(
             $slug,
@@ -80,13 +92,33 @@ final class PluginRegistry {
                 'plugin_name'         => $slug,
                 'version'             => '0.0.0',
                 'github_branch'       => 'main',
+                'timeout'             => 5,
             ]
         );
         $version = ( new GitHubVersionClient( $updater_config ) )->remote_version( true );
-        $version = is_string( $version ) ? $version : '';
 
-        set_transient( $cache_key, $version, HOUR_IN_SECONDS );
-        return $version;
+        return is_string( $version ) ? $version : '';
+    }
+
+    private static function schedule_github_version_refresh( string $repo, string $starter ): void {
+        $lock_key = self::github_version_lock_key( $repo, $starter );
+        if ( false !== get_transient( $lock_key ) ) {
+            return;
+        }
+
+        if ( ! wp_next_scheduled( 'smpi_refresh_github_version', [ $repo, $starter ] ) ) {
+            wp_schedule_single_event( time() + MINUTE_IN_SECONDS, 'smpi_refresh_github_version', [ $repo, $starter ] );
+        }
+
+        set_transient( $lock_key, '1', 15 * MINUTE_IN_SECONDS );
+    }
+
+    private static function github_version_cache_key( string $repo, string $starter ): string {
+        return 'smpi_github_version_' . md5( $repo . '|' . $starter );
+    }
+
+    private static function github_version_lock_key( string $repo, string $starter ): string {
+        return 'smpi_github_version_refresh_' . md5( $repo . '|' . $starter );
     }
 
     public static function perform_action( string $plugin_file, string $operation ) {
