@@ -21,7 +21,7 @@ final class PageStructure {
             'create_menu_item'         => 'smpi_site_create_menu_item',
             'attach_page_to_menu_item' => 'smpi_site_attach_page_to_menu_item',
             'attach_menu_structure'    => 'smpi_site_attach_menu_structure',
-            'add_pages_to_menu'        => 'smpi_site_add_pages_to_menu',
+            'menu_inventory'           => 'smpi_site_menu_inventory',
             'save_template'            => 'smpi_site_save_template',
             'apply_template'           => 'smpi_site_apply_template',
             'page_details'             => 'smpi_site_page_details',
