@@ -229,7 +229,7 @@ $manager = new PageStructureManager([
         'create_menu_item' => 'my_plugin_create_menu_item',
         'attach_page_to_menu_item' => 'my_plugin_attach_page_to_menu_item',
         'attach_menu_structure' => 'my_plugin_attach_menu_structure',
-        'add_pages_to_menu' => 'my_plugin_add_pages_to_menu',
+        'menu_inventory' => 'my_plugin_menu_inventory',
         'save_template' => 'my_plugin_save_template',
         'apply_template' => 'my_plugin_apply_template',
         'page_details' => 'my_plugin_page_details',
@@ -250,7 +250,7 @@ echo (new SiteStructureRenderer($manager, [
         'create_menu_item' => 'my_plugin_create_menu_item',
         'attach_page_to_menu_item' => 'my_plugin_attach_page_to_menu_item',
         'attach_menu_structure' => 'my_plugin_attach_menu_structure',
-        'add_pages_to_menu' => 'my_plugin_add_pages_to_menu',
+        'menu_inventory' => 'my_plugin_menu_inventory',
         'save_template' => 'my_plugin_save_template',
         'apply_template' => 'my_plugin_apply_template',
         'page_details' => 'my_plugin_page_details',
@@ -265,7 +265,7 @@ Generic SiteStructure AJAX actions:
 
 ```text
 assign_page, create_page, delete_page, create_navigation_menu, delete_navigation_menu,
-create_menu_item, attach_page_to_menu_item, attach_menu_structure, add_pages_to_menu,
+create_menu_item, attach_page_to_menu_item, attach_menu_structure, menu_inventory,
 save_template, apply_template, page_details, update_page_slug
 ```
 

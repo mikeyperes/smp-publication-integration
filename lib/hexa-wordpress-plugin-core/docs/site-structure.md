@@ -82,7 +82,7 @@ $manager = new PageStructureManager([
         'create_menu_item' => 'example_create_menu_item',
         'attach_page_to_menu_item' => 'example_attach_page_to_menu_item',
         'attach_menu_structure' => 'example_attach_menu_structure',
-        'add_pages_to_menu' => 'example_add_pages_to_menu',
+        'menu_inventory' => 'example_menu_inventory',
     ],
 ]))->register();
 
@@ -97,7 +97,7 @@ echo (new SiteStructureRenderer($manager, [
         'create_menu_item' => 'example_create_menu_item',
         'attach_page_to_menu_item' => 'example_attach_page_to_menu_item',
         'attach_menu_structure' => 'example_attach_menu_structure',
-        'add_pages_to_menu' => 'example_add_pages_to_menu',
+        'menu_inventory' => 'example_menu_inventory',
     ],
 ]))->render();
 ```

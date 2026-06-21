@@ -326,20 +326,6 @@ final class SiteStructureRenderer {
                 <span class="hpc-create-menu-item-status" style="display:block;margin-top:8px;font-size:13px;color:#666;"></span>
             </div>
 
-            <div style="border:1px solid #e5e7eb;border-radius:8px;padding:14px;margin-bottom:18px;background:#fff;">
-                <h4 style="margin:0 0 10px;font-size:15px;">Add Assigned Pages To Menu</h4>
-                <div style="display:grid;grid-template-columns:minmax(240px,360px) auto;gap:10px;align-items:end;max-width:620px;">
-                    <label>
-                        <span style="display:block;font-weight:600;margin-bottom:4px;">Menu</span>
-                        <select class="hpc-add-pages-menu" style="width:100%;" <?php disabled( empty( $nav_menus ) ); ?>>
-                            <?php echo $this->menu_options( $nav_menus, 0 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-                        </select>
-                    </label>
-                    <button type="button" class="button button-secondary hpc-add-pages-to-menu" <?php disabled( empty( $nav_menus ) ); ?>>Add All Assigned Pages</button>
-                </div>
-                <span class="hpc-add-pages-status" style="display:block;margin-top:8px;font-size:13px;color:#666;"></span>
-            </div>
-
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-bottom:18px;">
                 <?php foreach ( $structures as $structure_key => $structure ) : ?>
                     <?php $guessed_menu_id = $this->manager->guess_menu_id_for_structure( (string) $structure_key, $nav_menus ); ?>
@@ -410,8 +396,9 @@ final class SiteStructureRenderer {
             </div>
 
             <h4 style="margin:0 0 10px;font-size:15px;">WordPress Menu Items</h4>
+            <div class="hpc-menu-inventory-wrap">
             <?php if ( empty( $nav_menus ) ) : ?>
-                <p style="color:#666;margin:0;">No WordPress menus exist yet. Create the required menus above.</p>
+                <p class="hpc-menu-inventory-empty" style="color:#666;margin:0;">No WordPress menus exist yet. Create the required menus above.</p>
             <?php else : ?>
                 <table class="<?php echo esc_attr( (string) $this->config['table_class'] ); ?> hpc-menu-inventory-table">
                     <thead>
@@ -444,6 +431,7 @@ final class SiteStructureRenderer {
                     </tbody>
                 </table>
             <?php endif; ?>
+            </div>
         </div>
         <?php
 
@@ -500,7 +488,7 @@ final class SiteStructureRenderer {
                 'create_menu_item'         => '',
                 'attach_page_to_menu_item' => '',
                 'attach_menu_structure'    => '',
-                'add_pages_to_menu'        => '',
+                'menu_inventory'           => '',
                 'save_template'            => '',
                 'apply_template'           => '',
                 'page_details'             => '',
@@ -515,6 +503,7 @@ final class SiteStructureRenderer {
             'enableTemplates'     => ! empty( $this->config['enable_templates'] ),
             'applyTemplateAction' => (string) $this->config['apply_template_action'],
             'adminPostBase'       => function_exists( 'admin_url' ) ? admin_url( 'post.php?post=' ) : '',
+            'tableClass'          => (string) $this->config['table_class'],
         ];
 
         ob_start();
@@ -598,6 +587,101 @@ final class SiteStructureRenderer {
                 $el.text(text).css("color", success ? "#059669" : "#dc2626");
             }
 
+
+            function originalText($btn) {
+                if (!$btn.data("hpc-original-text")) {
+                    $btn.data("hpc-original-text", $btn.text());
+                }
+                return $btn.data("hpc-original-text");
+            }
+
+            function escapeHtml(value) {
+                return String(value || "").replace(/[&<>"']/g, function(chr) {
+                    return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[chr] || chr;
+                });
+            }
+
+            function parentOptions(menus) {
+                var html = '<option value="0" data-menu-id="0">Top level</option>';
+                $.each(menus || [], function(_, row) {
+                    var menu = row.menu || {};
+                    $.each(row.items || [], function(__, item) {
+                        html += '<option value="' + escapeHtml(item.id) + '" data-menu-id="' + escapeHtml(menu.id) + '">' + escapeHtml((menu.name || "") + ': ' + (item.label || item.title || "")) + '</option>';
+                    });
+                });
+                return html;
+            }
+
+            function menuOptions(menus) {
+                if (!menus || !menus.length) return '<option value="">No menus found</option>';
+                var html = "";
+                $.each(menus, function(_, row) {
+                    var menu = row.menu || {};
+                    html += '<option value="' + escapeHtml(menu.id) + '">' + escapeHtml(menu.name || "") + '</option>';
+                });
+                return html;
+            }
+
+            function inventoryTable(menus) {
+                if (!menus || !menus.length) {
+                    return '<p class="hpc-menu-inventory-empty" style="color:#666;margin:0;">No WordPress menus exist yet. Create the required menus above.</p>';
+                }
+                var tableClass = escapeHtml(cfg.tableClass || "widefat striped");
+                var html = '<table class="' + tableClass + ' hpc-menu-inventory-table"><thead><tr><th style="width:24%;">Menu</th><th>Items</th><th style="width:20%;">Actions</th></tr></thead><tbody>';
+                $.each(menus, function(_, row) {
+                    var menu = row.menu || {};
+                    html += '<tr><td><strong>' + escapeHtml(menu.name || "") + '</strong><div><code>' + escapeHtml(menu.slug || "") + '</code></div></td><td>';
+                    if (!row.items || !row.items.length) {
+                        html += '<span style="color:#6b7280;">No items</span>';
+                    } else {
+                        $.each(row.items, function(__, item) {
+                            html += '<div style="margin-bottom:3px;"><code>#' + escapeHtml(item.id) + '</code> ' + escapeHtml(item.label || item.title || "") + '</div>';
+                        });
+                    }
+                    html += '</td><td><a class="button button-small" href="' + escapeHtml(menu.edit_url || "#") + '" target="_blank" rel="noopener">Edit</a> ';
+                    html += '<button type="button" class="button button-small hpc-delete-navigation-menu" data-menu-id="' + escapeHtml(menu.id) + '" data-menu-name="' + escapeHtml(menu.name || "") + '">Delete</button></td></tr>';
+                });
+                html += '</tbody></table>';
+                return html;
+            }
+
+            function renderMenuInventory(data) {
+                var menus = data && data.menus ? data.menus : [];
+                var hasMenus = menus.length > 0;
+                $root.find(".hpc-menu-inventory-wrap").html(inventoryTable(menus));
+                $root.find(".hpc-custom-item-menu,.hpc-attach-menu,.hpc-structure-menu").each(function() {
+                    var $select = $(this);
+                    var oldValue = $select.val();
+                    $select.html(menuOptions(menus));
+                    if (oldValue && $select.find('option[value="' + oldValue + '"]').length) $select.val(oldValue);
+                    $select.prop("disabled", !hasMenus);
+                });
+                $root.find(".hpc-custom-item-parent,.hpc-attach-parent-item,.hpc-structure-parent").each(function() {
+                    var $select = $(this);
+                    var oldValue = $select.val() || "0";
+                    $select.html(parentOptions(menus));
+                    if ($select.find('option[value="' + oldValue + '"]').length) $select.val(oldValue);
+                    $select.prop("disabled", !hasMenus);
+                });
+                $root.find(".hpc-create-menu-item,.hpc-attach-menu-structure,.hpc-attach-page-to-menu-item,.hpc-custom-item-title,.hpc-custom-item-url").prop("disabled", !hasMenus);
+                $root.find(".hpc-attach-menu,.hpc-custom-item-menu,.hpc-structure-menu").trigger("change");
+            }
+
+            function refreshMenuInventory($status, successText, done) {
+                post("menu_inventory", {}, function(response) {
+                    if (response.success) {
+                        renderMenuInventory(response.data || {});
+                        if ($status && $status.length) setStatus($status, successText || message(response, "Menu items updated."), true);
+                    } else if ($status && $status.length) {
+                        setStatus($status, message(response, "Menu inventory refresh failed."), false);
+                    }
+                    if (typeof done === "function") done();
+                }, function() {
+                    if ($status && $status.length) setStatus($status, "Menu inventory refresh failed.", false);
+                    if (typeof done === "function") done();
+                });
+            }
+
             function editorContent(editorId) {
                 if (window.tinyMCE && window.tinyMCE.get(editorId)) {
                     return window.tinyMCE.get(editorId).getContent();
@@ -632,7 +716,7 @@ final class SiteStructureRenderer {
                 menuId = parseInt(menuId, 10) || 0;
                 name = name || "";
                 if (!menuId || !name) return;
-                var selectors = ".hpc-custom-item-menu,.hpc-add-pages-menu,.hpc-attach-menu,.hpc-structure-menu";
+                var selectors = ".hpc-custom-item-menu,.hpc-attach-menu,.hpc-structure-menu";
                 $root.find(selectors).each(function() {
                     var $select = $(this);
                     if (!$select.find("option[value=\"" + menuId + "\"]").length) {
@@ -640,7 +724,7 @@ final class SiteStructureRenderer {
                     }
                     $select.prop("disabled", false);
                 });
-                $root.find(".hpc-custom-item-parent,.hpc-attach-parent-item,.hpc-structure-parent,.hpc-create-menu-item,.hpc-add-pages-to-menu,.hpc-attach-menu-structure,.hpc-custom-item-title,.hpc-custom-item-url").prop("disabled", false);
+                $root.find(".hpc-custom-item-parent,.hpc-attach-parent-item,.hpc-structure-parent,.hpc-create-menu-item,.hpc-attach-menu-structure,.hpc-custom-item-title,.hpc-custom-item-url").prop("disabled", false);
             }
 
             $root.find(".hpc-structure-menu").each(function() {
@@ -764,14 +848,16 @@ final class SiteStructureRenderer {
                     setStatus($status, "Enter a menu name.", false);
                     return;
                 }
+                originalText($btn);
                 $btn.prop("disabled", true).text("Creating...");
                 post("create_navigation_menu", { menu_name: menuName }, function(response) {
                     if (response.success) {
                         var data = response.data || {};
                         appendMenuOption(data.menu_id, data.name || menuName);
                         $root.find(".hpc-new-menu-name").val("");
-                        setStatus($status, "Created menu: " + (data.name || menuName), true);
-                        $btn.prop("disabled", false).text("Create Menu");
+                        refreshMenuInventory($status, "Created menu: " + (data.name || menuName), function() {
+                            $btn.prop("disabled", false).text(originalText($btn));
+                        });
                     } else {
                         setStatus($status, message(response, "Menu creation failed."), false);
                         $btn.prop("disabled", false).text("Create Menu");
@@ -789,7 +875,7 @@ final class SiteStructureRenderer {
                 post("delete_navigation_menu", { menu_id: $btn.data("menu-id") }, function(response) {
                     if (response.success) {
                         toast("Menu deleted.", "success");
-                        setTimeout(function() { location.reload(); }, 700);
+                        refreshMenuInventory($root.find(".hpc-create-menu-status"), "Menu deleted.");
                     } else {
                         toast(message(response, "Menu deletion failed."), "error");
                         $btn.prop("disabled", false).text("Delete");
@@ -810,6 +896,7 @@ final class SiteStructureRenderer {
                     setStatus($status, "Select a menu, label, and URL.", false);
                     return;
                 }
+                originalText($btn);
                 $btn.prop("disabled", true).text("Creating...");
                 post("create_menu_item", {
                     menu_id: menuId,
@@ -818,8 +905,10 @@ final class SiteStructureRenderer {
                     url: url
                 }, function(response) {
                     if (response.success) {
-                        setStatus($status, message(response, "Menu item created."), true);
-                        setTimeout(function() { location.reload(); }, 900);
+                        $root.find(".hpc-custom-item-title,.hpc-custom-item-url").val("");
+                        refreshMenuInventory($status, message(response, "Menu item created."), function() {
+                            $btn.prop("disabled", false).text(originalText($btn));
+                        });
                     } else {
                         setStatus($status, message(response, "Menu item creation failed."), false);
                         $btn.prop("disabled", false).text("Create Menu Item");
@@ -827,29 +916,6 @@ final class SiteStructureRenderer {
                 }, function() {
                     setStatus($status, "Menu item creation request failed.", false);
                     $btn.prop("disabled", false).text("Create Menu Item");
-                });
-            });
-
-            $root.on("click", ".hpc-add-pages-to-menu", function() {
-                var $btn = $(this);
-                var $status = $root.find(".hpc-add-pages-status");
-                var menuId = $root.find(".hpc-add-pages-menu").val();
-                if (!menuId) {
-                    setStatus($status, "Select a menu first.", false);
-                    return;
-                }
-                $btn.prop("disabled", true).text("Adding...");
-                post("add_pages_to_menu", { menu_id: menuId }, function(response) {
-                    if (response.success) {
-                        setStatus($status, message(response, "Assigned pages added."), true);
-                        setTimeout(function() { location.reload(); }, 900);
-                    } else {
-                        setStatus($status, message(response, "Add pages failed."), false);
-                        $btn.prop("disabled", false).text("Add All Assigned Pages");
-                    }
-                }, function() {
-                    setStatus($status, "Add pages request failed.", false);
-                    $btn.prop("disabled", false).text("Add All Assigned Pages");
                 });
             });
 
@@ -862,6 +928,7 @@ final class SiteStructureRenderer {
                     setStatus($status, "Select a menu first.", false);
                     return;
                 }
+                originalText($btn);
                 $btn.prop("disabled", true).text("Attaching...");
                 post("attach_menu_structure", {
                     menu_id: menuId,
@@ -869,8 +936,9 @@ final class SiteStructureRenderer {
                     structure: $card.data("structure")
                 }, function(response) {
                     if (response.success) {
-                        setStatus($status, message(response, "Structure attached."), true);
-                        setTimeout(function() { location.reload(); }, 900);
+                        refreshMenuInventory($status, message(response, "Structure attached."), function() {
+                            $btn.prop("disabled", false).text(originalText($btn));
+                        });
                     } else {
                         setStatus($status, message(response, "Structure attach failed."), false);
                         $btn.prop("disabled", false).text("Attach " + $card.find("h4").first().text());
@@ -890,6 +958,7 @@ final class SiteStructureRenderer {
                     setStatus($status, "Select a menu and assigned page.", false);
                     return;
                 }
+                originalText($btn);
                 $btn.prop("disabled", true).text("Attaching...");
                 post("attach_page_to_menu_item", {
                     menu_id: menuId,
@@ -897,8 +966,9 @@ final class SiteStructureRenderer {
                     page_key: pageKey
                 }, function(response) {
                     if (response.success) {
-                        setStatus($status, message(response, "Page attached."), true);
-                        setTimeout(function() { location.reload(); }, 900);
+                        refreshMenuInventory($status, message(response, "Page attached."), function() {
+                            $btn.prop("disabled", false).text(originalText($btn));
+                        });
                     } else {
                         setStatus($status, message(response, "Page attach failed."), false);
                         $btn.prop("disabled", false).text("Attach Page");

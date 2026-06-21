@@ -41,7 +41,7 @@ final class SiteStructureAjaxController {
                 'create_menu_item'         => '',
                 'attach_page_to_menu_item' => '',
                 'attach_menu_structure'    => '',
-                'add_pages_to_menu'        => '',
+                'menu_inventory'           => '',
                 'save_template'            => '',
                 'apply_template'           => '',
                 'page_details'             => '',
@@ -154,12 +154,10 @@ final class SiteStructureAjaxController {
             ];
         }
 
-        if ( '' !== (string) $actions['add_pages_to_menu'] ) {
-            $map['add_pages_to_menu'] = [
-                'action'   => (string) $actions['add_pages_to_menu'],
-                'callback' => fn( AjaxRequest $request ): array|\WP_Error => $this->manager->add_all_pages_to_menu(
-                    $request->int( 'menu_id' )
-                ),
+        if ( '' !== (string) $actions['menu_inventory'] ) {
+            $map['menu_inventory'] = [
+                'action'   => (string) $actions['menu_inventory'],
+                'callback' => fn( AjaxRequest $request ): array => $this->manager->menu_inventory_payload(),
             ];
         }
 

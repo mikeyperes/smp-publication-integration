@@ -7,7 +7,7 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.6.38`
+- Version: `0.6.44`
 
 ## Structure
 
@@ -43,6 +43,15 @@ WordPress plugin for Scale My Publication publication profiles.
 - Replaced SMP admin-AJAX action registration with `Hexa\PluginCore\WpAdminAjax\AjaxActionRegistry` and request parsing with `AjaxRequest`.
 - Replaced the Shortcodes debugger table with `Hexa\PluginCore\ShortcodeRegistry\ShortcodeDisplayRenderer`.
 - Updater flow fixed: SMP uses GitHub API version detection and Hexa WordPress Plugin Core post-install handling.
+
+## 0.6.44 Updates
+
+- Added an opt-in Featured image caption templates feature with independent settings from inline photo treatments.
+- Added automatic featured-image detection for single posts and press releases, using the media attachment caption as the caption source.
+- Added backend live previews and controls for featured-image caption template, accent color, font style, font size, and text color.
+- Added the shortcode-driven Become a Contributor page template update to the work queue and default page template set.
+- Added managed Pages-tab entries for Brand Assets, Submit Your Press Release, Press Releases, and Advertise with Us.
+- Added a Publication Options Brand Assets Gallery ACF field.
 
 ## 0.6.38 Updates
 
@@ -190,4 +199,4 @@ WordPress plugin for Scale My Publication publication profiles.
 
 ## Implementation Queue
 
-- No active README-tracked implementation queue remains. Optimization settings rerooting is intentionally parked in the UI until target values are supplied.
+- No active README-tracked implementation queue remains.

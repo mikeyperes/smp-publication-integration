@@ -22,12 +22,13 @@ final class ArticleStyles {
     }
 
     public function print_styles(): void {
-        $needs = Settings::bool( "inline_photo_treatments_enabled" ) || Settings::bool( "post_summary_acf_enabled" ) || Settings::bool( "post_faqs_acf_enabled" ) || Settings::bool( "table_of_contents_enabled" );
+        $needs = Settings::bool( "inline_photo_treatments_enabled" ) || Settings::bool( "featured_image_caption_templates_enabled" ) || Settings::bool( "post_summary_acf_enabled" ) || Settings::bool( "post_faqs_acf_enabled" ) || Settings::bool( "table_of_contents_enabled" );
         if ( ! $needs ) {
             return;
         }
         $photo = self::normalize_inline_photo_style( (string) Settings::get( "inline_photo_treatment", "none" ) );
-        echo "<style id=smpi-article-style-controls>" . self::frontend_vars_css() . self::toc_css() . self::post_acf_css() . self::inline_photo_css( $photo ) . "</style>";
+        $featured = self::normalize_featured_image_caption_style( (string) Settings::get( "featured_image_caption_template", "fig2" ) );
+        echo "<style id=smpi-article-style-controls>" . self::frontend_vars_css() . self::toc_css() . self::post_acf_css() . self::inline_photo_css( $photo ) . self::featured_image_caption_css( $featured ) . "</style>";
     }
 
     public static function normalize_toc_style( string $style = "" ): string {
@@ -38,6 +39,11 @@ final class ArticleStyles {
     public static function normalize_inline_photo_style( string $style = "" ): string {
         $style = sanitize_key( "" !== $style ? $style : (string) Settings::get( "inline_photo_treatment", "none" ) );
         return in_array( $style, [ "none", "fig1", "fig2", "fig4", "fig5" ], true ) ? $style : "none";
+    }
+
+    public static function normalize_featured_image_caption_style( string $style = "" ): string {
+        $style = sanitize_key( "" !== $style ? $style : (string) Settings::get( "featured_image_caption_template", "fig2" ) );
+        return in_array( $style, [ "none", "fig1", "fig2", "fig4", "fig5" ], true ) ? $style : "fig2";
     }
 
     public static function normalize_summary_style( string $style = "" ): string {
@@ -92,7 +98,11 @@ final class ArticleStyles {
         $css .= ".smpi-post-faqs{--smpi-faq-accent:" . $faq["accent"] . ";--smpi-faq-text:" . $faq["text"] . ";--smpi-faq-size:" . $faq["size"] . ";--smpi-faq-fstyle:" . $faq["fstyle"] . "}";
         if ( Settings::bool( "inline_photo_treatments_enabled" ) ) {
             $p = self::photo_var_values();
-            $css .= "body.single-post,body.single-press-release{--smpi-photo-accent:" . $p["accent"] . ";--smpi-photo-cap-size:" . $p["size"] . ";--smpi-photo-cap-fstyle:" . $p["fstyle"] . "}";
+            $css .= "body.single-post,body.single-press-release{--smpi-photo-accent:" . $p["accent"] . ";--smpi-photo-cap-color:" . $p["color"] . ";--smpi-photo-cap-size:" . $p["size"] . ";--smpi-photo-cap-fstyle:" . $p["fstyle"] . "}";
+        }
+        if ( Settings::bool( "featured_image_caption_templates_enabled" ) ) {
+            $f = self::featured_image_var_values();
+            $css .= "body.single-post,body.single-press-release{--smpi-fi-accent:" . $f["accent"] . ";--smpi-fi-cap-color:" . $f["color"] . ";--smpi-fi-cap-size:" . $f["size"] . ";--smpi-fi-cap-fstyle:" . $f["fstyle"] . "}";
         }
         return $css;
     }
@@ -121,6 +131,15 @@ final class ArticleStyles {
             "color"  => self::hex( Settings::get( "inline_photo_caption_text_color", "#272727" ), "#272727" ),
             "size"   => self::px( Settings::get( "inline_photo_caption_font_size", 16 ), 16 ),
             "fstyle" => self::fstyle( Settings::get( "inline_photo_caption_font_style", "italic" ) ),
+        ];
+    }
+
+    public static function featured_image_var_values(): array {
+        return [
+            "accent" => self::hex( Settings::get( "featured_image_caption_accent_color", "#d63428" ), "#d63428" ),
+            "color"  => self::hex( Settings::get( "featured_image_caption_text_color", "#272727" ), "#272727" ),
+            "size"   => self::px( Settings::get( "featured_image_caption_font_size", 16 ), 16 ),
+            "fstyle" => self::fstyle( Settings::get( "featured_image_caption_font_style", "italic" ) ),
         ];
     }
 
@@ -185,6 +204,41 @@ final class ArticleStyles {
         return self::inline_photo_rules( $style, $fig, $img, $cap );
     }
 
+
+
+    /* ---------------------------------------------------------------------
+     * Featured image caption templates. These duplicate the inline photo
+     * treatment designs with independent selectors and CSS variables so this
+     * feature can evolve without changing inline figure behavior.
+     * ------------------------------------------------------------------- */
+    public static function featured_image_caption_rules( string $style, string $host, string $img, string $cap ): string {
+        $tpl = self::featured_image_caption_template( $style );
+        return strtr( $tpl, [ "%HOST%" => $host, "%IMG%" => $img, "%CAP%" => $cap ] );
+    }
+
+    private static function featured_image_caption_template( string $style ): string {
+        if ( "fig1" === $style ) {
+            return "%HOST%{display:block;margin:2.5rem auto}%IMG%{width:100%;height:auto;display:block}%CAP%{display:block;margin-top:16px;padding-left:16px;border-left:3px solid var(--smpi-fi-accent,#d63428);font-family:Georgia,serif;font-style:var(--smpi-fi-cap-fstyle,italic);font-size:var(--smpi-fi-cap-size,17px);color:var(--smpi-fi-cap-color,#1f1f1f);line-height:1.5}";
+        }
+        if ( "fig2" === $style ) {
+            return "%HOST%{display:block;margin:2.5rem auto;border-radius:6px;overflow:hidden}%IMG%{width:100%;display:block;margin:0}%CAP%{display:block;margin:0;background:#fafafa;border-top:3px solid var(--smpi-fi-accent,#d63428);padding:16px 20px;font-family:Georgia,serif;font-style:var(--smpi-fi-cap-fstyle,italic);font-size:var(--smpi-fi-cap-size,13px);color:var(--smpi-fi-cap-color,#272727);line-height:1.45}";
+        }
+        if ( "fig4" === $style ) {
+            return "%HOST%{display:block;margin:2.5rem auto;position:relative;border-radius:16px;overflow:hidden}%IMG%{width:100%;display:block}%CAP%{display:block;position:absolute;left:0;right:0;bottom:0;padding:54px 22px 18px;color:var(--smpi-fi-cap-color-overlay,#fff);font-family:Georgia,serif;font-style:var(--smpi-fi-cap-fstyle,italic);font-size:var(--smpi-fi-cap-size,17px);line-height:1.45;background:linear-gradient(to top,rgba(10,10,12,.85),rgba(10,10,12,0))}";
+        }
+        return "%HOST%{display:block;margin:2.5rem auto;border:1px solid #e9e9e9;border-radius:18px;padding:14px;background:#fff;box-shadow:0 20px 44px -30px rgba(15,15,15,.4)}%IMG%{width:100%;display:block;border-radius:10px}%CAP%{display:block;padding:16px 6px 4px;font-family:Georgia,serif;font-style:var(--smpi-fi-cap-fstyle,italic);font-size:var(--smpi-fi-cap-size,16.5px);color:var(--smpi-fi-cap-color,#272727);line-height:1.45}";
+    }
+
+    public static function featured_image_caption_css( string $style ): string {
+        if ( "none" === $style || ! Settings::bool( "featured_image_caption_templates_enabled" ) ) {
+            return "";
+        }
+        $host = "body.single-post .smpi-featured-image-caption,body.single-press-release .smpi-featured-image-caption";
+        $img = ".smpi-featured-image-caption img";
+        $cap = ".smpi-featured-image-caption figcaption,.smpi-featured-image-caption .smpi-featured-image-caption-text";
+        return self::featured_image_caption_rules( $style, $host, $img, $cap );
+    }
+
     /* ---------------------------------------------------------------------
      * Admin design previews use the SAME css strings, scoped to the preview
      * containers. This is the one-source-of-truth bundle.
@@ -195,14 +249,19 @@ final class ArticleStyles {
             $sel = ".smpi-pp.smpi-pp-" . $style;
             $css .= self::inline_photo_rules( $style, $sel, $sel . " img", $sel . " figcaption" );
         }
+        foreach ( [ "fig1", "fig2", "fig4", "fig5" ] as $style ) {
+            $sel = ".smpi-fi-preview.smpi-fi-preview-" . $style;
+            $css .= self::featured_image_caption_rules( $style, $sel, $sel . " img", $sel . " .smpi-featured-image-caption-text" );
+        }
         // Current setting values become CSS variables on the host so every
         // preview reflects the live controls; JS updates these for real time.
         $t = self::toc_var_values();
         $f = self::faq_var_values();
         $p = self::photo_var_values();
+        $fp = self::featured_image_var_values();
         $css .= ".smpi-design-host{--smpi-toc-accent:" . $t["accent"] . ";--smpi-toc-text:" . $t["text"] . ";--smpi-toc-size:" . $t["size"] . ";--smpi-toc-fstyle:" . $t["fstyle"] . ";--smpi-faq-accent:" . $f["accent"] . ";--smpi-faq-text:" . $f["text"] . ";--smpi-faq-size:" . $f["size"] . ";--smpi-faq-fstyle:" . $f["fstyle"] . ";--smpi-photo-accent:" . $p["accent"] . ";--smpi-photo-cap-color:" . $p["color"] . ";--smpi-photo-cap-size:" . $p["size"] . ";--smpi-photo-cap-fstyle:" . $p["fstyle"] . "}";
         // Keep previews contained inside the small sample cards.
-        $css .= ".smpi-choice-preview .smpi-table-of-contents,.smpi-choice-preview .smpi-post-summary,.smpi-choice-preview .smpi-post-faqs,.smpi-choice-preview .smpi-pp{max-width:100%!important;margin:0!important}.smpi-choice-preview .smpi-pp{display:block}.smpi-choice-preview .smpi-pp img{height:120px;width:100%;object-fit:cover}.smpi-choice-preview .smpi-table-of-contents a,.smpi-choice-preview .smpi-post-faqs-content>ul>li,.smpi-choice-preview .smpi-post-faqs-content>ol>li{font-size:13px}";
+        $css .= ".smpi-choice-preview .smpi-table-of-contents,.smpi-choice-preview .smpi-post-summary,.smpi-choice-preview .smpi-post-faqs,.smpi-choice-preview .smpi-pp,.smpi-choice-preview .smpi-fi-preview{max-width:100%!important;margin:0!important}.smpi-choice-preview .smpi-pp,.smpi-choice-preview .smpi-fi-preview{display:block}.smpi-choice-preview .smpi-pp img,.smpi-choice-preview .smpi-fi-preview img{height:120px;width:100%;object-fit:cover}.smpi-choice-preview .smpi-table-of-contents a,.smpi-choice-preview .smpi-post-faqs-content>ul>li,.smpi-choice-preview .smpi-post-faqs-content>ol>li{font-size:13px}";
         return $css;
     }
 }

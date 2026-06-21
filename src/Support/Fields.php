@@ -26,6 +26,7 @@ final class Fields {
             "summary" => [ "short_summary", "publication_summary", "summary", "description", "smpi_publication_summary" ],
             "website" => [ "url", "website", "publication_website", "smpi_publication_website" ],
             "logo" => [ "logo", "publication_logo", "smpi_publication_logo" ],
+            "brand_assets" => [ "brand_assets", "publication_brand_assets", "brand_assets_gallery", "smpi_brand_assets" ],
             "publication_user" => [ "publication_user", "smpi_publication_user" ],
             "founders" => [ "founders", "publication_founders", "smpi_founder_profiles", "smpi_founders" ],
             "founder_profiles" => [ "founder_profiles", "publication_founder_profiles", "smpi_founder_profiles" ],

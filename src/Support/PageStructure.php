@@ -90,7 +90,7 @@ final class PageStructure {
             'footer' => [
                 'title'       => 'Footer Menu',
                 'description' => 'Core transparency, team, contact, advertising, and legal links for the footer.',
-                'page_keys'   => [ 'about_publication', 'team', 'contact', 'advertise', 'privacy', 'terms', 'dmca' ],
+                'page_keys'   => [ 'about_publication', 'team', 'contact', 'advertise', 'advertise_with_us', 'brand_assets', 'press_releases', 'submit_press_release', 'privacy', 'terms', 'dmca' ],
             ],
             'legal' => [
                 'title'       => 'Legal Menu',

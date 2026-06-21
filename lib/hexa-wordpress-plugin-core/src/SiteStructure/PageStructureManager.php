@@ -658,67 +658,34 @@ final class PageStructureManager {
     }
 
     /**
-     * @return array<string,mixed>|\WP_Error
+     * @return array<string,mixed>
      */
-    public function add_all_pages_to_menu( int $menu_id ): array|\WP_Error {
-        $menu = $menu_id > 0 && function_exists( 'wp_get_nav_menu_object' ) ? wp_get_nav_menu_object( $menu_id ) : null;
-        if ( ! $menu ) {
-            return new \WP_Error( 'menu_not_found', 'Menu not found.' );
-        }
+    public function menu_inventory_payload(): array {
+        $menus = function_exists( 'wp_get_nav_menus' ) ? ( wp_get_nav_menus() ?: [] ) : [];
+        $rows  = [];
 
-        $added         = 0;
-        $pages         = $this->pages();
-        $existing_items = function_exists( 'wp_get_nav_menu_items' ) ? ( wp_get_nav_menu_items( $menu_id ) ?: [] ) : [];
-        $existing_ids  = [];
-        foreach ( $existing_items as $item ) {
-            if ( 'post_type' === ( $item->type ?? '' ) && 'page' === ( $item->object ?? '' ) ) {
-                $existing_ids[] = (int) $item->object_id;
-            }
-        }
-
-        foreach ( $pages as $page_key => $page_data ) {
-            $page_id = $this->assigned_page_id( (string) $page_key );
-            if ( $page_id <= 0 || ! function_exists( 'get_post' ) || ! get_post( $page_id ) ) {
+        foreach ( $menus as $menu ) {
+            $menu_id = (int) ( $menu->term_id ?? 0 );
+            if ( $menu_id <= 0 ) {
                 continue;
             }
 
-            $parent_menu_item_id = 0;
-            if ( in_array( $page_id, $existing_ids, true ) ) {
-                foreach ( $existing_items as $item ) {
-                    if ( (int) ( $item->object_id ?? 0 ) === $page_id ) {
-                        $parent_menu_item_id = (int) $item->ID;
-                        break;
-                    }
-                }
-            } else {
-                $result = $this->upsert_page_menu_item( $menu_id, $page_id, 0 );
-                if ( is_wp_error( $result ) ) {
-                    return $result;
-                }
-
-                $parent_menu_item_id = (int) $result['menu_item_id'];
-                $added++;
-            }
-
-            foreach ( (array) ( $page_data['children'] ?? [] ) as $child_key => $child_data ) {
-                $child_id = $this->assigned_page_id( (string) $child_key );
-                if ( $child_id <= 0 || ! function_exists( 'get_post' ) || ! get_post( $child_id ) || in_array( $child_id, $existing_ids, true ) ) {
-                    continue;
-                }
-
-                $result = $this->upsert_page_menu_item( $menu_id, $child_id, $parent_menu_item_id );
-                if ( is_wp_error( $result ) ) {
-                    return $result;
-                }
-
-                $added++;
-            }
+            $items  = function_exists( 'wp_get_nav_menu_items' ) ? ( wp_get_nav_menu_items( $menu_id ) ?: [] ) : [];
+            $rows[] = [
+                'menu'  => [
+                    'id'       => $menu_id,
+                    'name'     => (string) ( $menu->name ?? '' ),
+                    'slug'     => (string) ( $menu->slug ?? '' ),
+                    'edit_url' => function_exists( 'admin_url' ) ? admin_url( 'nav-menus.php?menu=' . $menu_id ) : '',
+                ],
+                'items' => $this->menu_item_labels( $items ),
+            ];
         }
 
-        $message = 0 === $added ? 'All pages already in menu (0 added).' : $added . ' pages added to "' . $menu->name . '".';
-        $this->log( 'Added ' . $added . ' pages to menu: ' . $menu->name );
-
-        return [ 'message' => $message, 'added' => $added ];
+        return [
+            'menus'   => $rows,
+            'message' => 'Menu inventory refreshed.',
+        ];
     }
 
     public function default_template( string $page_key ): string {

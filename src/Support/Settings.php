@@ -64,6 +64,12 @@ final class Settings {
             "inline_photo_caption_font_style" => "italic",
             "inline_photo_caption_font_size" => 16,
             "inline_photo_caption_text_color" => "#272727",
+            "featured_image_caption_templates_enabled" => false,
+            "featured_image_caption_template" => "fig2",
+            "featured_image_caption_accent_color" => "#d63428",
+            "featured_image_caption_font_style" => "italic",
+            "featured_image_caption_font_size" => 16,
+            "featured_image_caption_text_color" => "#272727",
             "post_summary_style" => "none",
             "post_faqs_style" => "none",
             "post_faqs_accent_color" => "#2563eb",
@@ -111,7 +117,7 @@ final class Settings {
                 continue;
             }
 
-            if ( in_array( $key, [ "muckrack_icon_size", "publication_muckrack_font_size", "table_of_contents_text_font_size", "inline_photo_caption_font_size", "post_faqs_text_font_size", "muckrack_icon_size_single_author", "muckrack_icon_size_single_footer", "muckrack_icon_size_loop_cards", "muckrack_icon_size_home", "muckrack_icon_size_author" ], true ) ) {
+            if ( in_array( $key, [ "muckrack_icon_size", "publication_muckrack_font_size", "table_of_contents_text_font_size", "inline_photo_caption_font_size", "featured_image_caption_font_size", "post_faqs_text_font_size", "muckrack_icon_size_single_author", "muckrack_icon_size_single_footer", "muckrack_icon_size_loop_cards", "muckrack_icon_size_home", "muckrack_icon_size_author" ], true ) ) {
                 $value = absint( $value );
                 if ( 0 === strpos( $key, "muckrack_icon_size_" ) ) {
                     $settings[ $key ] = 0 === $value ? 0 : max( 8, min( 64, $value ) );
@@ -121,6 +127,7 @@ final class Settings {
                     "publication_muckrack_font_size" => 14,
                     "table_of_contents_text_font_size" => 15,
                     "inline_photo_caption_font_size" => 16,
+                    "featured_image_caption_font_size" => 16,
                     "post_faqs_text_font_size" => 16,
                 ];
                 $default = $font_size_defaults[ $key ] ?? 18;
@@ -131,10 +138,12 @@ final class Settings {
             $style_options = [
                 "table_of_contents_style" => [ "none", "toc00", "toc01", "toc02", "toc03", "toc04" ],
                 "inline_photo_treatment" => [ "none", "fig1", "fig2", "fig4", "fig5" ],
+                "featured_image_caption_template" => [ "none", "fig1", "fig2", "fig4", "fig5" ],
                 "post_summary_style" => [ "none", "sum00", "sum01", "sum02", "sum03", "sum04" ],
                 "post_faqs_style" => [ "none", "faq00", "faq01", "faq02", "faq03", "faq04" ],
                 "table_of_contents_text_font_style" => [ "normal", "italic" ],
                 "inline_photo_caption_font_style" => [ "normal", "italic" ],
+                "featured_image_caption_font_style" => [ "normal", "italic" ],
                 "post_faqs_text_font_style" => [ "normal", "italic" ],
             ];
             if ( isset( $style_options[ $key ] ) ) {
@@ -143,7 +152,7 @@ final class Settings {
                 continue;
             }
 
-            if ( "inline_photo_treatments_enabled" === $key ) {
+            if ( "inline_photo_treatments_enabled" === $key || "featured_image_caption_templates_enabled" === $key ) {
                 $settings[ $key ] = (bool) $value;
                 continue;
             }
@@ -194,12 +203,14 @@ final class Settings {
                 continue;
             }
 
-            if ( in_array( $key, [ "table_of_contents_accent_color", "table_of_contents_text_color", "inline_photo_accent_color", "inline_photo_caption_text_color", "post_faqs_accent_color", "post_faqs_text_color" ], true ) ) {
+            if ( in_array( $key, [ "table_of_contents_accent_color", "table_of_contents_text_color", "inline_photo_accent_color", "inline_photo_caption_text_color", "featured_image_caption_accent_color", "featured_image_caption_text_color", "post_faqs_accent_color", "post_faqs_text_color" ], true ) ) {
                 $color_defaults = [
                     "table_of_contents_accent_color" => "#2563eb",
                     "table_of_contents_text_color" => "#1f2937",
                     "inline_photo_accent_color" => "#d63428",
                     "inline_photo_caption_text_color" => "#272727",
+                    "featured_image_caption_accent_color" => "#d63428",
+                    "featured_image_caption_text_color" => "#272727",
                     "post_faqs_accent_color" => "#2563eb",
                     "post_faqs_text_color" => "#1f2937",
                 ];
@@ -328,6 +339,9 @@ final class Settings {
             "mission_statement" => [ "label" => "Mission Statement", "description" => "Editorial mission, audience promise, coverage priorities, and publication purpose.", "template" => true ],
             "founders" => [ "label" => "Founders", "description" => "Founder profiles and founding team context, ideally linked to verified profile records where available.", "template" => true ],
             "become_contributor" => [ "label" => "Become a Contributor", "description" => "Contributor eligibility, pitch requirements, editorial review standards, attribution, and application path.", "template" => true ],
+            "brand_assets" => [ "label" => "Brand Assets", "description" => "Canonical public brand asset page for logos, approved media assets, press kit images, usage rules, and media contact context.", "template" => true ],
+            "submit_press_release" => [ "label" => "Submit Your Press Release", "description" => "Press release intake page with submission requirements, review expectations, disclosure rules, and contact path.", "template" => true ],
+            "press_releases" => [ "label" => "Press Releases", "description" => "Public press release landing page or archive page for release coverage, submission context, and press release access.", "template" => true ],
             "dmca" => [ "label" => "DMCA", "description" => "Copyright takedown policy and designated contact instructions for rights holders.", "template" => true ],
             "terms" => [ "label" => "Terms of Use", "description" => "Terms governing use of the website, content, submissions, acceptable behavior, and legal limitations.", "template" => true ],
             "privacy" => [ "label" => "Privacy Policy", "description" => "Privacy practices, data collection, cookies, analytics, reader rights, and contact path for privacy requests.", "template" => true ],
@@ -349,6 +363,7 @@ final class Settings {
             "actionable_feedback_policy" => [ "label" => "Actionable Feedback Policy", "description" => "Reader feedback, correction, tip, and public engagement process used by NewsMediaOrganization actionableFeedbackPolicy schema.", "template" => true ],
             "ownership_funding" => [ "label" => "Ownership and Funding", "description" => "Detailed public ownership and funding disclosure for schema ownershipFundingInfo and reader transparency.", "template" => true ],
             "advertise" => [ "label" => "Advertise", "description" => "Advertising, sponsorship, brand partnership, and media kit path with editorial separation language.", "template" => true ],
+            "advertise_with_us" => [ "label" => "Advertise with Us", "description" => "Advertising inquiry page for sponsors, brand partners, media buyers, and partnership leads with public contact and editorial separation language.", "template" => true ],
             "accessibility" => [ "label" => "Accessibility", "description" => "Accessibility commitment, supported standards, known limitations, and barrier reporting process.", "template" => true ],
         ];
     }
@@ -384,6 +399,9 @@ final class Settings {
             "mission_statement" => [ "Mission and audience promise.", [ "State the publication mission plainly.", "Explain coverage priorities and target audience.", "Describe how editorial decisions support the mission." ] ],
             "founders" => [ "Founder profile and founding team page.", [ "List founder names, profile links, and roles.", "Use Verified Profiles where available.", "If founders are intentionally private, explain the policy without exposing private data." ] ],
             "become_contributor" => [ "Contributor application and submission page.", [ "Explain pitch format, topic fit, conflicts, and disclosure requirements.", "Describe review process, editing, attribution, and rejection policy.", "Provide an application or contact path." ] ],
+            "brand_assets" => [ "Approved brand assets and media kit page.", [ "Display approved logos, marks, screenshots, media kit images, and brand files from the Brand Assets gallery.", "State acceptable usage, attribution, alteration, and permission rules.", "Provide a public contact path for media, partnerships, and brand usage questions. Use shortcode [smp_publication_field field=brand_assets format=json] for raw gallery data until the page is customized." ] ],
+            "submit_press_release" => [ "Press release submission intake page.", [ "Explain what release types are accepted and what information submitters must provide.", "Describe editorial review, sponsored or paid placement disclosure, timing, rejection, and correction expectations.", "Provide the submission email, form, or intake workflow." ] ],
+            "press_releases" => [ "Press release landing page or archive.", [ "Link to published press releases or the press-release archive when available.", "Explain how press releases are labeled and reviewed.", "Link to the Submit Your Press Release page when available." ] ],
             "dmca" => [ "Copyright takedown policy.", [ "Describe how rights holders can submit a DMCA notice.", "List required notice elements: work, URL, contact, good-faith statement, signature.", "Include contact email or form path: [smp_publication_field field=contact_email format=text]." ] ],
             "terms" => [ "Website terms of use.", [ "Explain allowed use of site content, submissions, and restrictions.", "Cover disclaimers, limitation of liability, user conduct, and governing terms.", "Have legal counsel review before publishing." ] ],
             "privacy" => [ "Privacy policy.", [ "Explain data collection, cookies, analytics, ads, forms, and retention.", "Include reader rights and privacy contact path.", "Have legal counsel review before publishing." ] ],
@@ -405,6 +423,7 @@ final class Settings {
             "actionable_feedback_policy" => [ "NewsMediaOrganization actionableFeedbackPolicy page.", [ "Explain how readers submit feedback, corrections, tips, and concerns.", "Describe review ownership and expected response workflow.", "This page URL can populate NewsMediaOrganization.actionableFeedbackPolicy." ] ],
             "ownership_funding" => [ "Ownership and funding disclosure page.", [ "State ownershipFundingInfo: [smp_publication_field field=ownership_funding_info format=text].", "List parent organization if applicable.", "Explain funding sources and editorial independence." ] ],
             "advertise" => [ "Advertising and partnership page.", [ "Explain available advertising or sponsorship opportunities.", "State how sponsored content is labeled and separated from editorial decisions.", "Provide business contact path." ] ],
+            "advertise_with_us" => [ "Advertising inquiry and partnership page.", [ "Explain available advertising, sponsorship, newsletter, display, branded content, event, or partnership opportunities.", "State how sponsored placements are labeled and separated from editorial decisions.", "Provide the advertising contact path and expected response workflow." ] ],
             "accessibility" => [ "Accessibility commitment page.", [ "State accessibility goals and supported standards.", "Explain known limitations and remediation process.", "Provide a contact path for accessibility barriers." ] ],
         ];
 
@@ -413,6 +432,48 @@ final class Settings {
             $data = $specifics[ $type ] ?? [ (string) $config["description"], [ (string) $config["description"], "Reference publication fields with shortcodes where values may change.", "Replace starter text before publishing." ] ];
             $templates[ $type ] = $build( (string) $config["label"], (string) $data[0], (array) $data[1] );
         }
+
+        $templates["become_contributor"] = <<<HTML
+<h2>Become a Contributor</h2>
+
+<p><strong>Publication:</strong> [smp_publication_field field=legal_name format=text]</p>
+<p><strong>Website:</strong> [smp_publication_field field=website format=text]</p>
+<p><strong>Pitch contact:</strong> <a href="mailto:[smp_publication_field field=contact_email format=text]">[smp_publication_field field=contact_email format=text]</a></p>
+
+<p>At [smp_publication_field field=legal_name format=text], we recognize that personal narratives, field expertise, and reported analysis can shift how readers understand the industries, communities, and technology shaping their daily lives.</p>
+
+<p>[smp_publication_field field=mission_statement format=html]</p>
+
+<h3>What we cover</h3>
+<p>We publish contributor work that fits the editorial focus of [smp_publication_field field=legal_name format=text]. Current coverage priorities include: [smp_publication_field field=knows_about format=text].</p>
+
+<p>If you want to contribute to [smp_publication_field field=legal_name format=text] and share your expertise with our community, we invite you to apply as a contributor. Please follow these guidelines when proposing an article.</p>
+
+<h3>Contributor guidelines</h3>
+<ul>
+<li>A [smp_publication_field field=legal_name format=text] piece should be original, authentic, and engaging.</li>
+<li>We feature writers from diverse backgrounds and identities, each offering a distinct voice and perspective.</li>
+<li>Your article should fit our editorial mission, audience, and publication focus.</li>
+<li>Your article must be exclusive to [smp_publication_field field=legal_name format=text] and should not have been published anywhere else.</li>
+<li>If you have already pitched the article elsewhere, disclose that in your message.</li>
+</ul>
+
+<h3>A strong pitch should include</h3>
+<ul>
+<li>A concise summary of your article idea.</li>
+<li>The expertise, experience, or reporting access you bring to the topic.</li>
+<li>What readers will gain from reading the article.</li>
+<li>A rough article structure, including the proposed beginning and ending.</li>
+<li>A draft pasted into the email body, if one is already available.</li>
+<li>A clear, informative headline as the email subject.</li>
+<li>A note in the subject line if the pitch is time-sensitive.</li>
+<li>A brief description of prior writing experience and links to published work, if applicable.</li>
+</ul>
+
+<h3>How to pitch</h3>
+<p>Email your pitch to <a href="mailto:[smp_publication_field field=contact_email format=text]">[smp_publication_field field=contact_email format=text]</a>.</p>
+HTML;
+
 
         return $templates;
     }
