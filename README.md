@@ -199,4 +199,4 @@ WordPress plugin for Scale My Publication publication profiles.
 
 ## Implementation Queue
 
-- No active README-tracked implementation queue remains.
+- Move shared page structures from SMP Publication Integration to HWS Base Tools. Create a Pages tab in HWS Base Tools for Terms of Use, Privacy Policy, Brand Assets, Headquarters, Contact, and FAQs; keep SMP Pages focused on publication-specific pages. In SMP > Pages, add a top cross-plugin links panel for installed page-management plugins and open links in a new tab: HWS Base Tools Pages, SMP Verified Profiles, Hexa PR Wire, and SFPF Person Profile Integration when installed. MashViral detection snapshot: HWS Base Tools, SMP Verified Profiles, and Hexa PR Wire are active; SFPF is not installed.
