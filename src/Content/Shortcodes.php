@@ -197,9 +197,8 @@ final class Shortcodes {
 
     public function render_page_assignment( array $atts = [] ): string {
         $atts = shortcode_atts( [ "type" => "", "mode" => "link" ], $atts, "smp_publication_page" );
-        $settings = Settings::all();
         $type = sanitize_key( (string) $atts["type"] );
-        $page_id = isset( $settings["page_assignments"][ $type ] ) ? (int) $settings["page_assignments"][ $type ] : 0;
+        $page_id = Settings::page_assignment_id( $type );
         if ( ! $page_id ) {
             return "";
         }

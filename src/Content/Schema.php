@@ -680,8 +680,7 @@ final class Schema {
         if ( $url ) {
             return $url;
         }
-        $settings = Settings::all();
-        $page_id = isset( $settings["page_assignments"][ $page_type ] ) ? absint( $settings["page_assignments"][ $page_type ] ) : 0;
+        $page_id = Settings::page_assignment_id( $page_type );
         return $page_id ? (string) get_permalink( $page_id ) : "";
     }
 

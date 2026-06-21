@@ -656,7 +656,7 @@ final class Dashboard {
             <h3>Assigned page links</h3>
             <table class="widefat striped"><thead><tr><th>Page requirement</th><th>URL shortcode</th><th>Link shortcode</th><th>Current page URL</th></tr></thead><tbody>
             <?php foreach ( Settings::page_types() as $type => $config ) :
-                $page_id = isset( $settings["page_assignments"][ $type ] ) ? absint( $settings["page_assignments"][ $type ] ) : 0;
+                $page_id = Settings::page_assignment_id( $type );
                 $url = $page_id ? Settings::page_slug_url( $page_id ) : "";
                 $url_code = "[smp_publication_page type=" . $type . " mode=url]";
                 $link_code = "[smp_publication_page type=" . $type . " mode=link]";
@@ -1468,9 +1468,66 @@ final class Dashboard {
         return (string) ob_get_clean();
     }
 
+
+    private function pages_cross_plugin_links_html(): string {
+        $items = [
+            [
+                "plugin_file" => "hws-base-tools/hws-base-tools.php",
+                "label" => "HWS Base Tools Pages",
+                "url" => admin_url( "options-general.php?page=hws-core-tools&tab=pages" ),
+                "description" => "Manage shared site pages: Terms of Use, Privacy Policy, Brand Assets, Headquarters, Contact, and FAQs.",
+            ],
+            [
+                "plugin_file" => "smp-verified-profiles/initialization.php",
+                "label" => "SMP Verified Profiles",
+                "url" => admin_url( "options-general.php?page=smp-verified-profiles" ),
+                "description" => "Manage verified profile pages and profile schema tools.",
+            ],
+            [
+                "plugin_file" => "hexa-pr-wire-distributor/hexa-pr-wire-distributor.php",
+                "label" => "Hexa PR Wire",
+                "url" => admin_url( "options-general.php?page=hpr-distributor" ),
+                "description" => "Manage press-release distribution pages, settings, and release tooling.",
+            ],
+            [
+                "plugin_file" => "sfpf-person-profile-integration/initialization.php",
+                "label" => "SFPF Person Profile Integration",
+                "url" => admin_url( "options-general.php?page=sfpf-person-profile-integration" ),
+                "description" => "Manage SFPF person-profile pages when the plugin is installed.",
+            ],
+        ];
+
+        $cards = "";
+        foreach ( $items as $item ) {
+            $info = PluginRegistry::info( (string) $item["plugin_file"] );
+            if ( empty( $info["installed"] ) ) {
+                continue;
+            }
+
+            $active = ! empty( $info["active"] );
+            $cards .= "<div class=\"smpi-card smpi-pages-link-card\">";
+            $cards .= "<h3>" . esc_html( (string) $item["label"] ) . "</h3>";
+            $cards .= "<p>" . esc_html( (string) $item["description"] ) . "</p>";
+            $cards .= "<p><span class=\"" . ( $active ? "smpi-ok" : "smpi-warn" ) . "\">" . ( $active ? "Active" : "Installed, inactive" ) . "</span>";
+            if ( ! empty( $info["version"] ) ) {
+                $cards .= " <code>v" . esc_html( (string) $info["version"] ) . "</code>";
+            }
+            $cards .= "</p>";
+            $cards .= "<p><a class=\"button button-secondary\" target=\"_blank\" rel=\"noopener noreferrer\" href=\"" . esc_url( (string) $item["url"] ) . "\">Open in new tab</a></p>";
+            $cards .= "</div>";
+        }
+
+        if ( "" === $cards ) {
+            return "";
+        }
+
+        return "<div class=\"smpi-panel smpi-pages-other-plugins\"><h2>Other Plugin Pages</h2><p>Shared site pages now belong in HWS Base Tools. Installed companion page tools are linked here and open in a new tab.</p><div class=\"smpi-grid\">" . $cards . "</div></div>";
+    }
+
     private function pages(): void {
         $manager = PageStructure::manager();
         echo "<div class=\"smpi-panel\"><h2>Publication Pages</h2><p>Assign canonical pages, manage starter templates, and build matching WordPress menus through Hexa Core SiteStructure.</p></div>";
+        echo $this->pages_cross_plugin_links_html();
         echo $this->pages_shortcode_reference_html();
         echo ( new SiteStructureRenderer(
             $manager,

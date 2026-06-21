@@ -7,7 +7,7 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.6.45`
+- Version: `0.6.46`
 
 ## Structure
 
@@ -197,6 +197,11 @@ WordPress plugin for Scale My Publication publication profiles.
 - Expanded author shortcode coverage to include author_title, author_subtitle, author_linkedin, author_website, author_crunchbase, author_email, and the author_muck_rack alias.
 - External provider shortcodes are now flagged as external instead of executed inside the SMP debugger.
 
+## 0.6.46 Updates
+
+- Added cross-plugin page links to the SMP Pages tab and moved shared site page management to HWS Base Tools Pages.
+- SMP page assignment shortcodes and schema policy URLs now fall back to HWS Base Tools assignments for Terms of Use, Privacy Policy, Brand Assets, Headquarters, Contact, and FAQs.
+
 ## Implementation Queue
 
-- Move shared page structures from SMP Publication Integration to HWS Base Tools. Create a Pages tab in HWS Base Tools for Terms of Use, Privacy Policy, Brand Assets, Headquarters, Contact, and FAQs; keep SMP Pages focused on publication-specific pages. In SMP > Pages, add a top cross-plugin links panel for installed page-management plugins and open links in a new tab: HWS Base Tools Pages, SMP Verified Profiles, Hexa PR Wire, and SFPF Person Profile Integration when installed. MashViral detection snapshot: HWS Base Tools, SMP Verified Profiles, and Hexa PR Wire are active; SFPF is not installed.
+- No active README-tracked implementation queue remains.

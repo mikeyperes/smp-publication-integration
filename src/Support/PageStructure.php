@@ -59,12 +59,19 @@ final class PageStructure {
         );
     }
 
+    public static function hws_owned_page_keys(): array {
+        return Settings::hws_owned_page_keys();
+    }
+
     /**
      * @return array<string,array<string,mixed>>
      */
     public static function page_definitions(): array {
         $pages = [];
         foreach ( Settings::page_types() as $key => $config ) {
+            if ( in_array( (string) $key, self::hws_owned_page_keys(), true ) ) {
+                continue;
+            }
             $title = (string) ( $config['label'] ?? $key );
             $pages[ (string) $key ] = [
                 'title'       => $title,
@@ -85,17 +92,17 @@ final class PageStructure {
             'header' => [
                 'title'       => 'Header Menu',
                 'description' => 'Primary reader navigation for publication identity, team, and contact pages.',
-                'page_keys'   => [ 'about_publication', 'writers', 'contributors', 'contact' ],
+                'page_keys'   => [ 'about_publication', 'writers', 'contributors' ],
             ],
             'footer' => [
                 'title'       => 'Footer Menu',
                 'description' => 'Core transparency, team, contact, advertising, and legal links for the footer.',
-                'page_keys'   => [ 'about_publication', 'team', 'contact', 'advertise', 'advertise_with_us', 'brand_assets', 'press_releases', 'submit_press_release', 'privacy', 'terms', 'dmca' ],
+                'page_keys'   => [ 'about_publication', 'team', 'advertise', 'advertise_with_us', 'press_releases', 'submit_press_release', 'dmca' ],
             ],
             'legal' => [
                 'title'       => 'Legal Menu',
                 'description' => 'Legal and compliance pages for footer or sub-footer placement.',
-                'page_keys'   => [ 'privacy', 'terms', 'dmca', 'accessibility' ],
+                'page_keys'   => [ 'dmca', 'accessibility' ],
             ],
             'policy' => [
                 'title'       => 'Editorial Policy Menu',

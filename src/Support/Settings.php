@@ -263,6 +263,22 @@ final class Settings {
         return $settings;
     }
 
+    public static function hws_owned_page_keys(): array {
+        return [ "terms", "privacy", "brand_assets", "headquarters", "contact", "faqs" ];
+    }
+
+    public static function page_assignment_id( string $type ): int {
+        $type = sanitize_key( $type );
+        $settings = self::all();
+        $page_id = isset( $settings["page_assignments"][ $type ] ) ? absint( $settings["page_assignments"][ $type ] ) : 0;
+
+        if ( $page_id <= 0 && in_array( $type, self::hws_owned_page_keys(), true ) && function_exists( "get_option" ) ) {
+            $page_id = absint( get_option( "hws_site_page_assignment_" . $type, 0 ) );
+        }
+
+        return $page_id;
+    }
+
     public static function activity_log(): array {
         $entries = array_reverse( self::activity_logger()->all() );
         $log     = [];
