@@ -107,6 +107,10 @@ final class Settings {
     }
 
     private static function should_refresh_default_page_template( string $template ): bool {
+        if ( false === strpos( $template, "[smp_publication_page_template type=" ) ) {
+            return true;
+        }
+
         foreach ( [ '<strong>Purpose:</strong>', '<h3>What this page should contain</h3>', 'At [smp_publication_field field=legal_name format=text]' ] as $marker ) {
             if ( false !== strpos( $template, $marker ) ) {
                 return true;
