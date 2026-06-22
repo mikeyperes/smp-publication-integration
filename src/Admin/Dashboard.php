@@ -114,6 +114,7 @@ final class Dashboard {
             'reports' => 'Reports',
             'custom_fields' => 'Custom Fields',
             'features' => 'Features',
+            'ui_cleanup' => 'UI Cleanup',
             'optimization' => 'Optimization',
             'pages' => 'Pages',
             'verified_profiles' => 'Verified Profiles',
@@ -135,6 +136,7 @@ final class Dashboard {
         if ( 'reports' === $id ) { $this->reports(); return; }
         if ( "custom_fields" === $id ) { $this->custom_fields(); return; }
         if ( 'features' === $id ) { $this->features(); return; }
+        if ( 'ui_cleanup' === $id ) { $this->ui_cleanup(); return; }
         if ( 'optimization' === $id ) { $this->optimization(); return; }
         if ( 'pages' === $id ) { $this->pages(); return; }
         if ( 'verified_profiles' === $id ) { $this->verified_profiles(); return; }
@@ -1447,6 +1449,11 @@ final class Dashboard {
             $html .= "<li><code>" . esc_html( (string) ( $item["time"] ?? "" ) ) . "</code> " . esc_html( (string) ( $item["message"] ?? "" ) ) . "</li>";
         }
         return $html . "</ul>";
+    }
+
+    private function ui_cleanup(): void {
+        echo "<div class=\"smpi-panel\"><h2>UI Cleanup</h2><p>Hide noisy editor panels from the screens where they actually render. The cleanup behavior is registered admin-wide, not only inside this settings tab.</p><p><strong>Target screens:</strong> <code>profile.php</code>, <code>user-edit.php</code>, <code>post.php</code>, and <code>post-new.php</code>.</p></div>";
+        UiCleanup::registry()->render();
     }
 
     private function optimization(): void {

@@ -338,7 +338,7 @@ final class Ajax {
             $page_id = wp_insert_post(
                 [
                     "post_type" => "page",
-                    "post_status" => "draft",
+                    "post_status" => "publish",
                     "post_title" => $title,
                     "post_name" => $slug,
                     "post_content" => $content,
@@ -352,7 +352,7 @@ final class Ajax {
         }
 
         $settings = Settings::update_page( $type, (int) $page_id, (string) ( $settings["page_templates"][ $type ] ?? "" ) );
-        $message = "created" === $mode ? "Created draft page and assigned it." : "Reused existing page and assigned it.";
+        $message = "created" === $mode ? "Created published page and assigned it." : "Reused existing page and assigned it.";
         return [ "mode" => $mode, "message" => $message, "page" => $this->page_result( (int) $page_id ), "settings" => $settings ];
     }
 

@@ -35,6 +35,7 @@ src/SiteStructure/      Hexa\PluginCore\SiteStructure
 src/SchemaDetection/    Hexa\PluginCore\SchemaDetection
 src/SmartSearch/        Hexa\PluginCore\SmartSearch
 src/SystemEnvironment/  Hexa\PluginCore\SystemEnvironment
+src/WpAdminUiCleanup/   Hexa\PluginCore\WpAdminUiCleanup
 src/WpAdminAjax/        Hexa\PluginCore\WpAdminAjax
 src/WpAdminComponents/  Hexa\PluginCore\WpAdminComponents
 src/WpAdminTabs/        Hexa\PluginCore\WpAdminTabs
@@ -48,6 +49,36 @@ Namespace:
 
 ```text
 Hexa\PluginCore\WpAdminComponents
+```
+
+
+## WP Admin UI Cleanup
+
+Namespace:
+
+```text
+Hexa\PluginCore\WpAdminUiCleanup
+```
+
+Use `CleanupRegistry` to define admin cleanup options once, render toggle rows, save settings through AJAX, and apply behavior on the target admin screens.
+
+Required rules:
+
+- Register cleanup behavior admin-wide, not only inside the settings tab.
+- Use plugin-specific option prefixes and AJAX action names.
+- Use `css_hide` for direct selectors and `postbox_collapse` when the box should stay visible but load closed.
+- Test through the visible admin UI and exact target screen with Puppeteer or Playwright.
+
+Example definition shape:
+
+```text
+key: hide_post_editor_comments
+label: Post Editor Comments
+section: wordpress_editor
+default: true
+admin_pages: post.php, post-new.php
+mode: css_hide
+selectors: #commentsdiv, #commentsdiv-hide, label[for="commentsdiv-hide"]
 ```
 
 ## WP Admin AJAX
@@ -203,7 +234,7 @@ $manager = new PageStructureManager([
     'template_option_prefix' => 'my_plugin_page_template_',
     'managed_meta_key' => '_my_plugin_managed_page',
     'managed_key_meta_key' => '_my_plugin_page_key',
-    'created_page_status' => 'draft',
+    'created_page_status' => 'publish',
     'select_post_statuses' => ['publish', 'draft', 'private'],
     'assignment_statuses' => ['publish', 'draft', 'private'],
     'reuse_existing_pages' => true,

@@ -25,8 +25,6 @@ final class PageStructureManager {
                 'select_post_statuses' => [ 'publish' ],
                 'assignment_statuses'  => [ 'publish' ],
                 'reuse_existing_pages' => false,
-                "slug_prefix"         => "",
-                "slug_generator"      => null,
                 'assignment_getter'    => null,
                 'assignment_saver'     => null,
                 'assignment_deleter'   => null,
@@ -71,47 +69,7 @@ final class PageStructureManager {
     }
 
     public function option_key( string $page_key ): string {
-        return (string) $this->config["option_prefix"] . $page_key;
-    }
-
-    /**
-     * @param array<string,mixed> $page_def
-     */
-    public function suggested_page_slug( string $page_key, array $page_def = [] ): string {
-        if ( empty( $page_def ) ) {
-            $flat_pages = $this->flat_pages();
-            $page_def   = isset( $flat_pages[ $page_key ] ) && is_array( $flat_pages[ $page_key ] ) ? $flat_pages[ $page_key ] : [];
-        }
-
-        if ( isset( $page_def["slug"] ) && is_scalar( $page_def["slug"] ) && "" !== trim( (string) $page_def["slug"] ) ) {
-            return $this->sanitize_slug( (string) $page_def["slug"] );
-        }
-
-        if ( isset( $this->config["slug_generator"] ) && is_callable( $this->config["slug_generator"] ) ) {
-            $generated = (string) call_user_func( $this->config["slug_generator"], $page_key, $page_def );
-            if ( "" !== trim( $generated ) ) {
-                return $this->sanitize_slug( $generated );
-            }
-        }
-
-        $title  = isset( $page_def["title"] ) && is_scalar( $page_def["title"] ) ? (string) $page_def["title"] : $page_key;
-        $base   = $this->sanitize_slug( "" !== trim( $title ) ? $title : $page_key );
-        $prefix = $this->sanitize_slug( (string) $this->config["slug_prefix"] );
-
-        if ( "" !== $prefix && "" !== $base && $base !== $prefix && 0 !== strpos( $base, $prefix . "-" ) ) {
-            return $prefix . "-" . $base;
-        }
-
-        return "" !== $base ? $base : $this->sanitize_slug( $page_key );
-    }
-
-    private function sanitize_slug( string $slug ): string {
-        if ( function_exists( "sanitize_title" ) ) {
-            return sanitize_title( $slug );
-        }
-
-        $slug = strtolower( preg_replace( "/[^a-z0-9]+/i", "-", $slug ) ?? "" );
-        return trim( $slug, "-" );
+        return (string) $this->config['option_prefix'] . $page_key;
     }
 
     public function assigned_page_id( string $page_key ): int {
@@ -229,7 +187,7 @@ final class PageStructureManager {
 
         $page_def = $flat_pages[ $page_key ];
         $title    = '' !== $title ? $title : (string) ( $page_def['title'] ?? '' );
-        $slug     = "" !== $slug ? $this->sanitize_slug( $slug ) : $this->suggested_page_slug( $page_key, $page_def );
+        $slug     = '' !== $slug ? $slug : (string) ( $page_def['slug'] ?? $page_key );
         $parent_key = '' !== $parent_key ? $parent_key : (string) ( $page_def['parent'] ?? '' );
 
         if ( '' === $title ) {
@@ -237,14 +195,8 @@ final class PageStructureManager {
         }
 
         $existing_assigned = $this->assigned_page_id( $page_key );
-        if ( $existing_assigned > 0 && function_exists( "get_post" ) ) {
-            $existing_assigned_post = get_post( $existing_assigned );
-            if ( $existing_assigned_post instanceof \WP_Post && "trash" !== (string) $existing_assigned_post->post_status ) {
-                return $this->page_payload( $existing_assigned, true, "Page already assigned." );
-            }
-            if ( $existing_assigned_post instanceof \WP_Post && "trash" === (string) $existing_assigned_post->post_status ) {
-                $this->delete_assignment( $page_key );
-            }
+        if ( $existing_assigned > 0 && function_exists( 'get_post' ) && get_post( $existing_assigned ) ) {
+            return $this->page_payload( $existing_assigned, true, 'Page already assigned.' );
         }
 
         $parent_id = '' !== $parent_key ? $this->assigned_page_id( $parent_key ) : 0;
@@ -255,7 +207,7 @@ final class PageStructureManager {
                     [
                         'name'           => $slug,
                         'post_type'      => 'page',
-                        "post_status"    => $this->reusable_page_statuses(),
+                        'post_status'    => 'any',
                         'posts_per_page' => 1,
                         'post_parent'    => $parent_id ?: null,
                     ],
@@ -355,23 +307,6 @@ final class PageStructureManager {
             'page_id'  => $page_id,
             'trashed'  => true,
         ];
-    }
-
-    /**
-     * @return string[]
-     */
-    private function reusable_page_statuses(): array {
-        $statuses = [ "publish", "draft", "private", "pending" ];
-        foreach ( [ "assignment_statuses", "select_post_statuses" ] as $config_key ) {
-            if ( is_array( $this->config[ $config_key ] ?? null ) ) {
-                foreach ( $this->config[ $config_key ] as $status ) {
-                    $statuses[] = (string) $status;
-                }
-            }
-        }
-        $statuses = array_values( array_unique( array_filter( array_map( "sanitize_key", $statuses ) ) ) );
-        $statuses = array_values( array_diff( $statuses, [ "trash", "auto-draft", "inherit" ] ) );
-        return ! empty( $statuses ) ? $statuses : [ "publish", "draft", "private", "pending" ];
     }
 
     /**

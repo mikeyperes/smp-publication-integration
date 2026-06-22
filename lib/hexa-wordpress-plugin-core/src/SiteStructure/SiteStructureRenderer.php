@@ -121,7 +121,7 @@ final class SiteStructureRenderer {
         $page    = $page_id > 0 && function_exists( 'get_post' ) ? get_post( $page_id ) : null;
         $is_set  = $this->manager->is_assigned_page_set( $page_key );
         $title   = (string) ( $page_data['title'] ?? $page_key );
-        $slug    = $this->manager->suggested_page_slug( $page_key, $page_data );
+        $slug    = (string) ( $page_data['slug'] ?? $page_key );
 
         ob_start();
         ?>
@@ -250,7 +250,7 @@ final class SiteStructureRenderer {
         }
 
         $title = (string) ( $page_data['title'] ?? $page_key );
-        $slug  = $this->manager->suggested_page_slug( $page_key, $page_data );
+        $slug  = (string) ( $page_data['slug'] ?? $page_key );
 
         $html = '<button type="button" class="button button-small button-primary hpc-create-page" data-page="' . esc_attr( $page_key ) . '" data-title="' . esc_attr( $title ) . '" data-slug="' . esc_attr( $slug ) . '"';
         if ( null !== $parent_key && '' !== $parent_key ) {

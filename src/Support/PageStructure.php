@@ -36,7 +36,7 @@ final class PageStructure {
                 'menu_structures'      => self::menu_structures(),
                 'managed_meta_key'     => '_smpi_managed_page',
                 'managed_key_meta_key' => '_smpi_page_key',
-                'created_page_status'  => 'draft',
+                'created_page_status'  => 'publish',
                 'select_post_statuses' => [ 'publish', 'draft', 'private', 'pending' ],
                 'assignment_statuses'  => [ 'publish', 'draft', 'private', 'pending' ],
                 'reuse_existing_pages' => true,

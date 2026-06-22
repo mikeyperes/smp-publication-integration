@@ -31,7 +31,7 @@ final class PostListDefaults {
             return $hidden;
         }
 
-        return ( $use_defaults || [] === $hidden ) ? self::hidden_columns() : $hidden;
+        return ( $use_defaults || self::is_defaultish_hidden_columns( $hidden ) ) ? self::hidden_columns() : $hidden;
     }
 
     public function default_per_page( int $per_page, string $post_type = "post" ): int {
@@ -53,7 +53,7 @@ final class PostListDefaults {
         }
 
         $hidden = get_user_option( "manageedit-postcolumnshidden", $user_id );
-        if ( ! is_array( $hidden ) || [] === $hidden ) {
+        if ( ! is_array( $hidden ) || self::is_defaultish_hidden_columns( $hidden ) ) {
             update_user_option( $user_id, "manageedit-postcolumnshidden", self::hidden_columns(), true );
         }
 
@@ -75,6 +75,14 @@ final class PostListDefaults {
             "rank_math_title",
             "rank_math_description",
         ];
+    }
+
+    private static function is_defaultish_hidden_columns( array $hidden ): bool {
+        $normalized = array_values( array_unique( array_filter( array_map( "strval", $hidden ), static function( string $value ): bool { return "" !== trim( $value ); } ) ) );
+        sort( $normalized );
+        $rank_math_only = [ "rank_math_description", "rank_math_title" ];
+        sort( $rank_math_only );
+        return [] === $normalized || $rank_math_only === $normalized;
     }
 
     private function enabled(): bool {

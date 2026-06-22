@@ -40,6 +40,7 @@ hexa-wordpress-plugin-core/
     SchemaDetection/    -> Hexa\PluginCore\SchemaDetection
     SmartSearch/        -> Hexa\PluginCore\SmartSearch
     SystemEnvironment/  -> Hexa\PluginCore\SystemEnvironment
+    WpAdminUiCleanup/   -> Hexa\PluginCore\WpAdminUiCleanup
     WpAdminComponents/  -> Hexa\PluginCore\WpAdminComponents
     WpAdminAjax/        -> Hexa\PluginCore\WpAdminAjax
     WpAdminTabs/        -> Hexa\PluginCore\WpAdminTabs
@@ -67,6 +68,7 @@ Do not create `HWS\BaseTools\PluginCore`, `HexaWordPressPluginCore`, `Hexa\Core`
 - `SchemaDetection`: reusable JSON-LD URL scans, source detection, duplicate schema conflict checks, FAQ validation, and dark admin report rendering.
 - `SmartSearch`: smart search/X-Search AJAX endpoint and reusable typeahead renderer.
 - `SystemEnvironment`: safe constants, INI, shell wrappers, size parsing, CPU/memory detection, and byte formatting.
+- `WpAdminUiCleanup`: shared admin UI cleanup definitions, AJAX toggles, target-screen CSS/JS, postbox hide/collapse behavior, and footer filters.
 - `WpAdminComponents`: shared visual primitives such as cards, subcards, buttons, pills, tooltips, and collapsible sections.
 - `WpAdminAjax`: WordPress admin-AJAX nonce, capability, request parsing, action registration, and handler guards.
 - `WpAdminTabs`: admin tab definitions, registry, host hook integration, and the automatic Hexa core documentation tab.
