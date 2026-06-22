@@ -250,7 +250,7 @@ final class SiteStructureRenderer {
         }
 
         $title = (string) ( $page_data['title'] ?? $page_key );
-        $slug  = (string) ( $page_data['slug'] ?? $page_key );
+        $slug  = $this->manager->suggested_page_slug( $page_key, $page_data );
 
         $html = '<button type="button" class="button button-small button-primary hpc-create-page" data-page="' . esc_attr( $page_key ) . '" data-title="' . esc_attr( $title ) . '" data-slug="' . esc_attr( $slug ) . '"';
         if ( null !== $parent_key && '' !== $parent_key ) {
