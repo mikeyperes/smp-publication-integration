@@ -200,7 +200,7 @@ final class Settings {
             }
 
             $style_options = [
-                "breadcrumbs_style" => [ "bc-b1", "bc-b2", "bc-b3", "bc-b4", "bc-b5" ],
+                "breadcrumbs_style" => [ "bc-b1", "bc-b2", "bc-b3", "bc-b4", "bc-b5", "bc-b6" ],
                 "table_of_contents_style" => [ "none", "toc00", "toc01", "toc02", "toc03", "toc04" ],
                 "inline_photo_treatment" => [ "none", "fig1", "fig2", "fig4", "fig5" ],
                 "featured_image_caption_template" => [ "none", "fig1", "fig2", "fig4", "fig5" ],

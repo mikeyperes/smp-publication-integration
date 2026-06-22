@@ -1043,6 +1043,7 @@ final class Dashboard {
             "bc-b3" => [ "label" => "Option 3: Uppercase Eyebrow", "description" => "Letter-spaced uppercase crumbs over a short accent rule.", "preview" => $this->breadcrumb_design_preview_html( "bc-b3" ) ],
             "bc-b4" => [ "label" => "Option 4: Soft Chips", "description" => "Each crumb is a rounded chip; current page becomes a filled accent pill.", "preview" => $this->breadcrumb_design_preview_html( "bc-b4" ) ],
             "bc-b5" => [ "label" => "Option 5: Gradient Lead-in", "description" => "Breadcrumb above a large serif headline on a soft top-down gradient.", "preview" => $this->breadcrumb_design_preview_html( "bc-b5" ) ],
+            "bc-b6" => [ "label" => "Option 6: Flush Minimal", "description" => "Capital-case crumbs with tight letter-spacing, flush to the header grid with no side padding.", "preview" => $this->breadcrumb_design_preview_html( "bc-b6" ) ],
         ];
     }
 
