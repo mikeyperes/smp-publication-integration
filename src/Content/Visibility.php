@@ -1,6 +1,7 @@
 <?php
 namespace smp_publication_integration\Content;
 
+use Hexa\PluginCore\WpAdminComponents\CoreUi;
 use smp_publication_integration\Support\Dependencies;
 use smp_publication_integration\Support\Settings;
 
@@ -30,7 +31,7 @@ final class Visibility {
     }
 
     public function add_meta_boxes(): void {
-        add_meta_box( "smpi_visibility", "SMP Publication Visibility", [ $this, "render_meta_box" ], [ "post", "press-release" ], "side", "high" );
+        add_meta_box( "smpi_visibility", "SMP Visibility", [ $this, "render_meta_box" ], [ "post", "press-release" ], "side", "high" );
     }
 
     public function render_meta_box( \WP_Post $post ): void {
@@ -39,21 +40,26 @@ final class Visibility {
         $hide_home = (bool) get_post_meta( $post->ID, self::HOME_META, true );
         $hide_complete = (bool) get_post_meta( $post->ID, self::COMPLETE_META, true );
         $pr_override = (string) get_post_meta( $post->ID, self::PR_OVERRIDE_META, true );
+        CoreUi::render_assets();
         ?>
+        <div class="hpc-ui smpi-visibility-metabox">
         <?php if ( $shadow_enabled && "post" === $post->post_type ) : ?>
-            <p><label><input type="checkbox" name="smpi_shadow_complete" value="1" <?php checked( $hide_complete ); ?>> Completely shadow this post. It remains link-accessible only and is hidden from home, category, and tag pages.</label></p>
-            <p><label><input type="checkbox" name="smpi_shadow_home" value="1" <?php checked( $hide_home ); ?>> Shadow from home page only. It can still show on category and tag pages.</label></p>
+            <div class="hpc-toggle-list">
+                <div class="hpc-toggle-row"><?php echo CoreUi::toggle( "smpi_shadow_complete", $hide_complete, "Full shadow", [ "id" => "smpi_shadow_complete", "tooltip" => "Direct URL works. Hidden from home, category, and tag archives." ] ); ?></div>
+                <div class="hpc-toggle-row"><?php echo CoreUi::toggle( "smpi_shadow_home", $hide_home, "Home only", [ "id" => "smpi_shadow_home", "tooltip" => "Hidden from the home query only. Category and tag archives can still show it." ] ); ?></div>
+            </div>
         <?php elseif ( "post" === $post->post_type ) : ?>
-            <p>Shadow Posts is disabled in SMP Publication Integration > Features.</p>
+            <p class="hpc-small">Shadow Posts is disabled in SMP Publication Integration > Features.</p>
         <?php endif; ?>
         <?php if ( "press-release" === $post->post_type ) : ?>
-            <p><label for="smpi_pr_shadow_override"><strong>Press-release force include/exclude</strong></label></p>
-            <select id="smpi_pr_shadow_override" name="smpi_pr_shadow_override" style="width:100%;">
+            <label class="hpc-field" for="smpi_pr_shadow_override"><span>PR visibility <?php echo CoreUi::tooltip( "Overrides SMP-managed loops without changing the single press-release URL." ); ?></span>
+            <select id="smpi_pr_shadow_override" name="smpi_pr_shadow_override">
                 <option value="" <?php selected( $pr_override, "" ); ?>>Use global setting</option>
-                <option value="show" <?php selected( $pr_override, "show" ); ?>>Force include where SMP manages press releases</option>
-                <option value="hide" <?php selected( $pr_override, "hide" ); ?>>Force exclude from SMP-managed loops</option>
-            </select>
+                <option value="show" <?php selected( $pr_override, "show" ); ?>>Always show</option>
+                <option value="hide" <?php selected( $pr_override, "hide" ); ?>>Always hide</option>
+            </select></label>
         <?php endif; ?>
+        </div>
         <?php
     }
 

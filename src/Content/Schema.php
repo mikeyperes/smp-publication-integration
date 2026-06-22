@@ -357,6 +357,10 @@ final class Schema {
     }
 
     public static function faq_rows_for_post( int $post_id, bool $schema_only = true ): array {
+        if ( $schema_only && ! self::faq_schema_enabled_for_post( $post_id ) ) {
+            return [];
+        }
+
         $rows = Fields::get( $post_id, "post_faq_items", [] );
         if ( ! is_array( $rows ) ) {
             return [];
@@ -368,17 +372,22 @@ final class Schema {
                 continue;
             }
             $question = trim( wp_strip_all_tags( (string) ( $row["question"] ?? "" ) ) );
-            $answer = trim( (string) ( $row["answer"] ?? "" ) );
-            $enabled = array_key_exists( "enabled_for_schema", $row ) ? (bool) $row["enabled_for_schema"] : true;
+            $answer   = trim( (string) ( $row["answer"] ?? "" ) );
             if ( "" === $question || "" === wp_strip_all_tags( $answer ) ) {
                 continue;
             }
-            if ( $schema_only && ! $enabled ) {
-                continue;
-            }
-            $out[] = [ "question" => $question, "answer" => wp_kses_post( $answer ), "enabled_for_schema" => $enabled ];
+            $out[] = [ "question" => $question, "answer" => wp_kses_post( $answer ), "enabled_for_schema" => true ];
         }
         return $out;
+    }
+
+    private static function faq_schema_enabled_for_post( int $post_id ): bool {
+        $value = Fields::get( $post_id, "post_faq_schema_enabled", "__smpi_default_on__" );
+        if ( "__smpi_default_on__" === $value || "" === $value || null === $value ) {
+            return true;
+        }
+
+        return ! in_array( (string) $value, [ "0", "false", "off", "no" ], true );
     }
 
     private function publication_entity(): array {

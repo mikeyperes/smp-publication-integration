@@ -77,6 +77,24 @@ final class CoreUi {
             .hpc-tooltip{align-items:center;background:#edf2f7;border:1px solid #cfdae7;border-radius:999px;color:#334155;cursor:help;display:inline-flex;font-size:11px;font-weight:800;height:20px;justify-content:center;position:relative;width:20px}
             .hpc-tooltip:focus{outline:2px solid var(--hpc-blue);outline-offset:2px}
             .hpc-tooltip[data-tooltip]:hover:after,.hpc-tooltip[data-tooltip]:focus:after{background:#111827;border-radius:6px;bottom:calc(100% + 8px);color:#fff;content:attr(data-tooltip);font-size:12px;font-weight:500;left:50%;line-height:1.4;max-width:280px;min-width:180px;padding:8px 10px;position:absolute;transform:translateX(-50%);white-space:normal;z-index:20}
+            .hpc-toggle-list{display:grid;gap:10px;margin:10px 0}
+            .hpc-toggle-row{align-items:flex-start;background:#fff;border:1px solid var(--hpc-line);border-radius:8px;display:flex;gap:10px;padding:10px 12px}
+            .hpc-toggle{align-items:center;cursor:pointer;display:inline-flex;gap:9px;font-weight:800;line-height:1.3}
+            .hpc-toggle input{opacity:0;position:absolute}
+            .hpc-toggle-ui{background:#cbd5e1;border-radius:999px;display:inline-block;flex:0 0 auto;height:22px;position:relative;width:40px}
+            .hpc-toggle-ui:before{background:#fff;border-radius:999px;content:"";height:16px;left:3px;position:absolute;top:3px;transition:.18s;width:16px}
+            .hpc-toggle input:checked+.hpc-toggle-ui{background:var(--hpc-blue)}
+            .hpc-toggle input:checked+.hpc-toggle-ui:before{transform:translateX(18px)}
+            .hpc-toggle input:focus+.hpc-toggle-ui{outline:2px solid var(--hpc-blue);outline-offset:2px}
+            .hpc-toggle-label{align-items:center;display:inline-flex;gap:6px}
+            .hpc-inline-details{border:0;margin:6px 0 0 0}
+            .hpc-inline-details summary{align-items:center;color:var(--hpc-muted);cursor:pointer;display:inline-flex;font-size:12px;font-weight:800;gap:5px;list-style:none}
+            .hpc-inline-details summary::-webkit-details-marker{display:none}
+            .hpc-inline-details summary:before{content:"+";font-weight:900;line-height:1}
+            .hpc-inline-details[open] summary:before{content:"-"}
+            .hpc-inline-details-body{color:#3f4d63;font-size:12px;line-height:1.5;margin:6px 0 0;padding-left:15px}
+            .hpc-actions.hpc-actions-bottom{border-top:1px solid var(--hpc-line);margin-top:12px;padding-top:12px}
+            .hpc-external:after{content:"\2197";display:inline-block;font-size:.8em;font-weight:900;line-height:1;margin-left:5px;text-decoration:none;transform:translateY(-1px)}
             .hpc-path,.hpc-code{background:#eef0f2;border-radius:5px;color:#2f3a4a;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace;padding:2px 5px;word-break:break-all}
             .hpc-readme{background:#0f1720;border-radius:8px;color:#dbe7f3;max-height:380px;overflow:auto;padding:14px;white-space:pre-wrap}
             .hpc-list{margin:0 0 0 20px}
@@ -103,6 +121,29 @@ final class CoreUi {
 
     public static function tooltip( string $text, string $label = '?' ): string {
         return '<span class="hpc-tooltip" tabindex="0" data-tooltip="' . esc_attr( $text ) . '">' . esc_html( $label ) . '</span>';
+    }
+
+    public static function toggle( string $name, bool $checked, string $label, array $args = [] ): string {
+        $id           = isset( $args['id'] ) ? sanitize_key( (string) $args['id'] ) : sanitize_key( $name . '-' . md5( $label ) );
+        $value        = isset( $args['value'] ) ? (string) $args['value'] : '1';
+        $class        = trim( 'hpc-toggle ' . sanitize_html_class( (string) ( $args['class'] ?? '' ) ) );
+        $disabled     = ! empty( $args['disabled'] ) ? ' disabled' : '';
+        $tooltip      = '' !== (string) ( $args['tooltip'] ?? '' ) ? ' ' . self::tooltip( (string) $args['tooltip'] ) : '';
+        $checked_attr = $checked ? ' checked' : '';
+
+        return '<label class="' . esc_attr( $class ) . '" for="' . esc_attr( $id ) . '">'
+            . '<input id="' . esc_attr( $id ) . '" type="checkbox" name="' . esc_attr( $name ) . '" value="' . esc_attr( $value ) . '"' . $checked_attr . $disabled . '>'
+            . '<span class="hpc-toggle-ui" aria-hidden="true"></span>'
+            . '<span class="hpc-toggle-label">' . esc_html( $label ) . $tooltip . '</span>'
+            . '</label>';
+    }
+
+    public static function inline_details( string $summary, string $body_html, bool $open = false ): string {
+        return '<details class="hpc-inline-details"' . ( $open ? ' open' : '' ) . '><summary>' . esc_html( $summary ) . '</summary><div class="hpc-inline-details-body">' . wp_kses_post( $body_html ) . '</div></details>';
+    }
+
+    public static function external_link( string $url, string $label, string $class = 'hpc-button secondary' ): string {
+        return '<a class="' . esc_attr( trim( $class . ' hpc-external' ) ) . '" href="' . esc_url( $url ) . '" target="_blank" rel="noopener noreferrer">' . esc_html( $label ) . '</a>';
     }
 
     public static function pill( string $text, string $tone = '' ): string {

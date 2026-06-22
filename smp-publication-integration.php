@@ -4,7 +4,7 @@
  * Description: Publication profile integration for Scale My Publication systems.
  * Author: Michael Peres
  * Plugin URI: https://github.com/mikeyperes/smp-publication-integration
- * Version: 0.6.51
+ * Version: 0.6.52
  * Text Domain: smp-publication-integration
  * Domain Path: /languages
  * Author URI: https://michaelperes.com
@@ -60,6 +60,7 @@ require_once __DIR__ . "/src/Content/AuthorShortcodes.php";
 require_once __DIR__ . "/src/Content/Schema.php";
 require_once __DIR__ . "/src/Content/ArticleTypes.php";
 require_once __DIR__ . "/src/Content/Visibility.php";
+require_once __DIR__ . "/src/Content/PostListDefaults.php";
 require_once __DIR__ . "/src/Content/PostTime.php";
 require_once __DIR__ . "/src/Content/EstimatedReadTime.php";
 require_once __DIR__ . "/src/Content/ElementorCssCacheBusting.php";
@@ -73,7 +74,7 @@ require_once __DIR__ . "/src/Admin/Ajax.php";
 require_once __DIR__ . "/src/Admin/Dashboard.php";
 
 final class Config {
-    public const VERSION = "0.6.51";
+    public const VERSION = "0.6.52";
 
     public static string $plugin_name        = 'SMP Publication Integration';
     public static string $plugin_slug        = 'smp-publication-integration';
@@ -183,6 +184,7 @@ function boot_plugin(): void {
     ( new Content\Schema() )->register();
     ( new Content\ArticleTypes() )->register();
     ( new Content\Visibility() )->register();
+    ( new Content\PostListDefaults() )->register();
     ( new Content\PostTime() )->register();
     ( new Content\EstimatedReadTime() )->register();
     ( new Content\ElementorCssCacheBusting() )->register();

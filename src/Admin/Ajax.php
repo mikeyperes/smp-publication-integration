@@ -75,7 +75,7 @@ final class Ajax {
 
     public function save_settings( AjaxRequest $request ): array {
         $changes = [];
-        foreach ( [ "founders_enabled", "shadow_posts_enabled", "shadow_press_releases", "author_social_cleanup", "public_debug_enabled", "estimated_read_time_enabled", "elementor_css_cache_busting", "publication_social_cleanup", "muckrack_verified_enabled", "muckrack_author_always_show", "publication_muckrack_verified_enabled", "press_release_include_enabled", "post_summary_acf_enabled", "post_faqs_acf_enabled", "article_types_enabled", "table_of_contents_enabled", "table_of_contents_auto_single", "inline_photo_treatments_enabled", "featured_image_caption_templates_enabled", "rank_math_breadcrumb_check_enabled", "hws_masked_admin_report_enabled" ] as $key ) {
+        foreach ( [ "founders_enabled", "shadow_posts_enabled", "shadow_press_releases", "post_list_defaults_enabled", "author_social_cleanup", "public_debug_enabled", "estimated_read_time_enabled", "elementor_css_cache_busting", "publication_social_cleanup", "muckrack_verified_enabled", "muckrack_author_always_show", "publication_muckrack_verified_enabled", "press_release_include_enabled", "post_summary_acf_enabled", "post_faqs_acf_enabled", "article_types_enabled", "table_of_contents_enabled", "table_of_contents_auto_single", "inline_photo_treatments_enabled", "featured_image_caption_templates_enabled", "rank_math_breadcrumb_check_enabled", "hws_masked_admin_report_enabled" ] as $key ) {
             if ( $request->has( $key, 'post' ) ) {
                 $changes[ $key ] = $request->bool( $key, false, 'post' );
             }
@@ -109,7 +109,7 @@ final class Ajax {
         }
         $settings = Settings::update( $changes );
         $this->sync_publication_mapping( $settings );
-        $response = [ "settings" => $settings ];
+        $response = [ "settings" => $settings, "message" => empty( $changes ) ? "No setting changed." : "Saved " . implode( ", ", array_keys( $changes ) ) . "." ];
         return $response;
     }
 

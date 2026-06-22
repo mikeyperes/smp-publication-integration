@@ -147,9 +147,10 @@ final class AcfFields {
         }
 
         if ( Settings::bool( "post_faqs_acf_enabled" ) ) {
-            $fields[] = [ "key" => "field_smpi_post_faq_summary", "label" => "Post FAQ Summary", "name" => "", "type" => "message", "message" => "<div class=\"smpi-faq-summary-card\" data-smpi-faq-summary><strong>FAQ summary</strong><p class=\"smpi-faq-summary-empty\">No structured FAQ rows yet.</p></div>", "esc_html" => 0, "new_lines" => "wpautop", "instructions" => "Live read-only summary of the structured FAQ rows below. This updates as questions, answers, and schema toggles are edited." ];
-            $fields[] = [ "key" => "field_smpi_post_faq_accordion", "label" => "Structured FAQs", "name" => "", "type" => "accordion", "instructions" => "Expand to edit article-specific FAQ rows. Rows feed the FAQPage schema and the [smp_post_faqs] shortcode.", "open" => 0, "multi_expand" => 0, "endpoint" => 0 ];
-            $fields[] = [ "key" => "field_smpi_post_faq_items", "label" => "Post FAQ Items", "name" => "post_faq_items", "type" => "repeater", "instructions" => "Use structured FAQ rows for reliable FAQPage schema. Add one question and one answer per row. Row order controls schema order.", "layout" => "row", "button_label" => "Add FAQ", "collapsed" => "field_smpi_post_faq_question", "sub_fields" => [ [ "key" => "field_smpi_post_faq_question", "label" => "Question", "name" => "question", "type" => "text", "instructions" => "Plain text question. Example: What record did Lionel Messi recently tie?" ], [ "key" => "field_smpi_post_faq_answer", "label" => "Answer", "name" => "answer", "type" => "wysiwyg", "instructions" => "Answer content. Keep it factual and concise. Sanitized HTML is allowed.", "tabs" => "all", "toolbar" => "basic", "media_upload" => 0, "delay" => 0, "wrapper" => [ "class" => "smpi-faq-answer-field" ] ], [ "key" => "field_smpi_post_faq_enabled_for_schema", "label" => "Enabled For Schema", "name" => "enabled_for_schema", "type" => "true_false", "ui" => 1, "default_value" => 1, "instructions" => "Turn off when the FAQ should display but not be included in JSON LD." ] ] ];
+            $fields[] = [ "key" => "field_smpi_post_faq_summary", "label" => "Post FAQ Summary", "name" => "", "type" => "message", "message" => "<div class=\"smpi-faq-summary-card\" data-smpi-faq-summary><strong>FAQ summary</strong><p class=\"smpi-faq-summary-empty\">No structured FAQ rows yet.</p></div>", "esc_html" => 0, "new_lines" => "wpautop", "instructions" => "Live read-only summary of the structured FAQ rows below." ];
+            $fields[] = [ "key" => "field_smpi_post_faq_schema_enabled", "label" => "FAQ Schema", "name" => "post_faq_schema_enabled", "type" => "true_false", "ui" => 1, "default_value" => 1, "instructions" => "One switch for the whole FAQ block. On by default." ];
+            $fields[] = [ "key" => "field_smpi_post_faq_accordion", "label" => "Structured FAQs", "name" => "", "type" => "accordion", "instructions" => "Expand to edit article-specific FAQ rows. Rows feed the FAQPage schema and the [smp_post_faqs] shortcode when FAQ Schema is on.", "open" => 0, "multi_expand" => 0, "endpoint" => 0 ];
+            $fields[] = [ "key" => "field_smpi_post_faq_items", "label" => "Post FAQ Items", "name" => "post_faq_items", "type" => "repeater", "instructions" => "Use structured FAQ rows for reliable FAQPage schema. Add one question and one answer per row. Row order controls schema order.", "layout" => "row", "button_label" => "Add FAQ", "collapsed" => "field_smpi_post_faq_question", "sub_fields" => [ [ "key" => "field_smpi_post_faq_question", "label" => "Question", "name" => "question", "type" => "text", "instructions" => "Plain text question. Example: What record did Lionel Messi recently tie?" ], [ "key" => "field_smpi_post_faq_answer", "label" => "Answer", "name" => "answer", "type" => "wysiwyg", "instructions" => "Answer content. Keep it factual and concise. Sanitized HTML is allowed.", "tabs" => "all", "toolbar" => "basic", "media_upload" => 0, "delay" => 0, "wrapper" => [ "class" => "smpi-faq-answer-field" ] ] ] ];
             $fields[] = [ "key" => "field_smpi_post_faq_accordion_end", "label" => "", "name" => "", "type" => "accordion", "endpoint" => 1 ];
         }
 
@@ -218,8 +219,8 @@ final class AcfFields {
             function initFaqCollapse(){var a=faqAccordion();if(a.length&&!a.data("smpiFaqInit")){a.data("smpiFaqInit",1);setFaqCollapsed(true);}}
             function clean(v){return $("<div>").html(v||"").text().replace(/\s+/g," ").trim();}
             function ans(row){var f=row.find("[data-key=\"field_smpi_post_faq_answer\"]").first(),t=f.find("textarea.wp-editor-area,textarea").first(),id=t.attr("id");if(!t.length){return "";}if(window.tinymce&&id&&tinymce.get(id)&&!tinymce.get(id).isHidden()){return clean(tinymce.get(id).getContent());}return clean(t.val());}
-            function upd(){var s=$("[data-smpi-faq-summary]").first(),r=$(".acf-field-smpi-post-faq-items").first(),rows=[];if(!s.length||!r.length){return;}r.find("tr.acf-row:not(.acf-clone)").each(function(){var row=$(this),q=$.trim(row.find("[data-key=\"field_smpi_post_faq_question\"] input").first().val()||""),a=ans(row),e=row.find("[data-key=\"field_smpi_post_faq_enabled_for_schema\"] input[type=\"checkbox\"]").first(),on=!e.length||e.is(":checked");if(q||a){rows.push({q:q,a:a,on:on});}});if(!rows.length){s.html("<strong>FAQ summary</strong><p class=\"smpi-faq-summary-empty\">No structured FAQ rows yet.</p>");return;}var on=rows.filter(function(x){return x.on;}).length,h="<strong>FAQ summary</strong><p>"+rows.length+" FAQ row"+(rows.length===1?"":"s")+" entered. "+on+" included in JSON-LD schema.</p><ol>";rows.slice(0,6).forEach(function(x){h+="<li><b>"+_.escape(x.q||"Untitled question")+"</b><small>"+_.escape((x.a||"No answer yet").slice(0,180))+(x.on?"":" schema off")+"</small></li>";});if(rows.length>6){h+="<li><small>"+(rows.length-6)+" more row"+(rows.length-6===1?"":"s")+"</small></li>";}s.html(h+"</ol>");}
-            $(document).on("input change keyup",".acf-field-smpi-post-faq-items input,.acf-field-smpi-post-faq-items textarea",upd);
+            function upd(){var s=$("[data-smpi-faq-summary]").first(),r=$(".acf-field-smpi-post-faq-items").first(),rows=[];if(!s.length||!r.length){return;}var schemaField=$("[data-key=\"field_smpi_post_faq_schema_enabled\"] input[type=\"checkbox\"]").first(),schemaOn=!schemaField.length||schemaField.is(":checked");r.find("tr.acf-row:not(.acf-clone)").each(function(){var row=$(this),q=$.trim(row.find("[data-key=\"field_smpi_post_faq_question\"] input").first().val()||""),a=ans(row);if(q||a){rows.push({q:q,a:a});}});if(!rows.length){s.html("<strong>FAQ summary</strong><p class=\"smpi-faq-summary-empty\">No structured FAQ rows yet.</p>");return;}var h="<strong>FAQ summary</strong><p>"+rows.length+" FAQ row"+(rows.length===1?"":"s")+" entered. FAQ schema is "+(schemaOn?"on":"off")+".</p><ol>";rows.slice(0,6).forEach(function(x){h+="<li><b>"+_.escape(x.q||"Untitled question")+"</b><small>"+_.escape((x.a||"No answer yet").slice(0,180))+"</small></li>";});if(rows.length>6){h+="<li><small>"+(rows.length-6)+" more row"+(rows.length-6===1?"":"s")+"</small></li>";}s.html(h+"</ol>");}
+            $(document).on("input change keyup",".acf-field-smpi-post-faq-items input,.acf-field-smpi-post-faq-items textarea,.acf-field-smpi-post-faq-schema-enabled input",upd);
             $(document).on("click",".acf-field-smpi-post-faq-items .acf-icon.-minus,.acf-field-smpi-post-faq-items .acf-icon.-plus,.acf-field-smpi-post-faq-items .acf-button",function(){setTimeout(upd,250);});
             $(document).on("click",".acf-field-smpi-post-faq-accordion .acf-accordion-title",function(e){e.preventDefault();setFaqCollapsed(!faqAccordion().hasClass("smpi-faq-collapsed"));setTimeout(upd,50);});
             if(window.acf){acf.addAction("append remove sortstop ready",function(){initFaqCollapse();setTimeout(upd,200);});}
@@ -231,30 +232,7 @@ final class AcfFields {
     }
 
     private function register_visibility_fields(): void {
-        $fields = [];
-
-        if ( Settings::bool( "shadow_posts_enabled" ) ) {
-            $fields[] = [ "key" => "field_smpi_shadow_complete", "label" => "Completely Shadow Post", "name" => "_smpi_shadow_complete", "type" => "true_false", "ui" => 1, "instructions" => "Link-accessible only. Hide this post from home, category, and tag archive queries." ];
-            $fields[] = [ "key" => "field_smpi_shadow_home", "label" => "Shadow From Home Page Only", "name" => "_smpi_shadow_home", "type" => "true_false", "ui" => 1, "instructions" => "Hide this post from the home page query only. Category and tag pages can still show it." ];
-        }
-
-        if ( Settings::bool( "press_release_include_enabled" ) || Settings::bool( "shadow_press_releases" ) ) {
-            $fields[] = [ "key" => "field_smpi_pr_shadow_override", "label" => "Press Release Shadow Override", "name" => "_smpi_pr_shadow_override", "type" => "select", "choices" => [ "" => "Use global setting", "show" => "Always show", "hide" => "Always hide" ], "ui" => 1 ];
-        }
-
-        if ( empty( $fields ) ) {
-            return;
-        }
-
-        acf_add_local_field_group(
-            [
-                "key" => "group_smpi_visibility_controls",
-                "title" => "SMP Visibility Controls",
-                "fields" => $fields,
-                "location" => [ [ [ "param" => "post_type", "operator" => "==", "value" => "post" ] ], [ [ "param" => "post_type", "operator" => "==", "value" => "press-release" ] ] ],
-                "position" => "side",
-                "style" => "default",
-            ]
-        );
+        // Visibility controls are owned by src/Content/Visibility.php.
+        // Do not register an ACF side box here; it duplicates the custom metabox.
     }
 }

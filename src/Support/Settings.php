@@ -17,6 +17,7 @@ final class Settings {
             'founders_enabled'      => true,
             'shadow_posts_enabled' => true,
             'shadow_press_releases' => false,
+            'post_list_defaults_enabled' => true,
             'post_time_mode'        => 'native',
             'author_social_cleanup' => true,
             'public_debug_enabled'  => true,

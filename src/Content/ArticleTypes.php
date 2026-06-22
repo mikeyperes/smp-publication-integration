@@ -1,6 +1,7 @@
 <?php
 namespace smp_publication_integration\Content;
 
+use Hexa\PluginCore\WpAdminComponents\CoreUi;
 use smp_publication_integration\Support\Settings;
 
 if ( ! defined( "ABSPATH" ) ) {
@@ -112,32 +113,38 @@ final class ArticleTypes {
             $current = self::default_slug_for_post( (int) $post->ID );
         }
 
-        $page_url = self::current_page_url( $post );
-        $validator_url = $page_url ? "https://validator.schema.org/#url=" . rawurlencode( $page_url ) : "";
+        $page_url         = self::current_page_url( $post );
+        $validator_url    = $page_url ? "https://validator.schema.org/#url=" . rawurlencode( $page_url ) : "";
+        $rich_results_url = $page_url ? "https://search.google.com/test/rich-results?url=" . rawurlencode( $page_url ) : "";
 
-        echo "<p class=\"description\">Select exactly one predefined schema article type. Free-text article types are disabled. Each type links to its schema object and the current page validator. Save/update after changing the type before validating.</p>";
+        CoreUi::render_assets();
+        echo "<style>.smpi-article-type-box{display:grid;gap:10px}.smpi-article-type-choice{align-items:center;border:1px solid #d9e0ea;border-radius:8px;cursor:pointer;display:flex;gap:8px;margin:0;padding:9px 10px}.smpi-article-type-choice:has(input:checked){background:#eef4ff;border-color:#3157d5}.smpi-article-type-choice input{margin:0}.smpi-article-type-label{font-weight:800}.smpi-article-type-schema{font-size:11px;margin-left:auto;padding:4px 7px}.smpi-article-type-actions .hpc-button{font-size:12px;padding:8px 10px}.smpi-article-type-box .hpc-inline-details{margin-left:30px;margin-top:-4px}</style>";
+        echo "<div class=\"hpc-ui smpi-article-type-box\">";
+        echo "<p class=\"hpc-small\">Select one schema-backed article type. Expand details only when needed.</p>";
         echo "<div class=\"smpi-article-type-radio-list\" role=\"radiogroup\" aria-label=\"Article Type\">";
         foreach ( self::terms() as $slug => $config ) {
-            $id = self::FIELD_NAME . "-" . sanitize_html_class( $slug );
+            $id         = self::FIELD_NAME . "-" . sanitize_html_class( $slug );
             $schema_url = "https://schema.org/" . rawurlencode( (string) $config["schema_type"] );
-            echo "<div class=\"smpi-article-type-option\" style=\"display:block;margin:0 0 14px;line-height:1.35;\">";
-            echo "<label for=\"" . esc_attr( $id ) . "\" style=\"display:block;margin:0;\">";
-            echo "<input id=\"" . esc_attr( $id ) . "\" type=\"radio\" name=\"" . esc_attr( self::FIELD_NAME ) . "\" value=\"" . esc_attr( $slug ) . "\" " . checked( $current, $slug, false ) . "> ";
-            echo "<strong>" . esc_html( $config["label"] ) . "</strong> <code>" . esc_html( $config["schema_type"] ) . "</code><br>";
-            echo "<span class=\"description\" style=\"display:block;margin-left:28px;\">" . esc_html( $config["description"] ) . "</span>";
+            $details    = "<p>" . esc_html( (string) $config["description"] ) . "</p><p>" . CoreUi::external_link( $schema_url, "Schema object", "button button-secondary" ) . "</p>";
+            echo "<div class=\"smpi-article-type-option\">";
+            echo "<label class=\"smpi-article-type-choice\" for=\"" . esc_attr( $id ) . "\">";
+            echo "<input id=\"" . esc_attr( $id ) . "\" type=\"radio\" name=\"" . esc_attr( self::FIELD_NAME ) . "\" value=\"" . esc_attr( $slug ) . "\" " . checked( $current, $slug, false ) . ">";
+            echo "<span class=\"smpi-article-type-label\">" . esc_html( $config["label"] ) . "</span>";
+            echo "<span class=\"hpc-pill dark smpi-article-type-schema\">" . esc_html( $config["schema_type"] ) . "</span>";
             echo "</label>";
-            echo "<span class=\"smpi-article-type-actions\" style=\"display:flex;gap:8px;flex-wrap:wrap;margin:5px 0 0 28px;\">";
-            echo "<a href=\"" . esc_url( $schema_url ) . "\" target=\"_blank\" rel=\"noopener noreferrer\">Schema object</a>";
-            if ( "" !== $page_url ) {
-                echo "<a href=\"" . esc_url( $page_url ) . "\" target=\"_blank\" rel=\"noopener noreferrer\">Open current page</a>";
-                echo "<a href=\"" . esc_url( $validator_url ) . "\" target=\"_blank\" rel=\"noopener noreferrer\">Verify schema</a>";
-            } else {
-                echo "<span class=\"description\">Save this post before page validation links are available.</span>";
-            }
-            echo "</span>";
+            echo CoreUi::inline_details( "Details", $details );
             echo "</div>";
         }
         echo "</div>";
+        echo "<div class=\"hpc-actions hpc-actions-bottom smpi-article-type-actions\">";
+        if ( "" !== $page_url ) {
+            echo CoreUi::external_link( $page_url, "Open current page" );
+            echo CoreUi::external_link( $validator_url, "Schema validator", "hpc-button" );
+            echo CoreUi::external_link( $rich_results_url, "Rich results test" );
+        } else {
+            echo "<p class=\"hpc-small\">Save this post before page validation links are available.</p>";
+        }
+        echo "</div></div>";
     }
 
     public function save_radio_selection( int $post_id, \WP_Post $post ): void {

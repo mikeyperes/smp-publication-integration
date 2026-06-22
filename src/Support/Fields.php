@@ -74,6 +74,7 @@ final class Fields {
             "area_served" => [ "area_served", "areaServed", "smpi_area_served" ],
             "knows_about" => [ "knows_about", "keywords", "smpi_knows_about" ],
             "post_faq_items" => [ "post_faq_items", "smpi_post_faq_items" ],
+            "post_faq_schema_enabled" => [ "post_faq_schema_enabled", "smpi_post_faq_schema_enabled" ],
         ];
     }
 
