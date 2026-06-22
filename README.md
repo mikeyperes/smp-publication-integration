@@ -217,3 +217,7 @@ WordPress plugin for Scale My Publication publication profiles.
 ### 0.6.67 Updates
 - Hardened Core color controls with max-length hex input and visible invalid-hex rejection before save.
 - Synced vendored Hexa WordPress Plugin Core to 0.18.2.
+
+### 0.6.69 Updates
+- Post editor schema test buttons are disabled for unpublished content and show a live-post requirement notice.
+- Renamed the SMP visibility metabox to Post visibility and clarified the toggle labels.

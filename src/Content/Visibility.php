@@ -31,7 +31,7 @@ final class Visibility {
     }
 
     public function add_meta_boxes(): void {
-        add_meta_box( "smpi_visibility", "SMP Visibility", [ $this, "render_meta_box" ], [ "post", "press-release" ], "side", "high" );
+        add_meta_box( "smpi_visibility", "Post visibility", [ $this, "render_meta_box" ], [ "post", "press-release" ], "side", "high" );
     }
 
     public function render_meta_box( \WP_Post $post ): void {
@@ -45,8 +45,8 @@ final class Visibility {
         <div class="hpc-ui smpi-visibility-metabox">
         <?php if ( $shadow_enabled && "post" === $post->post_type ) : ?>
             <div class="hpc-toggle-list">
-                <div class="hpc-toggle-row"><?php echo CoreUi::toggle( "smpi_shadow_complete", $hide_complete, "Full shadow", [ "id" => "smpi_shadow_complete", "tooltip" => "Direct URL works. Hidden from home, category, and tag archives." ] ); ?></div>
-                <div class="hpc-toggle-row"><?php echo CoreUi::toggle( "smpi_shadow_home", $hide_home, "Home only", [ "id" => "smpi_shadow_home", "tooltip" => "Hidden from the home query only. Category and tag archives can still show it." ] ); ?></div>
+                <div class="hpc-toggle-row"><?php echo CoreUi::toggle( "smpi_shadow_complete", $hide_complete, "Hide from home and archives", [ "id" => "smpi_shadow_complete", "tooltip" => "Direct URL still works. The post is removed from the home page, category archives, and tag archives." ] ); ?></div>
+                <div class="hpc-toggle-row"><?php echo CoreUi::toggle( "smpi_shadow_home", $hide_home, "Hide from homepage only", [ "id" => "smpi_shadow_home", "tooltip" => "The post is removed from the home page query only. Category and tag archives can still show it." ] ); ?></div>
             </div>
         <?php elseif ( "post" === $post->post_type ) : ?>
             <p class="hpc-small">Shadow Posts is disabled in SMP Publication Integration > Features.</p>

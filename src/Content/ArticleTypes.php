@@ -113,19 +113,20 @@ final class ArticleTypes {
             $current = self::default_slug_for_post( (int) $post->ID );
         }
 
-        $page_url         = self::current_page_url( $post );
+        $is_live          = "publish" === (string) $post->post_status;
+        $page_url         = $is_live ? self::current_page_url( $post ) : "";
         $validator_url    = $page_url ? "https://validator.schema.org/#url=" . rawurlencode( $page_url ) : "";
         $rich_results_url = $page_url ? "https://search.google.com/test/rich-results?url=" . rawurlencode( $page_url ) : "";
 
         CoreUi::render_assets();
-        echo "<style>.smpi-article-type-box{display:grid;gap:12px}.smpi-article-type-box .hpc-small{margin:0;color:#6b7280;font-size:12px;line-height:1.45}.smpi-article-type-radio-list{display:grid;gap:3px}.smpi-article-type-choice{display:flex;align-items:center;flex-wrap:wrap;gap:9px;margin:0;padding:8px 10px;border:1px solid transparent;border-radius:9px;cursor:pointer;transition:background .12s ease,border-color .12s ease}.smpi-article-type-choice:hover{background:#f4f6f9}.smpi-article-type-box .smpi-article-type-choice input[type=radio]{margin:0;flex:0 0 auto;width:16px;height:16px;accent-color:#3157d5}.smpi-article-type-label{flex:1 1 auto;min-width:0;font-weight:600;font-size:13px;color:#1f2733;line-height:1.25}.smpi-article-type-schema{flex:0 0 auto;margin-left:auto;white-space:nowrap;font-size:10px;font-weight:600;line-height:1;letter-spacing:.02em;padding:4px 8px;border-radius:999px;background:#eef1f6;color:#5b6472}.smpi-article-type-choice:has(input:checked){background:#eef3ff;border-color:#cdd9f7}.smpi-article-type-choice:has(input:checked) .smpi-article-type-label{color:#16223a}.smpi-article-type-choice:has(input:checked) .smpi-article-type-schema{background:#dbe5ff;color:#2944ad}.smpi-article-type-box .smpi-article-type-option .hpc-inline-details{margin:0;padding:1px 8px 5px 35px}.smpi-article-type-box .hpc-inline-details summary{font-size:11px;font-weight:600;color:#8b93a1}.smpi-article-type-box .hpc-inline-details-body{font-size:11px;line-height:1.5;color:#5b6472;padding-left:0;margin-top:4px}.smpi-article-type-actions{display:grid;gap:7px;border-top:1px solid #e7ebf1;margin-top:2px;padding-top:12px}.smpi-article-type-box .smpi-article-type-actions .hpc-button{width:100%;justify-content:center;font-size:12px;font-weight:600;padding:9px 12px;border-radius:8px}</style>";
+        echo "<style>.smpi-article-type-box{display:grid;gap:12px}.smpi-article-type-box .hpc-small{margin:0;color:#6b7280;font-size:12px;line-height:1.45}.smpi-article-type-radio-list{display:grid;gap:3px}.smpi-article-type-choice{display:flex;align-items:center;flex-wrap:wrap;gap:9px;margin:0;padding:8px 10px;border:1px solid transparent;border-radius:9px;cursor:pointer;transition:background .12s ease,border-color .12s ease}.smpi-article-type-choice:hover{background:#f4f6f9}.smpi-article-type-box .smpi-article-type-choice input[type=radio]{margin:0;flex:0 0 auto;width:16px;height:16px;accent-color:#3157d5}.smpi-article-type-label{flex:1 1 auto;min-width:0;font-weight:600;font-size:13px;color:#1f2733;line-height:1.25}.smpi-article-type-schema{flex:0 0 auto;margin-left:auto;white-space:nowrap;font-size:10px;font-weight:600;line-height:1;letter-spacing:.02em;padding:4px 8px;border-radius:999px;background:#eef1f6;color:#5b6472}.smpi-article-type-choice:has(input:checked){background:#eef3ff;border-color:#cdd9f7}.smpi-article-type-choice:has(input:checked) .smpi-article-type-label{color:#16223a}.smpi-article-type-choice:has(input:checked) .smpi-article-type-schema{background:#dbe5ff;color:#2944ad}.smpi-article-type-box .smpi-article-type-option .hpc-inline-details{margin:0;padding:1px 8px 5px 35px}.smpi-article-type-box .hpc-inline-details summary{font-size:11px;font-weight:600;color:#8b93a1}.smpi-article-type-box .hpc-inline-details-body{font-size:11px;line-height:1.5;color:#5b6472;padding-left:0;margin-top:4px}.smpi-article-type-actions{display:grid;gap:7px;border-top:1px solid #e7ebf1;margin-top:2px;padding-top:12px}.smpi-article-type-box .smpi-article-type-actions .hpc-button{width:100%;justify-content:center;font-size:12px;font-weight:600;padding:9px 12px;border-radius:8px}.smpi-article-type-box .smpi-schema-link{background:none!important;border:0!important;box-shadow:none!important;padding:0!important;margin:0;color:#5b6472;font-size:11px;font-weight:600;text-decoration:underline;text-decoration-color:#c3cad6;text-underline-offset:2px;cursor:pointer}.smpi-article-type-box .smpi-schema-link:hover{color:#3157d5;text-decoration-color:#3157d5}.smpi-article-type-box .smpi-schema-link.hpc-external:after{font-size:.72em;font-weight:700;margin-left:3px;transform:none;opacity:.6}.smpi-article-type-actions .hpc-button{transition:background .14s ease,border-color .14s ease,color .14s ease,box-shadow .14s ease}.smpi-article-type-actions .hpc-button.secondary:hover{background:#eef3ff;border-color:#3157d5;color:#26408f;box-shadow:0 1px 2px rgba(49,87,213,.12)}.smpi-article-type-actions .hpc-button:not(.secondary):hover{background:#2543b0;border-color:#2543b0;box-shadow:0 1px 3px rgba(37,67,176,.28)}.smpi-article-type-actions .hpc-button:focus-visible{outline:2px solid #3157d5;outline-offset:2px}.smpi-article-type-actions .hpc-external:after{transform:none;font-size:.78em;font-weight:700;margin-left:6px;align-self:center;opacity:.8}.smpi-article-type-actions .smpi-action-disabled{background:#eef0f4!important;border-color:#d6dbe4!important;color:#8a93a3!important;cursor:not-allowed;box-shadow:none!important;pointer-events:none}.smpi-live-required{background:#fff8e1;border:1px solid #f2d675;border-radius:8px;color:#9a6700;font-size:12px;font-weight:800;line-height:1.4;margin:0;padding:9px 10px;text-align:center}</style>";
         echo "<div class=\"hpc-ui smpi-article-type-box\">";
         echo "<p class=\"hpc-small\">Select one schema-backed article type. Expand details only when needed.</p>";
         echo "<div class=\"smpi-article-type-radio-list\" role=\"radiogroup\" aria-label=\"Article Type\">";
         foreach ( self::terms() as $slug => $config ) {
             $id         = self::FIELD_NAME . "-" . sanitize_html_class( $slug );
             $schema_url = "https://schema.org/" . rawurlencode( (string) $config["schema_type"] );
-            $details    = "<p>" . esc_html( (string) $config["description"] ) . "</p><p>" . CoreUi::external_link( $schema_url, "Schema object", "button button-secondary" ) . "</p>";
+            $details    = "<p>" . esc_html( (string) $config["description"] ) . "</p><p>" . CoreUi::external_link( $schema_url, "Schema object", "smpi-schema-link" ) . "</p>";
             echo "<div class=\"smpi-article-type-option\">";
             echo "<label class=\"smpi-article-type-choice\" for=\"" . esc_attr( $id ) . "\">";
             echo "<input id=\"" . esc_attr( $id ) . "\" type=\"radio\" name=\"" . esc_attr( self::FIELD_NAME ) . "\" value=\"" . esc_attr( $slug ) . "\" " . checked( $current, $slug, false ) . ">";
@@ -137,12 +138,15 @@ final class ArticleTypes {
         }
         echo "</div>";
         echo "<div class=\"hpc-actions hpc-actions-bottom smpi-article-type-actions\">";
-        if ( "" !== $page_url ) {
+        if ( $is_live && "" !== $page_url ) {
             echo CoreUi::external_link( $page_url, "Open current page" );
             echo CoreUi::external_link( $validator_url, "Schema validator", "hpc-button" );
             echo CoreUi::external_link( $rich_results_url, "Rich results test" );
         } else {
-            echo "<p class=\"hpc-small\">Save this post before page validation links are available.</p>";
+            echo "<span class=\"hpc-button secondary smpi-action-disabled\" aria-disabled=\"true\">Open current page</span>";
+            echo "<span class=\"hpc-button smpi-action-disabled\" aria-disabled=\"true\">Schema validator</span>";
+            echo "<span class=\"hpc-button secondary smpi-action-disabled\" aria-disabled=\"true\">Rich results test</span>";
+            echo "<p class=\"smpi-live-required\">Must be live to test schema. Publish this post first.</p>";
         }
         echo "</div></div>";
     }
@@ -218,13 +222,7 @@ final class ArticleTypes {
     }
 
     private static function current_page_url( \WP_Post $post ): string {
-        $url = (string) get_permalink( $post );
-        if ( ! in_array( (string) $post->post_status, [ "publish", "future" ], true ) ) {
-            $preview_url = get_preview_post_link( $post );
-            if ( is_string( $preview_url ) && "" !== $preview_url ) {
-                $url = $preview_url;
-            }
-        }
+        $url = "publish" === (string) $post->post_status ? (string) get_permalink( $post ) : "";
         return $url ? esc_url_raw( $url ) : "";
     }
 
