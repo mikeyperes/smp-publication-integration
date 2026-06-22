@@ -9,7 +9,9 @@ use Hexa\PluginCore\ActivityLog\ActivityLogRenderer;
 use Hexa\PluginCore\CredentialVault\CredentialFieldRenderer;
 use Hexa\PluginCore\SmartSearch\SmartSearchRenderer;
 use Hexa\PluginCore\FieldStructures\FieldStructureRenderer;
+use Hexa\PluginCore\BrandColors\BrandColorProvider;
 use Hexa\PluginCore\CoreRuntime\CoreVersion;
+use Hexa\PluginCore\WpAdminComponents\ColorControl;
 use Hexa\PluginCore\WpAdminComponents\CoreUi;
 
 final class CoreTabRenderer {
@@ -40,6 +42,7 @@ final class CoreTabRenderer {
                 <nav class="hpc-core-tabs" aria-label="Hexa core sections">
                     <button type="button" class="hpc-core-tab active" data-hpc-core-tab="readme">README</button>
                     <button type="button" class="hpc-core-tab" data-hpc-core-tab="ui">UI Elements</button>
+                    <button type="button" class="hpc-core-tab" data-hpc-core-tab="brand-colors">Brand Colors</button>
                     <button type="button" class="hpc-core-tab" data-hpc-core-tab="activity">Activity Log</button>
                     <button type="button" class="hpc-core-tab" data-hpc-core-tab="search">Smart Search / X-Search</button>
                     <button type="button" class="hpc-core-tab" data-hpc-core-tab="api-keys">API Keys</button>
@@ -53,6 +56,10 @@ final class CoreTabRenderer {
 
                 <section class="hpc-core-pane" data-hpc-core-pane="ui">
                     <?php echo $this->render_ui_elements_section(); ?>
+                </section>
+
+                <section class="hpc-core-pane" data-hpc-core-pane="brand-colors">
+                    <?php echo $this->render_brand_colors_section(); ?>
                 </section>
 
                 <section class="hpc-core-pane" data-hpc-core-pane="activity">
@@ -110,6 +117,7 @@ Required rule:
 Current core sections:
 - Tabs
 - UI
+- Brand Colors
 - Activity
 - Search
 - Credentials
@@ -186,6 +194,66 @@ README;
                 ]
             )
             . '</div>';
+    }
+
+    private function render_brand_colors_section(): string {
+        $payload = BrandColorProvider::payload( '#2d5277' );
+        $example = ColorControl::render(
+            [
+                'key'                 => 'example_accent_color',
+                'label'               => 'Reusable brand-aware color control',
+                'description'         => 'Core renders picker, editable hex, RGB, swatch, copy, and HWS primary import hooks.',
+                'value'               => (string) $payload['primary_color'],
+                'default'             => '#2d5277',
+                'hex_input_class'     => 'hpc-demo-color-input',
+                'picker_class'        => 'hpc-demo-color-picker',
+                'import_brand'        => true,
+                'import_button_class' => 'hpc-demo-brand-import',
+            ]
+        );
+        $code = <<<'CODE'
+use Hexa\PluginCore\BrandColors\BrandColorProvider;
+use Hexa\PluginCore\WpAdminComponents\ColorControl;
+
+$brand = BrandColorProvider::payload('#2d5277');
+
+echo ColorControl::render([
+    'key' => 'accent_color',
+    'label' => 'Accent color',
+    'value' => $settings['accent_color'] ?? $brand['primary_color'],
+    'default' => $brand['primary_color'],
+    'import_brand' => true,
+]);
+CODE;
+
+        return '<div class="hpc-grid two">'
+            . CoreUi::card(
+                [
+                    'title'     => 'HWS Brand Assets source',
+                    'body_html' => '<p>Primary color: <span class="hpc-code">' . esc_html( (string) $payload['primary_color'] ) . '</span></p><p>RGB: <span class="hpc-code">' . esc_html( (string) $payload['primary_rgb'] ) . '</span></p>'
+                        . ( '' !== (string) $payload['admin_url'] ? '<p>' . CoreUi::external_link( (string) $payload['admin_url'], 'Open HWS Brand Assets' ) . '</p>' : '' ),
+                ]
+            )
+            . CoreUi::card(
+                [
+                    'title'     => 'Host plugin contract',
+                    'body_html' => '<p>Core owns the visual color-control structure. Host plugins own the save/import AJAX action and pass plugin-specific setting keys.</p>',
+                ]
+            )
+            . '</div><div style="height:14px"></div>'
+            . CoreUi::card(
+                [
+                    'title'     => 'Visual example',
+                    'body_html' => $example,
+                ]
+            )
+            . '<div style="height:14px"></div>'
+            . CoreUi::card(
+                [
+                    'title'     => 'Usage example',
+                    'body_html' => '<pre class="hpc-readme">' . esc_html( $code ) . '</pre>',
+                ]
+            );
     }
 
     private function render_activity_section(): void {

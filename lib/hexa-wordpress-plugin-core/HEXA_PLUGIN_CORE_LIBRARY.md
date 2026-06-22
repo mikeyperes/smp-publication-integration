@@ -20,6 +20,7 @@ Do not rename these.
 
 ```text
 src/ActivityLog/        Hexa\PluginCore\ActivityLog
+src/AcfFieldFactory/    Hexa\PluginCore\AcfFieldFactory
 src/CoreBootstrap/      Hexa\PluginCore\CoreBootstrap
 src/CoreContracts/      Hexa\PluginCore\CoreContracts
 src/CorePackageUpdates/ Hexa\PluginCore\CorePackageUpdates
@@ -30,6 +31,7 @@ src/FaqSets/            Hexa\PluginCore\FaqSets
 src/LogFiles/           Hexa\PluginCore\LogFiles
 src/PluginProvisioning/ Hexa\PluginCore\PluginProvisioning
 src/PluginUpdates/      Hexa\PluginCore\PluginUpdates
+src/SnippetRegistry/    Hexa\PluginCore\SnippetRegistry
 src/ShortcodeRegistry/  Hexa\PluginCore\ShortcodeRegistry
 src/SiteStructure/      Hexa\PluginCore\SiteStructure
 src/SchemaDetection/    Hexa\PluginCore\SchemaDetection
@@ -90,6 +92,22 @@ Hexa\PluginCore\WpAdminAjax
 ```
 
 Use `AjaxActionRegistry` for host plugin admin-AJAX actions. Use `AjaxRequest` for sanitized request values. Use `AjaxFailure` for expected validation errors. `AjaxGuard` remains available for low-level nonce/capability checks.
+
+## Snippet Registry
+
+Namespace:
+
+```text
+Hexa\PluginCore\SnippetRegistry
+```
+
+Use `SnippetDefinition` and `SnippetRegistry` to normalize host plugin snippets. Use `SnippetRenderer` to render description, testing, snippets, shortcodes, and basic README components. Use `SnippetAjaxController` when a host plugin wants generic toggle/test AJAX handlers.
+
+Required host responsibilities:
+
+- Host plugins own snippet functions and option keys.
+- Core owns the generic registry, UI, test rule evaluation, and AJAX response shape.
+- Testing rules should include at least option-enabled and function-exists checks for each feature snippet.
 
 ```php
 use Hexa\PluginCore\WpAdminAjax\AjaxActionRegistry;

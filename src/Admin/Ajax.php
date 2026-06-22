@@ -1,6 +1,7 @@
 <?php
 namespace smp_publication_integration\Admin;
 
+use Hexa\PluginCore\BrandColors\BrandColorProvider;
 use Hexa\PluginCore\SiteStructure\SiteStructureAjaxController;
 use Hexa\PluginCore\WpAdminAjax\AjaxActionRegistry;
 use Hexa\PluginCore\WpAdminAjax\AjaxFailure;
@@ -32,6 +33,7 @@ final class Ajax {
             [
                 'smpi_load_tab'                => [ 'callback' => [ $this, 'load_tab' ] ],
                 'smpi_save_settings'           => [ 'callback' => [ $this, 'save_settings' ] ],
+                'smpi_import_brand_primary_color' => [ 'callback' => [ $this, 'import_brand_primary_color' ] ],
                 'smpi_save_page_assignment'    => [ 'callback' => [ $this, 'save_page_assignment' ] ],
                 'smpi_create_page_assignment'  => [ 'callback' => [ $this, 'create_page_assignment' ] ],
                 'smpi_page_details'            => [ 'callback' => [ $this, 'page_details' ] ],
@@ -130,6 +132,41 @@ final class Ajax {
         }
         $response = [ "settings" => $settings, "message" => empty( $changes ) ? "No setting changed." : "Saved " . implode( ", ", array_keys( $changes ) ) . "." ];
         return $response;
+    }
+
+    public function import_brand_primary_color( AjaxRequest $request ): array {
+        $key = $request->key( "key", "", "post" );
+        $brand = Settings::brand_primary_color( "#2d5277" );
+
+        if ( "_all_feature_primary_colors" === $key ) {
+            $keys = Settings::brand_primary_color_keys();
+        } elseif ( in_array( $key, Settings::color_setting_keys(), true ) ) {
+            $keys = [ $key ];
+        } else {
+            throw AjaxFailure::bad_request( "Invalid color setting." );
+        }
+
+        $changes = [];
+        foreach ( $keys as $setting_key ) {
+            $changes[ $setting_key ] = $brand;
+        }
+
+        $settings = Settings::update( $changes );
+        $this->sync_publication_mapping( $settings );
+        $this->purge_frontend_cache();
+
+        $colors = [];
+        foreach ( $keys as $setting_key ) {
+            $colors[ $setting_key ] = $brand;
+        }
+
+        return [
+            "settings" => $settings,
+            "color" => $brand,
+            "rgb" => BrandColorProvider::rgb_string( $brand ),
+            "colors" => $colors,
+            "message" => "_all_feature_primary_colors" === $key ? "Imported HWS primary color into feature accent colors." : "Imported HWS primary color into " . $key . ".",
+        ];
     }
 
     private function purge_frontend_cache(): void {

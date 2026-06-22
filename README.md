@@ -7,7 +7,7 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.6.46`
+- Version: `0.6.67`
 
 ## Structure
 
@@ -43,6 +43,14 @@ WordPress plugin for Scale My Publication publication profiles.
 - Replaced SMP admin-AJAX action registration with `Hexa\PluginCore\WpAdminAjax\AjaxActionRegistry` and request parsing with `AjaxRequest`.
 - Replaced the Shortcodes debugger table with `Hexa\PluginCore\ShortcodeRegistry\ShortcodeDisplayRenderer`.
 - Updater flow fixed: SMP uses GitHub API version detection and Hexa WordPress Plugin Core post-install handling.
+
+## 0.6.66 Updates
+
+- Imported Hexa WordPress Plugin Core brand color controls into the SMP Features tab.
+- Feature color controls now show picker, editable hex, RGB, swatch, copy action, and HWS Base Tools primary-color import.
+- Feature primary/accent defaults now resolve from HWS Base Tools Brand Assets primary color when not customized.
+- Moved Elementor CSS cache busting and publication social link cleanup into snippet-backed feature metadata.
+- Updated bundled Hexa WordPress Plugin Core to include BrandColors and ColorControl.
 
 ## 0.6.44 Updates
 
@@ -205,3 +213,7 @@ WordPress plugin for Scale My Publication publication profiles.
 ## Implementation Queue
 
 - No active README-tracked implementation queue remains.
+
+### 0.6.67 Updates
+- Hardened Core color controls with max-length hex input and visible invalid-hex rejection before save.
+- Synced vendored Hexa WordPress Plugin Core to 0.18.2.

@@ -4,6 +4,7 @@ namespace smp_publication_integration\Support;
 use Hexa\PluginCore\ActivityLog\ActivityLogConfig;
 use Hexa\PluginCore\ActivityLog\ActivityLogEntry;
 use Hexa\PluginCore\ActivityLog\ActivityLogger;
+use Hexa\PluginCore\BrandColors\BrandColorProvider;
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
@@ -13,6 +14,7 @@ final class Settings {
     public const OPTION = 'smpi_settings';
 
     public static function defaults(): array {
+        $colors = self::color_defaults();
         return [
             'founders_enabled'      => true,
             'shadow_posts_enabled' => true,
@@ -28,7 +30,7 @@ final class Settings {
             'muckrack_author_always_show' => false,
             'muckrack_verified_contexts' => [ 'single_author', 'single_footer', 'author', 'home', 'loop_cards' ],
             'muckrack_verified_style' => 'tooltip',
-            'muckrack_icon_color' => '#2d5277',
+            'muckrack_icon_color' => $colors['muckrack_icon_color'],
             'muckrack_icon_style' => 'circle_check',
             "muckrack_icon_size" => 22,
             "muckrack_icon_margin_left" => 2,
@@ -56,7 +58,7 @@ final class Settings {
             'publication_muckrack_verified_enabled' => false,
             'publication_muckrack_text_mode' => 'news_outlet',
             'publication_muckrack_style' => 'block',
-            'publication_muckrack_color' => '#2d5277',
+            'publication_muckrack_color' => $colors['publication_muckrack_color'],
             "publication_muckrack_font_size" => 14,
             'publication_muckrack_placements' => [ 'bottom_article' ],
             'press_release_include_enabled' => true,
@@ -66,34 +68,34 @@ final class Settings {
             'article_types_enabled' => false,
             "breadcrumbs_enabled" => true,
             "breadcrumbs_style" => "bc-b2",
-            "breadcrumbs_accent_color" => "#d63428",
+            "breadcrumbs_accent_color" => $colors["breadcrumbs_accent_color"],
             "breadcrumbs_font_size" => 13,
             "breadcrumbs_disabled_post_types" => [],
             'table_of_contents_enabled' => false,
             'table_of_contents_auto_single' => false,
             "table_of_contents_style" => "toc02",
-            "table_of_contents_accent_color" => "#2563eb",
+            "table_of_contents_accent_color" => $colors["table_of_contents_accent_color"],
             "table_of_contents_text_font_style" => "normal",
             "table_of_contents_text_font_size" => 15,
-            "table_of_contents_text_color" => "#1f2937",
+            "table_of_contents_text_color" => $colors["table_of_contents_text_color"],
             "inline_photo_treatments_enabled" => false,
             "inline_photo_treatment" => "none",
-            "inline_photo_accent_color" => "#d63428",
+            "inline_photo_accent_color" => $colors["inline_photo_accent_color"],
             "inline_photo_caption_font_style" => "italic",
             "inline_photo_caption_font_size" => 16,
-            "inline_photo_caption_text_color" => "#272727",
+            "inline_photo_caption_text_color" => $colors["inline_photo_caption_text_color"],
             "featured_image_caption_templates_enabled" => false,
             "featured_image_caption_template" => "fig2",
-            "featured_image_caption_accent_color" => "#d63428",
+            "featured_image_caption_accent_color" => $colors["featured_image_caption_accent_color"],
             "featured_image_caption_font_style" => "italic",
             "featured_image_caption_font_size" => 16,
-            "featured_image_caption_text_color" => "#272727",
+            "featured_image_caption_text_color" => $colors["featured_image_caption_text_color"],
             "post_summary_style" => "none",
             "post_faqs_style" => "none",
-            "post_faqs_accent_color" => "#2563eb",
+            "post_faqs_accent_color" => $colors["post_faqs_accent_color"],
             "post_faqs_text_font_style" => "normal",
             "post_faqs_text_font_size" => 16,
-            "post_faqs_text_color" => "#1f2937",
+            "post_faqs_text_color" => $colors["post_faqs_text_color"],
             'rank_math_breadcrumb_check_enabled' => true,
             'hws_masked_admin_report_enabled' => true,
             'system_publication_user_id' => 0,
@@ -149,6 +151,81 @@ final class Settings {
     public static function array( string $key ): array {
         $value = self::get( $key, [] );
         return is_array( $value ) ? array_values( array_filter( array_map( 'sanitize_key', $value ) ) ) : [];
+    }
+
+    public static function brand_primary_color( string $fallback = "#2d5277" ): string {
+        if ( class_exists( BrandColorProvider::class ) ) {
+            return BrandColorProvider::primary_color( $fallback );
+        }
+
+        if ( function_exists( "get_option" ) ) {
+            $stored = get_option( "hws_brand_primary_color", "" );
+            if ( is_scalar( $stored ) && "" !== trim( (string) $stored ) ) {
+                $color = sanitize_hex_color( (string) $stored );
+                if ( is_string( $color ) && "" !== $color ) {
+                    return strtolower( $color );
+                }
+            }
+        }
+
+        $color = sanitize_hex_color( $fallback );
+        return is_string( $color ) && "" !== $color ? strtolower( $color ) : "#2d5277";
+    }
+
+    public static function color_defaults(): array {
+        $brand = self::brand_primary_color( "#2d5277" );
+
+        return [
+            "muckrack_icon_color" => $brand,
+            "publication_muckrack_color" => $brand,
+            "breadcrumbs_accent_color" => $brand,
+            "table_of_contents_accent_color" => $brand,
+            "table_of_contents_text_color" => "#1f2937",
+            "inline_photo_accent_color" => $brand,
+            "inline_photo_caption_text_color" => "#272727",
+            "featured_image_caption_accent_color" => $brand,
+            "featured_image_caption_text_color" => "#272727",
+            "post_faqs_accent_color" => $brand,
+            "post_faqs_text_color" => "#1f2937",
+        ];
+    }
+
+    public static function color_default( string $key ): string {
+        $defaults = self::color_defaults();
+        return $defaults[ $key ] ?? self::brand_primary_color( "#2d5277" );
+    }
+
+    public static function color_setting_keys(): array {
+        return [
+            "muckrack_icon_color",
+            "muckrack_icon_color_single_author",
+            "muckrack_icon_color_single_footer",
+            "muckrack_icon_color_loop_cards",
+            "muckrack_icon_color_home",
+            "muckrack_icon_color_author",
+            "breadcrumbs_accent_color",
+            "table_of_contents_accent_color",
+            "table_of_contents_text_color",
+            "inline_photo_accent_color",
+            "inline_photo_caption_text_color",
+            "featured_image_caption_accent_color",
+            "featured_image_caption_text_color",
+            "post_faqs_accent_color",
+            "post_faqs_text_color",
+            "publication_muckrack_color",
+        ];
+    }
+
+    public static function brand_primary_color_keys(): array {
+        return [
+            "muckrack_icon_color",
+            "publication_muckrack_color",
+            "breadcrumbs_accent_color",
+            "table_of_contents_accent_color",
+            "inline_photo_accent_color",
+            "featured_image_caption_accent_color",
+            "post_faqs_accent_color",
+        ];
     }
 
     public static function update( array $changes ): array {
@@ -246,7 +323,7 @@ final class Settings {
                     continue;
                 }
                 $color = sanitize_hex_color( $raw );
-                $settings[ $key ] = $color ?: ( 0 === strpos( $key, 'muckrack_icon_color_' ) ? '' : '#2d5277' );
+                $settings[ $key ] = $color ?: ( 0 === strpos( $key, 'muckrack_icon_color_' ) ? '' : self::color_default( 'muckrack_icon_color' ) );
                 continue;
             }
 
@@ -264,21 +341,21 @@ final class Settings {
 
             if ( 'publication_muckrack_color' === $key ) {
                 $color = sanitize_hex_color( (string) $value );
-                $settings[ $key ] = $color ?: '#2d5277';
+                $settings[ $key ] = $color ?: self::color_default( 'publication_muckrack_color' );
                 continue;
             }
 
             if ( in_array( $key, [ "breadcrumbs_accent_color", "table_of_contents_accent_color", "table_of_contents_text_color", "inline_photo_accent_color", "inline_photo_caption_text_color", "featured_image_caption_accent_color", "featured_image_caption_text_color", "post_faqs_accent_color", "post_faqs_text_color" ], true ) ) {
                 $color_defaults = [
-                    "breadcrumbs_accent_color" => "#d63428",
-                    "table_of_contents_accent_color" => "#2563eb",
-                    "table_of_contents_text_color" => "#1f2937",
-                    "inline_photo_accent_color" => "#d63428",
-                    "inline_photo_caption_text_color" => "#272727",
-                    "featured_image_caption_accent_color" => "#d63428",
-                    "featured_image_caption_text_color" => "#272727",
-                    "post_faqs_accent_color" => "#2563eb",
-                    "post_faqs_text_color" => "#1f2937",
+                    "breadcrumbs_accent_color" => $colors["breadcrumbs_accent_color"],
+                    "table_of_contents_accent_color" => $colors["table_of_contents_accent_color"],
+                    "table_of_contents_text_color" => $colors["table_of_contents_text_color"],
+                    "inline_photo_accent_color" => $colors["inline_photo_accent_color"],
+                    "inline_photo_caption_text_color" => $colors["inline_photo_caption_text_color"],
+                    "featured_image_caption_accent_color" => $colors["featured_image_caption_accent_color"],
+                    "featured_image_caption_text_color" => $colors["featured_image_caption_text_color"],
+                    "post_faqs_accent_color" => $colors["post_faqs_accent_color"],
+                    "post_faqs_text_color" => $colors["post_faqs_text_color"],
                 ];
                 $color = sanitize_hex_color( (string) $value );
                 $settings[ $key ] = $color ?: $color_defaults[ $key ];

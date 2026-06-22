@@ -24,7 +24,9 @@ Every sub-namespace has its own folder under `src/`.
 hexa-wordpress-plugin-core/
   VERSION
   src/
+    AcfFieldFactory/    -> Hexa\PluginCore\AcfFieldFactory
     ActivityLog/        -> Hexa\PluginCore\ActivityLog
+    BrandColors/        -> Hexa\PluginCore\BrandColors
     CoreBootstrap/      -> Hexa\PluginCore\CoreBootstrap
     CoreContracts/      -> Hexa\PluginCore\CoreContracts
     CorePackageUpdates/ -> Hexa\PluginCore\CorePackageUpdates
@@ -35,6 +37,7 @@ hexa-wordpress-plugin-core/
     LogFiles/           -> Hexa\PluginCore\LogFiles
     PluginProvisioning/ -> Hexa\PluginCore\PluginProvisioning
     PluginUpdates/      -> Hexa\PluginCore\PluginUpdates
+    SnippetRegistry/    -> Hexa\PluginCore\SnippetRegistry
     ShortcodeRegistry/  -> Hexa\PluginCore\ShortcodeRegistry
     SiteStructure/      -> Hexa\PluginCore\SiteStructure
     SchemaDetection/    -> Hexa\PluginCore\SchemaDetection
@@ -52,7 +55,9 @@ Do not create `HWS\BaseTools\PluginCore`, `HexaWordPressPluginCore`, `Hexa\Core`
 
 ## First Core Areas
 
+- `AcfFieldFactory`: reusable ACF field array factories for host field-group registrations.
 - `ActivityLog`: shared activity log records, storage modes, and expandable dark log renderer.
+- `BrandColors`: shared HWS Base Tools brand color readers, hex normalization, RGB conversion, and color-control payloads.
 - `CoreBootstrap`: consistent setup/init protocol for loading this core in a host plugin.
 - `CoreContracts`: interfaces that host plugins and core modules must follow.
 - `CorePackageUpdates`: compares and updates the vendored Hexa WordPress Plugin Core package.
@@ -63,6 +68,7 @@ Do not create `HWS\BaseTools\PluginCore`, `HexaWordPressPluginCore`, `Hexa\Core`
 - `LogFiles`: shared error-log source definitions, tail readers, classifiers, search/highlight UI, and renderers.
 - `PluginProvisioning`: shared plugin discovery, status checks, WordPress.org installs, GitHub ZIP installs, folder normalization, and activation.
 - `PluginUpdates`: shared GitHub/update configuration objects and host plugin updater.
+- `SnippetRegistry`: shared snippet definitions, option toggles, test rules, related snippets, related shortcodes, basic README rendering, and generic AJAX handlers.
 - `ShortcodeRegistry`: shortcode definition registry, dashboard display renderer, examples, live output, and test runner contracts.
 - `SiteStructure`: reusable critical page blueprint management, assigned page storage, WordPress navigation menu creation, custom menu-item creation, add-all-assigned-pages actions, menu structure attachment, and page-to-menu-item tools.
 - `SchemaDetection`: reusable JSON-LD URL scans, source detection, duplicate schema conflict checks, FAQ validation, and dark admin report rendering.
@@ -142,6 +148,8 @@ Before adding implementations in another Codex or Claude chat, read:
 - `docs/schema-detection.md`
 - `docs/field-structures.md`
 - `docs/faq-sets.md`
+- `docs/brand-colors.md`
+- `docs/snippet-registry.md`
 - the namespace-specific doc for the folder being changed
 
 If a new feature does not fit an existing namespace, document the proposed namespace first before adding code.
@@ -172,6 +180,27 @@ $core_config = CorePackageConfig::from_core_root(
 ```
 
 This panel compares the vendored `VERSION` in the host plugin with the public GitHub repository `VERSION`.
+
+## Brand Color Controls
+
+`Hexa\PluginCore\BrandColors\BrandColorProvider` reads the HWS Base Tools Brand Assets primary and secondary color options. `Hexa\PluginCore\WpAdminComponents\ColorControl` renders the reusable admin color control with picker, editable hex value, RGB value, swatch, copy button, and optional HWS primary import button hooks.
+
+Host plugins should pass their own setting key and wire save/import AJAX while reusing this markup instead of recreating color pickers.
+
+```php
+use Hexa\PluginCore\BrandColors\BrandColorProvider;
+use Hexa\PluginCore\WpAdminComponents\ColorControl;
+
+$brand = BrandColorProvider::payload('#2d5277');
+
+echo ColorControl::render([
+    'key' => 'accent_color',
+    'label' => 'Accent color',
+    'value' => $settings['accent_color'] ?? $brand['primary_color'],
+    'default' => $brand['primary_color'],
+    'import_brand' => true,
+]);
+```
 
 ## SiteStructure Section Rendering
 

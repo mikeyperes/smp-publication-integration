@@ -26,7 +26,9 @@ The package version is stored in the root `VERSION` file.
 
 | Folder | Namespace | Purpose |
 | --- | --- | --- |
+| `src/AcfFieldFactory/` | `Hexa\PluginCore\AcfFieldFactory` | Reusable ACF field array factories for host field-group registrations. |
 | `src/ActivityLog/` | `Hexa\PluginCore\ActivityLog` | Activity logs and activity storage adapters. |
+| `src/BrandColors/` | `Hexa\PluginCore\BrandColors` | HWS brand color readers, hex normalization, RGB conversion, and color payload helpers. |
 | `src/CoreBootstrap/` | `Hexa\PluginCore\CoreBootstrap` | Core setup, module registration, and lifecycle. |
 | `src/CoreContracts/` | `Hexa\PluginCore\CoreContracts` | Interfaces shared across modules and host plugins. |
 | `src/CorePackageUpdates/` | `Hexa\PluginCore\CorePackageUpdates` | Vendored Hexa WordPress Plugin Core version checks and package update UI. |
@@ -37,6 +39,7 @@ The package version is stored in the root `VERSION` file.
 | `src/LogFiles/` | `Hexa\PluginCore\LogFiles` | Error-log sources, readers, classifiers, and reusable viewer panels. |
 | `src/PluginProvisioning/` | `Hexa\PluginCore\PluginProvisioning` | Plugin discovery, status checks, WordPress.org installs, GitHub ZIP installs, folder normalization, and activation. |
 | `src/PluginUpdates/` | `Hexa\PluginCore\PluginUpdates` | Host plugin GitHub version checks, update transients, zip downloads, and updater panels. |
+| `src/SnippetRegistry/` | `Hexa\PluginCore\SnippetRegistry` | Snippet definitions, option toggles, test rules, related snippet internals, related shortcodes, basic README rendering, and AJAX handlers. |
 | `src/ShortcodeRegistry/` | `Hexa\PluginCore\ShortcodeRegistry` | Shortcode definitions, registries, dashboard display rows, examples, live output, and testing. |
 | `src/SiteStructure/` | `Hexa\PluginCore\SiteStructure` | Critical page blueprints, callback-backed assigned page storage, starter templates, page details, WordPress navigation menu creation, custom menu items, add-all-pages actions, menu structure attachment, and page-to-menu-item tools. |
 | `src/SchemaDetection/` | `Hexa\PluginCore\SchemaDetection` | JSON-LD page scans, schema source detection, duplicate-type conflicts, FAQ validation, and dark report rendering. |
