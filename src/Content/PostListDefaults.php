@@ -13,6 +13,7 @@ final class PostListDefaults {
 
     public function register(): void {
         add_filter( "default_hidden_columns", [ $this, "default_hidden_columns" ], 10, 2 );
+        add_filter( "hidden_columns", [ $this, "filter_hidden_columns" ], 10, 3 );
         add_filter( "edit_post_per_page", [ $this, "default_per_page" ], 10, 2 );
         add_action( "current_screen", [ $this, "apply_user_defaults" ] );
     }
@@ -23,6 +24,14 @@ final class PostListDefaults {
         }
 
         return self::hidden_columns();
+    }
+
+    public function filter_hidden_columns( array $hidden, \WP_Screen $screen, bool $use_defaults ): array {
+        if ( ! $this->enabled() || ! $this->is_post_list_screen( $screen ) ) {
+            return $hidden;
+        }
+
+        return ( $use_defaults || [] === $hidden ) ? self::hidden_columns() : $hidden;
     }
 
     public function default_per_page( int $per_page, string $post_type = "post" ): int {
@@ -43,7 +52,8 @@ final class PostListDefaults {
             return;
         }
 
-        if ( ! is_array( get_user_option( "manageedit-postcolumnshidden", $user_id ) ) ) {
+        $hidden = get_user_option( "manageedit-postcolumnshidden", $user_id );
+        if ( ! is_array( $hidden ) || [] === $hidden ) {
             update_user_option( $user_id, "manageedit-postcolumnshidden", self::hidden_columns(), true );
         }
 
