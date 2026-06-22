@@ -74,6 +74,7 @@ final class Settings {
             'table_of_contents_enabled' => false,
             'table_of_contents_auto_single' => false,
             "table_of_contents_style" => "toc02",
+            "table_of_contents_include_summary" => true,
             "table_of_contents_accent_color" => $colors["table_of_contents_accent_color"],
             "table_of_contents_text_font_style" => "normal",
             "table_of_contents_text_font_size" => 15,
@@ -299,7 +300,7 @@ final class Settings {
                 continue;
             }
 
-            if ( in_array( $key, [ 'founders_enabled', 'shadow_posts_enabled', 'shadow_press_releases', 'author_social_cleanup', 'public_debug_enabled', 'estimated_read_time_enabled', 'elementor_css_cache_busting', 'publication_social_cleanup', 'muckrack_verified_enabled', 'muckrack_author_always_show', 'publication_muckrack_verified_enabled', 'press_release_include_enabled', 'post_summary_acf_enabled', 'post_faqs_acf_enabled', 'article_types_enabled', 'breadcrumbs_enabled', 'table_of_contents_enabled', 'table_of_contents_auto_single', 'rank_math_breadcrumb_check_enabled', 'hws_masked_admin_report_enabled' ], true ) ) {
+            if ( in_array( $key, [ 'founders_enabled', 'shadow_posts_enabled', 'shadow_press_releases', 'author_social_cleanup', 'public_debug_enabled', 'estimated_read_time_enabled', 'elementor_css_cache_busting', 'publication_social_cleanup', 'muckrack_verified_enabled', 'muckrack_author_always_show', 'publication_muckrack_verified_enabled', 'press_release_include_enabled', 'post_summary_acf_enabled', 'post_faqs_acf_enabled', 'article_types_enabled', 'breadcrumbs_enabled', 'table_of_contents_enabled', 'table_of_contents_auto_single', 'table_of_contents_include_summary', 'rank_math_breadcrumb_check_enabled', 'hws_masked_admin_report_enabled' ], true ) ) {
                 $settings[ $key ] = (bool) $value;
                 continue;
             }

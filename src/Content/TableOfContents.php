@@ -73,20 +73,21 @@ final class TableOfContents {
             return "";
         }
         $style = ArticleStyles::normalize_toc_style( $style );
-        $class = "smpi-table-of-contents smpi-" . $style;
+        $class = "smpi-table-of-contents smpi-" . $style . " smpi-toc-collapsible";
+        $caret = "<span class=\"smpi-toc-caret\" aria-hidden=\"true\"></span>";
         if ( "toc04" === $style ) {
-            $html = "<nav class=\"" . esc_attr( $class ) . "\" aria-label=\"Table of contents\"><span class=\"smpi-toc-label\">" . esc_html( "Jump to" ) . "</span>";
+            $html = "<details class=\"" . esc_attr( $class ) . "\"><summary class=\"smpi-toc-label\"><span>" . esc_html( "Jump to" ) . "</span>" . $caret . "</summary><div class=\"smpi-toc-panel\">";
             foreach ( $items as $item ) {
                 $html .= "<a href=#" . esc_attr( $item["id"] ) . ">" . esc_html( $item["text"] ) . "</a>";
             }
-            return $html . "</nav>";
+            return $html . "</div></details>";
         }
         $label = "toc00" === $style ? "In this article" : ( "toc02" === $style ? "On this page" : $title );
-        $html = "<nav class=\"" . esc_attr( $class ) . "\" aria-label=\"Table of contents\"><p class=\"smpi-toc-label\">" . esc_html( $label ) . "</p><ol>";
+        $html = "<details class=\"" . esc_attr( $class ) . "\"><summary class=\"smpi-toc-label\"><span>" . esc_html( $label ) . "</span>" . $caret . "</summary><ol>";
         foreach ( $items as $item ) {
             $html .= "<li class=smpi-toc-level-" . esc_attr( (string) $item["level"] ) . "><a href=#" . esc_attr( $item["id"] ) . ">" . esc_html( $item["text"] ) . "</a></li>";
         }
-        return $html . "</ol></nav>";
+        return $html . "</ol></details>";
     }
 
     private static function items( string $content ): array {
@@ -127,9 +128,9 @@ final class TableOfContents {
         if ( "none" === $style ) {
             return;
         }
-        $payload = wp_json_encode( [ "style" => $style ] );
+        $payload = wp_json_encode( [ "style" => $style, "include_summary" => Settings::bool( "table_of_contents_include_summary" ) ] );
         $script = <<<SMPI_JS
-(function(data){if(!data||document.querySelector(".smpi-table-of-contents"))return;function visible(el){var r=el.getBoundingClientRect();return r.width>1&&r.height>1&&window.getComputedStyle(el).display!=="none";}function slug(text,index){return "smpi-toc-"+text.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")+"-"+index;}var selectors=[".elementor-widget-theme-post-content .elementor-widget-container",".elementor-widget-theme-post-content",".elementor-widget-post-content","article .entry-content",".entry-content",".post-content"];var target=null;for(var i=0;i<selectors.length;i++){target=document.querySelector(selectors[i]);if(target)break;}if(!target)return;var headings=Array.from(target.querySelectorAll("h2,h3,h4")).filter(function(h){return visible(h)&&(h.textContent||"").trim();});if(!headings.length)return;var nav=document.createElement("nav");nav.className="smpi-table-of-contents smpi-"+(data.style||"toc02");nav.setAttribute("aria-label","Table of contents");if(data.style==="toc04"){var span=document.createElement("span");span.className="smpi-toc-label";span.textContent="Jump to";nav.appendChild(span);headings.forEach(function(h,idx){if(!h.id)h.id=slug(h.textContent,idx+1);var a=document.createElement("a");a.href="#"+h.id;a.textContent=h.textContent.trim();nav.appendChild(a);});}else{var label=document.createElement("p");label.className="smpi-toc-label";label.textContent=data.style==="toc00"?"In this article":(data.style==="toc02"?"On this page":"Table of Contents");nav.appendChild(label);var ol=document.createElement("ol");headings.forEach(function(h,idx){if(!h.id)h.id=slug(h.textContent,idx+1);var li=document.createElement("li");li.className="smpi-toc-level-"+h.tagName.slice(1);var a=document.createElement("a");a.href="#"+h.id;a.textContent=h.textContent.trim();li.appendChild(a);ol.appendChild(li);});nav.appendChild(ol);}target.parentNode.insertBefore(nav,target);})(
+(function(data){if(!data||document.querySelector(".smpi-table-of-contents"))return;function visible(el){var r=el.getBoundingClientRect();return r.width>1&&r.height>1&&window.getComputedStyle(el).display!=="none";}function slug(text,index){return "smpi-toc-"+text.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")+"-"+index;}var selectors=[".elementor-widget-theme-post-content .elementor-widget-container",".elementor-widget-theme-post-content",".elementor-widget-post-content","article .entry-content",".entry-content",".post-content"];var target=null;for(var i=0;i<selectors.length;i++){target=document.querySelector(selectors[i]);if(target)break;}if(!target)return;var headings=Array.from(target.querySelectorAll("h2,h3,h4")).filter(function(h){return visible(h)&&(h.textContent||"").trim();});if(data.include_summary){var sumH=document.querySelector(".smpi-post-summary h2");if(sumH&&visible(sumH)&&(sumH.textContent||"").trim()){if(!sumH.id)sumH.id="smpi-summary-heading";headings.unshift(sumH);}}if(!headings.length)return;var details=document.createElement("details");details.className="smpi-table-of-contents smpi-"+(data.style||"toc02")+" smpi-toc-collapsible";details.setAttribute("aria-label","Table of contents");var summary=document.createElement("summary");summary.className="smpi-toc-label";var labelText=data.style==="toc04"?"Jump to":(data.style==="toc00"?"In this article":(data.style==="toc02"?"On this page":"Table of Contents"));var lspan=document.createElement("span");lspan.textContent=labelText;summary.appendChild(lspan);var caret=document.createElement("span");caret.className="smpi-toc-caret";caret.setAttribute("aria-hidden","true");summary.appendChild(caret);details.appendChild(summary);if(data.style==="toc04"){var panel=document.createElement("div");panel.className="smpi-toc-panel";headings.forEach(function(h,idx){if(!h.id)h.id=slug(h.textContent,idx+1);var a=document.createElement("a");a.href="#"+h.id;a.textContent=h.textContent.trim();panel.appendChild(a);});details.appendChild(panel);}else{var ol=document.createElement("ol");headings.forEach(function(h,idx){if(!h.id)h.id=slug(h.textContent,idx+1);var li=document.createElement("li");li.className="smpi-toc-level-"+h.tagName.slice(1);var a=document.createElement("a");a.href="#"+h.id;a.textContent=h.textContent.trim();li.appendChild(a);ol.appendChild(li);});details.appendChild(ol);}target.parentNode.insertBefore(details,target);})(
 SMPI_JS;
         echo "<script id=\"smpi-toc-auto-inject\">" . $script . $payload . ");</script>";
     }
