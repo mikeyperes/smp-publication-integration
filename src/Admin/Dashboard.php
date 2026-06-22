@@ -1318,6 +1318,26 @@ final class Dashboard {
     }
 
 
+    private function post_list_defaults_report_html(): string {
+        $enabled = Settings::bool( "post_list_defaults_enabled" );
+        $hidden = \smp_publication_integration\Content\PostListDefaults::hidden_columns();
+        $user_id = get_current_user_id();
+        $user_hidden = $user_id > 0 ? get_user_option( "manageedit-postcolumnshidden", $user_id ) : false;
+        $per_page = $user_id > 0 ? get_user_option( "edit_post_per_page", $user_id ) : false;
+        $mode = function_exists( "get_user_setting" ) ? get_user_setting( "posts_list_mode", "" ) : "";
+
+        $html = $this->simple_status_html( $enabled, "Default post list view is " . ( $enabled ? "enabled" : "disabled" ) . ". New/default users get 20 items, compact view, and a cleaned column set." );
+        $html .= "<table class=\"widefat striped\"><tbody>";
+        $html .= "<tr><th>Hidden columns enforced for default users</th><td><code>" . esc_html( implode( "</code>, <code>", $hidden ) ) . "</code></td></tr>";
+        $html .= "<tr><th>Visible columns expected</th><td>Author, Tags, Article Types, Date, SEO Details</td></tr>";
+        $html .= "<tr><th>Items per page</th><td><code>20</code></td></tr>";
+        $html .= "<tr><th>View mode</th><td><code>compact/list</code></td></tr>";
+        $html .= "<tr><th>Current user hidden columns</th><td><code>" . esc_html( is_array( $user_hidden ) ? implode( ", ", array_filter( array_map( "strval", $user_hidden ) ) ) : "not customized" ) . "</code></td></tr>";
+        $html .= "<tr><th>Current user per page</th><td><code>" . esc_html( false === $per_page ? "not customized" : (string) $per_page ) . "</code></td></tr>";
+        $html .= "<tr><th>Current user mode</th><td><code>" . esc_html( "" !== $mode ? $mode : "not set" ) . "</code></td></tr>";
+        return $html . "</tbody></table>";
+    }
+
     private function shadow_posts_report_html(): string {
         global $wpdb;
         $complete = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->postmeta} WHERE meta_key = %s AND meta_value = %s", "_smpi_shadow_complete", "1" ) );
