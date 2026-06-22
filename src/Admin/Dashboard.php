@@ -1580,7 +1580,7 @@ final class Dashboard {
                 'labels'                        => [
                     'pages_title'       => 'Critical Publication Pages',
                     'pages_heading'     => 'Publication page assignments',
-                    'pages_description' => 'Assign existing pages or create draft canonical pages using stored starter templates.',
+                    'pages_description' => 'Assign existing pages or create published canonical pages using stored starter templates.',
                     'menus_title'       => 'Publication Navigation Menus',
                     'menus_heading'     => 'Create menus and attach assigned pages',
                     'menus_description' => 'Create WordPress menus, custom menu items, attach assigned pages, and attach publication menu blueprints.',
