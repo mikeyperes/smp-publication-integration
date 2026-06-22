@@ -237,8 +237,14 @@ final class PageStructureManager {
         }
 
         $existing_assigned = $this->assigned_page_id( $page_key );
-        if ( $existing_assigned > 0 && function_exists( 'get_post' ) && get_post( $existing_assigned ) ) {
-            return $this->page_payload( $existing_assigned, true, 'Page already assigned.' );
+        if ( $existing_assigned > 0 && function_exists( "get_post" ) ) {
+            $existing_assigned_post = get_post( $existing_assigned );
+            if ( $existing_assigned_post instanceof \WP_Post && "trash" !== (string) $existing_assigned_post->post_status ) {
+                return $this->page_payload( $existing_assigned, true, "Page already assigned." );
+            }
+            if ( $existing_assigned_post instanceof \WP_Post && "trash" === (string) $existing_assigned_post->post_status ) {
+                $this->delete_assignment( $page_key );
+            }
         }
 
         $parent_id = '' !== $parent_key ? $this->assigned_page_id( $parent_key ) : 0;
@@ -249,7 +255,7 @@ final class PageStructureManager {
                     [
                         'name'           => $slug,
                         'post_type'      => 'page',
-                        'post_status'    => 'any',
+                        "post_status"    => $this->reusable_page_statuses(),
                         'posts_per_page' => 1,
                         'post_parent'    => $parent_id ?: null,
                     ],
@@ -349,6 +355,23 @@ final class PageStructureManager {
             'page_id'  => $page_id,
             'trashed'  => true,
         ];
+    }
+
+    /**
+     * @return string[]
+     */
+    private function reusable_page_statuses(): array {
+        $statuses = [ "publish", "draft", "private", "pending" ];
+        foreach ( [ "assignment_statuses", "select_post_statuses" ] as $config_key ) {
+            if ( is_array( $this->config[ $config_key ] ?? null ) ) {
+                foreach ( $this->config[ $config_key ] as $status ) {
+                    $statuses[] = (string) $status;
+                }
+            }
+        }
+        $statuses = array_values( array_unique( array_filter( array_map( "sanitize_key", $statuses ) ) ) );
+        $statuses = array_values( array_diff( $statuses, [ "trash", "auto-draft", "inherit" ] ) );
+        return ! empty( $statuses ) ? $statuses : [ "publish", "draft", "private", "pending" ];
     }
 
     /**
