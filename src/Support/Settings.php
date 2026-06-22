@@ -85,8 +85,34 @@ final class Settings {
     }
 
     public static function all(): array {
-        $settings = get_option( self::OPTION, [] );
-        return wp_parse_args( is_array( $settings ) ? $settings : [], self::defaults() );
+        $raw = get_option( self::OPTION, [] );
+        $settings = wp_parse_args( is_array( $raw ) ? $raw : [], self::defaults() );
+        $defaults = self::default_page_templates();
+
+        if ( ! isset( $settings['page_templates'] ) || ! is_array( $settings['page_templates'] ) ) {
+            $settings['page_templates'] = [];
+        }
+
+        foreach ( self::page_types() as $type => $config ) {
+            if ( empty( $config['template'] ) ) {
+                continue;
+            }
+            $stored = isset( $settings['page_templates'][ $type ] ) ? trim( (string) $settings['page_templates'][ $type ] ) : '';
+            if ( '' === $stored || self::should_refresh_default_page_template( $stored ) ) {
+                $settings['page_templates'][ $type ] = (string) ( $defaults[ $type ] ?? '' );
+            }
+        }
+
+        return $settings;
+    }
+
+    private static function should_refresh_default_page_template( string $template ): bool {
+        foreach ( [ '<strong>Purpose:</strong>', '<h3>What this page should contain</h3>', 'At [smp_publication_field field=legal_name format=text]' ] as $marker ) {
+            if ( false !== strpos( $template, $marker ) ) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static function get( string $key, $default = null ) {
@@ -385,113 +411,15 @@ final class Settings {
     }
 
     public static function default_page_templates(): array {
-        $build = static function ( string $heading, string $purpose, array $sections ): string {
-            $html = "<h2>" . esc_html( $heading ) . "</h2>" . "\n\n";
-            $html .= "<p><strong>Purpose:</strong> " . esc_html( $purpose ) . "</p>" . "\n\n";
-            $html .= "<p><strong>Publication:</strong> [smp_publication_field field=legal_name format=text]</p>" . "\n";
-            $html .= "<p><strong>Website:</strong> [smp_publication_field field=website format=text]</p>" . "\n";
-            $html .= "<p><strong>Contact:</strong> [smp_publication_field field=contact_email format=text]</p>" . "\n\n";
-            $html .= "<h3>What this page should contain</h3>" . "\n<ul>\n";
-            foreach ( $sections as $section ) {
-                $html .= "<li>" . esc_html( (string) $section ) . "</li>" . "\n";
-            }
-            $html .= "</ul>" . "\n\n";
-            $html .= "<h3>Starter copy</h3>" . "\n";
-            $html .= "<p>Use this starter page as the public source of truth for " . esc_html( strtolower( $heading ) ) . ". Replace placeholders with approved publication-specific language before publishing.</p>" . "\n\n";
-            $html .= "<p>[smp_publication_field field=mission_statement format=html]</p>";
-            return $html;
-        };
-
-        $specifics = [
-            "about_publication" => [ "Public overview for readers, partners, and schema validators.", [ "Explain who the outlet is, what it covers, and who it serves.", "Include mission, editorial focus, ownership context, headquarters, founding date, and contact links.", "Reference canonical publication profile fields with shortcodes instead of hardcoding facts." ] ],
-            "founder_about" => [ "Founder biography and leadership context.", [ "Explain founder background, role, and relationship to the publication.", "Link to founder profile pages when Verified Profiles is active.", "Keep promotional language factual and verifiable." ] ],
-            "writers" => [ "Public writer directory.", [ "List active writers or link to author archive pages.", "Explain how writer profiles are reviewed and updated.", "Include contributor standards and contact path for profile corrections." ] ],
-            "contributors" => [ "Contributor directory and contributor expectations.", [ "Explain who qualifies as a contributor.", "Summarize pitch requirements, editorial review, and attribution standards.", "Link to the Become a Contributor page when available." ] ],
-            "staff" => [ "Staff directory.", [ "List editorial, operations, and business contacts where public.", "Explain roles responsible for corrections, legal requests, and advertising.", "Keep private staff data off the public page." ] ],
-            "executive_team" => [ "Executive and leadership directory.", [ "List leadership names, titles, and responsibilities.", "Identify editorial accountability roles separately from business roles.", "Link leadership profiles when available." ] ],
-            "team" => [ "Combined publication team page.", [ "Group staff by editorial, contributor, leadership, and operations.", "Include public contact paths instead of private personal data.", "Link to Writers, Staff, and Executive Team pages if those are separate." ] ],
-            "headquarters" => [ "Canonical headquarters and location page.", [ "Show headquarters city, region, country, and public mailing details when appropriate.", "Include Headquarters Wikipedia URL when available: [smp_publication_field field=headquarters_wikipedia_url format=text].", "Explain whether the publication operates remotely, locally, nationally, or globally." ] ],
-            "founding_date" => [ "Founding history and date page.", [ "State founding date: [smp_publication_field field=founding_date format=text].", "Explain the founding context, original mission, and major milestones.", "Include founding location when available." ] ],
-            "mission_statement" => [ "Mission and audience promise.", [ "State the publication mission plainly.", "Explain coverage priorities and target audience.", "Describe how editorial decisions support the mission." ] ],
-            "founders" => [ "Founder profile and founding team page.", [ "List founder names, profile links, and roles.", "Use Verified Profiles where available.", "If founders are intentionally private, explain the policy without exposing private data." ] ],
-            "become_contributor" => [ "Contributor application and submission page.", [ "Explain pitch format, topic fit, conflicts, and disclosure requirements.", "Describe review process, editing, attribution, and rejection policy.", "Provide an application or contact path." ] ],
-            "brand_assets" => [ "Approved brand assets and media kit page.", [ "Display approved logos, marks, screenshots, media kit images, and brand files from the Brand Assets gallery.", "State acceptable usage, attribution, alteration, and permission rules.", "Provide a public contact path for media, partnerships, and brand usage questions. Use shortcode [smp_publication_field field=brand_assets format=json] for raw gallery data until the page is customized." ] ],
-            "submit_press_release" => [ "Press release submission intake page.", [ "Explain what release types are accepted and what information submitters must provide.", "Describe editorial review, sponsored or paid placement disclosure, timing, rejection, and correction expectations.", "Provide the submission email, form, or intake workflow." ] ],
-            "press_releases" => [ "Press release landing page or archive.", [ "Link to published press releases or the press-release archive when available.", "Explain how press releases are labeled and reviewed.", "Link to the Submit Your Press Release page when available." ] ],
-            "dmca" => [ "Copyright takedown policy.", [ "Describe how rights holders can submit a DMCA notice.", "List required notice elements: work, URL, contact, good-faith statement, signature.", "Include contact email or form path: [smp_publication_field field=contact_email format=text]." ] ],
-            "terms" => [ "Website terms of use.", [ "Explain allowed use of site content, submissions, and restrictions.", "Cover disclaimers, limitation of liability, user conduct, and governing terms.", "Have legal counsel review before publishing." ] ],
-            "privacy" => [ "Privacy policy.", [ "Explain data collection, cookies, analytics, ads, forms, and retention.", "Include reader rights and privacy contact path.", "Have legal counsel review before publishing." ] ],
-            "editorial_guidelines" => [ "Public editorial standards.", [ "Explain sourcing, attribution, review, conflicts, sponsored labels, and updates.", "Link corrections, ethics, fact-checking, and unnamed source policy pages.", "Use this as the human-readable editorial standard behind schema policy URLs." ] ],
-            "editorial_policy" => [ "Editorial policy and independence page.", [ "Explain independence from advertisers, sponsors, and owners.", "Describe review workflow and standards for accuracy.", "Explain update labels, corrections, and transparency." ] ],
-            "contact" => [ "Public contact page.", [ "List general, editorial, corrections, advertising, legal, and feedback contact paths.", "Use structured departments that match contactPoint schema where possible.", "Do not publish private personal contact details." ] ],
-            "faqs" => [ "Publication FAQ page.", [ "Answer reader, contributor, correction, advertising, and privacy questions.", "Use short, direct Q and A sections.", "Keep article-specific FAQs in post FAQ repeater fields for FAQPage schema." ] ],
-            "parent_organization" => [ "Parent organization and ownership page.", [ "Identify parent organization name and URL when applicable.", "Explain ownership, funding, and editorial independence.", "If independent, state that clearly." ] ],
-            "publishing_principles" => [ "NewsMediaOrganization publishingPrinciples policy page.", [ "State editorial principles, independence, accuracy, fairness, attribution, and transparency.", "Explain separation between editorial and advertising.", "This page URL can populate NewsMediaOrganization.publishingPrinciples." ] ],
-            "verification_fact_checking_policy" => [ "NewsMediaOrganization verificationFactCheckingPolicy page.", [ "Explain how facts, claims, links, quotes, and sources are verified before publication.", "Describe editor review and escalation for sensitive claims.", "This page URL can populate NewsMediaOrganization.verificationFactCheckingPolicy." ] ],
-            "corrections_policy" => [ "NewsMediaOrganization correctionsPolicy page.", [ "Explain how readers request corrections or clarifications.", "Describe review timeline, update notes, and material correction labeling.", "This page URL can populate NewsMediaOrganization.correctionsPolicy." ] ],
-            "ethics_policy" => [ "NewsMediaOrganization ethicsPolicy page.", [ "Cover conflicts of interest, gifts, sponsorships, anonymous sources, AI use if applicable, and disclosure standards.", "Explain how ethical concerns are escalated.", "This page URL can populate NewsMediaOrganization.ethicsPolicy." ] ],
-            "diversity_policy" => [ "NewsMediaOrganization diversityPolicy page.", [ "Explain newsroom diversity commitments for staffing, sources, and coverage.", "Describe review cadence and accountability.", "This page URL can populate NewsMediaOrganization.diversityPolicy." ] ],
-            "diversity_staffing_report" => [ "NewsMediaOrganization diversityStaffingReport page.", [ "Publish or summarize staffing diversity data and reporting period.", "Explain methodology and limitations.", "This page URL can populate NewsMediaOrganization.diversityStaffingReport." ] ],
-            "masthead" => [ "NewsMediaOrganization masthead page.", [ "List editorial leadership and accountability contacts.", "Separate editorial leadership from business or advertising leadership.", "This page URL can populate NewsMediaOrganization.masthead." ] ],
-            "mission_coverage_priorities_policy" => [ "NewsMediaOrganization missionCoveragePrioritiesPolicy page.", [ "Explain beats, audience, public mission, and coverage priorities.", "Describe how priorities are selected and reviewed.", "This page URL can populate NewsMediaOrganization.missionCoveragePrioritiesPolicy." ] ],
-            "no_bylines_policy" => [ "NewsMediaOrganization noBylinesPolicy page.", [ "Explain when staff, wire, newsroom, anonymous, or no bylines may be used.", "Describe accountability and editorial review for those articles.", "This page URL can populate NewsMediaOrganization.noBylinesPolicy." ] ],
-            "unnamed_sources_policy" => [ "NewsMediaOrganization unnamedSourcesPolicy page.", [ "Explain when unnamed sources are permitted.", "Describe editorial approval, verification requirements, and reader disclosure standards.", "This page URL can populate NewsMediaOrganization.unnamedSourcesPolicy." ] ],
-            "actionable_feedback_policy" => [ "NewsMediaOrganization actionableFeedbackPolicy page.", [ "Explain how readers submit feedback, corrections, tips, and concerns.", "Describe review ownership and expected response workflow.", "This page URL can populate NewsMediaOrganization.actionableFeedbackPolicy." ] ],
-            "ownership_funding" => [ "Ownership and funding disclosure page.", [ "State ownershipFundingInfo: [smp_publication_field field=ownership_funding_info format=text].", "List parent organization if applicable.", "Explain funding sources and editorial independence." ] ],
-            "advertise" => [ "Advertising and partnership page.", [ "Explain available advertising or sponsorship opportunities.", "State how sponsored content is labeled and separated from editorial decisions.", "Provide business contact path." ] ],
-            "advertise_with_us" => [ "Advertising inquiry and partnership page.", [ "Explain available advertising, sponsorship, newsletter, display, branded content, event, or partnership opportunities.", "State how sponsored placements are labeled and separated from editorial decisions.", "Provide the advertising contact path and expected response workflow." ] ],
-            "accessibility" => [ "Accessibility commitment page.", [ "State accessibility goals and supported standards.", "Explain known limitations and remediation process.", "Provide a contact path for accessibility barriers." ] ],
-        ];
-
         $templates = [];
         foreach ( self::page_types() as $type => $config ) {
-            $data = $specifics[ $type ] ?? [ (string) $config["description"], [ (string) $config["description"], "Reference publication fields with shortcodes where values may change.", "Replace starter text before publishing." ] ];
-            $templates[ $type ] = $build( (string) $config["label"], (string) $data[0], (array) $data[1] );
+            if ( empty( $config['template'] ) ) {
+                continue;
+            }
+            $templates[ $type ] = '[smp_publication_page_template type=' . sanitize_key( (string) $type ) . ']';
         }
-
-        $templates["become_contributor"] = <<<HTML
-<h2>Become a Contributor</h2>
-
-<p><strong>Publication:</strong> [smp_publication_field field=legal_name format=text]</p>
-<p><strong>Website:</strong> [smp_publication_field field=website format=text]</p>
-<p><strong>Pitch contact:</strong> <a href="mailto:[smp_publication_field field=contact_email format=text]">[smp_publication_field field=contact_email format=text]</a></p>
-
-<p>At [smp_publication_field field=legal_name format=text], we recognize that personal narratives, field expertise, and reported analysis can shift how readers understand the industries, communities, and technology shaping their daily lives.</p>
-
-<p>[smp_publication_field field=mission_statement format=html]</p>
-
-<h3>What we cover</h3>
-<p>We publish contributor work that fits the editorial focus of [smp_publication_field field=legal_name format=text]. Current coverage priorities include: [smp_publication_field field=knows_about format=text].</p>
-
-<p>If you want to contribute to [smp_publication_field field=legal_name format=text] and share your expertise with our community, we invite you to apply as a contributor. Please follow these guidelines when proposing an article.</p>
-
-<h3>Contributor guidelines</h3>
-<ul>
-<li>A [smp_publication_field field=legal_name format=text] piece should be original, authentic, and engaging.</li>
-<li>We feature writers from diverse backgrounds and identities, each offering a distinct voice and perspective.</li>
-<li>Your article should fit our editorial mission, audience, and publication focus.</li>
-<li>Your article must be exclusive to [smp_publication_field field=legal_name format=text] and should not have been published anywhere else.</li>
-<li>If you have already pitched the article elsewhere, disclose that in your message.</li>
-</ul>
-
-<h3>A strong pitch should include</h3>
-<ul>
-<li>A concise summary of your article idea.</li>
-<li>The expertise, experience, or reporting access you bring to the topic.</li>
-<li>What readers will gain from reading the article.</li>
-<li>A rough article structure, including the proposed beginning and ending.</li>
-<li>A draft pasted into the email body, if one is already available.</li>
-<li>A clear, informative headline as the email subject.</li>
-<li>A note in the subject line if the pitch is time-sensitive.</li>
-<li>A brief description of prior writing experience and links to published work, if applicable.</li>
-</ul>
-
-<h3>How to pitch</h3>
-<p>Email your pitch to <a href="mailto:[smp_publication_field field=contact_email format=text]">[smp_publication_field field=contact_email format=text]</a>.</p>
-HTML;
-
-
         return $templates;
     }
+
 
 }

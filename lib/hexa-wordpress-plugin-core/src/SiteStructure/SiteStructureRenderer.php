@@ -121,7 +121,7 @@ final class SiteStructureRenderer {
         $page    = $page_id > 0 && function_exists( 'get_post' ) ? get_post( $page_id ) : null;
         $is_set  = $this->manager->is_assigned_page_set( $page_key );
         $title   = (string) ( $page_data['title'] ?? $page_key );
-        $slug    = (string) ( $page_data['slug'] ?? $page_key );
+        $slug    = $this->manager->suggested_page_slug( $page_key, $page_data );
 
         ob_start();
         ?>

@@ -30,6 +30,7 @@ SiteStructureRenderer
 The host plugin provides:
 
 - `pages`: nested page blueprint keyed by stable page keys.
+- `slug_prefix` or `slug_generator`: optional reusable slug generation for hosts that want plugin-prefixed suggested slugs when a page definition does not provide an explicit `slug`.
 - `menu_structures`: named menu blueprints with `page_keys`.
 - `option_prefix`: where assigned page IDs are stored when callback storage is not used.
 - `template_option_prefix`, `default_templates`, or template callbacks when starter text should be stored or applied to created pages.
@@ -55,10 +56,10 @@ $manager = new PageStructureManager([
     'managed_key_meta_key' => '_example_page_key',
     'pages' => [
         'profile' => [
-            'title' => 'Profile',
-            'slug' => 'profile',
+            "title" => "Profile",
+            // Slug omitted; core generates it from the title and optional slug_prefix.
             'children' => [
-                'education' => ['title' => 'Education', 'slug' => 'education'],
+                "education" => ["title" => "Education"],
             ],
         ],
     ],

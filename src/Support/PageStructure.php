@@ -40,6 +40,7 @@ final class PageStructure {
                 'select_post_statuses' => [ 'publish', 'draft', 'private', 'pending' ],
                 'assignment_statuses'  => [ 'publish', 'draft', 'private', 'pending' ],
                 'reuse_existing_pages' => true,
+                'slug_prefix'          => 'smp',
                 'default_templates'    => Settings::default_page_templates(),
                 'assignment_getter'    => [ self::class, 'assigned_page_id' ],
                 'assignment_saver'     => [ self::class, 'save_assignment' ],
@@ -75,7 +76,6 @@ final class PageStructure {
             $title = (string) ( $config['label'] ?? $key );
             $pages[ (string) $key ] = [
                 'title'       => $title,
-                'slug'        => sanitize_title( $title ),
                 'description' => (string) ( $config['description'] ?? '' ),
                 'template'    => ! empty( $config['template'] ),
             ];
