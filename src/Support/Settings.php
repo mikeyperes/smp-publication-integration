@@ -64,6 +64,11 @@ final class Settings {
             'post_summary_acf_enabled' => false,
             'post_faqs_acf_enabled' => false,
             'article_types_enabled' => false,
+            "breadcrumbs_enabled" => true,
+            "breadcrumbs_style" => "bc-b2",
+            "breadcrumbs_accent_color" => "#d63428",
+            "breadcrumbs_font_size" => 13,
+            "breadcrumbs_disabled_post_types" => [],
             'table_of_contents_enabled' => false,
             'table_of_contents_auto_single' => false,
             "table_of_contents_style" => "toc02",
@@ -160,7 +165,7 @@ final class Settings {
                 continue;
             }
 
-            if ( in_array( $key, [ "muckrack_icon_size", "publication_muckrack_font_size", "table_of_contents_text_font_size", "inline_photo_caption_font_size", "featured_image_caption_font_size", "post_faqs_text_font_size", "muckrack_icon_size_single_author", "muckrack_icon_size_single_footer", "muckrack_icon_size_loop_cards", "muckrack_icon_size_home", "muckrack_icon_size_author" ], true ) ) {
+            if ( in_array( $key, [ "muckrack_icon_size", "publication_muckrack_font_size", "breadcrumbs_font_size", "table_of_contents_text_font_size", "inline_photo_caption_font_size", "featured_image_caption_font_size", "post_faqs_text_font_size", "muckrack_icon_size_single_author", "muckrack_icon_size_single_footer", "muckrack_icon_size_loop_cards", "muckrack_icon_size_home", "muckrack_icon_size_author" ], true ) ) {
                 $value = absint( $value );
                 if ( 0 === strpos( $key, "muckrack_icon_size_" ) ) {
                     $settings[ $key ] = 0 === $value ? 0 : max( 8, min( 64, $value ) );
@@ -168,6 +173,7 @@ final class Settings {
                 }
                 $font_size_defaults = [
                     "publication_muckrack_font_size" => 14,
+                    "breadcrumbs_font_size" => 13,
                     "table_of_contents_text_font_size" => 15,
                     "inline_photo_caption_font_size" => 16,
                     "featured_image_caption_font_size" => 16,
@@ -194,6 +200,7 @@ final class Settings {
             }
 
             $style_options = [
+                "breadcrumbs_style" => [ "bc-b1", "bc-b2", "bc-b3", "bc-b4", "bc-b5" ],
                 "table_of_contents_style" => [ "none", "toc00", "toc01", "toc02", "toc03", "toc04" ],
                 "inline_photo_treatment" => [ "none", "fig1", "fig2", "fig4", "fig5" ],
                 "featured_image_caption_template" => [ "none", "fig1", "fig2", "fig4", "fig5" ],
@@ -215,7 +222,7 @@ final class Settings {
                 continue;
             }
 
-            if ( in_array( $key, [ 'founders_enabled', 'shadow_posts_enabled', 'shadow_press_releases', 'author_social_cleanup', 'public_debug_enabled', 'estimated_read_time_enabled', 'elementor_css_cache_busting', 'publication_social_cleanup', 'muckrack_verified_enabled', 'muckrack_author_always_show', 'publication_muckrack_verified_enabled', 'press_release_include_enabled', 'post_summary_acf_enabled', 'post_faqs_acf_enabled', 'article_types_enabled', 'table_of_contents_enabled', 'table_of_contents_auto_single', 'rank_math_breadcrumb_check_enabled', 'hws_masked_admin_report_enabled' ], true ) ) {
+            if ( in_array( $key, [ 'founders_enabled', 'shadow_posts_enabled', 'shadow_press_releases', 'author_social_cleanup', 'public_debug_enabled', 'estimated_read_time_enabled', 'elementor_css_cache_busting', 'publication_social_cleanup', 'muckrack_verified_enabled', 'muckrack_author_always_show', 'publication_muckrack_verified_enabled', 'press_release_include_enabled', 'post_summary_acf_enabled', 'post_faqs_acf_enabled', 'article_types_enabled', 'breadcrumbs_enabled', 'table_of_contents_enabled', 'table_of_contents_auto_single', 'rank_math_breadcrumb_check_enabled', 'hws_masked_admin_report_enabled' ], true ) ) {
                 $settings[ $key ] = (bool) $value;
                 continue;
             }
@@ -261,8 +268,9 @@ final class Settings {
                 continue;
             }
 
-            if ( in_array( $key, [ "table_of_contents_accent_color", "table_of_contents_text_color", "inline_photo_accent_color", "inline_photo_caption_text_color", "featured_image_caption_accent_color", "featured_image_caption_text_color", "post_faqs_accent_color", "post_faqs_text_color" ], true ) ) {
+            if ( in_array( $key, [ "breadcrumbs_accent_color", "table_of_contents_accent_color", "table_of_contents_text_color", "inline_photo_accent_color", "inline_photo_caption_text_color", "featured_image_caption_accent_color", "featured_image_caption_text_color", "post_faqs_accent_color", "post_faqs_text_color" ], true ) ) {
                 $color_defaults = [
+                    "breadcrumbs_accent_color" => "#d63428",
                     "table_of_contents_accent_color" => "#2563eb",
                     "table_of_contents_text_color" => "#1f2937",
                     "inline_photo_accent_color" => "#d63428",
@@ -295,6 +303,12 @@ final class Settings {
                 $allowed = [ 'home', 'category_tag', 'author', 'single_recent' ];
                 $items = is_array( $value ) ? array_map( 'sanitize_key', $value ) : [];
                 $settings[ $key ] = array_values( array_intersect( $allowed, $items ) );
+                continue;
+            }
+
+            if ( "breadcrumbs_disabled_post_types" === $key ) {
+                $items = is_array( $value ) ? array_map( "sanitize_key", $value ) : [];
+                $settings[ $key ] = array_values( array_filter( $items, "post_type_exists" ) );
                 continue;
             }
         }

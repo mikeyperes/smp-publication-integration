@@ -933,6 +933,8 @@ final class Dashboard {
         $this->feature_card( "Press-release inclusion controls", "press_release_include_enabled", "Uses existing press-release CPT and _smpi_pr_shadow_override meta. ACF/local fields are registered for force include or force exclude.", "Includes Hexa PR Wire press-release posts in selected blog-like loops: home, category/tag, author.php, and single.php recent article secondary queries. Force exclude is honored through the press-release visibility meta box.", "add_action(\"pre_get_posts\", function (WP_Query \$q) { /* SMP uses the same main-query guard pattern and selected contexts. */ });", $this->press_release_report_html(), $this->activity_log_html(), $this->context_select_html( "press_release_include_contexts", [ "home" => "Home page", "category_tag" => "Category and tag pages", "author" => "author.php", "single_recent" => "single.php recent article queries" ], $settings ) );
         $this->feature_card( "Article type schema selector", "", "Moved to the Custom Fields tab. Registers the <code>smpi_article_type</code> taxonomy only when enabled there.", "Adds one radio-only Article Type box to supported article editors. The field is hidden when disabled and only allows predefined schema-backed values.", "editorial-news => NewsArticle\nanalysis => AnalysisNewsArticle\nopinion => OpinionNewsArticle\nreportage => ReportageNewsArticle\npress-release => Article\nsponsored => AdvertiserContentArticle", $this->article_type_selector_report_html(), $this->activity_log_html(), "<p class=\"smpi-muted\">Registration toggle lives in Custom Fields.</p>" . $this->article_type_selector_options_html() );
         $this->feature_card( "Estimated read time", "estimated_read_time_enabled", "No custom ACF fields needed. Reads the selected post content directly.", "Calculates reading time from post_content after stripping HTML and shortcodes. The shortcode returns a plain numeric value in minutes by default or seconds when unit=seconds is passed.", "[smp_estimated_read_time]\n[smp_estimated_read_time unit=\"seconds\"]\n[smp_estimated_read_time post_id=\"123\" unit=\"minutes\"]", $this->estimated_read_time_report_html(), $this->activity_log_html() );
+        $breadcrumb_controls = $this->select_setting_html( "breadcrumbs_style", $this->breadcrumb_style_options(), $settings, "Breadcrumb template" ) . $this->color_setting_html( "breadcrumbs_accent_color", "Breadcrumb primary color", $settings ) . $this->number_setting_html( "breadcrumbs_font_size", "Breadcrumb font size", $settings, 8, 64, "px" ) . $this->context_select_html( "breadcrumbs_disabled_post_types", $this->breadcrumb_post_type_options(), $settings, "Disable on custom post type single templates" );
+        $this->feature_card( "Breadcrumbs", "breadcrumbs_enabled", "Registers a Hexa core-generated ACF multi post selector on Publication Theme Options: <code>smpi_breadcrumb_disabled_objects</code>. No repeater.", "Injects a selected Rank Math-compatible breadcrumb design directly below the site header on singular templates. Disable it by custom post type here, or by selecting individual posts/pages in the ACF field.", "[smp_breadcrumbs]\n[smp_breadcrumbs style=\"bc-b2\"]\nACF option: smpi_breadcrumb_disabled_objects", $this->breadcrumbs_report_html(), $this->activity_log_html(), $breadcrumb_controls );
         $toc_controls = $this->inline_toggle_setting_html( "table_of_contents_auto_single", "Automatically show above single.php content" ) . $this->select_setting_html( "table_of_contents_style", $this->toc_style_options(), $settings, "Table of contents design" ) . $this->color_setting_html( "table_of_contents_accent_color", "Table of contents accent color", $settings ) . $this->font_style_setting_html( "table_of_contents_text_font_style", "Table of contents text font style", $settings ) . $this->number_setting_html( "table_of_contents_text_font_size", "Table of contents text font size", $settings, 8, 64, "px" ) . $this->color_setting_html( "table_of_contents_text_color", "Table of contents text color", $settings );
         $this->feature_card( "Table of contents", "table_of_contents_enabled", "No ACF changes. Parses post headings from post_content.", "Adds [smp_table_of_contents] and optional automatic display above single.php content. Select the single.php display treatment here or use style= on the shortcode.", "[smp_table_of_contents]\n[smp_table_of_contents style=\"toc02\"]\n[smp_table_of_contents post_id=\"123\" title=\"In this article\"]", $this->table_of_contents_report_html(), $this->activity_log_html(), $toc_controls );
         $inline_photo_controls = $this->select_setting_html( "inline_photo_treatment", $this->inline_photo_treatment_options(), $settings, "Inline photo treatment" ) . $this->color_setting_html( "inline_photo_accent_color", "Inline photo accent color", $settings ) . $this->font_style_setting_html( "inline_photo_caption_font_style", "Caption text font style", $settings ) . $this->number_setting_html( "inline_photo_caption_font_size", "Caption text font size", $settings, 8, 64, "px" ) . $this->color_setting_html( "inline_photo_caption_text_color", "Caption text color", $settings );
@@ -1035,6 +1037,24 @@ final class Dashboard {
         return $html . "</div><span class=spinner></span><span class=\"smpi-save-state\" aria-live=\"polite\"></span></div>";
     }
 
+    private function breadcrumb_style_options(): array {
+        return [
+            "bc-b1" => [ "label" => "Option 1: Tinted Band + Title", "description" => "Page title above a soft brand-tinted band; breadcrumb beneath in muted text.", "preview" => $this->breadcrumb_design_preview_html( "bc-b1" ) ],
+            "bc-b2" => [ "label" => "Option 2: Minimal Hairline", "description" => "Thin row over a hairline divider, chevron separators, current page in bold ink.", "preview" => $this->breadcrumb_design_preview_html( "bc-b2" ) ],
+            "bc-b3" => [ "label" => "Option 3: Uppercase Eyebrow", "description" => "Letter-spaced uppercase crumbs over a short accent rule.", "preview" => $this->breadcrumb_design_preview_html( "bc-b3" ) ],
+            "bc-b4" => [ "label" => "Option 4: Soft Chips", "description" => "Each crumb is a rounded chip; current page becomes a filled accent pill.", "preview" => $this->breadcrumb_design_preview_html( "bc-b4" ) ],
+            "bc-b5" => [ "label" => "Option 5: Gradient Lead-in", "description" => "Breadcrumb above a large serif headline on a soft top-down gradient.", "preview" => $this->breadcrumb_design_preview_html( "bc-b5" ) ],
+        ];
+    }
+
+    private function breadcrumb_post_type_options(): array {
+        $options = [];
+        foreach ( get_post_types( [ "public" => true, "_builtin" => false ], "objects" ) as $type => $object ) {
+            $options[ $type ] = isset( $object->labels->name ) ? (string) $object->labels->name : $type;
+        }
+        return $options;
+    }
+
     private function toc_style_options(): array {
         return [
             "none" => [ "label" => "No style", "description" => "Bare list markup only.", "preview" => $this->toc_design_preview_html( "none" ) ],
@@ -1097,6 +1117,15 @@ final class Dashboard {
         if ( "toc02" === $style ) { return "On this page"; }
         if ( "toc04" === $style ) { return "Jump to"; }
         return "Table of Contents";
+    }
+
+    private function breadcrumb_design_preview_html( string $style ): string {
+        $style = \smp_publication_integration\Content\ArticleStyles::normalize_breadcrumb_style( $style );
+        $title = "Amazon Shelves Guadagnino Film";
+        $crumbs = "<nav aria-label=\"breadcrumbs\" class=\"rank-math-breadcrumb\"><p><a href=\"#\">Home</a><span class=\"separator\"> - </span><a href=\"#\">Entertainment</a><span class=\"separator\"> - </span><span class=\"last\">" . esc_html( $title ) . "</span></p></nav>";
+        $title_html = in_array( $style, [ "bc-b1", "bc-b5" ], true ) ? "<div class=\"pt\">" . esc_html( $title ) . "</div>" : "";
+        $inner = "bc-b5" === $style ? $crumbs . $title_html : $title_html . $crumbs;
+        return "<div class=\"smpi-breadcrumbs smpi-" . esc_attr( $style ) . "\">" . $inner . "</div>";
     }
 
     private function toc_design_preview_html( string $style ): string {
@@ -1219,8 +1248,18 @@ final class Dashboard {
                 "author" => "Allows press releases to appear on author archive pages.",
                 "single_recent" => "Allows press releases in recent-article modules shown on single posts.",
             ],
+            "breadcrumbs_disabled_post_types" => $this->breadcrumb_post_type_descriptions(),
         ];
         return $descriptions[ $key ][ $value ] ?? "Controls where this feature is allowed to run on the front end.";
+    }
+
+    private function breadcrumb_post_type_descriptions(): array {
+        $descriptions = [];
+        foreach ( get_post_types( [ "public" => true, "_builtin" => false ], "objects" ) as $type => $object ) {
+            $label = isset( $object->labels->singular_name ) ? (string) $object->labels->singular_name : $type;
+            $descriptions[ $type ] = "Do not inject SMP breadcrumbs on single " . $label . " templates.";
+        }
+        return $descriptions;
     }
 
     private function author_icon_preview_html( array $settings, string $style = "" ): string {
@@ -1377,6 +1416,19 @@ final class Dashboard {
         $summary_registered = function_exists( "acf_get_field" ) && (bool) acf_get_field( "field_65ab7ba0e849b" );
         $faqs_registered = function_exists( "acf_get_field" ) && (bool) acf_get_field( "field_smpi_post_faq_items" );
         return "Post Summary enabled: " . ( $summary_enabled ? "yes" : "no" ) . "; registered: " . ( $summary_registered ? "yes" : "no" ) . ". Post FAQs enabled: " . ( $faqs_enabled ? "yes" : "no" ) . "; registered: " . ( $faqs_registered ? "yes" : "no" ) . ".";
+    }
+
+    private function breadcrumbs_report_html(): string {
+        $report = \smp_publication_integration\Content\Breadcrumbs::integrity_report();
+        $disabled = ! empty( $report["disabled_post_types"] ) ? implode( ", ", array_map( "strval", $report["disabled_post_types"] ) ) : "none";
+        $html = $this->simple_status_html( ! empty( $report["enabled"] ), "Breadcrumb feature: " . ( ! empty( $report["enabled"] ) ? "enabled" : "disabled" ) . ". Rank Math renderer available: " . ( ! empty( $report["rank_math_active"] ) ? "yes" : "fallback renderer will be used" ) . "." );
+        $html .= "<table class=\"widefat striped\"><tbody>";
+        $html .= "<tr><th>Current template</th><td><code>" . esc_html( (string) $report["style"] ) . "</code></td></tr>";
+        $html .= "<tr><th>Disabled custom post types</th><td><code>" . esc_html( $disabled ) . "</code></td></tr>";
+        $html .= "<tr><th>ACF disabled posts/pages selected</th><td><code>" . esc_html( (string) (int) $report["disabled_object_count"] ) . "</code></td></tr>";
+        $html .= "<tr><th>Shortcode</th><td><code>" . esc_html( (string) $report["shortcode"] ) . "</code></td></tr>";
+        $html .= "<tr><th>Sample proof URL</th><td>" . ( "" !== (string) $report["sample_url"] ? "<a target=\"_blank\" rel=\"noopener noreferrer\" href=\"" . esc_url( (string) $report["sample_url"] ) . "\">Open sample</a>" : "<span class=smpi-warn>No published sample found</span>" ) . "</td></tr>";
+        return $html . "</tbody></table>";
     }
 
     private function table_of_contents_report_html(): string {
@@ -1851,7 +1903,7 @@ final class Dashboard {
             $(document).on(`input`,`.smpi-color-setting,.smpi-color-picker`,function(){var input=$(this),wrap=input.closest(`.smpi-color-control`);smpiSyncColor(wrap,input.val(),false)});
             $(document).on(`change`,`.smpi-color-picker`,function(){var input=$(this),key=input.data(`smpi-sync-key`),hidden=$(`.smpi-color-hidden[data-key="${key}"]`).first(),hex=smpiHex(input.val());smpiSyncColor(input.closest(`.smpi-color-control`),hex,false);hidden.val(hex).trigger(`change`)});
             $(document).on(`click`,`.smpi-color-inherit`,function(){var b=$(this),key=b.data(`smpi-sync-key`),hidden=$(`.smpi-color-hidden[data-key="${key}"]`).first(),picker=$(`.smpi-color-picker[data-smpi-sync-key="${key}"]`).first();hidden.val(``).trigger(`change`);smpiSyncColor(b.closest(`.smpi-color-control`),picker.val(),true)});
-            var smpiPV={'table_of_contents_accent_color':['--smpi-toc-accent',''],'table_of_contents_text_color':['--smpi-toc-text',''],'table_of_contents_text_font_size':['--smpi-toc-size','px'],'table_of_contents_text_font_style':['--smpi-toc-fstyle',''],'post_faqs_accent_color':['--smpi-faq-accent',''],'post_faqs_text_color':['--smpi-faq-text',''],'post_faqs_text_font_size':['--smpi-faq-size','px'],'post_faqs_text_font_style':['--smpi-faq-fstyle',''],'inline_photo_accent_color':['--smpi-photo-accent',''],'inline_photo_caption_text_color':['--smpi-photo-cap-color',''],'inline_photo_caption_font_size':['--smpi-photo-cap-size','px'],'inline_photo_caption_font_style':['--smpi-photo-cap-fstyle',''],'featured_image_caption_accent_color':['--smpi-fi-accent',''],'featured_image_caption_text_color':['--smpi-fi-cap-color',''],'featured_image_caption_font_size':['--smpi-fi-cap-size','px'],'featured_image_caption_font_style':['--smpi-fi-cap-fstyle','']};
+            var smpiPV={'breadcrumbs_accent_color':['--smpi-bc-accent',''],'breadcrumbs_font_size':['--smpi-bc-font-size','px'],'table_of_contents_accent_color':['--smpi-toc-accent',''],'table_of_contents_text_color':['--smpi-toc-text',''],'table_of_contents_text_font_size':['--smpi-toc-size','px'],'table_of_contents_text_font_style':['--smpi-toc-fstyle',''],'post_faqs_accent_color':['--smpi-faq-accent',''],'post_faqs_text_color':['--smpi-faq-text',''],'post_faqs_text_font_size':['--smpi-faq-size','px'],'post_faqs_text_font_style':['--smpi-faq-fstyle',''],'inline_photo_accent_color':['--smpi-photo-accent',''],'inline_photo_caption_text_color':['--smpi-photo-cap-color',''],'inline_photo_caption_font_size':['--smpi-photo-cap-size','px'],'inline_photo_caption_font_style':['--smpi-photo-cap-fstyle',''],'featured_image_caption_accent_color':['--smpi-fi-accent',''],'featured_image_caption_text_color':['--smpi-fi-cap-color',''],'featured_image_caption_font_size':['--smpi-fi-cap-size','px'],'featured_image_caption_font_style':['--smpi-fi-cap-fstyle','']};
             $(document).on(`input change`,`.smpi-setting`,function(){var k=$(this).data(`key`),m=smpiPV[k];if(!m)return;var host=document.querySelector(`.smpi-design-host`);if(host){host.style.setProperty(m[0],String($(this).val())+m[1])}});
             var userTimer=null;
             function lockUserCard(u){return `<div class="smpi-profile-card"><div class="smpi-profile-avatar"><img src="${u.avatar}" alt=""></div><div class="smpi-profile-info"><h3>${u.name||u.label}</h3><p><span class="dashicons dashicons-email"></span> ${u.email||``}</p><p><a class="button button-secondary" target="_blank" rel="noopener noreferrer" href="${u.edit_url}">Edit Profile</a> <a class="button button-secondary" target="_blank" rel="noopener noreferrer" href="${u.view_url}">View Author Page</a></p></div></div>`}

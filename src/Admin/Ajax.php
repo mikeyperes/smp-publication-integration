@@ -75,7 +75,7 @@ final class Ajax {
 
     public function save_settings( AjaxRequest $request ): array {
         $changes = [];
-        foreach ( [ "founders_enabled", "shadow_posts_enabled", "shadow_press_releases", "post_list_defaults_enabled", "author_social_cleanup", "public_debug_enabled", "estimated_read_time_enabled", "elementor_css_cache_busting", "publication_social_cleanup", "muckrack_verified_enabled", "muckrack_author_always_show", "publication_muckrack_verified_enabled", "press_release_include_enabled", "post_summary_acf_enabled", "post_faqs_acf_enabled", "article_types_enabled", "table_of_contents_enabled", "table_of_contents_auto_single", "inline_photo_treatments_enabled", "featured_image_caption_templates_enabled", "rank_math_breadcrumb_check_enabled", "hws_masked_admin_report_enabled" ] as $key ) {
+        foreach ( [ "founders_enabled", "shadow_posts_enabled", "shadow_press_releases", "post_list_defaults_enabled", "author_social_cleanup", "public_debug_enabled", "estimated_read_time_enabled", "elementor_css_cache_busting", "publication_social_cleanup", "muckrack_verified_enabled", "muckrack_author_always_show", "publication_muckrack_verified_enabled", "press_release_include_enabled", "post_summary_acf_enabled", "post_faqs_acf_enabled", "article_types_enabled", "breadcrumbs_enabled", "table_of_contents_enabled", "table_of_contents_auto_single", "inline_photo_treatments_enabled", "featured_image_caption_templates_enabled", "rank_math_breadcrumb_check_enabled", "hws_masked_admin_report_enabled" ] as $key ) {
             if ( $request->has( $key, 'post' ) ) {
                 $changes[ $key ] = $request->bool( $key, false, 'post' );
             }
@@ -85,7 +85,7 @@ final class Ajax {
                 $changes[ $key ] = $request->int( $key, 0, 'post' );
             }
         }
-        foreach ( [ "muckrack_icon_size" => [ 8, 64, 22 ], "publication_muckrack_font_size" => [ 8, 64, 14 ], "table_of_contents_text_font_size" => [ 8, 64, 15 ], "inline_photo_caption_font_size" => [ 8, 64, 16 ], "featured_image_caption_font_size" => [ 8, 64, 16 ], "post_faqs_text_font_size" => [ 8, 64, 16 ], "muckrack_icon_size_single_author" => [ 0, 64, 0 ], "muckrack_icon_size_single_footer" => [ 0, 64, 0 ], "muckrack_icon_size_loop_cards" => [ 0, 64, 0 ], "muckrack_icon_size_home" => [ 0, 64, 0 ], "muckrack_icon_size_author" => [ 0, 64, 0 ] ] as $key => $limits ) {
+        foreach ( [ "muckrack_icon_size" => [ 8, 64, 22 ], "publication_muckrack_font_size" => [ 8, 64, 14 ], "breadcrumbs_font_size" => [ 8, 64, 13 ], "table_of_contents_text_font_size" => [ 8, 64, 15 ], "inline_photo_caption_font_size" => [ 8, 64, 16 ], "featured_image_caption_font_size" => [ 8, 64, 16 ], "post_faqs_text_font_size" => [ 8, 64, 16 ], "muckrack_icon_size_single_author" => [ 0, 64, 0 ], "muckrack_icon_size_single_footer" => [ 0, 64, 0 ], "muckrack_icon_size_loop_cards" => [ 0, 64, 0 ], "muckrack_icon_size_home" => [ 0, 64, 0 ], "muckrack_icon_size_author" => [ 0, 64, 0 ] ] as $key => $limits ) {
             if ( $request->has( $key, 'post' ) ) {
                 $value = $request->int( $key, 0, 'post' );
                 $changes[ $key ] = 0 === strpos( $key, "muckrack_icon_size_" ) && 0 === $value ? 0 : max( $limits[0], min( $limits[1], $value ?: $limits[2] ) );
@@ -107,18 +107,18 @@ final class Ajax {
                 }
             }
         }
-        foreach ( [ "table_of_contents_style", "inline_photo_treatment", "featured_image_caption_template", "post_summary_style", "post_faqs_style", "table_of_contents_text_font_style", "inline_photo_caption_font_style", "featured_image_caption_font_style", "post_faqs_text_font_style", 'post_time_mode', 'muckrack_verified_style', 'muckrack_icon_style', 'publication_muckrack_text_mode', 'publication_muckrack_style' ] as $key ) {
+        foreach ( [ "breadcrumbs_style", "table_of_contents_style", "inline_photo_treatment", "featured_image_caption_template", "post_summary_style", "post_faqs_style", "table_of_contents_text_font_style", "inline_photo_caption_font_style", "featured_image_caption_font_style", "post_faqs_text_font_style", 'post_time_mode', 'muckrack_verified_style', 'muckrack_icon_style', 'publication_muckrack_text_mode', 'publication_muckrack_style' ] as $key ) {
             if ( $request->has( $key, 'post' ) ) {
                 $changes[ $key ] = $request->key( $key, '', 'post' );
             }
         }
-        foreach ( [ 'muckrack_icon_color', 'muckrack_icon_color_single_author', 'muckrack_icon_color_single_footer', 'muckrack_icon_color_loop_cards', 'muckrack_icon_color_home', 'muckrack_icon_color_author', 'table_of_contents_accent_color', 'table_of_contents_text_color', 'inline_photo_accent_color', 'inline_photo_caption_text_color', 'featured_image_caption_accent_color', 'featured_image_caption_text_color', 'post_faqs_accent_color', 'post_faqs_text_color', 'publication_muckrack_color' ] as $color_key ) {
+        foreach ( [ 'muckrack_icon_color', 'muckrack_icon_color_single_author', 'muckrack_icon_color_single_footer', 'muckrack_icon_color_loop_cards', 'muckrack_icon_color_home', 'muckrack_icon_color_author', 'breadcrumbs_accent_color', 'table_of_contents_accent_color', 'table_of_contents_text_color', 'inline_photo_accent_color', 'inline_photo_caption_text_color', 'featured_image_caption_accent_color', 'featured_image_caption_text_color', 'post_faqs_accent_color', 'post_faqs_text_color', 'publication_muckrack_color' ] as $color_key ) {
             if ( $request->has( $color_key, 'post' ) ) {
                 $raw = trim( (string) $request->raw( $color_key, '', 'post' ) );
                 $changes[ $color_key ] = '' === $raw ? '' : sanitize_hex_color( $raw );
             }
         }
-        foreach ( [ 'muckrack_verified_contexts', 'publication_muckrack_placements', 'press_release_include_contexts' ] as $array_key ) {
+        foreach ( [ 'muckrack_verified_contexts', 'publication_muckrack_placements', 'press_release_include_contexts', 'breadcrumbs_disabled_post_types' ] as $array_key ) {
             if ( $request->has( $array_key, 'post' ) || $request->has( $array_key . '_present', 'post' ) ) {
                 $changes[ $array_key ] = $request->key_array( $array_key, 'post' );
             }

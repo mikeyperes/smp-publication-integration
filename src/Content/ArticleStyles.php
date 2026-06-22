@@ -22,18 +22,23 @@ final class ArticleStyles {
     }
 
     public function print_styles(): void {
-        $needs = Settings::bool( "inline_photo_treatments_enabled" ) || Settings::bool( "featured_image_caption_templates_enabled" ) || Settings::bool( "post_summary_acf_enabled" ) || Settings::bool( "post_faqs_acf_enabled" ) || Settings::bool( "table_of_contents_enabled" );
+        $needs = Settings::bool( "breadcrumbs_enabled" ) || Settings::bool( "inline_photo_treatments_enabled" ) || Settings::bool( "featured_image_caption_templates_enabled" ) || Settings::bool( "post_summary_acf_enabled" ) || Settings::bool( "post_faqs_acf_enabled" ) || Settings::bool( "table_of_contents_enabled" );
         if ( ! $needs ) {
             return;
         }
         $photo = self::normalize_inline_photo_style( (string) Settings::get( "inline_photo_treatment", "none" ) );
         $featured = self::normalize_featured_image_caption_style( (string) Settings::get( "featured_image_caption_template", "fig2" ) );
-        echo "<style id=smpi-article-style-controls>" . self::frontend_vars_css() . self::toc_css() . self::post_acf_css() . self::inline_photo_css( $photo ) . self::featured_image_caption_css( $featured ) . "</style>";
+        echo "<style id=smpi-article-style-controls>" . self::frontend_vars_css() . self::breadcrumbs_css() . self::toc_css() . self::post_acf_css() . self::inline_photo_css( $photo ) . self::featured_image_caption_css( $featured ) . "</style>";
     }
 
     public static function normalize_toc_style( string $style = "" ): string {
         $style = sanitize_key( "" !== $style ? $style : (string) Settings::get( "table_of_contents_style", "toc02" ) );
         return in_array( $style, [ "none", "toc00", "toc01", "toc02", "toc03", "toc04" ], true ) ? $style : "toc02";
+    }
+
+    public static function normalize_breadcrumb_style( string $style = "" ): string {
+        $style = sanitize_key( "" !== $style ? $style : (string) Settings::get( "breadcrumbs_style", "bc-b2" ) );
+        return in_array( $style, [ "bc-b1", "bc-b2", "bc-b3", "bc-b4", "bc-b5" ], true ) ? $style : "bc-b2";
     }
 
     public static function normalize_inline_photo_style( string $style = "" ): string {
@@ -92,6 +97,8 @@ final class ArticleStyles {
      * ------------------------------------------------------------------- */
     private static function frontend_vars_css(): string {
         $css = "";
+        $bc = self::breadcrumb_var_values();
+        $css .= ".smpi-breadcrumbs{--smpi-bc-accent:" . $bc["accent"] . ";--smpi-bc-tint:" . $bc["tint"] . ";--smpi-bc-font-size:" . $bc["size"] . "}";
         $toc = self::toc_var_values();
         $css .= ".smpi-table-of-contents{--smpi-toc-accent:" . $toc["accent"] . ";--smpi-toc-text:" . $toc["text"] . ";--smpi-toc-size:" . $toc["size"] . ";--smpi-toc-fstyle:" . $toc["fstyle"] . "}";
         $faq = self::faq_var_values();
@@ -105,6 +112,15 @@ final class ArticleStyles {
             $css .= "body.single-post,body.single-press-release{--smpi-fi-accent:" . $f["accent"] . ";--smpi-fi-cap-color:" . $f["color"] . ";--smpi-fi-cap-size:" . $f["size"] . ";--smpi-fi-cap-fstyle:" . $f["fstyle"] . "}";
         }
         return $css;
+    }
+
+    public static function breadcrumb_var_values(): array {
+        $accent = self::hex( Settings::get( "breadcrumbs_accent_color", "#d63428" ), "#d63428" );
+        return [
+            "accent" => $accent,
+            "tint"   => self::rgba( $accent, 0.07 ),
+            "size"   => self::px( Settings::get( "breadcrumbs_font_size", 13 ), 13 ),
+        ];
     }
 
     public static function toc_var_values(): array {
@@ -153,8 +169,29 @@ final class ArticleStyles {
         return ( $n >= 8 && $n <= 96 ? $n : $fallback ) . "px";
     }
 
+    private static function rgba( string $hex, float $alpha ): string {
+        $hex = ltrim( $hex, "#" );
+        if ( 3 === strlen( $hex ) ) {
+            $hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
+        }
+        if ( 6 !== strlen( $hex ) || ! ctype_xdigit( $hex ) ) {
+            $hex = "d63428";
+        }
+        $r = hexdec( substr( $hex, 0, 2 ) );
+        $g = hexdec( substr( $hex, 2, 2 ) );
+        $b = hexdec( substr( $hex, 4, 2 ) );
+        return "rgba(" . $r . "," . $g . "," . $b . "," . max( 0, min( 1, $alpha ) ) . ")";
+    }
+
     private static function fstyle( $value ): string {
         return "italic" === (string) $value ? "italic" : "normal";
+    }
+
+    /* ---------------------------------------------------------------------
+     * Breadcrumbs
+     * ------------------------------------------------------------------- */
+    public static function breadcrumbs_css(): string {
+        return ".smpi-breadcrumbs{--smpi-bc-line:#e5e7eb;--smpi-bc-muted:#6b7280;--smpi-bc-ink:#111827;--smpi-bc-body:#374151;--smpi-bc-soft:#f7f8f9;box-sizing:border-box;max-width:var(--content-width,1120px);margin:0 auto;font-family:inherit;font-size:var(--smpi-bc-font-size,13px);clear:both}.smpi-breadcrumbs *{box-sizing:border-box}.smpi-breadcrumbs .rank-math-breadcrumb p{margin:0}.smpi-breadcrumbs .rank-math-breadcrumb a{text-decoration:none}.smpi-breadcrumbs .pt{font-family:Georgia,serif;font-weight:700;letter-spacing:-.01em}.smpi-bc-b1{background:var(--smpi-bc-tint,rgba(214,52,40,.07));padding:20px 24px}.smpi-bc-b1 .pt{font-size:25px;line-height:1.15;color:var(--smpi-bc-ink,#111827);margin:0 0 8px}.smpi-bc-b1 .rank-math-breadcrumb p{font-size:var(--smpi-bc-font-size,13px);color:var(--smpi-bc-muted,#6b7280);line-height:1.5}.smpi-bc-b1 .rank-math-breadcrumb a{color:var(--smpi-bc-accent,#d63428)}.smpi-bc-b1 .rank-math-breadcrumb a:hover{text-decoration:underline}.smpi-bc-b1 .rank-math-breadcrumb .separator{color:#b9b9b9}.smpi-bc-b1 .rank-math-breadcrumb .last{color:var(--smpi-bc-muted,#6b7280)}.smpi-bc-b2{padding:14px 24px;border-bottom:1px solid var(--smpi-bc-line,#e5e7eb)}.smpi-bc-b2 .rank-math-breadcrumb p{display:flex;flex-wrap:wrap;align-items:center;font-size:var(--smpi-bc-font-size,13px);color:var(--smpi-bc-muted,#6b7280)}.smpi-bc-b2 .rank-math-breadcrumb a{color:var(--smpi-bc-muted,#6b7280)}.smpi-bc-b2 .rank-math-breadcrumb a:hover{color:var(--smpi-bc-accent,#d63428)}.smpi-bc-b2 .rank-math-breadcrumb .separator{font-size:0;margin:0 9px}.smpi-bc-b2 .rank-math-breadcrumb .separator::after{content:\"\\203A\";font-size:14px;color:#c3c3c3}.smpi-bc-b2 .rank-math-breadcrumb .last{color:var(--smpi-bc-ink,#111827);font-weight:600}.smpi-bc-b3{padding:16px 24px;border-bottom:1px solid var(--smpi-bc-line,#e5e7eb);position:relative}.smpi-bc-b3::after{content:\"\";position:absolute;left:24px;bottom:-1px;width:46px;height:2px;background:var(--smpi-bc-accent,#d63428)}.smpi-bc-b3 .rank-math-breadcrumb p{font-size:var(--smpi-bc-font-size,11px);letter-spacing:.18em;text-transform:uppercase;color:var(--smpi-bc-muted,#6b7280)}.smpi-bc-b3 .rank-math-breadcrumb a{color:var(--smpi-bc-accent,#d63428);font-weight:600}.smpi-bc-b3 .rank-math-breadcrumb .separator{font-size:0;margin:0 8px}.smpi-bc-b3 .rank-math-breadcrumb .separator::after{content:\"/\";font-size:11px;letter-spacing:0;color:#ccc}.smpi-bc-b3 .rank-math-breadcrumb .last{color:var(--smpi-bc-ink,#111827)}.smpi-bc-b4{padding:14px 22px;background:var(--smpi-bc-soft,#f7f8f9);border-bottom:1px solid var(--smpi-bc-line,#e5e7eb)}.smpi-bc-b4 .rank-math-breadcrumb p{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.smpi-bc-b4 .rank-math-breadcrumb a,.smpi-bc-b4 .rank-math-breadcrumb .last{display:inline-block;padding:5px 13px;border-radius:999px;font-size:var(--smpi-bc-font-size,12px);line-height:1.4}.smpi-bc-b4 .rank-math-breadcrumb a{background:#fff;border:1px solid var(--smpi-bc-line,#e5e7eb);color:var(--smpi-bc-body,#374151)}.smpi-bc-b4 .rank-math-breadcrumb a:hover{border-color:var(--smpi-bc-accent,#d63428);color:var(--smpi-bc-accent,#d63428)}.smpi-bc-b4 .rank-math-breadcrumb .last{background:var(--smpi-bc-accent,#d63428);color:#fff;max-width:100%}.smpi-bc-b4 .rank-math-breadcrumb .separator{display:none}.smpi-bc-b5{padding:24px;background:linear-gradient(180deg,var(--smpi-bc-tint,rgba(214,52,40,.07)),#fff)}.smpi-bc-b5 .rank-math-breadcrumb p{font-size:var(--smpi-bc-font-size,12px);letter-spacing:.03em;color:var(--smpi-bc-muted,#6b7280);margin:0 0 11px}.smpi-bc-b5 .rank-math-breadcrumb a{color:var(--smpi-bc-accent,#d63428)}.smpi-bc-b5 .rank-math-breadcrumb .separator{font-size:0;margin:0 8px}.smpi-bc-b5 .rank-math-breadcrumb .separator::after{content:\"\\2014\";font-size:12px;color:#cdcdcd}.smpi-bc-b5 .rank-math-breadcrumb .last{color:var(--smpi-bc-muted,#6b7280)}.smpi-bc-b5 .pt{font-size:30px;line-height:1.12;color:var(--smpi-bc-ink,#111827);margin:0}@media(max-width:680px){.smpi-breadcrumbs{max-width:100%}.smpi-bc-b1,.smpi-bc-b2,.smpi-bc-b3,.smpi-bc-b4,.smpi-bc-b5{padding-left:16px;padding-right:16px}.smpi-bc-b1 .pt{font-size:21px}.smpi-bc-b5 .pt{font-size:24px}}";
     }
 
     /* ---------------------------------------------------------------------
@@ -244,7 +281,7 @@ final class ArticleStyles {
      * containers. This is the one-source-of-truth bundle.
      * ------------------------------------------------------------------- */
     public static function preview_bundle_css(): string {
-        $css = self::toc_css() . self::post_acf_css();
+        $css = self::breadcrumbs_css() . self::toc_css() . self::post_acf_css();
         foreach ( [ "fig1", "fig2", "fig4", "fig5" ] as $style ) {
             $sel = ".smpi-pp.smpi-pp-" . $style;
             $css .= self::inline_photo_rules( $style, $sel, $sel . " img", $sel . " figcaption" );
@@ -255,13 +292,14 @@ final class ArticleStyles {
         }
         // Current setting values become CSS variables on the host so every
         // preview reflects the live controls; JS updates these for real time.
+        $b = self::breadcrumb_var_values();
         $t = self::toc_var_values();
         $f = self::faq_var_values();
         $p = self::photo_var_values();
         $fp = self::featured_image_var_values();
-        $css .= ".smpi-design-host{--smpi-toc-accent:" . $t["accent"] . ";--smpi-toc-text:" . $t["text"] . ";--smpi-toc-size:" . $t["size"] . ";--smpi-toc-fstyle:" . $t["fstyle"] . ";--smpi-faq-accent:" . $f["accent"] . ";--smpi-faq-text:" . $f["text"] . ";--smpi-faq-size:" . $f["size"] . ";--smpi-faq-fstyle:" . $f["fstyle"] . ";--smpi-photo-accent:" . $p["accent"] . ";--smpi-photo-cap-color:" . $p["color"] . ";--smpi-photo-cap-size:" . $p["size"] . ";--smpi-photo-cap-fstyle:" . $p["fstyle"] . "}";
+        $css .= ".smpi-design-host{--smpi-bc-accent:" . $b["accent"] . ";--smpi-bc-tint:" . $b["tint"] . ";--smpi-bc-font-size:" . $b["size"] . ";--smpi-toc-accent:" . $t["accent"] . ";--smpi-toc-text:" . $t["text"] . ";--smpi-toc-size:" . $t["size"] . ";--smpi-toc-fstyle:" . $t["fstyle"] . ";--smpi-faq-accent:" . $f["accent"] . ";--smpi-faq-text:" . $f["text"] . ";--smpi-faq-size:" . $f["size"] . ";--smpi-faq-fstyle:" . $f["fstyle"] . ";--smpi-photo-accent:" . $p["accent"] . ";--smpi-photo-cap-color:" . $p["color"] . ";--smpi-photo-cap-size:" . $p["size"] . ";--smpi-photo-cap-fstyle:" . $p["fstyle"] . "}";
         // Keep previews contained inside the small sample cards.
-        $css .= ".smpi-choice-preview .smpi-table-of-contents,.smpi-choice-preview .smpi-post-summary,.smpi-choice-preview .smpi-post-faqs,.smpi-choice-preview .smpi-pp,.smpi-choice-preview .smpi-fi-preview{max-width:100%!important;margin:0!important}.smpi-choice-preview .smpi-pp,.smpi-choice-preview .smpi-fi-preview{display:block}.smpi-choice-preview .smpi-pp img,.smpi-choice-preview .smpi-fi-preview img{height:120px;width:100%;object-fit:cover}.smpi-choice-preview .smpi-table-of-contents a,.smpi-choice-preview .smpi-post-faqs-content>ul>li,.smpi-choice-preview .smpi-post-faqs-content>ol>li{font-size:13px}";
+        $css .= ".smpi-choice-preview .smpi-breadcrumbs,.smpi-choice-preview .smpi-table-of-contents,.smpi-choice-preview .smpi-post-summary,.smpi-choice-preview .smpi-post-faqs,.smpi-choice-preview .smpi-pp,.smpi-choice-preview .smpi-fi-preview{max-width:100%!important;margin:0!important}.smpi-choice-preview .smpi-pp,.smpi-choice-preview .smpi-fi-preview{display:block}.smpi-choice-preview .smpi-pp img,.smpi-choice-preview .smpi-fi-preview img{height:120px;width:100%;object-fit:cover}.smpi-choice-preview .smpi-table-of-contents a,.smpi-choice-preview .smpi-post-faqs-content>ul>li,.smpi-choice-preview .smpi-post-faqs-content>ol>li{font-size:13px}";
         return $css;
     }
 }

@@ -1,6 +1,7 @@
 <?php
 namespace smp_publication_integration\Content;
 
+use Hexa\PluginCore\AcfFieldFactory\AcfFieldFactory;
 use smp_publication_integration\Support\Dependencies;
 use smp_publication_integration\Support\Settings;
 
@@ -90,6 +91,7 @@ final class AcfFields {
                     [ "key" => "field_smpi_knows_about", "label" => "knowsAbout or keywords", "name" => "smpi_knows_about", "type" => "textarea", "instructions" => "Editorial coverage topics, comma or line separated. Example: technology, startups, sports business, venture capital, digital media.", "rows" => 3, "new_lines" => "br" ],
                     [ "key" => "field_smpi_publication_muckrack_verified", "label" => "Publication Verified by MuckRack", "name" => "smpi_publication_muckrack_verified", "type" => "true_false", "ui" => 1, "instructions" => "Marks this news outlet as verified by the MuckRack editorial team. Display placement is controlled in Settings > SMP Publication Integration > Features." ],
                     [ "key" => "field_smpi_publication_muckrack_url", "label" => "Publication MuckRack URL", "name" => "smpi_publication_muckrack_url", "type" => "url", "instructions" => "Public MuckRack outlet/profile URL used by the publication verification text." ],
+                    AcfFieldFactory::multiPostObject( [ "key" => "field_smpi_breadcrumb_disabled_objects", "label" => "Disable SMP Breadcrumbs On Specific Posts Or Pages", "name" => "smpi_breadcrumb_disabled_objects", "instructions" => "Select any posts, pages, or public custom post type entries where SMP breadcrumbs should not render. This is one multi-select field, not a repeater.", "post_types" => self::breadcrumb_disable_post_types() ] ),
                     [ 'key' => 'field_smpi_imported_source_url', 'label' => 'Imported Source URL', 'name' => 'smpi_imported_source_url', 'type' => 'url', 'instructions' => 'Reference-only source URL for imported publication records.' ],
                     [ 'key' => 'field_smpi_schema_markup', 'label' => 'Publication Schema Markup', 'name' => 'smpi_schema_markup', 'type' => 'textarea', 'instructions' => 'Generated JSON-LD for the current site publication. Refresh from the Schema tab.', 'rows' => 10, 'readonly' => 1 ],
                 ],
@@ -117,6 +119,12 @@ final class AcfFields {
             $actions[] = "<a class=\"button button-primary\" target=\"_blank\" rel=\"noopener noreferrer\" href=\"" . esc_url( wp_nonce_url( admin_url( "admin-post.php?action=smpi_enable_verified_profile_snippet&snippet=register_profile_general_acf_fields" ), "smpi_enable_verified_profile_snippet" ) ) . "\">Enable profile ACF fields</a>";
         }
         return $message . "<p>" . implode( " ", $actions ) . "</p>";
+    }
+
+    private static function breadcrumb_disable_post_types(): array {
+        $types = get_post_types( [ "public" => true ], "names" );
+        unset( $types["attachment"] );
+        return array_values( $types );
     }
 
     private function register_post_header_fields(): void {

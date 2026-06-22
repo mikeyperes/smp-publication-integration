@@ -75,6 +75,7 @@ final class Fields {
             "knows_about" => [ "knows_about", "keywords", "smpi_knows_about" ],
             "post_faq_items" => [ "post_faq_items", "smpi_post_faq_items" ],
             "post_faq_schema_enabled" => [ "post_faq_schema_enabled", "smpi_post_faq_schema_enabled" ],
+            "breadcrumb_disabled_objects" => [ "breadcrumb_disabled_objects", "breadcrumbs_disabled_objects", "smpi_breadcrumb_disabled_objects" ],
         ];
     }
 
