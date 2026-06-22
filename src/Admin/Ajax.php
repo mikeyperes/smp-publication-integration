@@ -125,8 +125,30 @@ final class Ajax {
         }
         $settings = Settings::update( $changes );
         $this->sync_publication_mapping( $settings );
+        if ( ! empty( $changes ) ) {
+            $this->purge_frontend_cache();
+        }
         $response = [ "settings" => $settings, "message" => empty( $changes ) ? "No setting changed." : "Saved " . implode( ", ", array_keys( $changes ) ) . "." ];
         return $response;
+    }
+
+    private function purge_frontend_cache(): void {
+        if ( function_exists( "wp_cache_flush" ) ) {
+            wp_cache_flush();
+        }
+
+        foreach ( [ "litespeed_purge_all", "litespeed_purge_all_object" ] as $action ) {
+            if ( has_action( $action ) ) {
+                do_action( $action );
+            }
+        }
+
+        if ( function_exists( "rocket_clean_domain" ) ) {
+            rocket_clean_domain();
+        }
+        if ( function_exists( "w3tc_flush_all" ) ) {
+            w3tc_flush_all();
+        }
     }
 
     public function search_users( AjaxRequest $request ): array {
