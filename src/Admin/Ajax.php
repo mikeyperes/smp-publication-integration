@@ -85,10 +85,26 @@ final class Ajax {
                 $changes[ $key ] = $request->int( $key, 0, 'post' );
             }
         }
-        foreach ( [ "muckrack_icon_size" => [ 8, 64, 18 ], "publication_muckrack_font_size" => [ 8, 64, 14 ], "table_of_contents_text_font_size" => [ 8, 64, 15 ], "inline_photo_caption_font_size" => [ 8, 64, 16 ], "featured_image_caption_font_size" => [ 8, 64, 16 ], "post_faqs_text_font_size" => [ 8, 64, 16 ], "muckrack_icon_size_single_author" => [ 0, 64, 0 ], "muckrack_icon_size_single_footer" => [ 0, 64, 0 ], "muckrack_icon_size_loop_cards" => [ 0, 64, 0 ], "muckrack_icon_size_home" => [ 0, 64, 0 ], "muckrack_icon_size_author" => [ 0, 64, 0 ] ] as $key => $limits ) {
+        foreach ( [ "muckrack_icon_size" => [ 8, 64, 22 ], "publication_muckrack_font_size" => [ 8, 64, 14 ], "table_of_contents_text_font_size" => [ 8, 64, 15 ], "inline_photo_caption_font_size" => [ 8, 64, 16 ], "featured_image_caption_font_size" => [ 8, 64, 16 ], "post_faqs_text_font_size" => [ 8, 64, 16 ], "muckrack_icon_size_single_author" => [ 0, 64, 0 ], "muckrack_icon_size_single_footer" => [ 0, 64, 0 ], "muckrack_icon_size_loop_cards" => [ 0, 64, 0 ], "muckrack_icon_size_home" => [ 0, 64, 0 ], "muckrack_icon_size_author" => [ 0, 64, 0 ] ] as $key => $limits ) {
             if ( $request->has( $key, 'post' ) ) {
                 $value = $request->int( $key, 0, 'post' );
                 $changes[ $key ] = 0 === strpos( $key, "muckrack_icon_size_" ) && 0 === $value ? 0 : max( $limits[0], min( $limits[1], $value ?: $limits[2] ) );
+            }
+        }
+        foreach ( [ "muckrack_icon_margin_left" => [ -32, 64, 2 ], "muckrack_icon_margin_top" => [ -32, 64, 0 ] ] as $key => $limits ) {
+            if ( $request->has( $key, 'post' ) ) {
+                $raw = trim( (string) $request->raw( $key, '', 'post' ) );
+                $value = "" === $raw ? $limits[2] : (int) $raw;
+                $changes[ $key ] = max( $limits[0], min( $limits[1], $value ) );
+            }
+        }
+        foreach ( [ "single_author", "single_footer", "loop_cards", "home", "author" ] as $context ) {
+            foreach ( [ "muckrack_icon_margin_left_", "muckrack_icon_margin_top_" ] as $prefix ) {
+                $key = $prefix . $context;
+                if ( $request->has( $key, 'post' ) ) {
+                    $raw = trim( (string) $request->raw( $key, '', 'post' ) );
+                    $changes[ $key ] = "" === $raw ? "" : max( -32, min( 64, (int) $raw ) );
+                }
             }
         }
         foreach ( [ "table_of_contents_style", "inline_photo_treatment", "featured_image_caption_template", "post_summary_style", "post_faqs_style", "table_of_contents_text_font_style", "inline_photo_caption_font_style", "featured_image_caption_font_style", "post_faqs_text_font_style", 'post_time_mode', 'muckrack_verified_style', 'muckrack_icon_style', 'publication_muckrack_text_mode', 'publication_muckrack_style' ] as $key ) {

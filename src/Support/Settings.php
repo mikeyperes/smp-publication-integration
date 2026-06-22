@@ -30,17 +30,29 @@ final class Settings {
             'muckrack_verified_style' => 'tooltip',
             'muckrack_icon_color' => '#2d5277',
             'muckrack_icon_style' => 'circle_check',
-            "muckrack_icon_size" => 18,
+            "muckrack_icon_size" => 22,
+            "muckrack_icon_margin_left" => 2,
+            "muckrack_icon_margin_top" => 0,
             "muckrack_icon_color_single_author" => "",
             "muckrack_icon_size_single_author" => 0,
+            "muckrack_icon_margin_left_single_author" => "",
+            "muckrack_icon_margin_top_single_author" => "",
             "muckrack_icon_color_single_footer" => "",
             "muckrack_icon_size_single_footer" => 0,
+            "muckrack_icon_margin_left_single_footer" => "",
+            "muckrack_icon_margin_top_single_footer" => "",
             "muckrack_icon_color_loop_cards" => "",
             "muckrack_icon_size_loop_cards" => 0,
+            "muckrack_icon_margin_left_loop_cards" => "",
+            "muckrack_icon_margin_top_loop_cards" => "",
             "muckrack_icon_color_home" => "",
             "muckrack_icon_size_home" => 0,
+            "muckrack_icon_margin_left_home" => "",
+            "muckrack_icon_margin_top_home" => "",
             "muckrack_icon_color_author" => "",
             "muckrack_icon_size_author" => 0,
+            "muckrack_icon_margin_left_author" => "",
+            "muckrack_icon_margin_top_author" => "",
             'publication_muckrack_verified_enabled' => false,
             'publication_muckrack_text_mode' => 'news_outlet',
             'publication_muckrack_style' => 'block',
@@ -161,8 +173,23 @@ final class Settings {
                     "featured_image_caption_font_size" => 16,
                     "post_faqs_text_font_size" => 16,
                 ];
-                $default = $font_size_defaults[ $key ] ?? 18;
+                $default = "muckrack_icon_size" === $key ? 22 : ( $font_size_defaults[ $key ] ?? 18 );
                 $settings[ $key ] = max( 8, min( 64, $value ?: $default ) );
+                continue;
+            }
+
+            if ( in_array( $key, [ "muckrack_icon_margin_left", "muckrack_icon_margin_top" ], true ) ) {
+                $settings[ $key ] = max( -32, min( 64, (int) $value ) );
+                continue;
+            }
+
+            if ( 0 === strpos( $key, "muckrack_icon_margin_left_" ) || 0 === strpos( $key, "muckrack_icon_margin_top_" ) ) {
+                $raw = trim( (string) $value );
+                if ( "" === $raw ) {
+                    $settings[ $key ] = "";
+                    continue;
+                }
+                $settings[ $key ] = max( -32, min( 64, (int) $raw ) );
                 continue;
             }
 

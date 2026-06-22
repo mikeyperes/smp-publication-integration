@@ -36,7 +36,7 @@ final class MuckRackVerification {
         if ( ! Settings::bool( "muckrack_verified_enabled" ) && ! Settings::bool( "publication_muckrack_verified_enabled" ) ) {
             return;
         }
-        $icon_size = self::setting_int( "muckrack_icon_size", 18, 8, 64 );
+        $icon_size = self::setting_int( "muckrack_icon_size", 22, 8, 64 );
         $publication_font = self::setting_int( "publication_muckrack_font_size", 14, 8, 64 );
         $publication_mini_font = max( 8, $publication_font - 2 );
         echo "<style id=smpi-muckrack-styles>.smpi-muckrack-icon{display:inline-flex;align-items:center;justify-content:center;width:1em;height:1em;min-width:1em;margin-left:.28em;vertical-align:middle;line-height:1;--smpi-muckrack-color:#2d5277;color:var(--smpi-muckrack-color,#2d5277);background:transparent;font-size:" . esc_attr( (string) $icon_size ) . "px}.smpi-muckrack-icon svg{display:block;width:1em;height:1em}.smpi-muckrack-icon-check svg{width:1em;height:1em}.smpi-muckrack-link{text-decoration:none;display:inline-flex;align-items:center}.smpi-muckrack-brand{color:var(--smpi-muckrack-color,#2d5277);font-weight:700}.smpi-muckrack-footer-note,.smpi-muckrack-js-below-author,.smpi-muckrack-js-bottom-article{margin:24px 0 0}.smpi-muckrack-author-note{display:inline-flex;align-items:center;gap:.28em;margin:.18em 0 .18em .38em;padding:.34em .55em;border-left:2px solid var(--smpi-muckrack-color,#2d5277);background:#f5f8fb;color:#64748b;font-size:.72em;line-height:1.28;vertical-align:middle}.smpi-muckrack-author-note .smpi-muckrack-brand{color:var(--smpi-muckrack-color,#2d5277)}.smpi-muckrack-author-note a{color:inherit}.smpi-muckrack-footer-note{padding:12px 14px;border-left:3px solid var(--smpi-muckrack-color,#2d5277);background:#f5f8fb;font-size:.95em}.smpi-muckrack-publication-text{--smpi-muckrack-color:#2d5277;font-size:" . esc_attr( (string) $publication_font ) . "px}.smpi-muckrack-publication-note{display:block;clear:both;margin:12px 0 0;line-height:1.35;color:#334155}.smpi-muckrack-publication-footer{font-size:" . esc_attr( (string) $publication_font ) . "px}.smpi-muckrack-publication-block{display:block;padding:10px 12px;border-left:3px solid var(--smpi-muckrack-color,#2d5277);background:#f5f8fb}.smpi-muckrack-publication-mini_block{display:block;padding:7px 10px;border-left:2px solid var(--smpi-muckrack-color,#2d5277);background:#f6f8fb;color:#475569;line-height:1.3;letter-spacing:.005em;font-size:" . esc_attr( (string) $publication_mini_font ) . "px}.smpi-muckrack-publication-compact{display:inline-flex;align-items:center;gap:.35em;padding:.28em .7em;border:1px solid var(--smpi-muckrack-color,#2d5277);border-radius:999px;background:#fff}.smpi-muckrack-publication-minimalist{display:inline;color:inherit}.smpi-muckrack-publication-compact a,.smpi-muckrack-publication-minimalist a,.smpi-muckrack-publication-block a,.smpi-muckrack-publication-mini_block a{color:inherit}</style>";
@@ -278,8 +278,10 @@ SMPI_JS;
         $icon_class = "check" === $style_key ? "smpi-muckrack-icon-check" : ( "circle_outline_check" === $style_key ? "smpi-muckrack-icon-outline" : "smpi-muckrack-icon-circle" );
         $quote = chr( 34 );
         $size = self::author_context_icon_size( $context );
+        $margin_left = self::author_context_margin( "left", $context );
+        $margin_top = self::author_context_margin( "top", $context );
         $context_class = "" !== self::author_context_key( "smpi", $context ) ? " smpi-muckrack-context-" . sanitize_html_class( sanitize_key( $context ) ) : "";
-        $icon = "<span class=" . $quote . "smpi-muckrack-icon " . esc_attr( $icon_class . $context_class ) . $quote . " data-smpi-muckrack-context=" . $quote . esc_attr( sanitize_key( $context ) ) . $quote . " title=" . $quote . $label . $quote . " aria-label=" . $quote . $label . $quote . " style=" . $quote . "--smpi-muckrack-color:" . esc_attr( $color ) . ";color:" . esc_attr( $color ) . ";font-size:" . esc_attr( (string) $size ) . "px" . $quote . ">" . self::icon_svg_html( $style_key ) . "</span>";
+        $icon = "<span class=" . $quote . "smpi-muckrack-icon " . esc_attr( $icon_class . $context_class ) . $quote . " data-smpi-muckrack-context=" . $quote . esc_attr( sanitize_key( $context ) ) . $quote . " title=" . $quote . $label . $quote . " aria-label=" . $quote . $label . $quote . " style=" . $quote . "--smpi-muckrack-color:" . esc_attr( $color ) . ";--smpi-muckrack-margin-left:" . esc_attr( (string) $margin_left ) . "px;--smpi-muckrack-margin-top:" . esc_attr( (string) $margin_top ) . "px;color:" . esc_attr( $color ) . ";font-size:" . esc_attr( (string) $size ) . "px;margin-left:" . esc_attr( (string) $margin_left ) . "px;margin-top:" . esc_attr( (string) $margin_top ) . "px" . $quote . ">" . self::icon_svg_html( $style_key ) . "</span>";
         return $url ? "<a class=smpi-muckrack-link href=" . $quote . $url . $quote . " target=_blank rel=noopener>" . $icon . "</a>" : $icon;
     }
 
@@ -340,7 +342,20 @@ SMPI_JS;
                 return max( 8, min( 64, $override ) );
             }
         }
-        return self::setting_int( "muckrack_icon_size", 18, 8, 64 );
+        return self::setting_int( "muckrack_icon_size", 22, 8, 64 );
+    }
+
+    private static function author_context_margin( string $axis, string $context = "" ): int {
+        $axis = "top" === $axis ? "top" : "left";
+        $override_key = self::author_context_key( "muckrack_icon_margin_" . $axis, $context );
+        if ( "" !== $override_key ) {
+            $override = Settings::get( $override_key, "" );
+            if ( is_scalar( $override ) && "" !== trim( (string) $override ) ) {
+                $override = (int) $override;
+                return max( -32, min( 64, $override ) );
+            }
+        }
+        return self::setting_signed_int( "muckrack_icon_margin_" . $axis, "top" === $axis ? 0 : 2, -32, 64 );
     }
 
     public static function publication_verified(): bool {
@@ -419,6 +434,12 @@ SMPI_JS;
     private static function setting_int( string $key, int $default, int $min, int $max ): int {
         $value = absint( Settings::get( $key, $default ) );
         return max( $min, min( $max, $value ?: $default ) );
+    }
+
+    private static function setting_signed_int( string $key, int $default, int $min, int $max ): int {
+        $raw = Settings::get( $key, $default );
+        $value = is_scalar( $raw ) && "" !== trim( (string) $raw ) ? (int) $raw : $default;
+        return max( $min, min( $max, $value ) );
     }
 
     private static function truthy( $value ): bool {
