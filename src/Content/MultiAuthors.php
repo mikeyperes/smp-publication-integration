@@ -971,7 +971,7 @@ final class MultiAuthors {
             return $html;
         }
 
-        $badge = MuckRackVerification::verification_icon( (int) $author["id"], (string) Settings::get( "muckrack_verified_style", "tooltip" ), $context );
+        $badge = self::author_module_verification_badge( $author, $context );
         if ( "" === $badge ) {
             return $html;
         }
@@ -1004,6 +1004,35 @@ final class MultiAuthors {
         }
 
         return self::document_body_html( $doc, $html );
+    }
+
+    private static function author_module_verification_badge( array $author, string $context ): string {
+        $badge = MuckRackVerification::verification_icon( (int) $author["id"], (string) Settings::get( "muckrack_verified_style", "tooltip" ), $context );
+        if ( "" === $badge ) {
+            return "";
+        }
+
+        /*
+         * Author modules clone Elementor markup. Keep the badge node shape identical
+         * for linked and unlinked authors so browser baseline alignment is stable.
+         */
+        $doc = new \DOMDocument( "1.0", "UTF-8" );
+        $previous = libxml_use_internal_errors( true );
+        $loaded = $doc->loadHTML( '<?xml encoding="UTF-8"><body>' . $badge . '</body>', LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD );
+        libxml_clear_errors();
+        libxml_use_internal_errors( $previous );
+        if ( ! $loaded ) {
+            return $badge;
+        }
+
+        $xpath = new \DOMXPath( $doc );
+        $icons = $xpath->query( '//*[contains(concat(" ", normalize-space(@class), " "), " smpi-muckrack-icon ")]' );
+        if ( ! $icons || ! $icons->length ) {
+            return $badge;
+        }
+
+        $icon = $icons->item( 0 );
+        return $icon instanceof \DOMElement ? ( $doc->saveHTML( $icon ) ?: $badge ) : $badge;
     }
 
     private static function remove_existing_verification_badges( \DOMXPath $xpath ): void {
@@ -1252,40 +1281,139 @@ final class MultiAuthors {
             return $html;
         }
 
-        return preg_replace_callback(
-            '/<a\b([^>]*)>(.*?)<\/a>/is',
-            static function ( array $matches ) use ( $author ): string {
-                $attrs = $matches[1];
-                $inner = $matches[2];
-                $label = strtolower( wp_strip_all_tags( $inner ) );
-                $target = "";
+        $doc = new \DOMDocument( "1.0", "UTF-8" );
+        $previous = libxml_use_internal_errors( true );
+        $loaded = $doc->loadHTML( '<?xml encoding="UTF-8"><body>' . $html . '</body>', LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD );
+        libxml_clear_errors();
+        libxml_use_internal_errors( $previous );
+        if ( ! $loaded ) {
+            return $html;
+        }
 
-                if ( false !== strpos( $label, "twitter" ) || false !== strpos( $label, "/ x" ) || preg_match( '/(^|\s)x(\s|$)/', $label ) ) {
-                    $target = (string) ( $author["fields"]["x"] ?? "" );
-                } elseif ( false !== strpos( $label, "linkedin" ) ) {
-                    $target = (string) ( $author["fields"]["linkedin"] ?? "" );
-                } elseif ( false !== strpos( $label, "email" ) ) {
-                    $target = (string) ( $author["fields"]["email"] ?? "" );
-                } elseif ( false !== strpos( $label, "website" ) ) {
-                    $target = (string) ( $author["fields"]["website"] ?? "" );
-                } else {
-                    return $matches[0];
-                }
+        foreach ( iterator_to_array( $doc->getElementsByTagName( "a" ) ) as $link ) {
+            if ( ! $link instanceof \DOMElement ) {
+                continue;
+            }
+            $kind = self::social_link_kind( $link );
+            if ( "" === $kind ) {
+                continue;
+            }
 
-                if ( "" === $target ) {
-                    $attrs = preg_replace( '/\s href=(["\']).*?\1/i', '', $attrs );
-                    $attrs .= ' data-smpi-empty-author-social="1" style="display:none"';
-                    return '<a href="#"' . $attrs . '>' . $inner . '</a>';
+            $target = self::author_social_target( $author, $kind );
+            if ( "" === $target ) {
+                $remove = self::social_link_removal_node( $link );
+                if ( $remove->parentNode ) {
+                    $remove->parentNode->removeChild( $remove );
                 }
+                continue;
+            }
 
-                if ( ! preg_match( '/^[a-z][a-z0-9+.-]*:/i', $target ) && false === strpos( $target, "@" ) ) {
-                    $target = "https://" . ltrim( $target, "/" );
+            $link->setAttribute( "href", esc_url( self::normalize_social_target( $target, $kind ) ) );
+            $link->removeAttribute( "data-smpi-empty-author-social" );
+            self::remove_display_none_from_style( $link );
+        }
+
+        return self::document_body_html( $doc, $html );
+    }
+
+    private static function social_link_kind( \DOMElement $link ): string {
+        $label = strtolower(
+            trim(
+                wp_strip_all_tags(
+                    html_entity_decode(
+                        implode(
+                            " ",
+                            [
+                                (string) $link->textContent,
+                                $link->getAttribute( "href" ),
+                                $link->getAttribute( "class" ),
+                                $link->getAttribute( "title" ),
+                                $link->getAttribute( "aria-label" ),
+                            ]
+                        ),
+                        ENT_QUOTES | ENT_HTML5,
+                        "UTF-8"
+                    )
+                )
+            )
+        );
+
+        if ( "" === $label ) {
+            return "";
+        }
+        if ( false !== strpos( $label, "twitter" ) || false !== strpos( $label, "/ x" ) || preg_match( '/(^|[^a-z0-9])x([^a-z0-9]|$)/', $label ) ) {
+            return "x";
+        }
+        if ( false !== strpos( $label, "linkedin" ) ) {
+            return "linkedin";
+        }
+        if ( false !== strpos( $label, "email" ) || false !== strpos( $label, "mailto:" ) ) {
+            return "email";
+        }
+        if ( false !== strpos( $label, "website" ) ) {
+            return "website";
+        }
+        return "";
+    }
+
+    private static function author_social_target( array $author, string $kind ): string {
+        $fields = isset( $author["fields"] ) && is_array( $author["fields"] ) ? $author["fields"] : [];
+        return trim( (string) ( $fields[ $kind ] ?? "" ) );
+    }
+
+    private static function normalize_social_target( string $target, string $kind ): string {
+        $target = trim( $target );
+        if ( "email" === $kind && "" !== $target && ! preg_match( '/^mailto:/i', $target ) ) {
+            return "mailto:" . $target;
+        }
+        if ( "" !== $target && ! preg_match( '/^[a-z][a-z0-9+.-]*:/i', $target ) && false === strpos( $target, "@" ) ) {
+            return "https://" . ltrim( $target, "/" );
+        }
+        return $target;
+    }
+
+    private static function social_link_removal_node( \DOMElement $link ): \DOMElement {
+        for ( $node = $link; $node instanceof \DOMElement; $node = $node->parentNode instanceof \DOMElement ? $node->parentNode : null ) {
+            $classes = " " . $node->getAttribute( "class" ) . " ";
+            foreach ( [ " elementor-icon-list-item ", " elementor-widget-button " ] as $needle ) {
+                if ( false !== strpos( $classes, $needle ) ) {
+                    return $node;
                 }
-                $attrs = preg_replace( '/\s href=(["\']).*?\1/i', '', $attrs );
-                return '<a href="' . esc_url( $target ) . '"' . $attrs . '>' . $inner . '</a>';
-            },
-            $html
-        ) ?: $html;
+            }
+            if ( false !== strpos( $classes, " elementor-social-icon " ) ) {
+                return $node;
+            }
+            if ( false !== strpos( $classes, " elementor-element " ) && self::element_contains_only_social_link( $node, $link ) ) {
+                return $node;
+            }
+        }
+        for ( $node = $link; $node instanceof \DOMElement; $node = $node->parentNode instanceof \DOMElement ? $node->parentNode : null ) {
+            $classes = " " . $node->getAttribute( "class" ) . " ";
+            if ( false !== strpos( $classes, " elementor-button-wrapper " ) ) {
+                return $node;
+            }
+        }
+        return $link;
+    }
+
+    private static function element_contains_only_social_link( \DOMElement $node, \DOMElement $link ): bool {
+        $text = self::normalize_match_text( (string) $node->textContent );
+        $link_text = self::normalize_match_text( (string) $link->textContent );
+        return "" !== $link_text && $text === $link_text;
+    }
+
+    private static function remove_display_none_from_style( \DOMElement $link ): void {
+        $style = $link->getAttribute( "style" );
+        if ( "" === $style ) {
+            return;
+        }
+        $style = preg_replace( '/(^|;)\s*display\s*:\s*none\s*;?/i', '$1', $style ) ?: "";
+        $style = trim( $style, " ;\t\n\r\0\x0B" );
+        if ( "" === $style ) {
+            $link->removeAttribute( "style" );
+            return;
+        }
+        $link->setAttribute( "style", $style );
     }
 
     private static function marked_elementor_author_field_widgets(): array {
