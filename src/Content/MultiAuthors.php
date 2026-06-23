@@ -215,7 +215,7 @@ final class MultiAuthors {
             return $display_name;
         }
 
-        $authors = self::author_view_models_for_post( (int) $post->ID );
+        $authors = self::author_view_models_for_selected_authors( (int) $post->ID );
         if ( count( $authors ) < 2 ) {
             return $display_name;
         }
@@ -328,7 +328,7 @@ final class MultiAuthors {
 
         $post = get_post();
         $post_id = $post ? (int) $post->ID : 0;
-        $authors = self::author_view_models_for_post( $post_id );
+        $authors = self::author_view_models_for_selected_authors( $post_id );
         if ( count( $authors ) < 2 ) {
             return $content;
         }
@@ -341,7 +341,7 @@ final class MultiAuthors {
             return $content;
         }
 
-        $items = [ self::mark_original_author_scope_html( $content, count( $authors ) ) ];
+        $items = [ self::mark_repeated_author_html( self::inject_author_verification_badge( $content, $primary, $badge_context ), $primary, 0, count( $authors ) ) ];
         foreach ( $authors as $index => $author ) {
             if ( 0 === $index ) {
                 continue;
@@ -505,9 +505,17 @@ final class MultiAuthors {
     }
 
     public static function author_view_models_for_post( int $post_id ): array {
+        return self::author_view_models_for_ids( self::author_ids_for_post( $post_id, true ) );
+    }
+
+    private static function author_view_models_for_selected_authors( int $post_id ): array {
+        return self::author_view_models_for_ids( self::selected_author_ids_for_post( $post_id ) );
+    }
+
+    private static function author_view_models_for_ids( array $author_ids ): array {
         $models = [];
-        foreach ( self::author_ids_for_post( $post_id, true ) as $user_id ) {
-            $user = get_user_by( "id", $user_id );
+        foreach ( $author_ids as $user_id ) {
+            $user = get_user_by( "id", (int) $user_id );
             if ( ! $user ) {
                 continue;
             }
@@ -656,6 +664,13 @@ final class MultiAuthors {
             "supported_post_types" => self::supported_post_types(),
             "rows" => $rows,
         ];
+    }
+
+    private static function selected_author_ids_for_post( int $post_id ): array {
+        if ( ! self::enabled() || $post_id <= 0 ) {
+            return [];
+        }
+        return self::valid_unique_user_ids( self::normalize_user_ids( self::raw_author_value( $post_id ) ) );
     }
 
     private static function raw_author_value( int $post_id ) {
