@@ -45,7 +45,15 @@ final class Breadcrumbs {
     }
 
     public static function should_render(): bool {
-        if ( ! RuntimeContext::is_public_dom_context() || ! is_singular() ) {
+        if ( ! RuntimeContext::is_public_dom_context() ) {
+            return false;
+        }
+
+        if ( Settings::bool( "breadcrumbs_hide_home" ) && ( is_front_page() || is_home() ) ) {
+            return false;
+        }
+
+        if ( ! is_singular() ) {
             return false;
         }
 
@@ -89,6 +97,7 @@ final class Breadcrumbs {
             "enabled" => Settings::bool( "breadcrumbs_enabled" ),
             "style" => ArticleStyles::normalize_breadcrumb_style( (string) Settings::get( "breadcrumbs_style", "bc-b2" ) ),
             "rank_math_active" => self::rank_math_available(),
+            "hide_home" => Settings::bool( "breadcrumbs_hide_home" ),
             "disabled_post_types" => Settings::array( "breadcrumbs_disabled_post_types" ),
             "disabled_object_count" => count( self::disabled_object_ids() ),
             "shortcode" => "[" . self::SHORTCODE . "]",

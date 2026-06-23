@@ -7,7 +7,7 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.6.81`
+- Version: `0.6.82`
 
 ## Structure
 
@@ -49,6 +49,7 @@ WordPress plugin for Scale My Publication publication profiles.
 - Added loop/card multiple-author output options for primary-only, comma-separated, and one-author-per-line rendering.
 - Made author role/title shortcodes alias-aware so `job_title` and `subtitle` can resolve `what_best_describe_you` without changing Elementor markup.
 - Added an Elementor Loop Grid author-archive query bridge so secondary-author posts are included when the archive template uses a separate Elementor query.
+- Added a default-enabled Breadcrumbs setting to hide SMP breadcrumb injection on the front page/home page and wired it through AJAX saves and frontend rendering.
 - Added `[author_name]` and guarded `[author_image]` against avatar-plugin image-editor failures.
 - Added a shared runtime guard so automatic frontend injections skip Elementor editor/preview, AJAX, REST, feeds, embeds, cron, CLI, and admin contexts.
 - Bundled Hexa WordPress Plugin Core and registered the Hexa Core tab through dashboard filters.
