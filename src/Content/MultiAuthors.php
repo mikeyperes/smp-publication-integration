@@ -451,6 +451,9 @@ final class MultiAuthors {
         if ( count( $authors ) < 1 ) {
             return $content;
         }
+        if ( 1 === count( $authors ) && $post && (int) $authors[0]["id"] === (int) $post->post_author ) {
+            return $content;
+        }
 
         $badge_context = false !== strpos( $content, 'id="share-button"' ) || false !== strpos( $content, "id='share-button'" ) ? "single_author" : "single_footer";
 
