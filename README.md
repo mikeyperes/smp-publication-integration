@@ -7,7 +7,7 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.6.67`
+- Version: `0.6.71`
 
 ## Structure
 
@@ -217,6 +217,12 @@ WordPress plugin for Scale My Publication publication profiles.
 ### 0.6.67 Updates
 - Hardened Core color controls with max-length hex input and visible invalid-hex rejection before save.
 - Synced vendored Hexa WordPress Plugin Core to 0.18.2.
+
+
+### 0.6.71 Updates
+- Fixed `[smp_table_of_contents]` shortcode rendering when automatic single-post injection is disabled.
+- Shortcode mode now parses post headings correctly and assigns matching frontend anchor IDs for Elementor-rendered post content.
+- Number inputs on the Features tab now save on blur/Enter instead of queuing AJAX saves on every step change.
 
 ### 0.6.69 Updates
 - Post editor schema test buttons are disabled for unpublished content and show a live-post requirement notice.

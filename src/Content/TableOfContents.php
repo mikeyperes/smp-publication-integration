@@ -1,6 +1,7 @@
 <?php
 namespace smp_publication_integration\Content;
 
+use smp_publication_integration\Support\Fields;
 use smp_publication_integration\Support\Settings;
 
 if ( ! defined( "ABSPATH" ) ) {
@@ -26,7 +27,11 @@ final class TableOfContents {
         if ( ! $post ) {
             return "";
         }
-        return self::build_toc( (string) $post->post_content, (string) $atts["title"], sanitize_key( (string) $atts["style"] ) );
+        $items = self::items_for_post( $post );
+        if ( empty( $items ) ) {
+            return "";
+        }
+        return self::build_toc_from_items( $items, (string) $atts["title"], sanitize_key( (string) $atts["style"] ) ) . self::shortcode_anchor_script( $items );
     }
 
     public function filter_content( string $content ): string {
@@ -68,6 +73,27 @@ final class TableOfContents {
         return self::build_toc_from_items( self::items( $content ), $title, $style );
     }
 
+    private static function items_for_post( \WP_Post $post ): array {
+        $items = self::items( (string) $post->post_content );
+        $summary = self::summary_item( (int) $post->ID );
+        if ( $summary ) {
+            array_unshift( $items, $summary );
+        }
+        return $items;
+    }
+
+    private static function summary_item( int $post_id ): array {
+        if ( $post_id <= 0 || ! Settings::bool( "table_of_contents_include_summary" ) || ! Settings::bool( "post_summary_acf_enabled" ) ) {
+            return [];
+        }
+        $summary = Fields::get( $post_id, "post_summary", "" );
+        if ( ! Fields::has_value( $summary ) ) {
+            return [];
+        }
+        $style = ArticleStyles::normalize_summary_style( (string) Settings::get( "post_summary_style", "none" ) );
+        return [ "level" => 2, "text" => ArticleStyles::summary_title( $style ), "id" => "smpi-summary-heading", "source" => "summary" ];
+    }
+
     private static function build_toc_from_items( array $items, string $title, string $style = "" ): string {
         if ( empty( $items ) ) {
             return "";
@@ -91,7 +117,7 @@ final class TableOfContents {
     }
 
     private static function items( string $content ): array {
-        if ( ! preg_match_all( "/<h([2-4])([^>]*)>(.*?)<\/h\1>/is", $content, $matches, PREG_SET_ORDER ) ) {
+        if ( ! preg_match_all( "/<h([2-4])([^>]*)>(.*?)<\\/h\\1>/is", $content, $matches, PREG_SET_ORDER ) ) {
             return [];
         }
         $items = [];
@@ -100,14 +126,21 @@ final class TableOfContents {
             if ( "" === $text ) {
                 continue;
             }
-            $items[] = [ "level" => (int) $match[1], "text" => $text, "id" => "smpi-toc-" . sanitize_title( $text ) . "-" . ( $index + 1 ) ];
+            $id = "";
+            if ( preg_match( "/\\sid=\"?([^\"\\s>]+)/i", (string) $match[2], $id_match ) ) {
+                $id = sanitize_title( (string) $id_match[1] );
+            }
+            if ( "" === $id ) {
+                $id = "smpi-toc-" . sanitize_title( $text ) . "-" . ( $index + 1 );
+            }
+            $items[] = [ "level" => (int) $match[1], "text" => $text, "id" => $id, "source" => "heading" ];
         }
         return $items;
     }
 
     private static function add_heading_ids( string $content, array $items ): string {
         $index = 0;
-        return (string) preg_replace_callback( "/<h([2-4])([^>]*)>(.*?)<\/h\1>/is", static function ( array $match ) use ( &$index, $items ): string {
+        return (string) preg_replace_callback( "/<h([2-4])([^>]*)>(.*?)<\\/h\\1>/is", static function ( array $match ) use ( &$index, $items ): string {
             if ( ! isset( $items[ $index ] ) ) {
                 return $match[0];
             }
@@ -116,8 +149,25 @@ final class TableOfContents {
             if ( preg_match( "/\sid=/i", $match[2] ) ) {
                 return $match[0];
             }
-            return "<h" . $match[1] . $match[2] . " id=" . esc_attr( $id ) . ">" . $match[3] . "</h" . $match[1] . ">";
+            return "<h" . $match[1] . $match[2] . " id=\"" . esc_attr( $id ) . "\">" . $match[3] . "</h" . $match[1] . ">";
         }, $content );
+    }
+
+    private static function shortcode_anchor_script( array $items ): string {
+        $headings = [];
+        $summary_id = "";
+        foreach ( $items as $item ) {
+            if ( "summary" === (string) ( $item["source"] ?? "heading" ) ) {
+                $summary_id = (string) $item["id"];
+                continue;
+            }
+            $headings[] = [ "id" => (string) $item["id"], "text" => (string) $item["text"] ];
+        }
+        $payload = wp_json_encode( [ "headings" => $headings, "summary_id" => $summary_id ] );
+        if ( ! is_string( $payload ) || "" === $payload ) {
+            return "";
+        }
+        return "<script class=\"smpi-toc-shortcode-anchor-script\">(function(data){if(!data)return;function ready(fn){if(document.readyState!==\"loading\"){fn();return;}document.addEventListener(\"DOMContentLoaded\",fn,{once:true});}function visible(el){var r=el.getBoundingClientRect();return r.width>1&&r.height>1&&window.getComputedStyle(el).display!==\"none\";}ready(function(){if(data.summary_id){var sum=document.querySelector(\".smpi-post-summary h2\");if(sum&&visible(sum)){sum.id=data.summary_id;}}var selectors=[\".elementor-widget-theme-post-content .elementor-widget-container\",\".elementor-widget-theme-post-content\",\".elementor-widget-post-content\",\"article .entry-content\",\".entry-content\",\".post-content\"];var target=null;for(var i=0;i<selectors.length;i++){target=document.querySelector(selectors[i]);if(target)break;}if(!target||!data.headings||!data.headings.length)return;var nodes=Array.from(target.querySelectorAll(\"h2,h3,h4\")).filter(function(h){return visible(h)&&(h.textContent||\"\").trim();});for(var j=0;j<nodes.length&&j<data.headings.length;j++){if(data.headings[j]&&data.headings[j].id){nodes[j].id=data.headings[j].id;}}});})(" . $payload . ");</script>";
     }
 
     public function print_auto_inject_script(): void {
