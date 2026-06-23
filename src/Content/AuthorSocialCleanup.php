@@ -10,7 +10,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 final class AuthorSocialCleanup {
     public function register(): void {
-        add_action( 'wp_footer', [ $this, 'print_script' ], 30 );
+        // Legacy JS cleanup is intentionally disabled. Author modules now remove
+        // empty Elementor social nodes during server-side cloning/rebinding.
     }
 
     public function print_script(): void {

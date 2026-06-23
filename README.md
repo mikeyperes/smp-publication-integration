@@ -7,7 +7,7 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.6.89`
+- Version: `0.6.90`
 
 ## Structure
 
@@ -53,6 +53,7 @@ WordPress plugin for Scale My Publication publication profiles.
 - Added `[author_name]` and guarded `[author_image]` against avatar-plugin image-editor failures.
 - Added a shared runtime guard so automatic frontend injections skip Elementor editor/preview, AJAX, REST, feeds, embeds, cron, CLI, and admin contexts.
 - Rebuilt multi-author loop and footer output so author links remain separate, MuckRack badges do not duplicate empty wrapper links, and footer bio widgets render only from marked Elementor author fields.
+- Disabled the legacy frontend author-social cleanup script; multi-author server-side cloning now removes empty Elementor social widgets before output.
 - Guarded author archive profile headers so multi-author name rewriting only affects actual article loop/card output, not the queried author identity, URL, or avatar.
 - Replaced unsafe loop-card author-name rewriting with full author-link HTML rewriting so each selected author keeps their own author archive URL and loop-card checkmark.
 - Made MuckRack badge injection idempotent by cleaning wrapper links as well as icon nodes before timed reinjection.
