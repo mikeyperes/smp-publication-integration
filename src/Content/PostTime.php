@@ -1,6 +1,7 @@
 <?php
 namespace smp_publication_integration\Content;
 
+use smp_publication_integration\Support\RuntimeContext;
 use smp_publication_integration\Support\Settings;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -22,7 +23,7 @@ final class PostTime {
     }
 
     private function format_post_time( string $fallback, $post ): string {
-        if ( is_admin() || is_feed() || ( defined( 'REST_REQUEST' ) && REST_REQUEST ) ) {
+        if ( ! RuntimeContext::is_public_frontend() ) {
             return $fallback;
         }
         $mode = (string) Settings::get( 'post_time_mode', 'native' );

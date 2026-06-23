@@ -2,6 +2,7 @@
 namespace smp_publication_integration\Content;
 
 use smp_publication_integration\Support\Fields;
+use smp_publication_integration\Support\RuntimeContext;
 use smp_publication_integration\Support\Settings;
 
 if ( ! defined( "ABSPATH" ) ) {
@@ -33,6 +34,9 @@ final class MuckRackVerification {
     }
 
     public function print_styles(): void {
+        if ( ! RuntimeContext::is_public_dom_context() ) {
+            return;
+        }
         if ( ! Settings::bool( "muckrack_verified_enabled" ) && ! Settings::bool( "publication_muckrack_verified_enabled" ) ) {
             return;
         }
@@ -83,7 +87,7 @@ final class MuckRackVerification {
     }
 
     public function print_elementor_injection_script(): void {
-        if ( is_admin() ) {
+        if ( ! RuntimeContext::is_public_dom_context() ) {
             return;
         }
 
@@ -107,7 +111,7 @@ final class MuckRackVerification {
                 }
             }
 
-            if ( in_array( "loop_cards", $contexts, true ) || in_array( "home", $contexts, true ) || is_author() ) {
+            if ( RuntimeContext::has_article_loop_context() && ( in_array( "loop_cards", $contexts, true ) || in_array( "home", $contexts, true ) || is_author() ) ) {
                 $author_map = self::author_badge_map( $style, "loop_cards" );
             }
         }

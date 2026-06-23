@@ -1,6 +1,7 @@
 <?php
 namespace smp_publication_integration\Content;
 
+use smp_publication_integration\Support\RuntimeContext;
 use smp_publication_integration\Support\Settings;
 
 if ( ! defined( "ABSPATH" ) ) {
@@ -59,7 +60,7 @@ final class FeaturedImageCaptions {
     }
 
     private function should_apply( int $post_id ): bool {
-        if ( ! Settings::bool( "featured_image_caption_templates_enabled" ) || $post_id <= 0 ) {
+        if ( ! RuntimeContext::is_public_dom_context() || ! Settings::bool( "featured_image_caption_templates_enabled" ) || $post_id <= 0 ) {
             return false;
         }
         $post_type = get_post_type( $post_id );

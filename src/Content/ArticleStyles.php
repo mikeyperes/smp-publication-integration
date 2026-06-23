@@ -1,6 +1,7 @@
 <?php
 namespace smp_publication_integration\Content;
 
+use smp_publication_integration\Support\RuntimeContext;
 use smp_publication_integration\Support\Settings;
 
 if ( ! defined( "ABSPATH" ) ) {
@@ -22,6 +23,9 @@ final class ArticleStyles {
     }
 
     public function print_styles(): void {
+        if ( ! RuntimeContext::is_public_dom_context() ) {
+            return;
+        }
         $needs = Settings::bool( "breadcrumbs_enabled" ) || Settings::bool( "inline_photo_treatments_enabled" ) || Settings::bool( "featured_image_caption_templates_enabled" ) || Settings::bool( "post_summary_acf_enabled" ) || Settings::bool( "post_faqs_acf_enabled" ) || Settings::bool( "table_of_contents_enabled" );
         if ( ! $needs ) {
             return;

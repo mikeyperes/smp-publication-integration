@@ -2,6 +2,7 @@
 namespace smp_publication_integration\Content;
 
 use smp_publication_integration\Support\Fields;
+use smp_publication_integration\Support\RuntimeContext;
 use smp_publication_integration\Support\Settings;
 
 if ( ! defined( "ABSPATH" ) ) {
@@ -44,7 +45,7 @@ final class Breadcrumbs {
     }
 
     public static function should_render(): bool {
-        if ( is_admin() || is_feed() || is_embed() || ! is_singular() ) {
+        if ( ! RuntimeContext::is_public_dom_context() || ! is_singular() ) {
             return false;
         }
 

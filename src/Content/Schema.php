@@ -4,6 +4,7 @@ namespace smp_publication_integration\Content;
 use Hexa\PluginCore\WpAdminAjax\AjaxActionRegistry;
 use Hexa\PluginCore\WpAdminAjax\AjaxRequest;
 use smp_publication_integration\Support\Fields;
+use smp_publication_integration\Support\RuntimeContext;
 use smp_publication_integration\Support\Settings;
 
 if ( ! defined( "ABSPATH" ) ) {
@@ -33,6 +34,9 @@ final class Schema {
     }
 
     public function disable_rank_math_schema_output(): void {
+        if ( ! RuntimeContext::is_public_frontend() ) {
+            return;
+        }
         remove_all_actions( "rank_math/head", 90 );
     }
 
@@ -53,6 +57,9 @@ final class Schema {
     }
 
     public function inject_schema(): void {
+        if ( ! RuntimeContext::is_public_frontend() ) {
+            return;
+        }
         $schema = "";
         if ( is_front_page() || is_home() ) {
             $schema = $this->generate_home_schema_json();
@@ -69,7 +76,7 @@ final class Schema {
     }
 
     public function filter_rank_math_schema( $data, $jsonld = null ) {
-        if ( is_admin() ) {
+        if ( ! RuntimeContext::is_public_frontend() ) {
             return $data;
         }
         return [];

@@ -1,6 +1,7 @@
 <?php
 namespace smp_publication_integration\Content;
 
+use smp_publication_integration\Support\RuntimeContext;
 use smp_publication_integration\Support\Settings;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -13,6 +14,9 @@ final class AuthorSocialCleanup {
     }
 
     public function print_script(): void {
+        if ( ! RuntimeContext::is_public_dom_context() ) {
+            return;
+        }
         $author_context = is_single() || is_author();
         $should_run = ( Settings::bool( "author_social_cleanup" ) && $author_context ) || Settings::bool( "publication_social_cleanup" );
         if ( ! $should_run ) {

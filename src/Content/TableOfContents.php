@@ -2,6 +2,7 @@
 namespace smp_publication_integration\Content;
 
 use smp_publication_integration\Support\Fields;
+use smp_publication_integration\Support\RuntimeContext;
 use smp_publication_integration\Support\Settings;
 
 if ( ! defined( "ABSPATH" ) ) {
@@ -35,7 +36,7 @@ final class TableOfContents {
     }
 
     public function filter_content( string $content ): string {
-        if ( is_admin() || ! Settings::bool( "table_of_contents_enabled" ) || ! Settings::bool( "table_of_contents_auto_single" ) ) {
+        if ( ! RuntimeContext::is_public_dom_context() || ! Settings::bool( "table_of_contents_enabled" ) || ! Settings::bool( "table_of_contents_auto_single" ) ) {
             return $content;
         }
         static $inserted = false;
@@ -54,6 +55,9 @@ final class TableOfContents {
     }
 
     public function print_styles(): void {
+        if ( ! RuntimeContext::is_public_dom_context() ) {
+            return;
+        }
         if ( ! Settings::bool( "table_of_contents_enabled" ) ) {
             return;
         }
@@ -171,7 +175,7 @@ final class TableOfContents {
     }
 
     public function print_auto_inject_script(): void {
-        if ( is_admin() || ! Settings::bool( "table_of_contents_enabled" ) || ! Settings::bool( "table_of_contents_auto_single" ) || ! is_singular( "post" ) ) {
+        if ( ! RuntimeContext::is_public_dom_context() || ! Settings::bool( "table_of_contents_enabled" ) || ! Settings::bool( "table_of_contents_auto_single" ) || ! is_singular( "post" ) ) {
             return;
         }
         $style = ArticleStyles::normalize_toc_style( (string) Settings::get( "table_of_contents_style", "toc02" ) );
