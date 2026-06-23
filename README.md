@@ -7,7 +7,7 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.6.75`
+- Version: `0.6.77`
 
 ## Structure
 
@@ -37,8 +37,11 @@ WordPress plugin for Scale My Publication publication profiles.
 
 - Added an opt-in Multiple post authors feature card on the Features tab.
 - Added one ACF multi-user field, `smpi_post_authors`, for posts, press releases, and imported-news entries.
+- Added a Multiple post authors frontend hook test button and server-side Elementor `.smpi-author-module` duplication path.
 - Added shared multi-author resolution for schema and author shortcodes with native `post_author` fallback.
 - Updated `[acf_author_field]` and author shortcodes to support `author_index` while preserving default primary-author behavior.
+- Added `[smp_post_authors]` text/list/link output modes, a loop-card disable toggle, server-side verified badge support for repeated author modules, and friendly default output for `[smp_estimated_read_time]`.
+- Tightened the multiple-author Elementor duplication protocol so SMP clones only author-content child nodes, leaves sibling controls like Share untouched, and injects no multi-author frontend CSS.
 - Added `[author_name]` and guarded `[author_image]` against avatar-plugin image-editor failures.
 - Added a shared runtime guard so automatic frontend injections skip Elementor editor/preview, AJAX, REST, feeds, embeds, cron, CLI, and admin contexts.
 - Bundled Hexa WordPress Plugin Core and registered the Hexa Core tab through dashboard filters.
@@ -218,7 +221,9 @@ WordPress plugin for Scale My Publication publication profiles.
 
 ## Implementation Queue
 
-- No active README-tracked implementation queue remains.
+- Add AJAX save/update behavior to the Publication Options tab at `Settings > SMP Publication Integration > Publication Options` so saving does not require a full page reload.
+- Remove fallback-only Publication Options ACF fields that duplicate imported publication data, including Mission Statement Fallback and Publication Summary Fallback.
+- Add a matching shortcode example to the description/instructions for every remaining Publication Options ACF field.
 
 ### 0.6.67 Updates
 - Hardened Core color controls with max-length hex input and visible invalid-hex rejection before save.

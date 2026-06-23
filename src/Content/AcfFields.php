@@ -147,7 +147,7 @@ final class AcfFields {
                 "label" => "SMP Post Authors",
                 "name" => "",
                 "type" => "message",
-                "message" => "<button type=\"button\" class=\"button button-secondary\" data-smpi-add-default-author>Add default WordPress author</button><p class=\"description\">Select all authors for this article. If this field is empty, SMP falls back to the native WordPress author.</p>",
+                "message" => "<button type=\"button\" class=\"button button-secondary\" data-smpi-add-default-author>Add current post author</button><p class=\"description\" data-smpi-current-post-author>Current post author will be shown after the editor loads.</p><p class=\"description\">Select all authors for this article. If this field is empty, SMP falls back to the native WordPress author.</p>",
                 "esc_html" => 0,
                 "new_lines" => "wpautop",
             ];
@@ -280,6 +280,9 @@ final class AcfFields {
         (function($){
             var authorId = <?php echo (int) $author_id; ?>;
             var authorLabel = <?php echo wp_json_encode( $user->display_name . " (#" . $author_id . ")" ); ?>;
+            function showCurrentAuthor(){
+                $('[data-smpi-current-post-author]').text('Current post author: '+authorLabel);
+            }
             function field(){return $('[data-key="<?php echo esc_js( MultiAuthors::FIELD_KEY ); ?>"] select').first();}
             $(document).on('click','[data-smpi-add-default-author]',function(e){
                 e.preventDefault();
@@ -293,6 +296,8 @@ final class AcfFields {
                 if(values.indexOf(String(authorId)) < 0){values.unshift(String(authorId));}
                 select.val(values).trigger('change');
             });
+            $(showCurrentAuthor);
+            if(window.acf){acf.addAction('ready append',showCurrentAuthor);}
         })(jQuery);
         </script>
         <?php

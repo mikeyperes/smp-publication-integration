@@ -7,6 +7,8 @@ use Hexa\PluginCore\WpAdminAjax\AjaxActionRegistry;
 use Hexa\PluginCore\WpAdminAjax\AjaxFailure;
 use Hexa\PluginCore\WpAdminAjax\AjaxGuard;
 use Hexa\PluginCore\WpAdminAjax\AjaxRequest;
+use smp_publication_integration\Content\MultiAuthors;
+use smp_publication_integration\Content\Schema;
 use smp_publication_integration\Support\Dependencies;
 use smp_publication_integration\Support\PageStructure;
 use smp_publication_integration\Support\PluginRegistry;
@@ -42,6 +44,7 @@ final class Ajax {
                 'smpi_shortcode_user_preview'  => [ 'callback' => [ $this, 'shortcode_user_preview' ] ],
                 'smpi_search_profiles'         => [ 'callback' => [ $this, 'search_profiles' ] ],
                 'smpi_save_founder_profiles'   => [ 'callback' => [ $this, 'save_founder_profiles' ] ],
+                'smpi_test_multi_authors'       => [ 'callback' => [ $this, 'test_multi_authors' ] ],
                 'smpi_refresh_optimization'    => [ 'callback' => [ $this, 'refresh_optimization' ] ],
                 'smpi_plugin_action'           => [ 'callback' => [ $this, 'plugin_action' ] ],
             ]
@@ -77,7 +80,7 @@ final class Ajax {
 
     public function save_settings( AjaxRequest $request ): array {
         $changes = [];
-        foreach ( [ "founders_enabled", "shadow_posts_enabled", "shadow_press_releases", "post_list_defaults_enabled", "author_social_cleanup", "public_debug_enabled", "estimated_read_time_enabled", "elementor_css_cache_busting", "publication_social_cleanup", "muckrack_verified_enabled", "muckrack_author_always_show", "publication_muckrack_verified_enabled", "multi_authors_enabled", "press_release_include_enabled", "post_summary_acf_enabled", "post_faqs_acf_enabled", "article_types_enabled", "breadcrumbs_enabled", "table_of_contents_enabled", "table_of_contents_auto_single", "table_of_contents_include_summary", "inline_photo_treatments_enabled", "featured_image_caption_templates_enabled", "rank_math_breadcrumb_check_enabled", "hws_masked_admin_report_enabled" ] as $key ) {
+        foreach ( [ "founders_enabled", "shadow_posts_enabled", "shadow_press_releases", "post_list_defaults_enabled", "author_social_cleanup", "public_debug_enabled", "estimated_read_time_enabled", "elementor_css_cache_busting", "publication_social_cleanup", "muckrack_verified_enabled", "muckrack_author_always_show", "publication_muckrack_verified_enabled", "multi_authors_enabled", "multi_authors_disable_loop_cards", "press_release_include_enabled", "post_summary_acf_enabled", "post_faqs_acf_enabled", "article_types_enabled", "breadcrumbs_enabled", "table_of_contents_enabled", "table_of_contents_auto_single", "table_of_contents_include_summary", "inline_photo_treatments_enabled", "featured_image_caption_templates_enabled", "rank_math_breadcrumb_check_enabled", "hws_masked_admin_report_enabled" ] as $key ) {
             if ( $request->has( $key, 'post' ) ) {
                 $changes[ $key ] = $request->bool( $key, false, 'post' );
             }
@@ -218,6 +221,64 @@ final class Ajax {
         return [ "user" => Dashboard::shortcode_selected_user_html( $user_id ), "html" => Dashboard::shortcode_user_values_html( $user_id ) ];
     }
 
+    public function test_multi_authors( AjaxRequest $request ): array {
+        $target = trim( (string) $request->text( "target", "", "post" ) );
+        $post_id = $this->resolve_multi_author_test_post_id( $target );
+        if ( $post_id <= 0 ) {
+            throw AjaxFailure::not_found( "No published post, press release, or imported-news item was found for the test." );
+        }
+
+        $post = get_post( $post_id );
+        if ( ! $post || ! in_array( (string) $post->post_type, MultiAuthors::supported_post_types(), true ) ) {
+            throw AjaxFailure::bad_request( "The selected item is not a supported article post type." );
+        }
+        if ( "publish" !== (string) $post->post_status ) {
+            throw AjaxFailure::bad_request( "The selected item must be published for a frontend hook test." );
+        }
+
+        $authors = MultiAuthors::author_view_models_for_post( $post_id );
+        $schema = ( new Schema() )->generate_single_schema_array( $post_id );
+        $generated_schema_author_ids = $this->schema_author_ids( $schema );
+        $frontend = $this->fetch_frontend_author_state( $post_id );
+        $resolved_ids = array_map( static fn( array $author ): string => (string) $author["id"], $authors );
+        $expected_schema_ids = array_map(
+            static fn( array $author ): string => trailingslashit( (string) $author["url"] ) . "#person",
+            $authors
+        );
+        $schema_matches = $this->same_values( $expected_schema_ids, $generated_schema_author_ids );
+        $frontend_schema_matches = $this->same_values( $expected_schema_ids, $frontend["schema_author_ids"] );
+        $hook_rendered = (int) $frontend["stack_count"] >= count( $authors ) && count( $authors ) > 1;
+        $hook_ready = (int) $frontend["marker_count"] > 0 || $hook_rendered;
+
+        $report = [
+            "post_id" => $post_id,
+            "title" => get_the_title( $post_id ),
+            "permalink" => get_permalink( $post_id ),
+            "enabled" => MultiAuthors::enabled(),
+            "authors" => $authors,
+            "resolved_ids" => $resolved_ids,
+            "generated_schema_author_ids" => $generated_schema_author_ids,
+            "frontend_schema_author_ids" => $frontend["schema_author_ids"],
+            "frontend_http_code" => $frontend["http_code"],
+            "frontend_error" => $frontend["error"],
+            "marker_count" => (int) $frontend["marker_count"],
+            "stack_count" => (int) $frontend["stack_count"],
+            "visible_name_counts" => $frontend["visible_name_counts"],
+            "schema_matches" => $schema_matches,
+            "frontend_schema_matches" => $frontend_schema_matches,
+            "hook_ready" => $hook_ready,
+            "hook_rendered" => $hook_rendered,
+        ];
+
+        Settings::log( "Multiple author frontend test ran for post #" . $post_id . "." );
+
+        return [
+            "message" => $hook_rendered ? "Multiple author frontend hook rendered for post #" . $post_id . "." : "Multiple author test completed for post #" . $post_id . ".",
+            "report" => $report,
+            "html" => $this->multi_author_test_html( $report ),
+        ];
+    }
+
     private function user_result( \WP_User $user ): array {
         return [
             "id" => (int) $user->ID,
@@ -229,6 +290,162 @@ final class Ajax {
             "edit_url" => get_edit_user_link( $user->ID ),
             "view_url" => get_author_posts_url( $user->ID ),
         ];
+    }
+
+    private function resolve_multi_author_test_post_id( string $target ): int {
+        if ( "" !== $target ) {
+            if ( ctype_digit( $target ) ) {
+                return absint( $target );
+            }
+            $post_id = url_to_postid( $target );
+            if ( $post_id > 0 ) {
+                return (int) $post_id;
+            }
+            $parts = wp_parse_url( $target );
+            if ( is_array( $parts ) && ! empty( $parts["query"] ) ) {
+                parse_str( (string) $parts["query"], $query );
+                if ( ! empty( $query["post"] ) ) {
+                    return absint( $query["post"] );
+                }
+                if ( ! empty( $query["p"] ) ) {
+                    return absint( $query["p"] );
+                }
+            }
+        }
+
+        $post_types = array_values( array_filter( MultiAuthors::supported_post_types(), "post_type_exists" ) );
+        $latest = get_posts(
+            [
+                "post_type" => $post_types ?: [ "post" ],
+                "post_status" => "publish",
+                "posts_per_page" => 1,
+                "orderby" => "date",
+                "order" => "DESC",
+                "fields" => "ids",
+                "no_found_rows" => true,
+            ]
+        );
+        return ! empty( $latest ) ? (int) $latest[0] : 0;
+    }
+
+    private function fetch_frontend_author_state( int $post_id ): array {
+        $url = add_query_arg( "smpi_multi_author_test", (string) time(), get_permalink( $post_id ) );
+        $response = wp_remote_get(
+            $url,
+            [
+                "timeout" => 15,
+                "redirection" => 5,
+                "headers" => [
+                    "Cache-Control" => "no-cache",
+                    "Pragma" => "no-cache",
+                ],
+            ]
+        );
+
+        $state = [
+            "http_code" => 0,
+            "error" => "",
+            "marker_count" => 0,
+            "stack_count" => 0,
+            "schema_author_ids" => [],
+            "visible_name_counts" => [],
+        ];
+
+        if ( is_wp_error( $response ) ) {
+            $state["error"] = $response->get_error_message();
+            return $state;
+        }
+
+        $state["http_code"] = (int) wp_remote_retrieve_response_code( $response );
+        $body = (string) wp_remote_retrieve_body( $response );
+        if ( "" === $body ) {
+            $state["error"] = "Empty frontend response.";
+            return $state;
+        }
+
+        $state["marker_count"] = substr_count( $body, "smpi-author-module" );
+        if ( preg_match_all( '/data-smpi-multi-author-count=["\'](\d+)["\']/i', $body, $matches ) ) {
+            $state["stack_count"] = array_sum( array_map( "absint", $matches[1] ) );
+        }
+        $state["schema_author_ids"] = $this->frontend_schema_author_ids( $body );
+        foreach ( MultiAuthors::author_view_models_for_post( $post_id ) as $author ) {
+            $name = (string) $author["name"];
+            $state["visible_name_counts"][ $name ] = substr_count( wp_strip_all_tags( $body ), $name );
+        }
+
+        return $state;
+    }
+
+    private function frontend_schema_author_ids( string $body ): array {
+        if ( ! preg_match( '/<script[^>]+id=["\']smpi-schema-jsonld["\'][^>]*>(.*?)<\/script>/is', $body, $match ) ) {
+            return [];
+        }
+        $json = html_entity_decode( trim( (string) $match[1] ), ENT_QUOTES | ENT_HTML5, "UTF-8" );
+        $schema = json_decode( $json, true );
+        return is_array( $schema ) ? $this->schema_author_ids( $schema ) : [];
+    }
+
+    private function schema_author_ids( array $schema ): array {
+        $graph = isset( $schema["@graph"] ) && is_array( $schema["@graph"] ) ? $schema["@graph"] : [ $schema ];
+        foreach ( $graph as $node ) {
+            if ( ! is_array( $node ) || empty( $node["@type"] ) || empty( $node["author"] ) ) {
+                continue;
+            }
+            $types = is_array( $node["@type"] ) ? $node["@type"] : [ $node["@type"] ];
+            $is_article = false;
+            foreach ( $types as $type ) {
+                if ( false !== strpos( (string) $type, "Article" ) ) {
+                    $is_article = true;
+                    break;
+                }
+            }
+            if ( ! $is_article ) {
+                continue;
+            }
+            $authors = isset( $node["author"][0] ) ? $node["author"] : [ $node["author"] ];
+            $ids = [];
+            foreach ( $authors as $author ) {
+                if ( is_array( $author ) && ! empty( $author["@id"] ) ) {
+                    $ids[] = (string) $author["@id"];
+                }
+            }
+            return array_values( array_unique( $ids ) );
+        }
+        return [];
+    }
+
+    private function same_values( array $expected, array $actual ): bool {
+        sort( $expected );
+        sort( $actual );
+        return $expected === $actual;
+    }
+
+    private function multi_author_test_html( array $report ): string {
+        $ok_hook = ! empty( $report["hook_rendered"] );
+        $ok_schema = ! empty( $report["schema_matches"] ) && ! empty( $report["frontend_schema_matches"] );
+        $html = "<div class=\"smpi-test-proof\">";
+        $html .= "<p>" . ( $ok_hook ? "<span class=\"smpi-ico smpi-ico--ok\">✓</span>" : "<span class=\"smpi-ico smpi-ico--warn\">!</span>" ) . " <strong>" . esc_html( (string) $report["title"] ) . "</strong> <a target=\"_blank\" rel=\"noopener noreferrer\" href=\"" . esc_url( (string) $report["permalink"] ) . "\">Open post</a></p>";
+        $html .= "<div class=\"smpi-test-proof-grid\">";
+        $html .= "<div><strong>Feature enabled</strong><br>" . ( ! empty( $report["enabled"] ) ? "Yes" : "No" ) . "</div>";
+        $html .= "<div><strong>Resolved authors</strong><br><code>" . esc_html( implode( ", ", (array) $report["resolved_ids"] ) ) . "</code></div>";
+        $html .= "<div><strong>Schema match</strong><br>" . ( $ok_schema ? "Yes" : "No" ) . "</div>";
+        $html .= "<div><strong>Elementor hook</strong><br>" . ( ! empty( $report["hook_ready"] ) ? "Target matched" : "Missing target" ) . "</div>";
+        $html .= "<div><strong>Rendered stack</strong><br>" . esc_html( (string) $report["stack_count"] ) . " rendered author item(s)</div>";
+        $html .= "<div><strong>Frontend HTTP</strong><br>" . esc_html( (string) $report["frontend_http_code"] ) . ( "" !== (string) $report["frontend_error"] ? " - " . esc_html( (string) $report["frontend_error"] ) : "" ) . "</div>";
+        $html .= "</div>";
+        $html .= "<table class=\"widefat striped\"><thead><tr><th>Index</th><th>User</th><th>Email</th><th>Author URL</th><th>Visible text count</th></tr></thead><tbody>";
+        foreach ( (array) $report["authors"] as $index => $author ) {
+            $name = (string) $author["name"];
+            $count = isset( $report["visible_name_counts"][ $name ] ) ? (int) $report["visible_name_counts"][ $name ] : 0;
+            $html .= "<tr><td>" . esc_html( (string) $index ) . "</td><td>" . esc_html( $name ) . " (#" . esc_html( (string) $author["id"] ) . ")</td><td>" . esc_html( (string) $author["email"] ) . "</td><td><code>" . esc_html( (string) $author["url"] ) . "</code></td><td>" . esc_html( (string) $count ) . "</td></tr>";
+        }
+        $html .= "</tbody></table>";
+        $html .= "<p class=\"smpi-muted\">Generated schema authors: <code>" . esc_html( implode( ", ", (array) $report["generated_schema_author_ids"] ) ) . "</code></p>";
+        $html .= "<p class=\"smpi-muted\">Fetched frontend schema authors: <code>" . esc_html( implode( ", ", (array) $report["frontend_schema_author_ids"] ) ) . "</code></p>";
+        if ( ! $ok_hook ) {
+            $html .= "<p class=\"smpi-alert smpi-alert-warning\">The author resolver and schema can pass while the visual Elementor hook is inactive. Add <code>smpi-author-module</code> to the Elementor author module that should repeat.</p>";
+        }
+        return $html . "</div>";
     }
 
     public function search_profiles( AjaxRequest $request ): array {
