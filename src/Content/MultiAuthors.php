@@ -448,7 +448,7 @@ final class MultiAuthors {
         $post = get_post();
         $post_id = $post ? (int) $post->ID : 0;
         $authors = self::author_view_models_for_selected_authors( $post_id );
-        if ( count( $authors ) < 2 ) {
+        if ( count( $authors ) < 1 ) {
             return $content;
         }
 
