@@ -50,6 +50,7 @@ final class AuthorShortcodes {
             "author_subtitle" => "render_subtitle",
             "author_facebook" => "render_facebook",
             "author_instagram" => "render_instagram",
+            "author" => "render_author",
             "author_x" => "render_x",
             "author_linkedin" => "render_linkedin",
             "author_youtube" => "render_youtube",
@@ -119,6 +120,19 @@ final class AuthorShortcodes {
 
     public function render_instagram( array $atts = [] ): string {
         return $this->render_social_url( "instagram", $atts );
+    }
+
+    public function render_author( array $atts = [] ): string {
+        $atts = shortcode_atts( [ "url" => "", "user_id" => 0, "post_id" => 0, "author_index" => 0 ], $atts, "author" );
+        $key = sanitize_key( (string) $atts["url"] );
+        if ( "twitter" === $key || "tw" === $key ) {
+            $key = "x";
+        }
+        $allowed = [ "facebook", "instagram", "x", "linkedin", "youtube", "crunchbase", "muckrack", "website" ];
+        if ( ! in_array( $key, $allowed, true ) ) {
+            return "";
+        }
+        return $this->render_social_url( $key, $atts );
     }
 
     public function render_x( array $atts = [] ): string {
