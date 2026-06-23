@@ -290,9 +290,6 @@ final class MultiAuthors {
         if ( is_author() && ! in_the_loop() ) {
             return $content;
         }
-        if ( "primary" === self::loop_card_output_format() ) {
-            return $content;
-        }
         if ( false === stripos( $content, "/author/" ) ) {
             return $content;
         }
@@ -305,17 +302,22 @@ final class MultiAuthors {
             return $content;
         }
 
-        $authors = self::author_view_models_for_selected_authors( (int) $post->ID );
-        if ( count( $authors ) < 2 ) {
+        $context = self::author_rebind_context_for_post( (int) $post->ID );
+        if ( empty( $context ) ) {
             return $content;
         }
 
-        return self::replace_primary_author_link_html( $content, $authors, self::loop_card_output_format() );
+        $selected_authors = $context["authors"];
+        $source_author = $context["source"];
+
+        $format = self::loop_card_output_format();
+        $output_authors = "primary" === $format ? [ $selected_authors[0] ] : $selected_authors;
+
+        return self::replace_primary_author_link_html( $content, $source_author, $output_authors, $format );
     }
 
-    private static function replace_primary_author_link_html( string $html, array $authors, string $format ): string {
-        $primary = $authors[0] ?? null;
-        if ( ! is_array( $primary ) ) {
+    private static function replace_primary_author_link_html( string $html, array $source_author, array $authors, string $format ): string {
+        if ( empty( $authors ) ) {
             return $html;
         }
 
@@ -331,7 +333,7 @@ final class MultiAuthors {
         $links = iterator_to_array( $doc->getElementsByTagName( "a" ) );
         $replaced = false;
         foreach ( $links as $link ) {
-            if ( ! $link instanceof \DOMElement || ! self::href_matches_author( $link->getAttribute( "href" ), $primary ) ) {
+            if ( ! $link instanceof \DOMElement || ! self::href_matches_author( $link->getAttribute( "href" ), $source_author ) ) {
                 continue;
             }
             if ( self::link_parent_already_has_author_links( $link, $authors ) ) {
@@ -447,17 +449,15 @@ final class MultiAuthors {
 
         $post = get_post();
         $post_id = $post ? (int) $post->ID : 0;
-        $authors = self::author_view_models_for_selected_authors( $post_id );
-        if ( count( $authors ) < 1 ) {
-            return $content;
-        }
-        if ( 1 === count( $authors ) && $post && (int) $authors[0]["id"] === (int) $post->post_author ) {
+        $context = self::author_rebind_context_for_post( $post_id );
+        if ( empty( $context ) ) {
             return $content;
         }
 
         $badge_context = false !== strpos( $content, 'id="share-button"' ) || false !== strpos( $content, "id='share-button'" ) ? "single_author" : "single_footer";
 
-        $source_author = $post ? ( self::author_view_models_for_ids( [ (int) $post->post_author ] )[0] ?? $authors[0] ) : $authors[0];
+        $authors = $context["authors"];
+        $source_author = $context["source"];
         $template = self::author_only_template_html( $content, $source_author );
         if ( "" === $template ) {
             return $content;
@@ -625,6 +625,37 @@ final class MultiAuthors {
 
     public static function author_view_models_for_post( int $post_id ): array {
         return self::author_view_models_for_ids( self::author_ids_for_post( $post_id, true ) );
+    }
+
+    private static function author_rebind_context_for_post( int $post_id ): array {
+        if ( ! self::enabled() || $post_id <= 0 ) {
+            return [];
+        }
+
+        $post = get_post( $post_id );
+        if ( ! $post instanceof \WP_Post || (int) $post->post_author <= 0 ) {
+            return [];
+        }
+
+        $authors = self::author_view_models_for_selected_authors( $post_id );
+        if ( empty( $authors ) ) {
+            return [];
+        }
+
+        $source_author = self::author_view_models_for_ids( [ (int) $post->post_author ] )[0] ?? null;
+        if ( ! is_array( $source_author ) ) {
+            return [];
+        }
+
+        if ( 1 === count( $authors ) && (int) $authors[0]["id"] === (int) $source_author["id"] ) {
+            return [];
+        }
+
+        return [
+            "post" => $post,
+            "source" => $source_author,
+            "authors" => $authors,
+        ];
     }
 
     private static function author_view_models_for_selected_authors( int $post_id ): array {
