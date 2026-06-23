@@ -457,15 +457,15 @@ final class MultiAuthors {
 
         $badge_context = false !== strpos( $content, 'id="share-button"' ) || false !== strpos( $content, "id='share-button'" ) ? "single_author" : "single_footer";
 
-        $primary = $authors[0];
-        $template = self::author_only_template_html( $content, $primary );
+        $source_author = $post ? ( self::author_view_models_for_ids( [ (int) $post->post_author ] )[0] ?? $authors[0] ) : $authors[0];
+        $template = self::author_only_template_html( $content, $source_author );
         if ( "" === $template ) {
             return $content;
         }
 
         $items = [];
         foreach ( $authors as $index => $author ) {
-            $html = self::rebind_author_html( $template, $primary, $author, $badge_context );
+            $html = self::rebind_author_html( $template, $source_author, $author, $badge_context );
             $items[] = self::mark_repeated_author_html( $html, $author, $index, count( $authors ) );
         }
 
