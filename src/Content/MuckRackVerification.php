@@ -43,12 +43,12 @@ final class MuckRackVerification {
     }
 
     public function render_author_field_shortcode( array $atts = [] ): string {
-        $atts = shortcode_atts( [ "field" => "", "user_id" => 0 ], $atts, "acf_author_field" );
+        $atts = shortcode_atts( [ "field" => "", "user_id" => 0, "post_id" => 0, "author_index" => 0 ], $atts, "acf_author_field" );
         $field = sanitize_key( (string) $atts["field"] );
         if ( "" === $field ) {
             return "";
         }
-        $author_id = $this->resolve_author_id( (int) $atts["user_id"] );
+        $author_id = $this->resolve_author_id( (int) $atts["user_id"], (int) $atts["post_id"], (int) $atts["author_index"] );
         if ( ! $author_id ) {
             return "";
         }
@@ -57,8 +57,8 @@ final class MuckRackVerification {
     }
 
     public function render_muckrack_shortcode( array $atts = [] ): string {
-        $atts = shortcode_atts( [ "type" => "icon", "user_id" => 0, "style" => "", "context" => "" ], $atts, "muckrack_verified" );
-        $author_id = $this->resolve_author_id( (int) $atts["user_id"] );
+        $atts = shortcode_atts( [ "type" => "icon", "user_id" => 0, "post_id" => 0, "author_index" => 0, "style" => "", "context" => "" ], $atts, "muckrack_verified" );
+        $author_id = $this->resolve_author_id( (int) $atts["user_id"], (int) $atts["post_id"], (int) $atts["author_index"] );
         if ( ! $author_id || ! self::author_verified( $author_id ) ) {
             return "";
         }
@@ -228,15 +228,8 @@ SMPI_JS;
         return "";
     }
 
-    private function resolve_author_id( int $explicit_id = 0 ): int {
-        if ( $explicit_id > 0 ) {
-            return $explicit_id;
-        }
-        if ( is_author() ) {
-            return (int) get_queried_object_id();
-        }
-        $post = get_post();
-        return $post ? (int) $post->post_author : 0;
+    private function resolve_author_id( int $explicit_id = 0, int $explicit_post_id = 0, int $author_index = 0 ): int {
+        return MultiAuthors::resolve_author_id( $explicit_id, $explicit_post_id, max( 0, $author_index ) );
     }
 
     public static function author_field( int $author_id, string $field ) {
@@ -246,7 +239,21 @@ SMPI_JS;
                 return $value;
             }
         }
-        return get_user_meta( $author_id, $field, true );
+        $meta = get_user_meta( $author_id, $field, true );
+        if ( null !== $meta && false !== $meta && "" !== $meta ) {
+            return $meta;
+        }
+        $user = get_userdata( $author_id );
+        if ( ! $user ) {
+            return "";
+        }
+        if ( in_array( $field, [ "name", "author_name" ], true ) ) {
+            return (string) $user->display_name;
+        }
+        if ( isset( $user->data->{$field} ) && is_scalar( $user->data->{$field} ) ) {
+            return (string) $user->data->{$field};
+        }
+        return "";
     }
 
     public static function author_acf_verified( int $author_id ): bool {

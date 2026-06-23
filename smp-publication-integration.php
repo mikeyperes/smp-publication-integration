@@ -4,7 +4,7 @@
  * Description: Publication profile integration for Scale My Publication systems.
  * Author: Michael Peres
  * Plugin URI: https://github.com/mikeyperes/smp-publication-integration
- * Version: 0.6.72
+ * Version: 0.6.74
  * Text Domain: smp-publication-integration
  * Domain Path: /languages
  * Author URI: https://michaelperes.com
@@ -56,6 +56,7 @@ register_hexa_plugin_core_autoloader();
 
 require_once __DIR__ . "/src/Content/AcfFields.php";
 require_once __DIR__ . "/src/Content/Shortcodes.php";
+require_once __DIR__ . "/src/Content/MultiAuthors.php";
 require_once __DIR__ . "/src/Content/AuthorShortcodes.php";
 require_once __DIR__ . "/src/Content/Schema.php";
 require_once __DIR__ . "/src/Content/ArticleTypes.php";
@@ -76,7 +77,7 @@ require_once __DIR__ . "/src/Admin/UiCleanup.php";
 require_once __DIR__ . "/src/Admin/Dashboard.php";
 
 final class Config {
-    public const VERSION = "0.6.72";
+    public const VERSION = "0.6.74";
 
     public static string $plugin_name        = 'SMP Publication Integration';
     public static string $plugin_slug        = 'smp-publication-integration';
@@ -182,6 +183,7 @@ function boot_plugin(): void {
 
     ( new Content\AcfFields() )->register();
     ( new Content\Shortcodes() )->register();
+    ( new Content\MultiAuthors() )->register();
     ( new Content\AuthorShortcodes() )->register();
     ( new Content\Schema() )->register();
     ( new Content\ArticleTypes() )->register();

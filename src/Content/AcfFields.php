@@ -14,6 +14,7 @@ final class AcfFields {
         add_action( "acf/init", [ $this, "register_fields" ] );
         add_action( "acf/input/admin_head", [ $this, "admin_faq_styles" ] );
         add_action( "acf/input/admin_footer", [ $this, "admin_faq_scripts" ] );
+        add_action( "acf/input/admin_footer", [ $this, "admin_multi_author_scripts" ] );
     }
 
     public function register_fields(): void {
@@ -140,6 +141,31 @@ final class AcfFields {
             ],
         ];
 
+        if ( Settings::bool( "multi_authors_enabled" ) ) {
+            $fields[] = [
+                "key" => "field_smpi_post_authors_notice",
+                "label" => "SMP Post Authors",
+                "name" => "",
+                "type" => "message",
+                "message" => "<button type=\"button\" class=\"button button-secondary\" data-smpi-add-default-author>Add default WordPress author</button><p class=\"description\">Select all authors for this article. If this field is empty, SMP falls back to the native WordPress author.</p>",
+                "esc_html" => 0,
+                "new_lines" => "wpautop",
+            ];
+            $fields[] = [
+                "key" => MultiAuthors::FIELD_KEY,
+                "label" => "Article Authors",
+                "name" => MultiAuthors::FIELD_NAME,
+                "type" => "user",
+                "instructions" => "Keep typing to add multiple WordPress authors. The first selected author is treated as primary for shortcode fallback.",
+                "role" => "",
+                "return_format" => "id",
+                "multiple" => 1,
+                "allow_null" => 1,
+                "ui" => 1,
+                "ajax" => 1,
+            ];
+        }
+
         if ( Settings::bool( "post_summary_acf_enabled" ) ) {
             $fields[] = [
                 "key" => "field_65ab7ba0e849b",
@@ -237,6 +263,53 @@ final class AcfFields {
         })(jQuery);
         </script>
         <?php
+    }
+
+    public function admin_multi_author_scripts(): void {
+        if ( ! $this->should_render_multi_author_admin_assets() ) {
+            return;
+        }
+        global $post;
+        $author_id = $post instanceof \WP_Post ? (int) $post->post_author : 0;
+        $user = $author_id > 0 ? get_user_by( "id", $author_id ) : false;
+        if ( ! $user ) {
+            return;
+        }
+        ?>
+        <script>
+        (function($){
+            var authorId = <?php echo (int) $author_id; ?>;
+            var authorLabel = <?php echo wp_json_encode( $user->display_name . " (#" . $author_id . ")" ); ?>;
+            function field(){return $('[data-key="<?php echo esc_js( MultiAuthors::FIELD_KEY ); ?>"] select').first();}
+            $(document).on('click','[data-smpi-add-default-author]',function(e){
+                e.preventDefault();
+                var select = field();
+                if(!select.length){return;}
+                if(!select.find('option[value="'+authorId+'"]').length){
+                    select.append(new Option(authorLabel, authorId, true, true));
+                }
+                var values = select.val() || [];
+                values = Array.isArray(values) ? values : [values];
+                if(values.indexOf(String(authorId)) < 0){values.unshift(String(authorId));}
+                select.val(values).trigger('change');
+            });
+        })(jQuery);
+        </script>
+        <?php
+    }
+
+    private function should_render_multi_author_admin_assets(): bool {
+        if ( ! is_admin() || ! Settings::bool( "multi_authors_enabled" ) ) {
+            return false;
+        }
+        if ( ! function_exists( "get_current_screen" ) ) {
+            return false;
+        }
+        $screen = get_current_screen();
+        if ( ! $screen || "post" !== $screen->base ) {
+            return false;
+        }
+        return in_array( (string) $screen->post_type, MultiAuthors::supported_post_types(), true );
     }
 
     private function register_visibility_fields(): void {

@@ -43,6 +43,7 @@ final class AuthorShortcodes {
 
     public static function shortcodes(): array {
         return [
+            "author_name" => "render_name",
             "author_bio_short" => "render_bio_short",
             "author_bio" => "render_bio",
             "author_title" => "render_title",
@@ -62,9 +63,18 @@ final class AuthorShortcodes {
         ];
     }
 
+    public function render_name( array $atts = [] ): string {
+        $atts = shortcode_atts( [ "user_id" => 0, "post_id" => 0, "author_index" => 0 ], $atts, "author_name" );
+        $author_id = $this->resolve_author_id( (int) $atts["user_id"], (int) $atts["post_id"], (int) $atts["author_index"] );
+        if ( ! $author_id ) {
+            return "";
+        }
+        return esc_html( (string) get_the_author_meta( "display_name", $author_id ) );
+    }
+
     public function render_bio_short( array $atts = [] ): string {
-        $atts = shortcode_atts( [ "user_id" => 0, "post_id" => 0, "words" => 35 ], $atts, "author_bio_short" );
-        $author_id = $this->resolve_author_id( (int) $atts["user_id"], (int) $atts["post_id"] );
+        $atts = shortcode_atts( [ "user_id" => 0, "post_id" => 0, "author_index" => 0, "words" => 35 ], $atts, "author_bio_short" );
+        $author_id = $this->resolve_author_id( (int) $atts["user_id"], (int) $atts["post_id"], (int) $atts["author_index"] );
         if ( ! $author_id ) {
             return "";
         }
@@ -76,8 +86,8 @@ final class AuthorShortcodes {
     }
 
     public function render_bio( array $atts = [] ): string {
-        $atts = shortcode_atts( [ "user_id" => 0, "post_id" => 0, "format" => "html" ], $atts, "author_bio" );
-        $author_id = $this->resolve_author_id( (int) $atts["user_id"], (int) $atts["post_id"] );
+        $atts = shortcode_atts( [ "user_id" => 0, "post_id" => 0, "author_index" => 0, "format" => "html" ], $atts, "author_bio" );
+        $author_id = $this->resolve_author_id( (int) $atts["user_id"], (int) $atts["post_id"], (int) $atts["author_index"] );
         if ( ! $author_id ) {
             return "";
         }
@@ -140,8 +150,8 @@ final class AuthorShortcodes {
     }
 
     public function render_muckrack_verified( array $atts = [] ): string {
-        $atts = shortcode_atts( [ "user_id" => 0, "post_id" => 0, "type" => "icon", "style" => "", "context" => "" ], $atts, "author_muckrack_verified" );
-        $author_id = $this->resolve_author_id( (int) $atts["user_id"], (int) $atts["post_id"] );
+        $atts = shortcode_atts( [ "user_id" => 0, "post_id" => 0, "author_index" => 0, "type" => "icon", "style" => "", "context" => "" ], $atts, "author_muckrack_verified" );
+        $author_id = $this->resolve_author_id( (int) $atts["user_id"], (int) $atts["post_id"], (int) $atts["author_index"] );
         if ( ! $author_id || ! MuckRackVerification::author_verified( $author_id ) ) {
             return "";
         }
@@ -159,8 +169,8 @@ final class AuthorShortcodes {
     }
 
     public function render_image( array $atts = [] ): string {
-        $atts = shortcode_atts( [ "user_id" => 0, "post_id" => 0, "size" => "thumbnail", "output" => "html", "class" => "smpi-author-image" ], $atts, "author_image" );
-        $author_id = $this->resolve_author_id( (int) $atts["user_id"], (int) $atts["post_id"] );
+        $atts = shortcode_atts( [ "user_id" => 0, "post_id" => 0, "author_index" => 0, "size" => "thumbnail", "output" => "html", "class" => "smpi-author-image" ], $atts, "author_image" );
+        $author_id = $this->resolve_author_id( (int) $atts["user_id"], (int) $atts["post_id"], (int) $atts["author_index"] );
         if ( ! $author_id ) {
             return "";
         }
@@ -180,8 +190,8 @@ final class AuthorShortcodes {
     }
 
     private function render_author_text( string $key, array $atts = [] ): string {
-        $atts = shortcode_atts( [ "user_id" => 0, "post_id" => 0 ], $atts, "author_" . $key );
-        $author_id = $this->resolve_author_id( (int) $atts["user_id"], (int) $atts["post_id"] );
+        $atts = shortcode_atts( [ "user_id" => 0, "post_id" => 0, "author_index" => 0 ], $atts, "author_" . $key );
+        $author_id = $this->resolve_author_id( (int) $atts["user_id"], (int) $atts["post_id"], (int) $atts["author_index"] );
         if ( ! $author_id ) {
             return "";
         }
@@ -194,8 +204,8 @@ final class AuthorShortcodes {
     }
 
     private function render_social_url( string $key, array $atts = [] ): string {
-        $atts = shortcode_atts( [ "user_id" => 0, "post_id" => 0 ], $atts, "author_" . $key );
-        $author_id = $this->resolve_author_id( (int) $atts["user_id"], (int) $atts["post_id"] );
+        $atts = shortcode_atts( [ "user_id" => 0, "post_id" => 0, "author_index" => 0 ], $atts, "author_" . $key );
+        $author_id = $this->resolve_author_id( (int) $atts["user_id"], (int) $atts["post_id"], (int) $atts["author_index"] );
         if ( ! $author_id ) {
             return "";
         }
@@ -204,19 +214,8 @@ final class AuthorShortcodes {
         return "" !== $url ? esc_url( $url ) : "";
     }
 
-    private function resolve_author_id( int $explicit_user_id = 0, int $explicit_post_id = 0 ): int {
-        if ( $explicit_user_id > 0 && get_user_by( "id", $explicit_user_id ) ) {
-            return $explicit_user_id;
-        }
-        if ( $explicit_post_id > 0 ) {
-            $post = get_post( $explicit_post_id );
-            return $post ? (int) $post->post_author : 0;
-        }
-        if ( is_author() ) {
-            return (int) get_queried_object_id();
-        }
-        $post = get_post();
-        return $post ? (int) $post->post_author : 0;
+    private function resolve_author_id( int $explicit_user_id = 0, int $explicit_post_id = 0, int $author_index = 0 ): int {
+        return MultiAuthors::resolve_author_id( $explicit_user_id, $explicit_post_id, max( 0, $author_index ) );
     }
 
     private function first_author_field( int $author_id, array $fields ): string {
@@ -241,7 +240,11 @@ final class AuthorShortcodes {
                 return $url;
             }
         }
-        $avatar = get_avatar_url( $author_id, [ "size" => self::IMAGE_SIZE_PIXELS[ $size ] ] );
+        try {
+            $avatar = get_avatar_url( $author_id, [ "size" => self::IMAGE_SIZE_PIXELS[ $size ] ] );
+        } catch ( \Throwable $e ) {
+            $avatar = "";
+        }
         return is_string( $avatar ) ? $avatar : "";
     }
 

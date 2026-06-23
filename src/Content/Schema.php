@@ -233,8 +233,8 @@ final class Schema {
         $article_id = $permalink . "#article";
         $article_type = ArticleTypes::schema_type_for_post( $post_id );
         $image = $this->primary_image_entity( $post_id, $permalink . "#primaryimage", $org["logo"] ?? null );
-        $author = $this->author_entity( (int) $post->post_author );
-        $author_ref = $author ? [ "@id" => $author["@id"] ] : [ "@id" => $org_id ];
+        $authors = $this->author_entities_for_post( $post_id );
+        $author_ref = $authors ? array_map( static fn( array $author ): array => [ "@id" => $author["@id"] ], $authors ) : [ [ "@id" => $org_id ] ];
         $faq_rows = self::faq_rows_for_post( $post_id, true );
         $faq = $faq_rows ? $this->faq_entity( $post_id, $permalink . "#faq", $faq_rows, $webpage_id ) : [];
         $breadcrumb = $this->breadcrumb_entity( $post_id, $permalink . "#breadcrumb" );
@@ -283,7 +283,7 @@ final class Schema {
             "url" => $permalink,
             "datePublished" => get_the_date( DATE_W3C, $post ),
             "dateModified" => get_the_modified_date( DATE_W3C, $post ),
-            "author" => $author_ref,
+            "author" => 1 === count( $author_ref ) ? $author_ref[0] : $author_ref,
             "publisher" => [ "@id" => $org_id ],
             "image" => $image ? [ "@id" => $image["@id"] ] : null,
             "thumbnailUrl" => $image["url"] ?? null,
@@ -302,7 +302,7 @@ final class Schema {
             "hasPart" => $faq ? [ [ "@id" => $faq["@id"] ] ] : null,
         ] );
 
-        $graph = array_values( array_filter( [ $org, $website, $webpage, $article, $author, $image, $breadcrumb, $faq ] ) );
+        $graph = array_values( array_filter( array_merge( [ $org, $website, $webpage, $article ], $authors, [ $image, $breadcrumb, $faq ] ) ) );
         return [ "@context" => "https://schema.org", "@graph" => $graph ];
     }
 
@@ -499,11 +499,31 @@ final class Schema {
             "@id" => $url . "#person",
             "name" => $user->display_name,
             "url" => $url,
-            "image" => get_avatar_url( $user_id, [ "size" => 256 ] ),
+            "image" => $this->user_avatar_url( $user_id ),
             "description" => wp_strip_all_tags( (string) $description ),
             "jobTitle" => wp_strip_all_tags( (string) $title ),
             "sameAs" => $this->user_same_as( $user_id ),
         ] );
+    }
+
+    private function author_entities_for_post( int $post_id ): array {
+        $authors = [];
+        foreach ( MultiAuthors::author_ids_for_post( $post_id, true ) as $user_id ) {
+            $entity = $this->author_entity( (int) $user_id );
+            if ( ! empty( $entity["@id"] ) ) {
+                $authors[ (string) $entity["@id"] ] = $entity;
+            }
+        }
+        return array_values( $authors );
+    }
+
+    private function user_avatar_url( int $user_id ): string {
+        try {
+            $avatar = get_avatar_url( $user_id, [ "size" => 256 ] );
+            return is_string( $avatar ) ? $avatar : "";
+        } catch ( \Throwable $e ) {
+            return "";
+        }
     }
 
     private function primary_image_entity( int $post_id, string $id, $fallback_logo = null ): array {

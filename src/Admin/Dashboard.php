@@ -13,6 +13,7 @@ use Hexa\PluginCore\SchemaDetection\SchemaPageScanner;
 use Hexa\PluginCore\SchemaDetection\SchemaScanRenderer;
 use smp_publication_integration\Config;
 use smp_publication_integration\Content\AuthorShortcodes;
+use smp_publication_integration\Content\MultiAuthors;
 use smp_publication_integration\Content\Schema;
 use smp_publication_integration\Content\Shortcodes;
 use smp_publication_integration\Support\Dependencies;
@@ -932,6 +933,15 @@ final class Dashboard {
 [author_muckrack_verified style=\"compact_block\"]
 [author_muckrack]
 [muckrack_verified type=\"icon\" user_id=\"54\"]", $this->muckrack_report_html(), $this->activity_log_html(), $author_muckrack_controls );
+        $multi_author_controls = "<div class=\"smpi-control-group\"><h3>Elementor protocol</h3><p>Add the class <code>smpi-author-module</code> to an Elementor author module only when you want it treated as a repeatable author module. Do not use top/bottom classes. Elementor owns the design; SMP owns author data.</p></div>";
+        $this->feature_card( "Multiple post authors", "multi_authors_enabled", "Registers one ACF multi-user field on supported article editors: <code>" . esc_html( MultiAuthors::FIELD_NAME ) . "</code>. It is not a repeater.", "Lets posts and press releases store more than one WordPress author. Existing author shortcodes keep using the primary author by default and can target additional authors with author_index.", "[author_name]
+[author_name author_index=\"1\"]
+[acf_author_field field=\"job_title\"]
+[acf_author_field field=\"job_title\" author_index=\"1\"]
+[author_bio author_index=\"1\"]
+[author_image author_index=\"1\" output=\"url\"]
+[author_muckrack_verified author_index=\"1\"]
+[smp_post_author_ids]", $this->multi_authors_report_html(), $this->activity_log_html(), $multi_author_controls );
         $publication_muckrack_controls = $this->select_setting_html( "publication_muckrack_text_mode", [ "news_outlet" => [ "label" => "News outlet verified by MuckRack editorial team", "description" => "Generic wording when you do not want the site name in the sentence." ], "publication_name" => [ "label" => get_bloginfo( "name" ) . " verified by MuckRack editorial team", "description" => "Uses the current publication name in the verification sentence." ] ], $settings, "Text option" ) . $this->select_setting_html( "publication_muckrack_style", [ "block" => [ "label" => "Editorial block", "description" => "Small article footer block with a left accent bar.", "preview" => $this->publication_preview_sample_html( "block", $settings ) ], "mini_block" => [ "label" => "Mini editorial block", "description" => "Same left-accent editorial concept with smaller text and a quieter footprint.", "preview" => $this->publication_preview_sample_html( "mini_block", $settings ) ], "compact" => [ "label" => "Compact pill", "description" => "Small inline badge for tight author or header layouts.", "preview" => $this->publication_preview_sample_html( "compact", $settings ) ], "minimalist" => [ "label" => "Minimalist text", "description" => "Plain text treatment that blends into existing article copy.", "preview" => $this->publication_preview_sample_html( "minimalist", $settings ) ] ], $settings, "Display style" ) . $this->color_setting_html( "publication_muckrack_color", "Accent color", $settings ) . $this->number_setting_html( "publication_muckrack_font_size", "Verification text size", $settings, 8, 64, "px" ) . $this->context_select_html( "publication_muckrack_placements", [ "below_author" => "Below author", "bottom_article" => "Bottom of article" ], $settings );
         $this->feature_card( "MuckRack verified publication", "publication_muckrack_verified_enabled", "Registers site option ACF fields on Publication Theme Options: smpi_publication_muckrack_verified and smpi_publication_muckrack_url.", "Displays publication-level MuckRack verification text separately from journalist verification. Use this for the site/news-outlet claim, not the author badge.", "[smp_publication_muckrack_verified]", $this->publication_muckrack_report_html(), $this->activity_log_html(), $publication_muckrack_controls );
         $this->feature_card( "Press-release inclusion controls", "press_release_include_enabled", "Uses existing press-release CPT and _smpi_pr_shadow_override meta. ACF/local fields are registered for force include or force exclude.", "Includes Hexa PR Wire press-release posts in selected blog-like loops: home, category/tag, author.php, and single.php recent article secondary queries. Force exclude is honored through the press-release visibility meta box.", "add_action(\"pre_get_posts\", function (WP_Query \$q) { /* SMP uses the same main-query guard pattern and selected contexts. */ });", $this->press_release_report_html(), $this->activity_log_html(), $this->context_select_html( "press_release_include_contexts", [ "home" => "Home page", "category_tag" => "Category and tag pages", "author" => "author.php", "single_recent" => "single.php recent article queries" ], $settings ) );
@@ -1543,6 +1553,18 @@ final class Dashboard {
             $html .= "<tr><td>" . esc_html( $row["display_name"] ) . " (#" . esc_html( (string) $row["user_id"] ) . ")</td><td>" . esc_html( (string) $row["posts"] ) . "</td><td>" . $this->ico( (bool) $row["acf_verified"] ) . "</td><td>" . $this->ico( (bool) $row["verified"] ) . "</td><td>" . ( $row["forced"] ? "YES" : "NO" ) . "</td><td>" . $this->ico( (bool) $row["has_url"] ) . "</td><td>" . $this->ico( (bool) $row["has_description"] ) . "</td></tr>";
         }
         return $html . "</tbody></table>";
+    }
+
+    private function multi_authors_report_html(): string {
+        $report = MultiAuthors::field_report( 10 );
+        $html = $this->simple_status_html( ! empty( $report["enabled"] ), "Field: " . (string) $report["field"] . ". Supported editors: " . implode( ", ", (array) $report["supported_post_types"] ) . "." );
+        $html .= "<table class=\"widefat striped\"><thead><tr><th>Recent post</th><th>Type</th><th>Status</th><th>Native author</th><th>Resolved authors</th></tr></thead><tbody>";
+        foreach ( (array) $report["rows"] as $row ) {
+            $html .= "<tr><td>#" . esc_html( (string) $row["post_id"] ) . " " . esc_html( (string) $row["title"] ) . "</td><td><code>" . esc_html( (string) $row["type"] ) . "</code></td><td><code>" . esc_html( (string) $row["status"] ) . "</code></td><td>" . esc_html( (string) $row["native_author"] ) . "</td><td><code>" . esc_html( implode( ", ", array_map( "absint", (array) $row["authors"] ) ) ) . "</code></td></tr>";
+        }
+        $html .= "</tbody></table>";
+        $html .= "<p class=smpi-muted>Existing shortcodes now support <code>author_index</code>. Index 0 is the first selected author, and empty selections fall back to the native WordPress author.</p>";
+        return $html;
     }
 
     private function publication_muckrack_report_html(): string {
