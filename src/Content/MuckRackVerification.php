@@ -237,6 +237,25 @@ SMPI_JS;
     }
 
     public static function author_field( int $author_id, string $field ) {
+        $value = self::raw_author_field( $author_id, $field );
+        if ( self::has_author_field_value( $value ) ) {
+            return $value;
+        }
+
+        foreach ( self::author_field_aliases( $field ) as $alias ) {
+            if ( $alias === $field ) {
+                continue;
+            }
+            $value = self::raw_author_field( $author_id, $alias );
+            if ( self::has_author_field_value( $value ) ) {
+                return $value;
+            }
+        }
+
+        return "";
+    }
+
+    private static function raw_author_field( int $author_id, string $field ) {
         if ( function_exists( "get_field" ) ) {
             $value = get_field( $field, "user_" . $author_id );
             if ( null !== $value && false !== $value && "" !== $value ) {
@@ -258,6 +277,23 @@ SMPI_JS;
             return (string) $user->data->{$field};
         }
         return "";
+    }
+
+    private static function has_author_field_value( $value ): bool {
+        return null !== $value && false !== $value && "" !== $value && [] !== $value;
+    }
+
+    private static function author_field_aliases( string $field ): array {
+        $field = sanitize_key( $field );
+        $aliases = [
+            "job_title" => [ "job_title", "author_job_title", "author_title", "title", "role", "position", "profession", "what_best_describe_you" ],
+            "title" => [ "title", "author_title", "job_title", "role", "position", "profession", "what_best_describe_you" ],
+            "subtitle" => [ "subtitle", "author_subtitle", "tagline", "short_title", "headline", "job_title", "author_job_title", "author_title", "title", "role", "position", "profession", "what_best_describe_you" ],
+            "bio" => [ "bio", "author_bio", "biography", "description", "user_description" ],
+            "description" => [ "description", "user_description", "bio", "author_bio", "biography" ],
+            "bio_short" => [ "bio_short", "author_bio_short", "short_bio", "user_short_bio", "description_short", "what_best_describe_you" ],
+        ];
+        return $aliases[ $field ] ?? [ $field ];
     }
 
     public static function author_acf_verified( int $author_id ): bool {

@@ -20,6 +20,8 @@ final class MultiAuthors {
         add_shortcode( "smp_post_author_ids", [ $this, "render_author_ids_shortcode" ] );
         add_shortcode( "smp_post_authors", [ $this, "render_authors_shortcode" ] );
         add_shortcode( "smp_post_author_names", [ $this, "render_authors_shortcode" ] );
+        add_filter( "the_author", [ $this, "filter_loop_author_display" ], 15, 1 );
+        add_filter( "get_the_author_display_name", [ $this, "filter_loop_author_display" ], 15, 1 );
         add_filter( "elementor/widget/render_content", [ $this, "filter_elementor_author_module" ], 20, 2 );
         add_filter( "elementor/frontend/the_content", [ $this, "filter_elementor_rendered_content" ], 20, 1 );
     }
@@ -30,6 +32,11 @@ final class MultiAuthors {
 
     public static function loop_cards_disabled(): bool {
         return Settings::bool( "multi_authors_disable_loop_cards" );
+    }
+
+    public static function loop_card_output_format(): string {
+        $format = sanitize_key( (string) Settings::get( "multi_authors_loop_output", "comma" ) );
+        return in_array( $format, [ "primary", "comma", "lines" ], true ) ? $format : "comma";
     }
 
     public static function supported_post_types(): array {
@@ -115,6 +122,8 @@ final class MultiAuthors {
     }
 
     public function render_authors_shortcode( array $atts = [], ?string $content = null, string $tag = "smp_post_authors" ): string {
+        $raw_atts = is_array( $atts ) ? $atts : [];
+        $explicit_format = array_key_exists( "format", $raw_atts );
         $atts = shortcode_atts(
             [
                 "post_id" => 0,
@@ -143,6 +152,16 @@ final class MultiAuthors {
         }
         if ( "card" === sanitize_key( (string) $atts["context"] ) && self::loop_cards_disabled() ) {
             $authors = [ $authors[0] ];
+        } elseif ( "card" === sanitize_key( (string) $atts["context"] ) && ! $explicit_format ) {
+            $card_format = self::loop_card_output_format();
+            if ( "primary" === $card_format ) {
+                $authors = [ $authors[0] ];
+            } elseif ( "lines" === $card_format ) {
+                $atts["format"] = "lines";
+            } else {
+                $atts["format"] = "plain";
+                $atts["separator"] = ", ";
+            }
         }
 
         $field = sanitize_key( (string) $atts["field"] );
@@ -173,7 +192,7 @@ final class MultiAuthors {
         }
 
         if ( "lines" === $format || "line" === $format ) {
-            return implode( "<br>\n", array_map( "esc_html", $values ) );
+            return self::format_author_values( $values, "lines", (string) $atts["separator"] );
         }
 
         if ( "list" === $format || "ul" === $format ) {
@@ -181,7 +200,33 @@ final class MultiAuthors {
             return '<ul class="' . esc_attr( sanitize_html_class( (string) $atts["class"] ) ) . '">' . implode( "", $items ) . '</ul>';
         }
 
-        return esc_html( implode( (string) $atts["separator"], $values ) );
+        return self::format_author_values( $values, "plain", (string) $atts["separator"] );
+    }
+
+    public function filter_loop_author_display( string $display_name ): string {
+        if ( ! self::enabled() || self::loop_cards_disabled() || ! RuntimeContext::has_article_loop_context() ) {
+            return $display_name;
+        }
+        $post = get_post();
+        if ( ! $post instanceof \WP_Post || ! in_array( (string) $post->post_type, self::supported_post_types(), true ) ) {
+            return $display_name;
+        }
+        if ( is_singular( self::supported_post_types() ) && (int) get_queried_object_id() === (int) $post->ID ) {
+            return $display_name;
+        }
+
+        $authors = self::author_view_models_for_post( (int) $post->ID );
+        if ( count( $authors ) < 2 ) {
+            return $display_name;
+        }
+
+        $format = self::loop_card_output_format();
+        if ( "primary" === $format ) {
+            return $display_name;
+        }
+
+        $values = array_map( static fn( array $author ): string => (string) $author["name"], $authors );
+        return self::format_author_values( $values, $format, ", " );
     }
 
     public function filter_elementor_author_module( string $content, $widget ): string {
@@ -641,7 +686,7 @@ final class MultiAuthors {
         $model["fields"]["bio_short"] = self::first_author_field( $id, $aliases["bio_short"] ?? [ "bio_short" ] );
         $model["fields"]["description"] = "" !== $model["fields"]["bio"] ? $model["fields"]["bio"] : (string) get_the_author_meta( "description", $id );
         $model["fields"]["title"] = self::first_author_field( $id, $aliases["title"] ?? [ "title", "job_title" ] );
-        $model["fields"]["job_title"] = self::first_author_field( $id, [ "job_title", "author_job_title", "author_title", "title", "role", "position" ] );
+        $model["fields"]["job_title"] = self::first_author_field( $id, [ "job_title", "author_job_title", "author_title", "title", "role", "position", "profession", "what_best_describe_you" ] );
         $model["fields"]["subtitle"] = self::first_author_field( $id, $aliases["subtitle"] ?? [ "subtitle", "tagline" ] );
         foreach ( [ "x", "linkedin", "facebook", "instagram", "youtube", "website", "crunchbase", "muckrack" ] as $field ) {
             $model["fields"][ $field ] = self::first_author_field( $id, $aliases[ $field ] ?? [ $field ] );
@@ -713,7 +758,7 @@ final class MultiAuthors {
         }
 
         $html = str_replace( array_keys( $search_replace ), array_values( $search_replace ), $html );
-        $html = self::rebind_dynamic_author_blocks( $html, $author );
+        $html = self::rebind_dynamic_author_blocks( $html, $author, $badge_context );
         $html = self::rebind_social_links( $html, $author );
         return self::inject_author_verification_badge( $html, $author, $badge_context );
     }
@@ -774,6 +819,17 @@ final class MultiAuthors {
             return wp_strip_all_tags( (string) ( $fields[ $field ] ?? "" ) );
         }
         return wp_strip_all_tags( (string) ( $fields[ $field ] ?? "" ) );
+    }
+
+    private static function format_author_values( array $values, string $format, string $separator ): string {
+        $values = array_values( array_filter( array_map( "strval", $values ), static fn( string $value ): bool => "" !== $value ) );
+        if ( empty( $values ) ) {
+            return "";
+        }
+        if ( "lines" === sanitize_key( $format ) || "line" === sanitize_key( $format ) ) {
+            return implode( "<br>\n", array_map( "esc_html", $values ) );
+        }
+        return esc_html( implode( $separator, $values ) );
     }
 
     private static function inject_author_verification_badge( string $html, array $author, string $context ): string {
@@ -888,7 +944,7 @@ final class MultiAuthors {
         return "" !== $out ? $out : $fallback;
     }
 
-    private static function rebind_dynamic_author_blocks( string $html, array $author ): string {
+    private static function rebind_dynamic_author_blocks( string $html, array $author, string $context = "" ): string {
         $field_widgets = self::marked_elementor_author_field_widgets();
         if ( empty( $field_widgets ) || false === stripos( $html, "elementor-element-" ) ) {
             return $html;
@@ -927,6 +983,9 @@ final class MultiAuthors {
                 }
             }
         }
+        if ( "single_author" !== $context ) {
+            self::insert_missing_author_field_widgets( $doc, $xpath, $field_widgets, $author );
+        }
         $body = $doc->getElementsByTagName( "body" )->item( 0 );
         if ( ! $body ) {
             return $html;
@@ -936,6 +995,67 @@ final class MultiAuthors {
             $out .= $doc->saveHTML( $child );
         }
         return "" !== $out ? $out : $html;
+    }
+
+    private static function insert_missing_author_field_widgets( \DOMDocument $doc, \DOMXPath $xpath, array $field_widgets, array $author ): void {
+        $ids = array_keys( $field_widgets );
+        foreach ( $field_widgets as $element_id => $field ) {
+            $existing = $xpath->query( self::elementor_id_xpath( (string) $element_id ) );
+            if ( $existing && $existing->length > 0 ) {
+                continue;
+            }
+
+            $value = self::author_display_field_html( $author, (string) $field );
+            if ( "" === $value ) {
+                continue;
+            }
+
+            $fragment = self::fragment_from_html( $doc, self::elementor_text_widget_html( (string) $element_id, $value ) );
+            if ( ! $fragment ) {
+                continue;
+            }
+
+            $position = array_search( (string) $element_id, $ids, true );
+            if ( false === $position ) {
+                $position = 0;
+            }
+
+            $inserted = false;
+            for ( $i = $position - 1; $i >= 0; $i-- ) {
+                $previous = $xpath->query( self::elementor_id_xpath( (string) $ids[ $i ] ) );
+                if ( $previous && $previous->length > 0 ) {
+                    $target = $previous->item( $previous->length - 1 );
+                    if ( $target && $target->parentNode ) {
+                        $target->parentNode->insertBefore( $fragment, $target->nextSibling );
+                        $inserted = true;
+                    }
+                    break;
+                }
+            }
+            if ( $inserted ) {
+                continue;
+            }
+
+            for ( $i = $position + 1, $count = count( $ids ); $i < $count; $i++ ) {
+                $next = $xpath->query( self::elementor_id_xpath( (string) $ids[ $i ] ) );
+                if ( $next && $next->length > 0 ) {
+                    $target = $next->item( 0 );
+                    if ( $target && $target->parentNode ) {
+                        $target->parentNode->insertBefore( $fragment, $target );
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
+    private static function elementor_id_xpath( string $element_id ): string {
+        return '//*[contains(concat(" ", normalize-space(@class), " "), " elementor-element-' . preg_replace( '/[^A-Za-z0-9_-]/', '', $element_id ) . ' ")]';
+    }
+
+    private static function elementor_text_widget_html( string $element_id, string $value ): string {
+        $element_id = preg_replace( '/[^A-Za-z0-9_-]/', '', $element_id );
+        return '<div class="elementor-element elementor-element-' . esc_attr( $element_id ) . ' elementor-widget elementor-widget-text-editor" data-id="' . esc_attr( $element_id ) . '" data-element_type="widget" data-widget_type="text-editor.default"><div class="elementor-widget-container">' . wp_kses_post( $value ) . '</div></div>';
     }
 
     private static function author_display_field_html( array $author, string $field ): string {

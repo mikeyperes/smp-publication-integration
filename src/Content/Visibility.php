@@ -14,6 +14,7 @@ final class Visibility {
     private const ARCHIVE_META = "_smpi_shadow_archives";
     private const COMPLETE_META = "_smpi_shadow_complete";
     private const PR_OVERRIDE_META = "_smpi_pr_shadow_override";
+    private const MULTI_AUTHOR_ARCHIVE_QUERY = "smpi_multi_author_archive_user";
 
     public function register(): void {
         add_action( "init", [ $this, "register_press_release_taxonomies" ], 20 );
@@ -21,6 +22,8 @@ final class Visibility {
         add_action( "save_post", [ $this, "save_meta" ], 10, 2 );
         add_action( "pre_get_posts", [ $this, "filter_queries" ], 1000 );
         add_filter( "posts_where", [ $this, "filter_press_release_where" ], 10, 2 );
+        add_filter( "elementor/query/get_query_args/current_query", [ $this, "filter_elementor_author_query_args" ], 20, 1 );
+        add_filter( "elementor/query/query_args", [ $this, "filter_elementor_author_query_args" ], 20, 1 );
     }
 
     public function register_press_release_taxonomies(): void {
@@ -82,7 +85,7 @@ final class Visibility {
     }
 
     public function filter_queries( \WP_Query $query ): void {
-        if ( is_admin() || $query->is_search() || $query->is_feed() || ( function_exists( "wp_doing_ajax" ) && wp_doing_ajax() ) || ( defined( "REST_REQUEST" ) && REST_REQUEST ) || $query->is_post_type_archive() ) {
+        if ( is_admin() || $query->is_search() || $query->is_feed() || ( function_exists( "wp_doing_ajax" ) && wp_doing_ajax() ) || ( defined( "REST_REQUEST" ) && REST_REQUEST ) || ( $query->is_post_type_archive() && ! ( function_exists( "is_author" ) && is_author() ) ) ) {
             return;
         }
         $context = $this->query_context( $query );
@@ -101,6 +104,9 @@ final class Visibility {
             $this->ensure_press_release_post_type( $query );
             $query->set( "smpi_press_release_force_exclude", true );
         }
+        if ( "author" === $context && MultiAuthors::enabled() ) {
+            $this->include_multi_author_archive_posts( $query );
+        }
         if ( Settings::bool( "shadow_press_releases" ) && in_array( $context, [ "home", "category_tag" ], true ) ) {
             $this->ensure_press_release_post_type( $query );
             $query->set( "smpi_press_release_shadow", true );
@@ -116,7 +122,38 @@ final class Visibility {
         if ( $query->get( "smpi_press_release_force_exclude" ) ) {
             $where .= $wpdb->prepare( " AND NOT EXISTS ( SELECT 1 FROM {$wpdb->postmeta} smpi_pr_hide WHERE smpi_pr_hide.post_id = {$wpdb->posts}.ID AND smpi_pr_hide.meta_key = %s AND smpi_pr_hide.meta_value = %s )", self::PR_OVERRIDE_META, "hide" );
         }
+        if ( $query->get( self::MULTI_AUTHOR_ARCHIVE_QUERY ) ) {
+            $where = $this->expand_author_archive_where_for_multi_authors( $where, $query );
+        }
         return $where;
+    }
+
+    public function filter_elementor_author_query_args( array $query_args ): array {
+        if ( is_admin() || ! function_exists( "is_author" ) || ! is_author() || ! MultiAuthors::enabled() ) {
+            return $query_args;
+        }
+
+        $author_id = (int) get_queried_object_id();
+        if ( $author_id <= 0 ) {
+            return $query_args;
+        }
+
+        $ids = $this->multi_author_archive_post_ids( $author_id );
+        if ( empty( $ids ) ) {
+            return $query_args;
+        }
+
+        unset( $query_args["author"], $query_args["author_name"], $query_args["author__in"], $query_args["author__not_in"] );
+        $query_args["post__in"] = $ids;
+        $query_args["post_type"] = array_values( array_filter( MultiAuthors::supported_post_types(), "post_type_exists" ) );
+        if ( empty( $query_args["orderby"] ) || "post__in" === $query_args["orderby"] ) {
+            $query_args["orderby"] = "date";
+        }
+        if ( empty( $query_args["order"] ) ) {
+            $query_args["order"] = "DESC";
+        }
+
+        return $query_args;
     }
 
     private function query_context( \WP_Query $query ): string {
@@ -127,6 +164,9 @@ final class Visibility {
             return "category_tag";
         }
         if ( $query->is_main_query() && $query->is_author() ) {
+            return "author";
+        }
+        if ( ! $query->is_main_query() && function_exists( "is_author" ) && is_author() && ! is_singular() ) {
             return "author";
         }
         if ( ! $query->is_main_query() && is_singular( "post" ) ) {
@@ -155,6 +195,129 @@ final class Visibility {
             $current[] = "press-release";
             $query->set( "post_type", array_values( array_unique( $current ) ) );
         }
+    }
+
+    private function include_multi_author_archive_posts( \WP_Query $query ): void {
+        $author_id = absint( $query->get( "author" ) );
+        if ( $author_id <= 0 ) {
+            $author_slug = trim( (string) $query->get( "author_name" ) );
+            if ( "" !== $author_slug ) {
+                $user = get_user_by( "slug", $author_slug );
+                $author_id = $user instanceof \WP_User ? (int) $user->ID : 0;
+            }
+        }
+        if ( $author_id <= 0 && function_exists( "get_queried_object_id" ) ) {
+            $author_id = (int) get_queried_object_id();
+        }
+        if ( $author_id <= 0 ) {
+            return;
+        }
+
+        $query->set( self::MULTI_AUTHOR_ARCHIVE_QUERY, $author_id );
+        $this->ensure_multi_author_supported_post_types( $query );
+    }
+
+    private function ensure_multi_author_supported_post_types( \WP_Query $query ): void {
+        $supported = array_values( array_filter( MultiAuthors::supported_post_types(), "post_type_exists" ) );
+        if ( empty( $supported ) ) {
+            return;
+        }
+
+        $current = $query->get( "post_type" );
+        if ( empty( $current ) || "post" === $current ) {
+            $query->set( "post_type", $supported );
+            return;
+        }
+
+        if ( is_array( $current ) ) {
+            $query->set( "post_type", array_values( array_unique( array_merge( $current, array_intersect( $supported, [ "press-release", "imported-news" ] ) ) ) ) );
+        }
+    }
+
+    private function expand_author_archive_where_for_multi_authors( string $where, \WP_Query $query ): string {
+        global $wpdb;
+
+        $author_id = absint( $query->get( self::MULTI_AUTHOR_ARCHIVE_QUERY ) );
+        if ( $author_id <= 0 ) {
+            return $where;
+        }
+
+        $condition = $wpdb->prepare(
+            "AND ( {$wpdb->posts}.post_author = %d OR EXISTS ( SELECT 1 FROM {$wpdb->postmeta} smpi_ma_author WHERE smpi_ma_author.post_id = {$wpdb->posts}.ID AND smpi_ma_author.meta_key = %s AND ( smpi_ma_author.meta_value = %s OR smpi_ma_author.meta_value LIKE %s OR smpi_ma_author.meta_value LIKE %s ) ) )",
+            $author_id,
+            MultiAuthors::FIELD_NAME,
+            (string) $author_id,
+            "%i:" . $author_id . ";%",
+            '%"' . $wpdb->esc_like( (string) $author_id ) . '"%'
+        );
+
+        $column = "`?" . preg_quote( $wpdb->posts, "/" ) . "`?\\.post_author";
+        $author_literal = preg_quote( (string) $author_id, "/" );
+        $patterns = [
+            "/AND\\s*\\(?\\s*" . $column . "\\s*=\\s*['\"]?" . $author_literal . "['\"]?\\s*\\)?/i",
+            "/AND\\s*\\(?\\s*" . $column . "\\s+IN\\s*\\(\\s*['\"]?" . $author_literal . "['\"]?\\s*\\)\\s*\\)?/i",
+        ];
+
+        foreach ( $patterns as $pattern ) {
+            $updated = preg_replace( $pattern, $condition, $where, 1, $count );
+            if ( is_string( $updated ) && $count > 0 ) {
+                return $updated;
+            }
+        }
+
+        if ( false === stripos( $where, ".post_author" ) ) {
+            return $where . " " . $condition;
+        }
+
+        return $where;
+    }
+
+    private function multi_author_archive_post_ids( int $author_id ): array {
+        global $wpdb;
+
+        $post_types = array_values( array_filter( MultiAuthors::supported_post_types(), "post_type_exists" ) );
+        if ( empty( $post_types ) ) {
+            return [];
+        }
+
+        $type_placeholders = implode( ",", array_fill( 0, count( $post_types ), "%s" ) );
+        $like_serialized_int = "%i:" . $author_id . ";%";
+        $like_serialized_string = '%"' . $wpdb->esc_like( (string) $author_id ) . '"%';
+        $params = array_merge(
+            [
+                $author_id,
+                MultiAuthors::FIELD_NAME,
+                (string) $author_id,
+                $like_serialized_int,
+                $like_serialized_string,
+            ],
+            $post_types
+        );
+
+        $sql = "
+            SELECT DISTINCT p.ID
+            FROM {$wpdb->posts} p
+            WHERE p.post_status = 'publish'
+            AND (
+                p.post_author = %d
+                OR EXISTS (
+                    SELECT 1
+                    FROM {$wpdb->postmeta} pm
+                    WHERE pm.post_id = p.ID
+                    AND pm.meta_key = %s
+                    AND (
+                        pm.meta_value = %s
+                        OR pm.meta_value LIKE %s
+                        OR pm.meta_value LIKE %s
+                    )
+                )
+            )
+            AND p.post_type IN ({$type_placeholders})
+            ORDER BY p.post_date DESC
+            LIMIT 1000
+        ";
+
+        return array_map( "absint", $wpdb->get_col( $wpdb->prepare( $sql, $params ) ) );
     }
 
     private function append_meta_exclusion( \WP_Query $query, string $meta_key ): void {

@@ -7,7 +7,7 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.6.77`
+- Version: `0.6.81`
 
 ## Structure
 
@@ -42,6 +42,13 @@ WordPress plugin for Scale My Publication publication profiles.
 - Updated `[acf_author_field]` and author shortcodes to support `author_index` while preserving default primary-author behavior.
 - Added `[smp_post_authors]` text/list/link output modes, a loop-card disable toggle, server-side verified badge support for repeated author modules, and friendly default output for `[smp_estimated_read_time]`.
 - Tightened the multiple-author Elementor duplication protocol so SMP clones only author-content child nodes, leaves sibling controls like Share untouched, and injects no multi-author frontend CSS.
+- Expanded author archives so secondary authors selected in `smpi_post_authors` appear on their WordPress author pages.
+- Expanded author archive handling to Elementor and secondary archive queries, not just the native main author query.
+- Added explicit multiple-author shortcode examples in the Features tab and filled missing footer bio widgets from the existing Elementor author module structure.
+- Removed fallback-only Publication Options ACF fields and appended shortcode examples to remaining publication option field instructions.
+- Added loop/card multiple-author output options for primary-only, comma-separated, and one-author-per-line rendering.
+- Made author role/title shortcodes alias-aware so `job_title` and `subtitle` can resolve `what_best_describe_you` without changing Elementor markup.
+- Added an Elementor Loop Grid author-archive query bridge so secondary-author posts are included when the archive template uses a separate Elementor query.
 - Added `[author_name]` and guarded `[author_image]` against avatar-plugin image-editor failures.
 - Added a shared runtime guard so automatic frontend injections skip Elementor editor/preview, AJAX, REST, feeds, embeds, cron, CLI, and admin contexts.
 - Bundled Hexa WordPress Plugin Core and registered the Hexa Core tab through dashboard filters.
@@ -224,6 +231,9 @@ WordPress plugin for Scale My Publication publication profiles.
 - Add AJAX save/update behavior to the Publication Options tab at `Settings > SMP Publication Integration > Publication Options` so saving does not require a full page reload.
 - Remove fallback-only Publication Options ACF fields that duplicate imported publication data, including Mission Statement Fallback and Publication Summary Fallback.
 - Add a matching shortcode example to the description/instructions for every remaining Publication Options ACF field.
+- Update breadcrumbs visibility defaults so SMP never injects breadcrumbs into Elementor Floating Element templates by default.
+- Add a breadcrumbs visibility option to hide breadcrumbs on the front page/home page, with that option selected by default.
+- In breadcrumbs visibility controls, list every registered custom post type and allow disabling breadcrumb injection on each CPT single template.
 
 ### 0.6.67 Updates
 - Hardened Core color controls with max-length hex input and visible invalid-hex rejection before save.
