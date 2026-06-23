@@ -20,8 +20,7 @@ final class MultiAuthors {
         add_shortcode( "smp_post_author_ids", [ $this, "render_author_ids_shortcode" ] );
         add_shortcode( "smp_post_authors", [ $this, "render_authors_shortcode" ] );
         add_shortcode( "smp_post_author_names", [ $this, "render_authors_shortcode" ] );
-        add_filter( "the_author", [ $this, "filter_loop_author_display" ], 15, 1 );
-        add_filter( "get_the_author_display_name", [ $this, "filter_loop_author_display" ], 15, 1 );
+        add_filter( "the_author_posts_link", [ $this, "filter_author_posts_link" ], 15, 1 );
         add_filter( "elementor/widget/render_content", [ $this, "filter_elementor_author_module" ], 20, 2 );
         add_filter( "elementor/frontend/the_content", [ $this, "filter_elementor_rendered_content" ], 20, 1 );
     }
@@ -203,33 +202,12 @@ final class MultiAuthors {
         return self::format_author_values( $values, "plain", (string) $atts["separator"] );
     }
 
-    public function filter_loop_author_display( string $display_name ): string {
-        if ( ! self::enabled() || self::loop_cards_disabled() || ! RuntimeContext::has_article_loop_context() ) {
-            return $display_name;
-        }
-        $post = get_post();
-        if ( ! $post instanceof \WP_Post || ! in_array( (string) $post->post_type, self::supported_post_types(), true ) ) {
-            return $display_name;
-        }
-        if ( is_singular( self::supported_post_types() ) && (int) get_queried_object_id() === (int) $post->ID ) {
-            return $display_name;
-        }
-
-        $authors = self::author_view_models_for_selected_authors( (int) $post->ID );
-        if ( count( $authors ) < 2 ) {
-            return $display_name;
-        }
-
-        $format = self::loop_card_output_format();
-        if ( "primary" === $format ) {
-            return $display_name;
-        }
-
-        $values = array_map( static fn( array $author ): string => (string) $author["name"], $authors );
-        return self::format_author_values( $values, $format, ", " );
+    public function filter_author_posts_link( string $link ): string {
+        return $this->filter_loop_author_links( $link );
     }
 
     public function filter_elementor_author_module( string $content, $widget ): string {
+        $content = $this->filter_loop_author_links( $content );
         if ( "" === trim( $content ) || false !== strpos( $content, "smpi-multi-author-item" ) ) {
             return $content;
         }
@@ -244,6 +222,7 @@ final class MultiAuthors {
     }
 
     public function filter_elementor_rendered_content( string $content ): string {
+        $content = $this->filter_loop_author_links( $content );
         if ( ! $this->content_has_author_module_marker( $content ) || false !== strpos( $content, "smpi-multi-author-item" ) ) {
             return $content;
         }
@@ -301,6 +280,146 @@ final class MultiAuthors {
         return "" !== $html ? $html : $content;
     }
 
+    private function filter_loop_author_links( string $content ): string {
+        if ( "" === trim( $content ) || false !== strpos( $content, "smpi-multi-author-item" ) ) {
+            return $content;
+        }
+        if ( ! self::enabled() || self::loop_cards_disabled() || ! RuntimeContext::has_article_loop_context() ) {
+            return $content;
+        }
+        if ( is_author() && ! in_the_loop() ) {
+            return $content;
+        }
+        if ( "primary" === self::loop_card_output_format() ) {
+            return $content;
+        }
+        if ( false === stripos( $content, "/author/" ) ) {
+            return $content;
+        }
+
+        $post = get_post();
+        if ( ! $post instanceof \WP_Post || ! in_array( (string) $post->post_type, self::supported_post_types(), true ) ) {
+            return $content;
+        }
+        if ( is_singular( self::supported_post_types() ) && (int) get_queried_object_id() === (int) $post->ID ) {
+            return $content;
+        }
+
+        $authors = self::author_view_models_for_selected_authors( (int) $post->ID );
+        if ( count( $authors ) < 2 ) {
+            return $content;
+        }
+
+        return self::replace_primary_author_link_html( $content, $authors, self::loop_card_output_format() );
+    }
+
+    private static function replace_primary_author_link_html( string $html, array $authors, string $format ): string {
+        $primary = $authors[0] ?? null;
+        if ( ! is_array( $primary ) ) {
+            return $html;
+        }
+
+        $doc = new \DOMDocument( "1.0", "UTF-8" );
+        $previous = libxml_use_internal_errors( true );
+        $loaded = $doc->loadHTML( '<?xml encoding="UTF-8"><body>' . $html . '</body>', LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD );
+        libxml_clear_errors();
+        libxml_use_internal_errors( $previous );
+        if ( ! $loaded ) {
+            return $html;
+        }
+
+        $links = iterator_to_array( $doc->getElementsByTagName( "a" ) );
+        $replaced = false;
+        foreach ( $links as $link ) {
+            if ( ! $link instanceof \DOMElement || ! self::href_matches_author( $link->getAttribute( "href" ), $primary ) ) {
+                continue;
+            }
+            if ( self::link_parent_already_has_author_links( $link, $authors ) ) {
+                continue;
+            }
+            $fragment = self::author_links_fragment( $doc, $link, $authors, $format );
+            if ( ! $fragment || ! $link->parentNode ) {
+                continue;
+            }
+            $link->parentNode->replaceChild( $fragment, $link );
+            $replaced = true;
+        }
+
+        return $replaced ? self::document_body_html( $doc, $html ) : $html;
+    }
+
+    private static function href_matches_author( string $href, array $author ): bool {
+        $href = html_entity_decode( $href, ENT_QUOTES | ENT_HTML5, "UTF-8" );
+        $slug = (string) ( $author["slug"] ?? "" );
+        $url = (string) ( $author["url"] ?? "" );
+        if ( "" !== $slug && false !== strpos( $href, "/author/" . $slug ) ) {
+            return true;
+        }
+        return "" !== $url && untrailingslashit( $href ) === untrailingslashit( $url );
+    }
+
+    private static function link_parent_already_has_author_links( \DOMElement $link, array $authors ): bool {
+        $parent = $link->parentNode instanceof \DOMElement ? $link->parentNode : null;
+        if ( ! $parent ) {
+            return false;
+        }
+        $html = $parent->ownerDocument ? ( $parent->ownerDocument->saveHTML( $parent ) ?: "" ) : "";
+        $matches = 0;
+        foreach ( $authors as $author ) {
+            if ( is_array( $author ) && self::href_matches_author( $html, $author ) ) {
+                $matches++;
+            }
+        }
+        return $matches >= count( $authors );
+    }
+
+    private static function author_links_fragment( \DOMDocument $doc, \DOMElement $template_link, array $authors, string $format ): ?\DOMDocumentFragment {
+        $fragment = $doc->createDocumentFragment();
+        foreach ( $authors as $index => $author ) {
+            if ( ! is_array( $author ) ) {
+                continue;
+            }
+            if ( $index > 0 ) {
+                if ( "lines" === sanitize_key( $format ) || "line" === sanitize_key( $format ) ) {
+                    $fragment->appendChild( $doc->createElement( "br" ) );
+                } else {
+                    $fragment->appendChild( $doc->createTextNode( ", " ) );
+                }
+            }
+            $link = $template_link->cloneNode( false );
+            if ( ! $link instanceof \DOMElement ) {
+                continue;
+            }
+            $link->setAttribute( "href", (string) $author["url"] );
+            $link->setAttribute( "data-smpi-author-id", (string) $author["id"] );
+            $link->setAttribute( "data-smpi-author-slug", (string) $author["slug"] );
+            $link->removeAttribute( "id" );
+            $link->nodeValue = "";
+            $link->appendChild( $doc->createTextNode( (string) $author["name"] ) );
+            $fragment->appendChild( $link );
+
+            $badge = self::loop_author_badge_html( $author );
+            if ( "" !== $badge ) {
+                $fragment->appendChild( $doc->createTextNode( " " ) );
+                $badge_fragment = self::fragment_from_html( $doc, $badge );
+                if ( $badge_fragment ) {
+                    $fragment->appendChild( $badge_fragment );
+                }
+            }
+        }
+        return $fragment;
+    }
+
+    private static function loop_author_badge_html( array $author ): string {
+        if ( ! class_exists( MuckRackVerification::class ) || ! Settings::bool( "muckrack_verified_enabled" ) ) {
+            return "";
+        }
+        if ( ! in_array( "loop_cards", Settings::array( "muckrack_verified_contexts" ), true ) ) {
+            return "";
+        }
+        return MuckRackVerification::verification_icon( (int) $author["id"], (string) Settings::get( "muckrack_verified_style", "tooltip" ), "loop_cards" );
+    }
+
     private function content_has_author_module_marker( string $content ): bool {
         if ( false !== strpos( $content, "smpi-author-module" ) ) {
             return true;
@@ -341,11 +460,8 @@ final class MultiAuthors {
             return $content;
         }
 
-        $items = [ self::mark_repeated_author_html( self::inject_author_verification_badge( $content, $primary, $badge_context ), $primary, 0, count( $authors ) ) ];
+        $items = [];
         foreach ( $authors as $index => $author ) {
-            if ( 0 === $index ) {
-                continue;
-            }
             $html = self::rebind_author_html( $template, $primary, $author, $badge_context );
             $items[] = self::mark_repeated_author_html( $html, $author, $index, count( $authors ) );
         }
@@ -998,9 +1114,11 @@ final class MultiAuthors {
                 }
             }
         }
-        if ( "single_author" !== $context ) {
+
+        if ( "single_footer" === $context ) {
             self::insert_missing_author_field_widgets( $doc, $xpath, $field_widgets, $author );
         }
+
         $body = $doc->getElementsByTagName( "body" )->item( 0 );
         if ( ! $body ) {
             return $html;
@@ -1015,6 +1133,10 @@ final class MultiAuthors {
     private static function insert_missing_author_field_widgets( \DOMDocument $doc, \DOMXPath $xpath, array $field_widgets, array $author ): void {
         $ids = array_keys( $field_widgets );
         foreach ( $field_widgets as $element_id => $field ) {
+            $field = sanitize_key( (string) $field );
+            if ( ! in_array( $field, [ "bio", "description", "author_bio" ], true ) ) {
+                continue;
+            }
             $existing = $xpath->query( self::elementor_id_xpath( (string) $element_id ) );
             if ( $existing && $existing->length > 0 ) {
                 continue;
