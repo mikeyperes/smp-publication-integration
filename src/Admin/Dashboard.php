@@ -426,74 +426,72 @@ final class Dashboard {
         ?>
         <div class="smpi-panel smpi-sc">
             <style>
-            .smpi-sc{max-width:1000px}
+            .smpi-sc{max-width:1020px}
             .smpi-sc h2{margin:0 0 4px}
-            .smpi-sc-intro{margin:0 0 14px;color:#646970;font-size:13px;line-height:1.5;max-width:80ch}
-            .smpi-sc-top{display:flex;gap:10px 18px;align-items:center;flex-wrap:wrap;margin:0 0 18px;padding:11px 14px;border:1px solid #e4e6ea;border-radius:11px;background:#fbfcfd;position:sticky;top:32px;z-index:6}
-            .smpi-sc-filter{flex:1 1 240px;min-width:190px;font-size:14px;padding:9px 13px;border:1px solid #c3c4c7;border-radius:8px}
-            .smpi-sc-pick{display:flex;align-items:center;gap:7px;font-size:12px;color:#646970}
+            .smpi-sc-intro{margin:0 0 16px;color:#667085;font-size:13px;line-height:1.55;max-width:80ch}
+            .smpi-sc-top{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin:0 0 22px;padding:13px 16px;background:#fff;border:1px solid #e3e5e9;border-radius:12px;box-shadow:0 6px 18px rgba(16,24,40,.07);position:sticky;top:34px;z-index:30}
+            .smpi-sc-filter{flex:1 1 300px;min-width:200px;font-size:14px;padding:10px 14px;border:1px solid #cfd3da;border-radius:9px;background:#fff}
+            .smpi-sc-filter:focus{border-color:#2563eb;outline:none;box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+            .smpi-sc-pick{display:flex;align-items:center;gap:8px;font-size:12px;color:#667085}
+            .smpi-sc-pick>span:first-child{font-weight:600;color:#475467}
             .smpi-sc-pv{position:relative}
-            .smpi-sc-user-search{width:180px}
-            .smpi-sc-user-results{position:absolute;top:100%;left:0;z-index:9;background:#fff;border:1px solid #dcdcde;border-radius:8px;min-width:300px;box-shadow:0 8px 24px rgba(0,0,0,.12);max-height:300px;overflow:auto;margin-top:4px}
+            .smpi-sc-user-search{width:190px}
+            .smpi-sc-post{max-width:240px}
+            .smpi-sc-user-results{position:absolute;top:100%;left:0;z-index:9;background:#fff;border:1px solid #dcdcde;border-radius:9px;min-width:300px;box-shadow:0 8px 24px rgba(0,0,0,.12);max-height:300px;overflow:auto;margin-top:5px}
             .smpi-sc-user-result{display:block;width:100%;text-align:left;height:auto;line-height:1.5;border:0;border-bottom:1px solid #f0f1f3;border-radius:0;background:#fff}
-            .smpi-sc-post{max-width:230px}
-            .smpi-sc-card{border:1px solid #e4e6ea;border-radius:12px;background:#fff;margin:0 0 14px;overflow:hidden;box-shadow:0 1px 2px rgba(16,24,40,.04)}
-            .smpi-sc-card-head{padding:12px 16px;background:#fcfcfd;border-bottom:1px solid #eef0f3}
-            .smpi-sc-card-head h3{margin:0;font-size:13.5px;font-weight:700;color:#1d2327;display:flex;align-items:center;gap:9px;text-transform:none}
-            .smpi-sc-card-blurb{margin:5px 0 0;font-size:11.5px;color:#717784;line-height:1.45;max-width:78ch}
-            .smpi-sc-card-meta{margin:5px 0 0;font-size:10.5px;color:#9aa0a8}
-            .smpi-sc-card-meta code{background:#f0f1f3;border-radius:4px;padding:1px 5px}
-            .smpi-sc-count{font-size:11px;font-weight:700;color:#646970;background:#eef0f3;border-radius:999px;padding:1px 8px}
-            .smpi-sc-layer{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;border-radius:5px;padding:2px 7px;white-space:nowrap}
-            .smpi-sc-layer--author{background:#e7f0fb;color:#1c5d99}
-            .smpi-sc-layer--post{background:#e9f6ef;color:#0a5239}
-            .smpi-sc-layer--publication{background:#f1ecfe;color:#5b34c4}
-            .smpi-sc-layer--external{background:#eef0f3;color:#646970}
-            .smpi-sc-row{padding:13px 16px;border-bottom:1px solid #eef0f3}
-            .smpi-sc-row:last-child{border-bottom:0}
-            .smpi-sc-desc{margin:0 0 8px;font-size:13px;color:#283139;line-height:1.45}
-            .smpi-sc-use{color:#9a5a00;font-size:12px;font-weight:600}
-            .smpi-sc-block{border:1px solid #e6e9ed;border-radius:9px;background:#fbfcfd;overflow:hidden}
-            .smpi-sc-block-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 11px}
-            .smpi-sc-tag{font-family:Menlo,Consolas,monospace;font-size:12.5px;font-weight:700;color:#0a5239;background:#eaf7f0;border:1px solid #cdead9;border-radius:6px;padding:2px 8px;white-space:nowrap;flex:0 0 auto}
-            .smpi-sc-dep{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#9a5a00;background:#fdf2e0;border:1px solid #f3dcae;border-radius:5px;padding:2px 6px;white-space:nowrap}
-            .smpi-sc-params{font-size:11px;color:#646b75;font-family:Menlo,Consolas,monospace;display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap}
-            .smpi-sc-params b{color:#8a909a;text-transform:uppercase;font-size:9px;letter-spacing:.05em;font-family:-apple-system,sans-serif;font-weight:700}
-            .smpi-sc-params code{background:#fff;border:1px solid #e6e9ed;border-radius:4px;padding:1px 6px;color:#445}
-            .smpi-sc-actions{display:flex;align-items:center;gap:12px;margin-left:auto;flex:0 0 auto}
-            .smpi-sc-copy{font-size:11px;font-weight:600;color:#2271b1;background:#fff;border:1px solid #cbd6e2;border-radius:6px;padding:3px 11px;cursor:pointer}
-            .smpi-sc-copy:hover{background:#eff5fc;border-color:#2271b1}
-            .smpi-sc-edit,.smpi-sc-det{font-size:11px;color:#9098a2;text-decoration:none;background:none;border:0;cursor:pointer;padding:0}
-            .smpi-sc-edit:hover,.smpi-sc-det:hover{color:#2271b1}
-            .smpi-sc-out{padding:8px 11px;border-top:1px solid #ebedf0;background:#fff;font-size:12px;color:#3c434a;word-break:break-word;line-height:1.55}
-            .smpi-sc-out-arrow{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#aeb4bc;margin-right:8px}
-            .smpi-sc-out code,.smpi-sc-vout code{background:#f6f7f9;border:1px solid #eceef1;border-radius:4px;padding:1px 5px;color:#3c434a}
-            .smpi-sc-vars{border-top:1px solid #ebedf0;background:#fff}
-            .smpi-sc-var{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:6px 11px;border-bottom:1px solid #f4f5f7}
-            .smpi-sc-var:last-child{border-bottom:0}
-            .smpi-sc-vtag{font-family:Menlo,Consolas,monospace;font-size:11px;font-weight:700;color:#0a5239;white-space:nowrap;flex:0 0 auto;min-width:158px}
-            .smpi-sc-vlabel{font-size:11px;color:#717784;flex:0 0 auto;min-width:135px}
-            .smpi-sc-vout{font-size:11.5px;color:#3c434a;flex:1 1 150px;word-break:break-word}
-            .smpi-sc-copy--mini{margin-left:auto;font-size:10px;padding:1px 8px}
-            .smpi-sc-vex{margin:7px 0 0;font-size:11px;color:#717784}
-            .smpi-sc-vex-label{font-weight:700;text-transform:uppercase;font-size:9px;letter-spacing:.05em;color:#8a909a;margin-right:6px}
-            .smpi-sc-chip{font-family:Menlo,Consolas,monospace;font-size:10px;color:#3c434a;background:#fff;border:1px solid #dcdfe4;border-radius:5px;padding:1px 6px;margin:0 4px 4px 0;display:inline-block;cursor:pointer}
-            .smpi-sc-chip:hover{border-color:#2271b1;color:#1c5d99}
-            .smpi-sc-alias{margin:7px 0 0;font-size:10.5px;color:#9aa0a8;font-family:Menlo,Consolas,monospace;word-break:break-word}
-            .smpi-sc-alias b{color:#8a909a;font-weight:700;font-family:-apple-system,sans-serif;text-transform:uppercase;letter-spacing:.04em;margin-right:7px}
-            .smpi-sc-detail{display:none;margin:8px 0 0;padding:10px 12px;background:#f8f9fb;border:1px solid #edeff2;border-radius:8px;font-size:11px;color:#5a616b}
+            .smpi-sc-card{border:1px solid #e3e5e9;border-radius:14px;background:#fff;margin:0 0 22px;overflow:hidden;box-shadow:0 1px 3px rgba(16,24,40,.04)}
+            .smpi-sc-card-head{padding:16px 20px;background:#f8f9fb;border-bottom:1px solid #e7e9ee}
+            .smpi-sc-card-head h3{margin:0;font-size:14px;font-weight:700;color:#101828;display:flex;align-items:center;gap:10px;text-transform:none}
+            .smpi-sc-card-blurb{margin:8px 0 0;font-size:12px;color:#667085;line-height:1.5;max-width:82ch}
+            .smpi-sc-card-meta{margin:8px 0 0;font-size:10.5px;color:#98a2b3}
+            .smpi-sc-card-meta code{background:#eef0f3;border-radius:4px;padding:1px 6px}
+            .smpi-sc-count{font-size:11px;font-weight:700;color:#667085;background:#eceef1;border-radius:999px;padding:2px 9px}
+            .smpi-sc-layer{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;border-radius:6px;padding:3px 9px;white-space:nowrap}
+            .smpi-sc-layer--author{background:#dbeafe;color:#1e40af}
+            .smpi-sc-layer--post{background:#dcfce7;color:#15803d}
+            .smpi-sc-layer--publication{background:#ede9fe;color:#6d28d9}
+            .smpi-sc-layer--external{background:#e5e7eb;color:#475467}
+            .smpi-sc-row{padding:20px}
+            .smpi-sc-row + .smpi-sc-row{border-top:1px solid #eef0f3}
+            .smpi-sc-desc{margin:0 0 11px;font-size:14px;color:#1f2937;line-height:1.5}
+            .smpi-sc-use{color:#dc2626;font-weight:600;font-size:13px}
+            .smpi-sc-block{background:#fafbfc;border:1px solid #eaecf0;border-radius:10px;padding:13px 15px}
+            .smpi-sc-line{display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+            .smpi-sc-tag{font-family:Menlo,Consolas,monospace;font-size:13px;font-weight:700;color:#334155;background:#fff;border:1px solid #d5d9e0;border-radius:7px;padding:3px 10px;white-space:nowrap}
+            .smpi-sc-row.is-deprecated .smpi-sc-tag{color:#b42318;background:#fef3f2;border-color:#fdab9e}
+            .smpi-sc-dep{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#fff;background:#dc2626;border-radius:5px;padding:3px 8px;white-space:nowrap}
+            .smpi-sc-actions{display:flex;align-items:center;gap:16px;margin-left:auto}
+            .smpi-sc-copy{font-size:11px;font-weight:600;color:#1d4ed8;background:#fff;border:1px solid #c7d2e4;border-radius:7px;padding:4px 13px;cursor:pointer}
+            .smpi-sc-copy:hover{background:#eff4ff;border-color:#1d4ed8}
+            .smpi-sc-edit,.smpi-sc-det{font-size:11px;color:#98a2b3;text-decoration:none;background:none;border:0;cursor:pointer;padding:0}
+            .smpi-sc-edit:hover,.smpi-sc-det:hover{color:#1d4ed8}
+            .smpi-sc-k{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:#98a2b3;margin-right:9px;font-family:-apple-system,sans-serif}
+            .smpi-sc-attrs{margin:11px 0 0;font-size:11.5px;color:#475467;font-family:Menlo,Consolas,monospace}
+            .smpi-sc-out{margin:10px 0 0;font-size:10.5px;color:#667085;line-height:1.5;word-break:break-word}
+            .smpi-sc-out code{background:#fff;border:1px solid #eaecf0;border-radius:4px;padding:1px 5px}
+            .smpi-sc-vars{margin:11px 0 0;border-top:1px solid #eaecf0;padding-top:9px}
+            .smpi-sc-var{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:4px 0}
+            .smpi-sc-vtag{font-family:Menlo,Consolas,monospace;font-size:11px;font-weight:600;color:#475467;white-space:nowrap;flex:0 0 auto;min-width:170px}
+            .smpi-sc-vlabel{font-size:11px;color:#98a2b3;flex:0 0 auto;min-width:140px}
+            .smpi-sc-vout{font-size:11px;color:#475467;flex:1 1 150px;word-break:break-word}
+            .smpi-sc-vout code{background:#fff;border:1px solid #eaecf0;border-radius:4px;padding:1px 5px}
+            .smpi-sc-copy--mini{margin-left:auto;font-size:10px;padding:2px 9px}
+            .smpi-sc-vars-line{margin:11px 0 0;font-size:11px;color:#98a2b3;line-height:2}
+            .smpi-sc-vchip{font-family:Menlo,Consolas,monospace;font-size:10.5px;color:#98a2b3;cursor:pointer;margin-right:14px;border-bottom:1px dashed #d0d5dd}
+            .smpi-sc-vchip:hover{color:#1d4ed8;border-bottom-color:#1d4ed8}
+            .smpi-sc-alias{margin:11px 0 0;font-size:10.5px;color:#98a2b3;font-family:Menlo,Consolas,monospace;word-break:break-word}
+            .smpi-sc-detail{display:none;margin:11px 0 0;padding:12px 14px;background:#f8f9fb;border:1px solid #edeff2;border-radius:9px;font-size:11px;color:#5a616b}
             .smpi-sc-row.is-open .smpi-sc-detail{display:block}
-            .smpi-sc-detail .r{margin:0 0 5px;word-break:break-word}
+            .smpi-sc-detail .r{margin:0 0 6px;word-break:break-word}
             .smpi-sc-detail .r:last-child{margin-bottom:0}
-            .smpi-sc-detail b{color:#3c434a;font-weight:600}
+            .smpi-sc-detail b{color:#344054;font-weight:600}
             .smpi-sc-detail code{background:#eceef1;border-radius:4px;padding:1px 5px}
-            .smpi-sc-detail a{color:#2271b1}
-            .smpi-sc-row.is-deprecated .smpi-sc-tag{color:#8a6d3b;background:#f7f3ea;border-color:#e8dcc4}
-            .smpi-sc-hint{color:#aeb4bc;font-style:italic}
-            .smpi-sc-noresults{display:none;padding:16px;color:#8a8f98}
+            .smpi-sc-detail a{color:#1d4ed8}
+            .smpi-sc-hint{color:#b0b6bf;font-style:italic}
+            .smpi-sc-noresults{display:none;padding:18px;color:#98a2b3}
             </style>
             <h2>Shortcodes</h2>
-            <p class="smpi-sc-intro">Every SMP shortcode, grouped by context layer. Read what it does, then the shortcode and its live output sit together below it with parameters. Filter to find one fast; open Details for field, file, and edit links. Pick a preview author and a sample post to render real output.</p>
+            <p class="smpi-sc-intro">Every SMP shortcode, grouped by context layer. Read what it does, then the shortcode and its live output sit together below. Filter to find one fast; open Details for field, file, and edit links.</p>
             <div class="smpi-sc-top">
                 <input type="search" class="smpi-sc-filter" placeholder="Filter by tag, source, or description... (try: deprecated)" autocomplete="off">
                 <div class="smpi-sc-pick smpi-sc-pv">
@@ -541,7 +539,7 @@ final class Dashboard {
             $(document).on("change", ".smpi-sc-post", refresh);
             $(document).on("click", ".smpi-sc-det", function(){ $(this).closest(".smpi-sc-row").toggleClass("is-open"); });
             $(document).on("click", ".smpi-sc-copy", function(e){ e.preventDefault(); e.stopPropagation(); copyText(this.getAttribute("data-copy") || "", this); });
-            $(document).on("click", ".smpi-sc-chip", function(){ var v = this.getAttribute("data-copy") || this.textContent; if (navigator.clipboard) navigator.clipboard.writeText(v); var c = this, o = c.style.borderColor; c.style.borderColor = "#0a5239"; setTimeout(function(){ c.style.borderColor = o; }, 700); });
+            $(document).on("click", ".smpi-sc-vchip", function(){ var v = this.getAttribute("data-copy") || this.textContent; if (navigator.clipboard) navigator.clipboard.writeText(v); var c = this, o = c.style.color; c.style.color = "#15803d"; setTimeout(function(){ c.style.color = o; }, 700); });
             $(document).on("input", ".smpi-sc-user-search", function(){
                 var term = this.value, box = $(".smpi-sc-user-results");
                 clearTimeout(t); if (term.length < 2) { box.empty(); return; }
@@ -764,12 +762,12 @@ final class Dashboard {
                 $rows .= "<p class=\"smpi-sc-desc\">" . esc_html( $desc );
                 if ( $dep && "" !== $useInstead ) { $rows .= " <span class=\"smpi-sc-use\">Use " . esc_html( $useInstead ) . " instead.</span>"; }
                 $rows .= "</p>";
-                $rows .= "<div class=\"smpi-sc-block\"><div class=\"smpi-sc-block-head\"><code class=\"smpi-sc-tag\">" . esc_html( $code ) . "</code>";
+                $rows .= "<div class=\"smpi-sc-block\"><div class=\"smpi-sc-line\"><code class=\"smpi-sc-tag\">" . esc_html( $code ) . "</code>";
                 if ( $dep ) { $rows .= "<span class=\"smpi-sc-dep\">Deprecated</span>"; }
-                if ( $hasParams ) { $rows .= "<span class=\"smpi-sc-params\"><b>Params</b> <code>" . esc_html( $params ) . "</code></span>"; }
                 $rows .= "<span class=\"smpi-sc-actions\"><button type=\"button\" class=\"smpi-sc-copy\" data-copy=\"" . esc_attr( $code ) . "\">Copy</button>";
-                if ( "" !== $editUrl ) { $rows .= "<a class=\"smpi-sc-edit\" href=\"" . esc_url( $editUrl ) . "\" target=\"_blank\" rel=\"noopener\" title=\"Edit the underlying data\">Edit &#8599;</a>"; }
+                if ( "" !== $editUrl ) { $rows .= "<a class=\"smpi-sc-edit\" href=\"" . esc_url( $editUrl ) . "\" target=\"_blank\" rel=\"noopener\" title=\"Edit the underlying data\">Edit</a>"; }
                 $rows .= "<button type=\"button\" class=\"smpi-sc-det\">Details</button></span></div>";
+                if ( $hasParams ) { $rows .= "<div class=\"smpi-sc-attrs\"><span class=\"smpi-sc-k\">Options</span>" . esc_html( $params ) . "</div>"; }
                 if ( $varLive && ! empty( $variations ) ) {
                     $rows .= "<div class=\"smpi-sc-vars\">";
                     foreach ( $variations as $v ) {
@@ -778,16 +776,16 @@ final class Dashboard {
                     }
                     $rows .= "</div>";
                 } elseif ( "none" !== $mode ) {
-                    $rows .= "<div class=\"smpi-sc-out\"><span class=\"smpi-sc-out-arrow\">Output</span> " . self::sc_run( $code, $mode, $user_id, $post_id ) . "</div>";
+                    $rows .= "<div class=\"smpi-sc-out\"><span class=\"smpi-sc-k\">Output</span>" . self::sc_run( $code, $mode, $user_id, $post_id ) . "</div>";
                 }
                 $rows .= "</div>";
                 if ( ! $varLive && ! empty( $variations ) ) {
                     $chips = "";
-                    foreach ( $variations as $v ) { $chips .= "<code class=\"smpi-sc-chip\" data-copy=\"" . esc_attr( (string) $v["code"] ) . "\" title=\"" . esc_attr( (string) $v["label"] ) . " (click to copy)\">" . esc_html( (string) $v["code"] ) . "</code>"; }
-                    $rows .= "<div class=\"smpi-sc-vex\"><span class=\"smpi-sc-vex-label\">Variations</span> " . $chips . "</div>";
+                    foreach ( $variations as $v ) { $chips .= "<span class=\"smpi-sc-vchip\" data-copy=\"" . esc_attr( (string) $v["code"] ) . "\" title=\"" . esc_attr( (string) $v["code"] . " - " . (string) $v["label"] ) . "\">" . esc_html( (string) $v["label"] ) . "</span>"; }
+                    $rows .= "<div class=\"smpi-sc-vars-line\"><span class=\"smpi-sc-k\">Variations</span>" . $chips . "</div>";
                 }
                 if ( ! empty( $aliases ) ) {
-                    $rows .= "<div class=\"smpi-sc-alias\"><b>Aliases</b> " . esc_html( implode( "   ", array_map( "strval", $aliases ) ) ) . "</div>";
+                    $rows .= "<div class=\"smpi-sc-alias\"><span class=\"smpi-sc-k\">Aliases</span>" . esc_html( implode( "    ", array_map( "strval", $aliases ) ) ) . "</div>";
                 }
                 $rows .= "<div class=\"smpi-sc-detail\">";
                 if ( "" !== $source ) { $rows .= "<div class=\"r\"><b>Source</b> " . esc_html( $source ) . "</div>"; }
@@ -795,7 +793,7 @@ final class Dashboard {
                 $rows .= "<div class=\"r\"><b>Field</b> " . esc_html( isset( $detail["field"] ) ? (string) $detail["field"] : "-" ) . " &nbsp;&nbsp; <b>Group</b> " . esc_html( isset( $detail["group"] ) ? (string) $detail["group"] : "-" ) . "</div>";
                 $rows .= "<div class=\"r\"><b>Type</b> " . esc_html( isset( $detail["type"] ) ? (string) $detail["type"] : "-" ) . " &nbsp;&nbsp; <b>Plugin</b> " . esc_html( isset( $detail["plugin"] ) ? (string) $detail["plugin"] : "-" ) . "</div>";
                 $rows .= "<div class=\"r\"><b>Source file</b> <code>" . esc_html( isset( $detail["file"] ) ? (string) $detail["file"] : "-" ) . "</code></div>";
-                if ( "" !== $editUrl ) { $rows .= "<div class=\"r\"><b>Edit page</b> <a href=\"" . esc_url( $editUrl ) . "\" target=\"_blank\" rel=\"noopener\">" . esc_html( $editUrl ) . " &#8599;</a></div>"; }
+                if ( "" !== $editUrl ) { $rows .= "<div class=\"r\"><b>Edit page</b> <a href=\"" . esc_url( $editUrl ) . "\" target=\"_blank\" rel=\"noopener\">" . esc_html( $editUrl ) . "</a></div>"; }
                 $rows .= "</div>";
                 $rows .= "</div>";
             }
