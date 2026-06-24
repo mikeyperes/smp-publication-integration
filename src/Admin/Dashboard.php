@@ -449,27 +449,37 @@ final class Dashboard {
             .smpi-sc-layer--post{background:#e9f6ef;color:#0a5239}
             .smpi-sc-layer--publication{background:#f1ecfe;color:#5b34c4}
             .smpi-sc-layer--external{background:#eef0f3;color:#646970}
-            .smpi-sc-row{padding:11px 16px;border-bottom:1px solid #f4f5f7}
+            .smpi-sc-row{padding:13px 16px;border-bottom:1px solid #eef0f3}
             .smpi-sc-row:last-child{border-bottom:0}
-            .smpi-sc-row:hover{background:#fcfcfd}
-            .smpi-sc-main{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+            .smpi-sc-desc{margin:0 0 8px;font-size:13px;color:#283139;line-height:1.45}
+            .smpi-sc-use{color:#9a5a00;font-size:12px;font-weight:600}
+            .smpi-sc-block{border:1px solid #e6e9ed;border-radius:9px;background:#fbfcfd;overflow:hidden}
+            .smpi-sc-block-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 11px}
             .smpi-sc-tag{font-family:Menlo,Consolas,monospace;font-size:12.5px;font-weight:700;color:#0a5239;background:#eaf7f0;border:1px solid #cdead9;border-radius:6px;padding:2px 8px;white-space:nowrap;flex:0 0 auto}
-            .smpi-sc-summary{flex:1 1 240px;min-width:200px;font-size:13px;color:#283139;line-height:1.4}
+            .smpi-sc-dep{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#9a5a00;background:#fdf2e0;border:1px solid #f3dcae;border-radius:5px;padding:2px 6px;white-space:nowrap}
+            .smpi-sc-params{font-size:11px;color:#646b75;font-family:Menlo,Consolas,monospace;display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap}
+            .smpi-sc-params b{color:#8a909a;text-transform:uppercase;font-size:9px;letter-spacing:.05em;font-family:-apple-system,sans-serif;font-weight:700}
+            .smpi-sc-params code{background:#fff;border:1px solid #e6e9ed;border-radius:4px;padding:1px 6px;color:#445}
             .smpi-sc-actions{display:flex;align-items:center;gap:12px;margin-left:auto;flex:0 0 auto}
             .smpi-sc-copy{font-size:11px;font-weight:600;color:#2271b1;background:#fff;border:1px solid #cbd6e2;border-radius:6px;padding:3px 11px;cursor:pointer}
             .smpi-sc-copy:hover{background:#eff5fc;border-color:#2271b1}
             .smpi-sc-edit,.smpi-sc-det{font-size:11px;color:#9098a2;text-decoration:none;background:none;border:0;cursor:pointer;padding:0}
             .smpi-sc-edit:hover,.smpi-sc-det:hover{color:#2271b1}
-            .smpi-sc-out{margin:6px 0 0;font-size:11.5px;color:#6b7280;line-height:1.5;word-break:break-word}
-            .smpi-sc-out-arrow{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#aeb4bc;margin-right:8px}
+            .smpi-sc-out{padding:8px 11px;border-top:1px solid #ebedf0;background:#fff;font-size:12px;color:#3c434a;word-break:break-word;line-height:1.55}
+            .smpi-sc-out-arrow{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#aeb4bc;margin-right:8px}
             .smpi-sc-out code,.smpi-sc-vout code{background:#f6f7f9;border:1px solid #eceef1;border-radius:4px;padding:1px 5px;color:#3c434a}
-            .smpi-sc-vars{margin:7px 0 0;display:grid;gap:1px;background:#eef0f3;border:1px solid #eef0f3;border-radius:8px;overflow:hidden}
-            .smpi-sc-var{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:6px 11px;background:#fff}
+            .smpi-sc-vars{border-top:1px solid #ebedf0;background:#fff}
+            .smpi-sc-var{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:6px 11px;border-bottom:1px solid #f4f5f7}
+            .smpi-sc-var:last-child{border-bottom:0}
             .smpi-sc-vtag{font-family:Menlo,Consolas,monospace;font-size:11px;font-weight:700;color:#0a5239;white-space:nowrap;flex:0 0 auto;min-width:158px}
             .smpi-sc-vlabel{font-size:11px;color:#717784;flex:0 0 auto;min-width:135px}
             .smpi-sc-vout{font-size:11.5px;color:#3c434a;flex:1 1 150px;word-break:break-word}
             .smpi-sc-copy--mini{margin-left:auto;font-size:10px;padding:1px 8px}
-            .smpi-sc-alias{margin:6px 0 0;font-size:10.5px;color:#9aa0a8;font-family:Menlo,Consolas,monospace;word-break:break-word}
+            .smpi-sc-vex{margin:7px 0 0;font-size:11px;color:#717784}
+            .smpi-sc-vex-label{font-weight:700;text-transform:uppercase;font-size:9px;letter-spacing:.05em;color:#8a909a;margin-right:6px}
+            .smpi-sc-chip{font-family:Menlo,Consolas,monospace;font-size:10px;color:#3c434a;background:#fff;border:1px solid #dcdfe4;border-radius:5px;padding:1px 6px;margin:0 4px 4px 0;display:inline-block;cursor:pointer}
+            .smpi-sc-chip:hover{border-color:#2271b1;color:#1c5d99}
+            .smpi-sc-alias{margin:7px 0 0;font-size:10.5px;color:#9aa0a8;font-family:Menlo,Consolas,monospace;word-break:break-word}
             .smpi-sc-alias b{color:#8a909a;font-weight:700;font-family:-apple-system,sans-serif;text-transform:uppercase;letter-spacing:.04em;margin-right:7px}
             .smpi-sc-detail{display:none;margin:8px 0 0;padding:10px 12px;background:#f8f9fb;border:1px solid #edeff2;border-radius:8px;font-size:11px;color:#5a616b}
             .smpi-sc-row.is-open .smpi-sc-detail{display:block}
@@ -478,15 +488,14 @@ final class Dashboard {
             .smpi-sc-detail b{color:#3c434a;font-weight:600}
             .smpi-sc-detail code{background:#eceef1;border-radius:4px;padding:1px 5px}
             .smpi-sc-detail a{color:#2271b1}
-            .smpi-sc-chip{font-family:Menlo,Consolas,monospace;font-size:10px;color:#3c434a;background:#fff;border:1px solid #dcdfe4;border-radius:5px;padding:1px 6px;margin:0 4px 4px 0;display:inline-block;cursor:pointer}
-            .smpi-sc-chip:hover{border-color:#2271b1;color:#1c5d99}
+            .smpi-sc-row.is-deprecated .smpi-sc-tag{color:#8a6d3b;background:#f7f3ea;border-color:#e8dcc4}
             .smpi-sc-hint{color:#aeb4bc;font-style:italic}
             .smpi-sc-noresults{display:none;padding:16px;color:#8a8f98}
             </style>
             <h2>Shortcodes</h2>
-            <p class="smpi-sc-intro">Every SMP shortcode, grouped by context layer. Scan the tag and what it does; open Details for source, parameters, field, file, and edit links. Pick a preview author and a sample post to render real output.</p>
+            <p class="smpi-sc-intro">Every SMP shortcode, grouped by context layer. Read what it does, then the shortcode and its live output sit together below it with parameters. Filter to find one fast; open Details for field, file, and edit links. Pick a preview author and a sample post to render real output.</p>
             <div class="smpi-sc-top">
-                <input type="search" class="smpi-sc-filter" placeholder="Filter by tag, source, or description..." autocomplete="off">
+                <input type="search" class="smpi-sc-filter" placeholder="Filter by tag, source, or description... (try: deprecated)" autocomplete="off">
                 <div class="smpi-sc-pick smpi-sc-pv">
                     <span>Author:</span>
                     <input type="search" class="regular-text smpi-sc-user-search" placeholder="name / username / email" autocomplete="off">
@@ -628,8 +637,8 @@ final class Dashboard {
                 [ "tag" => "author_muckrack_verified", "desc" => "The Muck Rack verified badge for the author. Shows a checkmark with type=icon or a label with type=text. Renders only when the author is verified.", "type" => "Badge", "params" => "type (icon|text), context, user_id",
                   "variations" => [ [ "code" => "[author_muckrack_verified type=\"icon\"]", "label" => "Checkmark icon" ], [ "code" => "[author_muckrack_verified type=\"text\"]", "label" => "Text label" ] ],
                   "detail" => $authDetail( "ACF / user meta: muckrack_verified, muckrack_url, what_best_describe_you", $A, "Badge" ) ],
-                [ "tag" => "muckrack_verified", "desc" => "Legacy Muck Rack verified badge for the author. Same data as [author_muckrack_verified]; kept for older templates.", "type" => "Badge", "params" => "type (icon|text), user_id", "detail" => $authDetail( "ACF / user meta verified flag", $MR, "Badge" ) ],
-                [ "tag" => "acf_author_field", "desc" => "Reads any single ACF or user field for the author by name. Legacy generic accessor.", "type" => "Text", "params" => "field (the field name), user_id", "detail" => $authDetail( "any ACF / user field passed via field=", $MR, "Text" ) ],
+                [ "tag" => "muckrack_verified", "deprecated" => true, "use_instead" => "[author_muckrack_verified]", "desc" => "Legacy Muck Rack verified badge for the author. Same data as [author_muckrack_verified]; kept for older templates.", "type" => "Badge", "params" => "type (icon|text), user_id", "detail" => $authDetail( "ACF / user meta verified flag", $MR, "Badge" ) ],
+                [ "tag" => "acf_author_field", "deprecated" => true, "use_instead" => "the specific author_* shortcodes", "desc" => "Reads any single ACF or user field for the author by name. Legacy generic accessor.", "type" => "Text", "params" => "field (the field name), user_id", "detail" => $authDetail( "any ACF / user field passed via field=", $MR, "Text" ) ],
               ] ],
             [ "key" => "authors-multi", "title" => "Authors on a post (multi-author)", "layer" => "Post layer", "live" => "post",
               "blurb" => "Every author assigned to a post through the Post Header multi-author field. Use these for a multi-author byline. Edited in the post editor.",
@@ -746,10 +755,19 @@ final class Dashboard {
                 $variations = isset( $item["variations"] ) ? $item["variations"] : [];
                 $varLive = ! empty( $item["variations_live"] );
                 $aliases = isset( $item["aliases"] ) ? $item["aliases"] : [];
+                $dep = ! empty( $item["deprecated"] );
+                $useInstead = isset( $item["use_instead"] ) ? (string) $item["use_instead"] : "";
+                $hasParams = ( "" !== $params && "none" !== $params );
                 $editUrl = self::sc_edit_url( isset( $detail["edit"] ) ? (string) $detail["edit"] : "none", $user_id, $post_id );
-                $filter = strtolower( $tag . " " . $desc . " " . $source . " " . $params . " " . $type );
-                $rows .= "<div class=\"smpi-sc-row\" data-filter=\"" . esc_attr( $filter ) . "\">";
-                $rows .= "<div class=\"smpi-sc-main\"><code class=\"smpi-sc-tag\">" . esc_html( $code ) . "</code><span class=\"smpi-sc-summary\">" . esc_html( $desc ) . "</span><span class=\"smpi-sc-actions\"><button type=\"button\" class=\"smpi-sc-copy\" data-copy=\"" . esc_attr( $code ) . "\">Copy</button>";
+                $filter = strtolower( $tag . " " . $desc . " " . $source . " " . $params . " " . $type . ( $dep ? " deprecated legacy" : "" ) );
+                $rows .= "<div class=\"smpi-sc-row" . ( $dep ? " is-deprecated" : "" ) . "\" data-filter=\"" . esc_attr( $filter ) . "\">";
+                $rows .= "<p class=\"smpi-sc-desc\">" . esc_html( $desc );
+                if ( $dep && "" !== $useInstead ) { $rows .= " <span class=\"smpi-sc-use\">Use " . esc_html( $useInstead ) . " instead.</span>"; }
+                $rows .= "</p>";
+                $rows .= "<div class=\"smpi-sc-block\"><div class=\"smpi-sc-block-head\"><code class=\"smpi-sc-tag\">" . esc_html( $code ) . "</code>";
+                if ( $dep ) { $rows .= "<span class=\"smpi-sc-dep\">Deprecated</span>"; }
+                if ( $hasParams ) { $rows .= "<span class=\"smpi-sc-params\"><b>Params</b> <code>" . esc_html( $params ) . "</code></span>"; }
+                $rows .= "<span class=\"smpi-sc-actions\"><button type=\"button\" class=\"smpi-sc-copy\" data-copy=\"" . esc_attr( $code ) . "\">Copy</button>";
                 if ( "" !== $editUrl ) { $rows .= "<a class=\"smpi-sc-edit\" href=\"" . esc_url( $editUrl ) . "\" target=\"_blank\" rel=\"noopener\" title=\"Edit the underlying data\">Edit &#8599;</a>"; }
                 $rows .= "<button type=\"button\" class=\"smpi-sc-det\">Details</button></span></div>";
                 if ( $varLive && ! empty( $variations ) ) {
@@ -762,17 +780,18 @@ final class Dashboard {
                 } elseif ( "none" !== $mode ) {
                     $rows .= "<div class=\"smpi-sc-out\"><span class=\"smpi-sc-out-arrow\">Output</span> " . self::sc_run( $code, $mode, $user_id, $post_id ) . "</div>";
                 }
+                $rows .= "</div>";
+                if ( ! $varLive && ! empty( $variations ) ) {
+                    $chips = "";
+                    foreach ( $variations as $v ) { $chips .= "<code class=\"smpi-sc-chip\" data-copy=\"" . esc_attr( (string) $v["code"] ) . "\" title=\"" . esc_attr( (string) $v["label"] ) . " (click to copy)\">" . esc_html( (string) $v["code"] ) . "</code>"; }
+                    $rows .= "<div class=\"smpi-sc-vex\"><span class=\"smpi-sc-vex-label\">Variations</span> " . $chips . "</div>";
+                }
                 if ( ! empty( $aliases ) ) {
                     $rows .= "<div class=\"smpi-sc-alias\"><b>Aliases</b> " . esc_html( implode( "   ", array_map( "strval", $aliases ) ) ) . "</div>";
                 }
                 $rows .= "<div class=\"smpi-sc-detail\">";
                 if ( "" !== $source ) { $rows .= "<div class=\"r\"><b>Source</b> " . esc_html( $source ) . "</div>"; }
-                if ( "" !== $params && "none" !== $params ) { $rows .= "<div class=\"r\"><b>Parameters</b> <code>" . esc_html( $params ) . "</code></div>"; }
-                if ( ! $varLive && ! empty( $variations ) ) {
-                    $chips = "";
-                    foreach ( $variations as $v ) { $chips .= "<code class=\"smpi-sc-chip\" data-copy=\"" . esc_attr( (string) $v["code"] ) . "\" title=\"" . esc_attr( (string) $v["label"] ) . " (click to copy)\">" . esc_html( (string) $v["code"] ) . "</code>"; }
-                    $rows .= "<div class=\"r\"><b>Variations</b> " . $chips . "</div>";
-                }
+                if ( $dep ) { $rows .= "<div class=\"r\"><b>Status</b> Deprecated" . ( "" !== $useInstead ? " - use " . esc_html( $useInstead ) . " instead" : "" ) . "</div>"; }
                 $rows .= "<div class=\"r\"><b>Field</b> " . esc_html( isset( $detail["field"] ) ? (string) $detail["field"] : "-" ) . " &nbsp;&nbsp; <b>Group</b> " . esc_html( isset( $detail["group"] ) ? (string) $detail["group"] : "-" ) . "</div>";
                 $rows .= "<div class=\"r\"><b>Type</b> " . esc_html( isset( $detail["type"] ) ? (string) $detail["type"] : "-" ) . " &nbsp;&nbsp; <b>Plugin</b> " . esc_html( isset( $detail["plugin"] ) ? (string) $detail["plugin"] : "-" ) . "</div>";
                 $rows .= "<div class=\"r\"><b>Source file</b> <code>" . esc_html( isset( $detail["file"] ) ? (string) $detail["file"] : "-" ) . "</code></div>";
