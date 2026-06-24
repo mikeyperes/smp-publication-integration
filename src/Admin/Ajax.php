@@ -243,10 +243,8 @@ final class Ajax {
 
     public function shortcode_user_preview( AjaxRequest $request ): array {
         $user_id = $request->int( 'user_id', 0, 'post' );
-        if ( $user_id <= 0 || ! get_user_by( "id", $user_id ) ) {
-            throw AjaxFailure::not_found( "Selected user was not found." );
-        }
-        return [ "user" => Dashboard::shortcode_selected_user_html( $user_id ), "html" => Dashboard::shortcode_user_values_html( $user_id ) ];
+        $post_id = $request->int( "post_id", 0, "post" );
+        return [ "user" => Dashboard::shortcode_selected_user_html( $user_id ), "html" => Dashboard::shortcode_user_values_html( $user_id, $post_id ) ];
     }
 
     public function test_multi_authors( AjaxRequest $request ): array {
