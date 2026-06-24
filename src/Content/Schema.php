@@ -305,7 +305,14 @@ final class Schema {
             "copyrightHolder" => [ "@id" => $org_id ],
             "commentCount" => (int) get_comments_number( $post_id ),
             "discussionUrl" => get_comments_link( $post_id ),
-            "speakable" => [ "@type" => "SpeakableSpecification", "cssSelector" => [ "h1", ".entry-content p:first-of-type", "article p:first-of-type" ] ],
+            "speakable" => [
+                "@type" => "SpeakableSpecification",
+                "cssSelector" => [
+                    "h1",
+                    ".elementor-widget-theme-post-excerpt p:first-of-type",
+                    ".elementor-widget-theme-post-content p:first-of-type",
+                ],
+            ],
             "hasPart" => $faq ? [ [ "@id" => $faq["@id"] ] ] : null,
         ] );
 
