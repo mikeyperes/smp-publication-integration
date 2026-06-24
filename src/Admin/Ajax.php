@@ -13,6 +13,7 @@ use smp_publication_integration\Support\Dependencies;
 use smp_publication_integration\Support\PageStructure;
 use smp_publication_integration\Support\PluginRegistry;
 use smp_publication_integration\Support\Settings;
+use smp_publication_integration\Support\SnippetDefinitions;
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
@@ -47,6 +48,8 @@ final class Ajax {
                 'smpi_test_multi_authors'       => [ 'callback' => [ $this, 'test_multi_authors' ] ],
                 'smpi_refresh_optimization'    => [ 'callback' => [ $this, 'refresh_optimization' ] ],
                 'smpi_plugin_action'           => [ 'callback' => [ $this, 'plugin_action' ] ],
+                'smpi_snippet_toggle'          => [ 'callback' => [ $this, 'toggle_snippet' ] ],
+                'smpi_snippet_test'            => [ 'callback' => [ $this, 'test_snippet' ] ],
             ]
         );
 
@@ -70,6 +73,31 @@ final class Ajax {
 
     public static function nonce(): string {
         return AjaxGuard::create_nonce( self::NONCE );
+    }
+
+    public function toggle_snippet( AjaxRequest $request ): array {
+        $id = sanitize_key( $request->text( 'snippet_id', '', 'post' ) );
+        $definition = SnippetDefinitions::definition( $id );
+        if ( ! $definition ) {
+            throw AjaxFailure::not_found( 'Unknown snippet.' );
+        }
+        $key = '' !== $definition->option_key ? $definition->option_key : $id;
+        Settings::update( [ $key => $request->bool( 'enable', false, 'post' ) ] );
+        $enabled = Settings::bool( $key );
+        return [
+            'snippet_id' => $id,
+            'enabled'    => $enabled,
+            'message'    => $enabled ? 'Snippet enabled.' : 'Snippet disabled.',
+            'test'       => SnippetDefinitions::registry()->test( $id ),
+        ];
+    }
+
+    public function test_snippet( AjaxRequest $request ): array {
+        $id = sanitize_key( $request->text( 'snippet_id', '', 'post' ) );
+        if ( ! SnippetDefinitions::definition( $id ) ) {
+            throw AjaxFailure::not_found( 'Unknown snippet.' );
+        }
+        return SnippetDefinitions::registry()->test( $id );
     }
 
     public function load_tab( AjaxRequest $request ): array {
