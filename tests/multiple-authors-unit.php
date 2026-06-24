@@ -59,6 +59,15 @@ namespace {
     ];
     $GLOBALS["test_posts"] = [ 10 => new WP_Post( 10, 1 ) ];
     $GLOBALS["test_meta"] = [ 10 => [ "smpi_post_authors" => [ 1, 2 ] ] ];
+    $GLOBALS["test_user_meta"] = [
+        1 => [
+            "title" => "Editorial Lead",
+            "muckrack_url" => "https://muckrack.com/alpha-author",
+        ],
+        2 => [
+            "author_title" => "Contributor",
+        ],
+    ];
     $GLOBALS["test_terms"] = [];
     $GLOBALS["test_term_meta"] = [];
     $GLOBALS["test_relationships"] = [];
@@ -194,6 +203,8 @@ namespace {
     function absint( $value ): int { return abs( (int) $value ); }
     function is_wp_error( $value ): bool { return false; }
     function get_posts( array $args ): array { return []; }
+    function wp_is_post_revision( int $post_id ) { return false; }
+    function wp_is_post_autosave( int $post_id ) { return false; }
 }
 
 namespace smp_publication_integration\Support {
@@ -221,6 +232,7 @@ namespace {
     use smp_publication_integration\Authorship\AuthorContext;
     use smp_publication_integration\Authorship\ElementorAuthorRenderer;
     use smp_publication_integration\Authorship\LoopBylineRenderer;
+    use smp_publication_integration\Content\MuckRackVerification;
 
     function expect_same( $expected, $actual, string $message ): void {
         if ( $expected !== $actual ) {
@@ -256,6 +268,8 @@ namespace {
     expect_same( 1, substr_count( $rendered, '<div class="share">SHARE</div>' ), "Unrelated sibling markup is never duplicated." );
     expect_same( 1, substr_count( $rendered, "avatar-1-300.jpg" ), "Secondary avatar is rebound." );
     expect_same( 1, substr_count( $rendered, "alpha-author/" ), "Secondary author URL is rebound." );
+    expect_same( "Editorial Lead", MuckRackVerification::author_field( 1, "author_title" ), "MuckRack field lookup uses the canonical author field resolver aliases." );
+    expect_same( "https://muckrack.com/alpha-author", MuckRackVerification::author_field( 1, "muckrack_url" ), "MuckRack URL lookup uses the canonical author field resolver aliases." );
 
     $repository->clear( 10 );
     $GLOBALS["test_meta"][10]["smpi_post_authors"] = [];

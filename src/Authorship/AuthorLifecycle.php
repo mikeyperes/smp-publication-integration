@@ -30,7 +30,7 @@ final class AuthorLifecycle {
     }
 
     public function sync_acf_value( $value, $post_id, array $field ) {
-        $post_id = is_numeric( $post_id ) ? (int) $post_id : 0;
+        $post_id = is_numeric( $post_id ) ? $this->canonical_post_id( (int) $post_id ) : 0;
         if ( $post_id > 0 && Settings::bool( "multi_authors_enabled" ) ) {
             $this->repository->set_ids( $post_id, $value, true );
         }
@@ -39,6 +39,10 @@ final class AuthorLifecycle {
 
     public function sync_meta_change( int $meta_id, int $post_id, string $meta_key, $meta_value ): void {
         if ( $this->syncing_meta || AuthorAssignmentRepository::LEGACY_META_KEY !== $meta_key || ! Settings::bool( "multi_authors_enabled" ) ) {
+            return;
+        }
+        $post_id = $this->canonical_post_id( $post_id );
+        if ( $post_id <= 0 ) {
             return;
         }
         $this->syncing_meta = true;
@@ -51,6 +55,10 @@ final class AuthorLifecycle {
 
     public function sync_deleted_meta( $meta_ids, int $post_id, string $meta_key, $meta_value ): void {
         if ( AuthorAssignmentRepository::LEGACY_META_KEY === $meta_key ) {
+            $post_id = $this->canonical_post_id( $post_id );
+            if ( $post_id <= 0 ) {
+                return;
+            }
             $this->repository->clear( $post_id );
         }
     }
@@ -86,7 +94,12 @@ final class AuthorLifecycle {
             return new \WP_Error( "smpi_multi_authors_forbidden", "You cannot edit authors for this post.", [ "status" => 403 ] );
         }
         $ids = $this->repository->set_ids( (int) $post->ID, $value, true );
-        update_post_meta( (int) $post->ID, AuthorAssignmentRepository::LEGACY_META_KEY, $ids );
+        $this->syncing_meta = true;
+        try {
+            update_post_meta( (int) $post->ID, AuthorAssignmentRepository::LEGACY_META_KEY, $ids );
+        } finally {
+            $this->syncing_meta = false;
+        }
         return true;
     }
 
@@ -110,5 +123,24 @@ final class AuthorLifecycle {
         }
         $offset = is_array( $state ) ? absint( $state["next_offset"] ?? 0 ) : 0;
         update_option( self::MIGRATION_OPTION, $this->repository->migrate_batch( 100, $offset ), false );
+    }
+
+    private function canonical_post_id( int $post_id ): int {
+        if ( $post_id <= 0 ) {
+            return 0;
+        }
+        if ( function_exists( "wp_is_post_revision" ) ) {
+            $revision_parent = wp_is_post_revision( $post_id );
+            if ( $revision_parent ) {
+                return (int) $revision_parent;
+            }
+        }
+        if ( function_exists( "wp_is_post_autosave" ) ) {
+            $autosave_parent = wp_is_post_autosave( $post_id );
+            if ( $autosave_parent ) {
+                return (int) $autosave_parent;
+            }
+        }
+        return $post_id;
     }
 }

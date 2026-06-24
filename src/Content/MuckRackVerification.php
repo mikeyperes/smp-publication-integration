@@ -1,6 +1,7 @@
 <?php
 namespace smp_publication_integration\Content;
 
+use smp_publication_integration\Authorship\AuthorFieldResolver;
 use smp_publication_integration\Support\Fields;
 use smp_publication_integration\Support\RuntimeContext;
 use smp_publication_integration\Support\Settings;
@@ -237,21 +238,38 @@ SMPI_JS;
     }
 
     public static function author_field( int $author_id, string $field ) {
-        $value = self::raw_author_field( $author_id, $field );
-        if ( self::has_author_field_value( $value ) ) {
-            return $value;
+        $field = sanitize_key( $field );
+        if ( "" === $field ) {
+            return "";
         }
 
-        foreach ( self::author_field_aliases( $field ) as $alias ) {
-            if ( $alias === $field ) {
-                continue;
-            }
-            $value = self::raw_author_field( $author_id, $alias );
+        $resolver = new AuthorFieldResolver();
+        $canonical_field = self::canonical_author_field( $field );
+        if ( "" !== $canonical_field ) {
+            $value = $resolver->value( $author_id, $canonical_field );
             if ( self::has_author_field_value( $value ) ) {
                 return $value;
             }
         }
 
+        $value = self::raw_author_field( $author_id, $field );
+        if ( self::has_author_field_value( $value ) ) {
+            return $value;
+        }
+
+        return "";
+    }
+
+    private static function canonical_author_field( string $field ): string {
+        $aliases = AuthorFieldResolver::aliases();
+        if ( isset( $aliases[ $field ] ) ) {
+            return $field;
+        }
+        foreach ( $aliases as $canonical => $field_aliases ) {
+            if ( in_array( $field, array_map( "sanitize_key", $field_aliases ), true ) ) {
+                return (string) $canonical;
+            }
+        }
         return "";
     }
 
@@ -281,19 +299,6 @@ SMPI_JS;
 
     private static function has_author_field_value( $value ): bool {
         return null !== $value && false !== $value && "" !== $value && [] !== $value;
-    }
-
-    private static function author_field_aliases( string $field ): array {
-        $field = sanitize_key( $field );
-        $aliases = [
-            "job_title" => [ "job_title", "author_job_title", "author_title", "title", "role", "position", "profession", "what_best_describe_you" ],
-            "title" => [ "title", "author_title", "job_title", "role", "position", "profession", "what_best_describe_you" ],
-            "subtitle" => [ "subtitle", "author_subtitle", "tagline", "short_title", "headline", "job_title", "author_job_title", "author_title", "title", "role", "position", "profession", "what_best_describe_you" ],
-            "bio" => [ "bio", "author_bio", "biography", "description", "user_description" ],
-            "description" => [ "description", "user_description", "bio", "author_bio", "biography" ],
-            "bio_short" => [ "bio_short", "author_bio_short", "short_bio", "user_short_bio", "description_short", "what_best_describe_you" ],
-        ];
-        return $aliases[ $field ] ?? [ $field ];
     }
 
     public static function author_acf_verified( int $author_id ): bool {

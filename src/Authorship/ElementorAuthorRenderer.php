@@ -12,6 +12,8 @@ if ( ! defined( "ABSPATH" ) ) {
 final class ElementorAuthorRenderer {
     private AuthorAssignmentRepository $repository;
     private ?array $marked_element_ids = null;
+    private ?array $marked_templates = null;
+    private ?array $binding_map = null;
 
     public function __construct( AuthorAssignmentRepository $repository ) {
         $this->repository = $repository;
@@ -409,6 +411,10 @@ final class ElementorAuthorRenderer {
     }
 
     private function binding_map(): array {
+        if ( null !== $this->binding_map ) {
+            return $this->binding_map;
+        }
+
         $map = [];
         foreach ( $this->marked_templates() as $template_id ) {
             $data = get_post_meta( (int) $template_id, "_elementor_data", true );
@@ -417,26 +423,36 @@ final class ElementorAuthorRenderer {
                 $this->collect_bindings( $nodes, $map, false );
             }
         }
-        return $map;
+        $this->binding_map = $map;
+        return $this->binding_map;
     }
 
     private function marked_templates(): array {
-        return get_posts(
-            [
-                "post_type" => "elementor_library",
-                "post_status" => [ "publish", "draft", "private" ],
-                "posts_per_page" => 100,
-                "fields" => "ids",
-                "no_found_rows" => true,
-                "meta_query" => [
-                    [
-                        "key" => "_elementor_data",
-                        "value" => "smpi-author-module",
-                        "compare" => "LIKE",
+        if ( null !== $this->marked_templates ) {
+            return $this->marked_templates;
+        }
+
+        $this->marked_templates = array_map(
+            "absint",
+            get_posts(
+                [
+                    "post_type" => "elementor_library",
+                    "post_status" => [ "publish", "draft", "private" ],
+                    "posts_per_page" => 100,
+                    "fields" => "ids",
+                    "no_found_rows" => true,
+                    "meta_query" => [
+                        [
+                            "key" => "_elementor_data",
+                            "value" => "smpi-author-module",
+                            "compare" => "LIKE",
+                        ],
                     ],
-                ],
-            ]
+                ]
+            )
         );
+
+        return $this->marked_templates;
     }
 
     private function collect_marked_ids( array $nodes, array &$ids ): void {
@@ -526,7 +542,7 @@ final class ElementorAuthorRenderer {
                 ]
             )
         );
-        if ( false !== strpos( $label, "twitter" ) || false !== strpos( $label, "x.com" ) || preg_match( '/(^|[^a-z0-9])x([^a-z0-9]|$)/', $label ) ) {
+        if ( false !== strpos( $label, "twitter" ) || false !== strpos( $label, "x.com" ) || false !== strpos( $label, "x-twitter" ) ) {
             return "x";
         }
         foreach ( [ "linkedin", "email", "website", "facebook", "instagram", "youtube" ] as $kind ) {

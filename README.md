@@ -7,7 +7,13 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.6.103`
+- Version: `0.6.104`
+
+## 0.6.104 Updates
+
+- Centralized MuckRack author-field aliases on the Authorship field resolver.
+- Cached Elementor marked-template and binding discovery during each request.
+- Made multi-author meta synchronization revision/autosave-safe and avoided redundant REST meta resync.
 
 ## 0.6.103 Updates
 
