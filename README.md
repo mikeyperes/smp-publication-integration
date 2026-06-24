@@ -7,7 +7,7 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.6.94`
+- Version: `0.6.98`
 
 ## Structure
 
@@ -59,6 +59,7 @@ WordPress plugin for Scale My Publication publication profiles.
 - Rebound single selected SMP authors from the native WordPress author template source so Elementor author names, URLs, avatars, and fields update together.
 - Unified single article, footer author, and loop-card author replacement through one native-source to SMP-selected-author resolver.
 - Guarded author archive profile headers so multi-author name rewriting only affects actual article loop/card output, not the queried author identity, URL, or avatar.
+- Scoped Elementor's native author dynamic tags to the queried author while an author archive profile widget renders, without changing loop-card author context or template markup.
 - Replaced unsafe loop-card author-name rewriting with full author-link HTML rewriting so each selected author keeps their own author archive URL and loop-card checkmark.
 - Made MuckRack badge injection idempotent by cleaning wrapper links as well as icon nodes before timed reinjection.
 - Bundled Hexa WordPress Plugin Core and registered the Hexa Core tab through dashboard filters.

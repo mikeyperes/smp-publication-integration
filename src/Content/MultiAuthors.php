@@ -13,6 +13,9 @@ final class MultiAuthors {
     public const FIELD_KEY = "field_smpi_post_authors";
 
     private static array $author_stack = [];
+    private static array $archive_authordata_stack = [];
+    private static int $archive_author_context_depth = 0;
+    private static ?array $archive_author_element_ids = null;
     private static ?array $marked_elementor_ids = null;
     private static ?array $marked_author_field_widgets = null;
 
@@ -23,6 +26,8 @@ final class MultiAuthors {
         add_filter( "the_author_posts_link", [ $this, "filter_author_posts_link" ], 15, 1 );
         add_filter( "elementor/widget/render_content", [ $this, "filter_elementor_author_module" ], 20, 2 );
         add_filter( "elementor/frontend/the_content", [ $this, "filter_elementor_rendered_content" ], 20, 1 );
+        add_action( "elementor/frontend/before_render", [ $this, "begin_author_archive_element_context" ], 1, 1 );
+        add_action( "elementor/frontend/after_render", [ $this, "end_author_archive_element_context" ], 999, 1 );
     }
 
     public static function enabled(): bool {
@@ -70,6 +75,10 @@ final class MultiAuthors {
             return $explicit_user_id;
         }
 
+        if ( self::$archive_author_context_depth > 0 && is_author() && $explicit_post_id <= 0 ) {
+            return (int) get_queried_object_id();
+        }
+
         $context_id = self::current_author_id();
         if ( $context_id > 0 ) {
             return $context_id;
@@ -94,6 +103,46 @@ final class MultiAuthors {
         }
 
         return 0;
+    }
+
+    public function begin_author_archive_element_context( $element ): void {
+        if ( ! is_author() || ! is_object( $element ) || ! method_exists( $element, "get_id" ) ) {
+            return;
+        }
+
+        $element_id = preg_replace( '/[^A-Za-z0-9_-]/', '', (string) $element->get_id() );
+        if ( "" === $element_id || ! in_array( $element_id, self::archive_author_element_ids(), true ) ) {
+            return;
+        }
+
+        $author = get_queried_object();
+        if ( ! $author instanceof \WP_User ) {
+            return;
+        }
+
+        global $authordata;
+        $key = spl_object_id( $element );
+        self::$archive_authordata_stack[ $key ][] = $authordata ?? null;
+        self::$archive_author_context_depth++;
+        $authordata = $author;
+    }
+
+    public function end_author_archive_element_context( $element ): void {
+        if ( ! is_object( $element ) ) {
+            return;
+        }
+
+        $key = spl_object_id( $element );
+        if ( empty( self::$archive_authordata_stack[ $key ] ) ) {
+            return;
+        }
+
+        global $authordata;
+        $authordata = array_pop( self::$archive_authordata_stack[ $key ] );
+        if ( empty( self::$archive_authordata_stack[ $key ] ) ) {
+            unset( self::$archive_authordata_stack[ $key ] );
+        }
+        self::$archive_author_context_depth = max( 0, self::$archive_author_context_depth - 1 );
     }
 
     public static function current_author_id(): int {
@@ -730,6 +779,70 @@ final class MultiAuthors {
 
         self::$marked_elementor_ids = array_values( array_unique( array_filter( self::$marked_elementor_ids ) ) );
         return self::$marked_elementor_ids;
+    }
+
+    private static function archive_author_element_ids(): array {
+        if ( null !== self::$archive_author_element_ids ) {
+            return self::$archive_author_element_ids;
+        }
+
+        self::$archive_author_element_ids = [];
+        if ( ! function_exists( "get_posts" ) ) {
+            return self::$archive_author_element_ids;
+        }
+
+        $template_ids = get_posts(
+            [
+                "post_type" => "elementor_library",
+                "post_status" => [ "publish", "draft", "private" ],
+                "posts_per_page" => 100,
+                "fields" => "ids",
+                "no_found_rows" => true,
+                "meta_query" => [
+                    [
+                        "key" => "_elementor_template_type",
+                        "value" => "archive",
+                    ],
+                ],
+            ]
+        );
+
+        foreach ( $template_ids as $template_id ) {
+            $data = get_post_meta( (int) $template_id, "_elementor_data", true );
+            if ( ! is_string( $data ) || "" === $data ) {
+                continue;
+            }
+            $decoded = json_decode( $data, true );
+            if ( is_array( $decoded ) ) {
+                self::collect_archive_author_element_ids( $decoded, self::$archive_author_element_ids );
+            }
+        }
+
+        self::$archive_author_element_ids = array_values( array_unique( array_filter( self::$archive_author_element_ids ) ) );
+        return self::$archive_author_element_ids;
+    }
+
+    private static function collect_archive_author_element_ids( array $nodes, array &$ids ): void {
+        foreach ( $nodes as $node ) {
+            if ( ! is_array( $node ) ) {
+                continue;
+            }
+
+            $settings = isset( $node["settings"] ) && is_array( $node["settings"] ) ? $node["settings"] : [];
+            $dynamic = isset( $settings["__dynamic__"] ) && is_array( $settings["__dynamic__"] ) ? wp_json_encode( $settings["__dynamic__"] ) : "";
+            if (
+                is_string( $dynamic )
+                && preg_match( '/author-(?:name|info|profile-picture|url)|acf_author_field/i', $dynamic )
+                && ! empty( $node["id"] )
+                && is_string( $node["id"] )
+            ) {
+                $ids[] = preg_replace( '/[^A-Za-z0-9_-]/', '', $node["id"] );
+            }
+
+            if ( ! empty( $node["elements"] ) && is_array( $node["elements"] ) ) {
+                self::collect_archive_author_element_ids( $node["elements"], $ids );
+            }
+        }
     }
 
     private static function elementor_templates_with_author_markers(): array {
