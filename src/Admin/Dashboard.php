@@ -418,22 +418,92 @@ final class Dashboard {
     private function shortcodes(): void {
         $user_id = $this->default_shortcode_user_id();
         ?>
-        <div class="smpi-panel smpi-shortcode-debugger">
+        <div class="smpi-panel smpi-sc">
+            <style>
+            .smpi-sc{max-width:1220px}
+            .smpi-sc h2{margin:0 0 4px}
+            .smpi-sc-intro{margin:0 0 12px;color:#646970;font-size:13px}
+            .smpi-sc-top{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin:0 0 16px;padding:12px 14px;border:1px solid #e2e4e7;border-radius:12px;background:#fbfcfd;position:sticky;top:32px;z-index:6}
+            .smpi-sc-filter{flex:1 1 320px;min-width:220px;font-size:14px;padding:9px 13px;border:1px solid #c3c4c7;border-radius:8px}
+            .smpi-sc-preview{display:flex;align-items:center;gap:8px;font-size:12px;color:#646970;flex-wrap:wrap;margin:0}
+            .smpi-sc-preview .smpi-shortcode-user-search{width:230px}
+            .smpi-sc-pv{position:relative}
+            .smpi-sc-preview .smpi-user-results{position:absolute;top:100%;left:0;z-index:9;background:#fff;border:1px solid #dcdcde;border-radius:8px;min-width:300px;box-shadow:0 8px 24px rgba(0,0,0,.12);max-height:300px;overflow:auto;margin-top:4px}
+            .smpi-sc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px;align-items:start}
+            .smpi-sc-card{border:1px solid #e2e4e7;border-radius:14px;background:#fff;overflow:hidden;box-shadow:0 1px 2px rgba(15,23,42,.04)}
+            .smpi-sc-card-head{padding:12px 15px;border-bottom:1px solid #f0f1f3;background:#fbfcfd}
+            .smpi-sc-card-head h3{margin:0;font-size:12.5px;font-weight:700;color:#1d2327;display:flex;align-items:center;gap:8px;text-transform:none}
+            .smpi-sc-count{font-size:11px;font-weight:700;color:#646970;background:#eef0f3;border-radius:999px;padding:1px 8px}
+            .smpi-sc-card-head p{margin:4px 0 0;font-size:11.5px;color:#8a8f98;line-height:1.35}
+            .smpi-sc-row{border-bottom:1px solid #f3f4f6}
+            .smpi-sc-row:last-child{border-bottom:0}
+            .smpi-sc-row-head{display:flex;align-items:center;gap:8px;padding:7px 13px}
+            .smpi-sc-row:not(.smpi-sc-row--flat) .smpi-sc-row-head{cursor:pointer}
+            .smpi-sc-row-head:hover{background:#f8fafc}
+            .smpi-sc-tag{font-family:Menlo,Consolas,monospace;font-size:11.5px;font-weight:700;color:#0a5239;background:#e9f6ef;border:1px solid #cfead9;border-radius:6px;padding:2px 7px;white-space:nowrap}
+            .smpi-sc-desc{flex:1;min-width:0;font-size:12px;color:#50575e;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+            .smpi-sc-copy{flex:0 0 auto;font-size:10.5px;font-weight:600;color:#2271b1;background:#fff;border:1px solid #c9d6e5;border-radius:6px;padding:2px 7px;cursor:pointer}
+            .smpi-sc-copy:hover{background:#eef3ff;border-color:#2271b1}
+            .smpi-sc-toggle{flex:0 0 auto;width:12px;text-align:center;color:#a7aab0;font-size:10px;transition:transform .15s}
+            .smpi-sc-toggle--empty{visibility:hidden}
+            .smpi-sc-row.is-open .smpi-sc-toggle{transform:rotate(180deg)}
+            .smpi-sc-row-detail{display:none;padding:0 13px 10px 13px;font-size:11.5px;color:#646970;line-height:1.5}
+            .smpi-sc-row.is-open .smpi-sc-row-detail{display:block}
+            .smpi-sc-row-detail code{background:#f1f2f4;border-radius:5px;padding:1px 6px;font-size:11px;word-break:break-word}
+            .smpi-sc-attr{margin:0 0 5px}
+            .smpi-sc-out{margin:5px 0 0;padding:7px 9px;background:#f8fafc;border:1px solid #eef0f3;border-radius:8px;word-break:break-word}
+            .smpi-sc-out code{background:#fff;border:1px solid #e5e7eb}
+            .smpi-sc-noresults{display:none;padding:18px;color:#8a8f98}
+            </style>
             <h2>Shortcodes</h2>
-            <p>Select a WordPress author to debug author.php and single.php shortcode output. Rows show the provider, source fields, exact shortcode, and rendered value.</p>
-            <div class="smpi-user-picker smpi-shortcode-user-picker" data-selected-user="<?php echo esc_attr( (string) $user_id ); ?>">
-                <label><strong>Select author</strong></label>
-                <p class="smpi-muted">Search by name, username, or email. The shortcode table refreshes without a page reload.</p>
-                <input type="search" class="regular-text smpi-shortcode-user-search" placeholder="Name, username, or email" autocomplete="off">
-                <span class="spinner"></span><span class="smpi-save-state"></span>
-                <div class="smpi-shortcode-user-results smpi-user-results" aria-live="polite"></div>
+            <p class="smpi-sc-intro">Every SMP shortcode, grouped by context. Filter to find one fast, copy it, or pick an author to preview live author output.</p>
+            <div class="smpi-sc-top">
+                <input type="search" class="smpi-sc-filter" placeholder="Filter shortcodes by tag or description..." autocomplete="off">
+                <div class="smpi-user-picker smpi-shortcode-user-picker smpi-sc-preview" data-selected-user="<?php echo esc_attr( (string) $user_id ); ?>">
+                    <span>Preview author:</span>
+                    <span class="smpi-sc-pv">
+                        <input type="search" class="regular-text smpi-shortcode-user-search" placeholder="name, username, or email" autocomplete="off">
+                        <div class="smpi-shortcode-user-results smpi-user-results" aria-live="polite"></div>
+                    </span>
+                    <span class="spinner"></span><span class="smpi-save-state"></span>
+                </div>
             </div>
-            <div id="smpi-shortcode-selected-user"><?php echo self::shortcode_selected_user_html( $user_id ); ?></div>
+            <div id="smpi-shortcode-selected-user" style="display:none"><?php echo self::shortcode_selected_user_html( $user_id ); ?></div>
             <div id="smpi-shortcode-user-values"><?php echo self::shortcode_user_values_html( $user_id ); ?></div>
+            <p class="smpi-sc-noresults">No shortcodes match that filter.</p>
         </div>
+        <script>
+        (function(){
+            if (window.smpiScBound) return; window.smpiScBound = true;
+            var $ = window.jQuery; if (!$) return;
+            $(document).on("input", ".smpi-sc-filter", function(){
+                var q = (this.value || "").toLowerCase().trim(), total = 0;
+                $(".smpi-sc-card").each(function(){
+                    var vis = 0;
+                    $(this).find(".smpi-sc-row").each(function(){
+                        var ok = !q || (this.getAttribute("data-filter") || "").indexOf(q) !== -1;
+                        this.style.display = ok ? "" : "none";
+                        if (ok) vis++;
+                    });
+                    this.style.display = vis ? "" : "none";
+                    total += vis;
+                });
+                $(".smpi-sc-noresults").css("display", total ? "none" : "block");
+            });
+            $(document).on("click", ".smpi-sc-row:not(.smpi-sc-row--flat) .smpi-sc-row-head", function(e){
+                if ($(e.target).closest(".smpi-sc-copy").length) return;
+                $(this).closest(".smpi-sc-row").toggleClass("is-open");
+            });
+            $(document).on("click", ".smpi-sc-copy", function(e){
+                e.preventDefault(); e.stopPropagation();
+                var t = this.getAttribute("data-copy") || "", b = this, o = b.textContent;
+                var done = function(){ b.textContent = "Copied"; setTimeout(function(){ b.textContent = o; }, 900); };
+                if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(t).then(done, done); }
+                else { var ta = document.createElement("textarea"); ta.value = t; document.body.appendChild(ta); ta.select(); try { document.execCommand("copy"); } catch (e2) {} document.body.removeChild(ta); done(); }
+            });
+        })();
+        </script>
         <?php
-        echo $this->publication_acf_shortcode_reference_html();
-        echo $this->post_acf_shortcode_reference_html();
     }
 
     private function default_shortcode_user_id(): int {
@@ -467,18 +537,112 @@ final class Dashboard {
         return (string) ob_get_clean();
     }
 
+    public static function shortcode_catalog(): array {
+        return [
+            [ "key" => "author-identity", "title" => "Author identity & bio", "blurb" => "Profile fields for the post author.", "live" => true, "items" => [
+                [ "tag" => "author_name", "desc" => "Author display name." ],
+                [ "tag" => "author_title", "desc" => "Author role or job title." ],
+                [ "tag" => "author_subtitle", "desc" => "Author tagline or headline." ],
+                [ "tag" => "author_bio", "desc" => "Full author biography.", "attrs" => "format=\"html|text\"" ],
+                [ "tag" => "author_bio_short", "desc" => "Shortened author bio.", "attrs" => "words=\"35\"" ],
+                [ "tag" => "author_image", "desc" => "Author photo.", "attrs" => "size=\"thumbnail\" output=\"html|url\"" ],
+                [ "tag" => "author_email", "desc" => "Author email address." ],
+            ] ],
+            [ "key" => "author-social", "title" => "Author social links", "blurb" => "Social profile URLs for the author. Output is a plain URL.", "live" => true, "items" => [
+                [ "tag" => "author", "desc" => "Any social URL, chosen by network.", "attrs" => "url=\"x|linkedin|facebook|instagram|youtube|website|crunchbase|muckrack\"", "code" => "[author url=\"x\"]", "skip_live" => true ],
+                [ "tag" => "author_x", "desc" => "X / Twitter profile URL." ],
+                [ "tag" => "author_linkedin", "desc" => "LinkedIn profile URL." ],
+                [ "tag" => "author_facebook", "desc" => "Facebook profile URL." ],
+                [ "tag" => "author_instagram", "desc" => "Instagram profile URL." ],
+                [ "tag" => "author_youtube", "desc" => "YouTube channel URL." ],
+                [ "tag" => "author_website", "desc" => "Personal website URL." ],
+                [ "tag" => "author_crunchbase", "desc" => "Crunchbase profile URL." ],
+                [ "tag" => "author_muckrack", "desc" => "MuckRack profile URL." ],
+            ] ],
+            [ "key" => "author-verify", "title" => "Author verification", "blurb" => "MuckRack verified badge and legacy field readers.", "live" => true, "items" => [
+                [ "tag" => "author_muckrack_verified", "desc" => "Verified badge for the author.", "attrs" => "type=\"icon|text\" context=\"single_author\"" ],
+                [ "tag" => "muckrack_verified", "desc" => "Legacy verified badge.", "attrs" => "type=\"icon|text\"" ],
+                [ "tag" => "smp_publication_muckrack_verified", "desc" => "Publication-level MuckRack badge.", "skip_live" => true ],
+                [ "tag" => "acf_author_field", "desc" => "Legacy reader for any ACF or user field.", "attrs" => "field=\"...\"", "skip_live" => true ],
+            ] ],
+            [ "key" => "authors-multi", "title" => "Authors on a post", "blurb" => "Render every author of the current or given post.", "live" => false, "items" => [
+                [ "tag" => "smp_post_authors", "desc" => "All post authors, linked." ],
+                [ "tag" => "smp_post_author_names", "desc" => "All post author names, text only." ],
+                [ "tag" => "smp_post_author_ids", "desc" => "All post author IDs." ],
+            ] ],
+            [ "key" => "post-content", "title" => "Post content blocks", "blurb" => "Structured content blocks for single posts.", "live" => false, "items" => [
+                [ "tag" => "smp_post_summary", "desc" => "Summary / What to know block.", "attrs" => "style=\"sum00..sum04\"" ],
+                [ "tag" => "smp_post_faqs", "desc" => "FAQ block.", "attrs" => "style=\"faq00..faq04\"" ],
+                [ "tag" => "smp_table_of_contents", "desc" => "Table of contents from headings.", "attrs" => "style=\"toc00..toc04\" title=\"...\"" ],
+                [ "tag" => "smp_post_acf", "desc" => "Render a post ACF field.", "attrs" => "field=\"post_summary|post_faq_items\"" ],
+            ] ],
+            [ "key" => "article-meta", "title" => "Article meta", "blurb" => "Small inline meta for articles.", "live" => false, "items" => [
+                [ "tag" => "smp_breadcrumbs", "desc" => "Breadcrumb trail." ],
+                [ "tag" => "smp_estimated_read_time", "desc" => "Estimated read time." ],
+            ] ],
+            [ "key" => "publication", "title" => "Publication / global", "blurb" => "Publication-level data from SMP settings and assigned pages.", "live" => false, "items" => [
+                [ "tag" => "smp_publication_field", "desc" => "Any publication option field.", "attrs" => "field=\"...\" format=\"html\" fallback=\"...\"" ],
+                [ "tag" => "smp_publication_mission_statement", "desc" => "Publication mission statement." ],
+                [ "tag" => "smp_publication_founders", "desc" => "Publication founders." ],
+                [ "tag" => "smp_publication_user", "desc" => "Publication system user." ],
+                [ "tag" => "smp_publication_profile", "desc" => "Publication profile." ],
+                [ "tag" => "smp_publication_page", "desc" => "Assigned page link.", "attrs" => "type=\"...\"" ],
+                [ "tag" => "smp_publication_page_template", "desc" => "Page template. Alias smp_page_template.", "code" => "[smp_publication_page_template]" ],
+                [ "tag" => "smp_publication_debug_url", "desc" => "Public debug endpoint URL." ],
+                [ "tag" => "smp_publication_validate_schema", "desc" => "Schema integrity report." ],
+            ] ],
+            [ "key" => "external", "title" => "External providers", "blurb" => "Shortcodes from other HWS plugins. Listed for reference, not run here.", "live" => false, "items" => [
+                [ "tag" => "founder", "desc" => "HWS Base Tools founder field.", "attrs" => "id=\"...\"" ],
+                [ "tag" => "company", "desc" => "HWS Base Tools company field.", "attrs" => "id=\"...\"" ],
+                [ "tag" => "get_profile_field", "desc" => "SMP Verified Profiles field.", "attrs" => "field=\"...\"" ],
+            ] ],
+        ];
+    }
+
     public static function shortcode_user_values_html( int $user_id ): string {
-        if ( $user_id <= 0 || ! get_user_by( "id", $user_id ) ) {
-            return "<div class=\"smpi-empty-state\"><strong>No shortcode values loaded.</strong><p>Select an author to render shortcode output.</p></div>";
+        $has_user = $user_id > 0 && get_user_by( "id", $user_id );
+        $out = "<div class=\"smpi-sc-grid\">";
+        foreach ( self::shortcode_catalog() as $ctx ) {
+            $rows = "";
+            $count = 0;
+            foreach ( $ctx["items"] as $item ) {
+                $count++;
+                $tag = (string) $item["tag"];
+                $code = isset( $item["code"] ) ? (string) $item["code"] : "[" . $tag . "]";
+                $desc = (string) $item["desc"];
+                $attrs = isset( $item["attrs"] ) ? (string) $item["attrs"] : "";
+                $filter = strtolower( $tag . " " . $desc . " " . $attrs );
+                $detail = "";
+                if ( "" !== $attrs ) {
+                    $detail .= "<p class=\"smpi-sc-attr\">Options: <code>" . esc_html( "[" . $tag . " " . $attrs . "]" ) . "</code></p>";
+                }
+                if ( ! empty( $ctx["live"] ) && empty( $item["skip_live"] ) && $has_user ) {
+                    $run = "[" . $tag . " user_id=\"" . $user_id . "\"";
+                    if ( "author_image" === $tag ) { $run .= " output=\"url\""; }
+                    if ( "author_muckrack_verified" === $tag ) { $run .= " type=\"text\""; }
+                    $run .= "]";
+                    $detail .= "<div class=\"smpi-sc-out\">Live: " . self::shortcode_value_html( $run ) . "</div>";
+                }
+                $has_detail = "" !== $detail;
+                $rows .= "<div class=\"smpi-sc-row" . ( $has_detail ? "" : " smpi-sc-row--flat" ) . "\" data-filter=\"" . esc_attr( $filter ) . "\">";
+                $rows .= "<div class=\"smpi-sc-row-head\">";
+                $rows .= "<code class=\"smpi-sc-tag\">" . esc_html( $code ) . "</code>";
+                $rows .= "<span class=\"smpi-sc-desc\">" . esc_html( $desc ) . "</span>";
+                $rows .= "<button type=\"button\" class=\"smpi-sc-copy\" data-copy=\"" . esc_attr( $code ) . "\">Copy</button>";
+                $rows .= $has_detail ? "<span class=\"smpi-sc-toggle\">&#9662;</span>" : "<span class=\"smpi-sc-toggle smpi-sc-toggle--empty\"></span>";
+                $rows .= "</div>";
+                if ( $has_detail ) {
+                    $rows .= "<div class=\"smpi-sc-row-detail\">" . $detail . "</div>";
+                }
+                $rows .= "</div>";
+            }
+            $out .= "<section class=\"smpi-sc-card\" data-ctx=\"" . esc_attr( (string) $ctx["key"] ) . "\">";
+            $out .= "<div class=\"smpi-sc-card-head\"><h3>" . esc_html( (string) $ctx["title"] ) . " <span class=\"smpi-sc-count\">" . (int) $count . "</span></h3><p>" . esc_html( (string) $ctx["blurb"] ) . "</p></div>";
+            $out .= "<div class=\"smpi-sc-rows\">" . $rows . "</div>";
+            $out .= "</section>";
         }
-        $rows = self::shortcode_user_rows( $user_id );
-        return ( new ShortcodeDisplayRenderer() )->render(
-            array_map( [ self::class, 'shortcode_row_display_item' ], $rows ),
-            [
-                'title'       => 'Rendered shortcode output',
-                'description' => 'Rows are generated through Hexa Plugin Core and show shortcode, description, current output, and parameter examples for the selected author.',
-            ]
-        );
+        $out .= "</div>";
+        return $out;
     }
 
     private static function shortcode_row_display_item( array $row ): array {
