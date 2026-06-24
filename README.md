@@ -7,7 +7,11 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.6.104`
+- Version: `0.6.110`
+
+## 0.6.110 Updates
+
+- Removed the nullable imported-class static property type from the admin UI cleanup registry to avoid a PHP 8.4 CLI lint segfault on the live cPanel runtime.
 
 ## 0.6.104 Updates
 

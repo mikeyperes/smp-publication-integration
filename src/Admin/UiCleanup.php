@@ -9,7 +9,8 @@ if ( ! defined( "ABSPATH" ) ) {
 }
 
 final class UiCleanup {
-    private static ?CleanupRegistry $registry = null;
+    /** @var CleanupRegistry|null */
+    private static $registry = null;
 
     public function register(): void {
         self::registry()->register();
