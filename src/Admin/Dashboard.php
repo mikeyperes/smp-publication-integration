@@ -502,7 +502,7 @@ final class Dashboard {
             .smpi-sc-detail .r:last-child{margin-bottom:0}
             .smpi-sc-detail b{color:#344054;font-weight:600}
             .smpi-sc-detail code{background:#eceef1;border-radius:4px;padding:1px 5px}
-            .smpi-sc-detail a{color:#1d4ed8}
+            .smpi-sc-detail a{color:#1d4ed8}.smpi-sc-req{margin:0 0 10px;font-size:12px;color:#9a3412;background:#fff7ed;border:1px solid #fdd9af;border-radius:8px;padding:6px 11px;line-height:1.45}.smpi-sc-card-req{margin:8px 18px 0;font-size:11.5px;color:#9a3412;background:#fff7ed;border:1px solid #fdd9af;border-radius:8px;padding:6px 11px;line-height:1.45}.smpi-sc-req-badge{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#fff;background:#ea801c;border-radius:4px;padding:2px 6px;margin-right:8px}.smpi-sc-req-state{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;border-radius:4px;padding:1px 7px}.smpi-sc-req-state.is-on{background:#dcfce7;color:#15803d}.smpi-sc-req-state.is-off{background:#fee2e2;color:#b42318}.smpi-sc-attrs-card{margin:10px 0 0;border:1px solid #e6e9ed;border-radius:9px;background:#fff;overflow:hidden}.smpi-sc-attrs-head{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;padding:8px 12px;background:#f8f9fb;font-size:11.5px;font-weight:700;color:#475467;user-select:none}.smpi-sc-attrs-card>summary::-webkit-details-marker{display:none}.smpi-sc-attrs-head:hover{background:#f2f4f7}.smpi-sc-chev2{width:7px;height:7px;border-right:2px solid #98a2b3;border-bottom:2px solid #98a2b3;transform:rotate(-45deg);transition:transform .15s;flex:0 0 auto}.smpi-sc-attrs-card[open]>summary .smpi-sc-chev2{transform:rotate(45deg)}.smpi-sc-attrs-count{font-size:10px;font-weight:700;color:#667085;background:#eceef1;border-radius:999px;padding:1px 8px;margin-left:auto}.smpi-sc-attrs-body{padding:2px 0 6px}.smpi-sc-attr{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:5px 12px;border-top:1px solid #f2f4f7}.smpi-sc-attr-tag{font-family:Menlo,Consolas,monospace;font-size:10.5px;font-weight:600;color:#475467;white-space:nowrap;flex:0 0 auto;min-width:175px}.smpi-sc-attr-label{font-size:11px;color:#98a2b3;flex:0 0 auto;min-width:150px}.smpi-sc-attr-out{font-size:10.5px;color:#475467;flex:1 1 140px;word-break:break-word}.smpi-sc-attr-out code{background:#f6f7f9;border:1px solid #eaecf0;border-radius:4px;padding:1px 5px}
             .smpi-sc-noresults{display:none;padding:16px;color:#98a2b3}
             </style>
             <h2>Shortcodes</h2>
@@ -639,7 +639,7 @@ final class Dashboard {
                 [ "tag" => "muckrack_verified", "deprecated" => true, "use_instead" => "[author_muckrack_verified]", "desc" => "Legacy Muck Rack verified badge for the author. Same data as [author_muckrack_verified]; kept for older templates.", "type" => "Badge", "params" => "type (icon|text), user_id", "detail" => $authDetail( "ACF / user meta verified flag", $MR, "Badge" ) ],
                 [ "tag" => "acf_author_field", "deprecated" => true, "use_instead" => "the specific author_* shortcodes", "desc" => "Reads any single ACF or user field for the author by name. Legacy generic accessor.", "type" => "Text", "params" => "field (the field name), user_id", "detail" => $authDetail( "any ACF / user field passed via field=", $MR, "Text" ) ],
               ] ],
-            [ "key" => "authors-multi", "title" => "Authors on a post (multi-author)", "layer" => "Post layer", "live" => "post",
+            [ "key" => "authors-multi", "requires" => "the Multiple post authors feature (Settings, Features tab)", "requires_key" => "multi_authors_enabled", "title" => "Authors on a post (multi-author)", "layer" => "Post layer", "live" => "post",
               "blurb" => "Every author assigned to a post through the Post Header multi-author field. Use these for a multi-author byline. Edited in the post editor.",
               "register_file" => $M, "access" => "Single-post multi-author byline.",
               "items" => [
@@ -657,34 +657,34 @@ final class Dashboard {
                 [ "tag" => "smp_post_faqs", "desc" => "The post FAQ accordion, from the FAQ items ACF repeater. The style chooses the visual treatment.", "type" => "HTML block", "params" => "style (faq00..faq04), post_id",
                   "variations" => [ [ "code" => "[smp_post_faqs style=\"faq00\"]", "label" => "Plain dividers" ], [ "code" => "[smp_post_faqs style=\"faq02\"]", "label" => "Cards" ], [ "code" => "[smp_post_faqs style=\"faq03\"]", "label" => "Numbered" ], [ "code" => "[smp_post_faqs style=\"faq04\"]", "label" => "Soft cards" ] ],
                   "detail" => [ "field" => "post_faq_items", "group" => "Post - Header", "source" => "ACF repeater post_faq_items", "file" => $S, "plugin" => "SMP Publication Integration", "type" => "HTML", "edit" => "post" ] ],
-                [ "tag" => "smp_table_of_contents", "desc" => "A table of contents built from the post h2 to h4 headings. The style chooses the visual treatment.", "type" => "HTML block", "params" => "style (toc00..toc04), title, post_id",
+                [ "tag" => "smp_table_of_contents", "requires" => "the Table of contents feature (Settings, Features tab)", "requires_key" => "table_of_contents_enabled", "desc" => "A table of contents built from the post h2 to h4 headings. The style chooses the visual treatment.", "type" => "HTML block", "params" => "style (toc00..toc04), title, post_id",
                   "variations" => [ [ "code" => "[smp_table_of_contents style=\"toc02\"]", "label" => "Soft grey box" ], [ "code" => "[smp_table_of_contents style=\"toc03\"]", "label" => "Numbered panel" ], [ "code" => "[smp_table_of_contents style=\"toc04\"]", "label" => "Pill chips" ] ],
                   "detail" => [ "field" => "-", "group" => "-", "source" => "parsed post headings (h2-h4)", "file" => $TOC, "plugin" => "SMP Publication Integration", "type" => "HTML", "edit" => "post" ] ],
-                [ "tag" => "smp_post_acf", "desc" => "Renders a named post ACF field (post_summary or post_faq_items) with SMP block styling.", "type" => "HTML block", "params" => "field (post_summary|post_faq_items), style, post_id", "detail" => [ "field" => "post_summary | post_faq_items", "group" => "Post - Header", "source" => "ACF post field passed via field=", "file" => $S, "plugin" => "SMP Publication Integration", "type" => "HTML", "edit" => "post" ] ],
+                [ "tag" => "smp_post_acf", "attrs_enum" => [ [ "field" => "post_summary", "label" => "Post summary" ], [ "field" => "post_faq_items", "label" => "Post FAQ items" ] ], "desc" => "Renders a named post ACF field (post_summary or post_faq_items) with SMP block styling.", "type" => "HTML block", "params" => "field (post_summary|post_faq_items), style, post_id", "detail" => [ "field" => "post_summary | post_faq_items", "group" => "Post - Header", "source" => "ACF post field passed via field=", "file" => $S, "plugin" => "SMP Publication Integration", "type" => "HTML", "edit" => "post" ] ],
               ] ],
             [ "key" => "article-meta", "title" => "Article meta", "layer" => "Post layer", "live" => "post",
               "blurb" => "Small inline meta for an article: a breadcrumb trail and an estimated reading time. Both derive from the post itself.",
               "register_file" => $BC, "access" => "Single-post header or body.",
               "items" => [
-                [ "tag" => "smp_breadcrumbs", "desc" => "The breadcrumb trail for the current post or page. Skips posts listed in the breadcrumb disable setting.", "type" => "HTML", "params" => "post_id", "detail" => [ "field" => "smpi_breadcrumb_disabled_objects (disable list)", "group" => "Publication Profile", "source" => "WP object hierarchy plus breadcrumb disable setting", "file" => $BC, "plugin" => "SMP Publication Integration", "type" => "HTML", "edit" => "post" ] ],
-                [ "tag" => "smp_estimated_read_time", "desc" => "The estimated reading time of the post, computed from its word count.", "type" => "Text", "params" => "post_id", "detail" => [ "field" => "-", "group" => "-", "source" => "computed from post word count", "file" => $RT, "plugin" => "SMP Publication Integration", "type" => "Text", "edit" => "post" ] ],
+                [ "tag" => "smp_breadcrumbs", "requires" => "the Breadcrumbs feature (Settings, Features tab)", "requires_key" => "breadcrumbs_enabled", "desc" => "The breadcrumb trail for the current post or page. Skips posts listed in the breadcrumb disable setting.", "type" => "HTML", "params" => "post_id", "detail" => [ "field" => "smpi_breadcrumb_disabled_objects (disable list)", "group" => "Publication Profile", "source" => "WP object hierarchy plus breadcrumb disable setting", "file" => $BC, "plugin" => "SMP Publication Integration", "type" => "HTML", "edit" => "post" ] ],
+                [ "tag" => "smp_estimated_read_time", "requires" => "the Estimated read time feature (Settings, Features tab)", "requires_key" => "estimated_read_time_enabled", "desc" => "The estimated reading time of the post, computed from its word count.", "type" => "Text", "params" => "post_id", "detail" => [ "field" => "-", "group" => "-", "source" => "computed from post word count", "file" => $RT, "plugin" => "SMP Publication Integration", "type" => "Text", "edit" => "post" ] ],
               ] ],
             [ "key" => "publication", "title" => "Publication / global", "layer" => "Publication layer", "live" => "publication",
               "blurb" => "Publication-wide data from the SMP publication profile (legal name, contact, mission, policy pages, founders) plus the publication verified badge. Edited in SMP settings, not per post.",
               "register_file" => $S, "access" => "Publication pages: about, masthead, contact, policies.",
               "items" => [
-                [ "tag" => "smp_publication_field", "code" => "[smp_publication_field field=\"legal_name\"]", "desc" => "Any single publication profile field by name (for example legal_name, telephone, mission_statement).", "type" => "Text", "params" => "field (the smpi field name), format (html), fallback", "detail" => [ "field" => "smpi_<name>", "group" => "Publication Profile (group_smpi_publication_profile)", "source" => "Publication profile ACF group", "file" => $S, "plugin" => "SMP Publication Integration", "type" => "Varies", "edit" => "publication" ] ],
+                [ "tag" => "smp_publication_field", "attrs_enum" => [ [ "field" => "legal_name", "label" => "Legal name" ], [ "field" => "alternate_name", "label" => "Alternate name" ], [ "field" => "telephone", "label" => "Telephone" ], [ "field" => "contact_email", "label" => "Public contact email" ], [ "field" => "website", "label" => "Website URL" ], [ "field" => "mission_statement", "label" => "Mission statement" ], [ "field" => "mission_statement_extended", "label" => "Mission statement (extended)" ], [ "field" => "summary", "label" => "Summary" ], [ "field" => "founding_date", "label" => "Founding date" ], [ "field" => "founding_location", "label" => "Founding location" ], [ "field" => "headquarters", "label" => "Headquarters" ], [ "field" => "area_served", "label" => "Area served" ], [ "field" => "knows_about", "label" => "Coverage topics (knowsAbout)" ], [ "field" => "ownership_funding_info", "label" => "Ownership and funding" ], [ "field" => "parent_organization_name", "label" => "Parent organization name" ], [ "field" => "parent_organization_url", "label" => "Parent organization URL" ], [ "field" => "rss_feed", "label" => "RSS feed" ], [ "field" => "google_news_url", "label" => "Google News URL" ], [ "field" => "has_podcast", "label" => "Has a podcast" ], [ "field" => "publication_muckrack_verified", "label" => "MuckRack verified" ], [ "field" => "publication_muckrack_url", "label" => "MuckRack URL" ], [ "field" => "masthead", "label" => "Masthead page" ], [ "field" => "publishing_principles", "label" => "Publishing principles page" ], [ "field" => "verification_fact_checking_policy", "label" => "Fact-checking policy page" ], [ "field" => "corrections_policy", "label" => "Corrections policy page" ], [ "field" => "ethics_policy", "label" => "Ethics policy page" ], [ "field" => "diversity_policy", "label" => "Diversity policy page" ], [ "field" => "privacy", "label" => "Privacy policy" ], [ "field" => "terms", "label" => "Terms of use" ], [ "field" => "dmca", "label" => "DMCA" ], [ "field" => "become_contributor", "label" => "Become a contributor" ], [ "field" => "brand_assets", "label" => "Brand assets gallery" ] ], "code" => "[smp_publication_field field=\"legal_name\"]", "desc" => "Any single publication profile field by name (for example legal_name, telephone, mission_statement).", "type" => "Text", "params" => "field (the smpi field name), format (html), fallback", "detail" => [ "field" => "smpi_<name>", "group" => "Publication Profile (group_smpi_publication_profile)", "source" => "Publication profile ACF group", "file" => $S, "plugin" => "SMP Publication Integration", "type" => "Varies", "edit" => "publication" ] ],
                 [ "tag" => "smp_publication_mission_statement", "desc" => "The publication mission statement (rich text).", "type" => "HTML", "params" => "none", "detail" => [ "field" => "smpi_mission_statement", "group" => "Publication Profile", "source" => "ACF: smpi_mission_statement", "file" => $S, "plugin" => "SMP Publication Integration", "type" => "HTML", "edit" => "publication" ] ],
-                [ "tag" => "smp_publication_founders", "desc" => "The publication founders, from the founder author profiles.", "type" => "HTML", "params" => "none", "detail" => [ "field" => "smpi_founder_users", "group" => "Publication Profile", "source" => "ACF founders / founder profile CPT", "file" => $S, "plugin" => "SMP Publication Integration", "type" => "HTML", "edit" => "publication" ] ],
+                [ "tag" => "smp_publication_founders", "requires" => "the Show founder marketing feature (Settings, Features tab)", "requires_key" => "founders_enabled", "desc" => "The publication founders, from the founder author profiles.", "type" => "HTML", "params" => "none", "detail" => [ "field" => "smpi_founder_users", "group" => "Publication Profile", "source" => "ACF founders / founder profile CPT", "file" => $S, "plugin" => "SMP Publication Integration", "type" => "HTML", "edit" => "publication" ] ],
                 [ "tag" => "smp_publication_user", "desc" => "The WordPress author account that represents this publication.", "type" => "Text", "params" => "none", "detail" => [ "field" => "smpi_publication_user", "group" => "Publication Profile", "source" => "ACF: smpi_publication_user", "file" => $S, "plugin" => "SMP Publication Integration", "type" => "Text", "edit" => "publication" ] ],
                 [ "tag" => "smp_publication_profile", "desc" => "A summary of the publication profile (name, logo, links).", "type" => "HTML", "params" => "none", "detail" => [ "field" => "smpi_* (profile)", "group" => "Publication Profile", "source" => "Publication profile ACF group", "file" => $S, "plugin" => "SMP Publication Integration", "type" => "HTML", "edit" => "publication" ] ],
                 [ "tag" => "smp_publication_page", "desc" => "A link to an assigned publication page (about, contact, masthead, and so on).", "type" => "URL", "params" => "type (the page slug)", "detail" => [ "field" => "page assignments", "group" => "SMP settings", "source" => "page_assignments option", "file" => $S, "plugin" => "SMP Publication Integration", "type" => "URL", "edit" => "publication" ] ],
                 [ "tag" => "smp_publication_page_template", "code" => "[smp_publication_page_template]", "desc" => "The configured publication page template. Alias: [smp_page_template].", "type" => "Text", "params" => "none", "aliases" => [ "[smp_page_template]" ], "detail" => [ "field" => "page assignments", "group" => "SMP settings", "source" => "page_assignments option", "file" => $S, "plugin" => "SMP Publication Integration", "type" => "Text", "edit" => "publication" ] ],
                 [ "tag" => "smp_publication_debug_url", "desc" => "The public debug endpoint URL for this publication.", "type" => "URL", "params" => "none", "detail" => [ "field" => "debug endpoint", "group" => "SMP settings", "source" => "public debug endpoint setting", "file" => $S, "plugin" => "SMP Publication Integration", "type" => "URL", "edit" => "publication" ] ],
                 [ "tag" => "smp_publication_validate_schema", "desc" => "A schema integrity report for the publication.", "type" => "HTML", "params" => "none", "detail" => [ "field" => "-", "group" => "-", "source" => "schema integrity report", "file" => $S, "plugin" => "SMP Publication Integration", "type" => "HTML", "edit" => "publication" ] ],
-                [ "tag" => "smp_publication_muckrack_verified", "desc" => "The Muck Rack verified badge for the publication itself (not the author).", "type" => "Badge", "params" => "type (icon|text)", "variations" => [ [ "code" => "[smp_publication_muckrack_verified type=\"icon\"]", "label" => "Checkmark icon" ], [ "code" => "[smp_publication_muckrack_verified type=\"text\"]", "label" => "Text label" ] ], "detail" => [ "field" => "smpi_publication_muckrack_verified", "group" => "Publication Profile", "source" => "publication MuckRack ACF field and url", "file" => $MR, "plugin" => "SMP Publication Integration", "type" => "Badge", "edit" => "publication" ] ],
+                [ "tag" => "smp_publication_muckrack_verified", "requires" => "the MuckRack verified publication feature (Settings, Features tab)", "requires_key" => "publication_muckrack_verified_enabled", "desc" => "The Muck Rack verified badge for the publication itself (not the author).", "type" => "Badge", "params" => "type (icon|text)", "variations" => [ [ "code" => "[smp_publication_muckrack_verified type=\"icon\"]", "label" => "Checkmark icon" ], [ "code" => "[smp_publication_muckrack_verified type=\"text\"]", "label" => "Text label" ] ], "detail" => [ "field" => "smpi_publication_muckrack_verified", "group" => "Publication Profile", "source" => "publication MuckRack ACF field and url", "file" => $MR, "plugin" => "SMP Publication Integration", "type" => "Badge", "edit" => "publication" ] ],
               ] ],
-            [ "key" => "external", "title" => "External providers", "layer" => "External layer", "live" => "none",
+            [ "key" => "external", "requires" => "the matching external plugin to be installed and active", "title" => "External providers", "layer" => "Other plugins", "live" => "none",
               "blurb" => "Tags provided by other HWS plugins, not registered by this plugin. Listed for reference so you know they are not SMP-owned and are not run on this page.",
               "register_file" => "-", "access" => "Other HWS plugins and legacy author templates.",
               "items" => [
@@ -734,13 +734,24 @@ final class Dashboard {
         return $out;
     }
 
+    private static function sc_req_html( string $text, string $key, string $cls ): string {
+        if ( "" === $text ) { return ""; }
+        $chip = "";
+        if ( "" !== $key && class_exists( "smp_publication_integration\\Support\\Settings" ) ) {
+            $on = (bool) \smp_publication_integration\Support\Settings::bool( $key );
+            $chip = " <span class=\"smpi-sc-req-state " . ( $on ? "is-on" : "is-off" ) . "\">" . ( $on ? "Enabled" : "Disabled" ) . "</span>";
+        }
+        return "<p class=\"" . esc_attr( $cls ) . "\"><span class=\"smpi-sc-req-badge\">Requires</span>" . esc_html( $text ) . $chip . "</p>";
+    }
+
     public static function shortcode_user_values_html( int $user_id, int $post_id = 0 ): string {
-        $layers = [ "Author layer" => "author", "Post layer" => "post", "Publication layer" => "publication", "External layer" => "external" ];
+        $layers = [ "Author layer" => "author", "Post layer" => "post", "Publication layer" => "publication", "Other plugins" => "external", "External layer" => "external" ];
         $out = "";
         foreach ( self::shortcode_catalog() as $ctx ) {
             $mode = (string) $ctx["live"];
             $layer = (string) $ctx["layer"];
             $lmod = isset( $layers[ $layer ] ) ? $layers[ $layer ] : "author";
+            $ctxReq = isset( $ctx["requires"] ) ? (string) $ctx["requires"] : "";
             $rows = "";
             $count = count( $ctx["items"] );
             foreach ( $ctx["items"] as $item ) {
@@ -756,13 +767,16 @@ final class Dashboard {
                 $aliases = isset( $item["aliases"] ) ? $item["aliases"] : [];
                 $dep = ! empty( $item["deprecated"] );
                 $useInstead = isset( $item["use_instead"] ) ? (string) $item["use_instead"] : "";
+                $itemReq = isset( $item["requires"] ) ? (string) $item["requires"] : "";
+                $attrs = isset( $item["attrs_enum"] ) ? $item["attrs_enum"] : [];
                 $hasParams = ( "" !== $params && "none" !== $params );
                 $editUrl = self::sc_edit_url( isset( $detail["edit"] ) ? (string) $detail["edit"] : "none", $user_id, $post_id );
-                $filter = strtolower( $tag . " " . $desc . " " . $source . " " . $params . " " . $type . ( $dep ? " deprecated legacy" : "" ) );
+                $filter = strtolower( $tag . " " . $desc . " " . $source . " " . $params . " " . $type . ( $dep ? " deprecated legacy" : "" ) . ( "" !== $itemReq ? " requires" : "" ) );
                 $rows .= "<div class=\"smpi-sc-row" . ( $dep ? " is-deprecated" : "" ) . "\" data-filter=\"" . esc_attr( $filter ) . "\">";
                 $rows .= "<p class=\"smpi-sc-desc\">" . esc_html( $desc );
                 if ( $dep && "" !== $useInstead ) { $rows .= " <span class=\"smpi-sc-use\">Use " . esc_html( $useInstead ) . " instead.</span>"; }
                 $rows .= "</p>";
+                $rows .= self::sc_req_html( $itemReq, isset( $item["requires_key"] ) ? (string) $item["requires_key"] : "", "smpi-sc-req" );
                 $rows .= "<div class=\"smpi-sc-block\"><div class=\"smpi-sc-line\"><code class=\"smpi-sc-tag\">" . esc_html( $code ) . "</code>";
                 $rows .= "<button type=\"button\" class=\"smpi-sc-copy\" data-copy=\"" . esc_attr( $code ) . "\" aria-label=\"Copy shortcode\">Copy</button>";
                 if ( $dep ) { $rows .= "<span class=\"smpi-sc-dep\">Deprecated</span>"; }
@@ -781,6 +795,16 @@ final class Dashboard {
                     $rows .= "<div class=\"smpi-sc-out\"><span class=\"smpi-sc-k\">Output</span>" . self::sc_run( $code, $mode, $user_id, $post_id ) . "</div>";
                 }
                 $rows .= "</div>";
+                if ( ! empty( $attrs ) ) {
+                    $rows .= "<details class=\"smpi-sc-attrs-card\"><summary class=\"smpi-sc-attrs-head\"><span class=\"smpi-sc-chev2\" aria-hidden=\"true\"></span>All field values<span class=\"smpi-sc-attrs-count\">" . count( $attrs ) . "</span></summary><div class=\"smpi-sc-attrs-body\">";
+                    foreach ( $attrs as $a ) {
+                        $fv = (string) $a["field"];
+                        $flabel = isset( $a["label"] ) ? (string) $a["label"] : $fv;
+                        $fcode = "[" . $tag . " field=\"" . $fv . "\"]";
+                        $rows .= "<div class=\"smpi-sc-attr\"><code class=\"smpi-sc-attr-tag\">field=&quot;" . esc_html( $fv ) . "&quot;</code><button type=\"button\" class=\"smpi-sc-copy smpi-sc-copy--mini\" data-copy=\"" . esc_attr( $fcode ) . "\">Copy</button><span class=\"smpi-sc-attr-label\">" . esc_html( $flabel ) . "</span><span class=\"smpi-sc-attr-out\">" . self::sc_run( $fcode, $mode, $user_id, $post_id ) . "</span></div>";
+                    }
+                    $rows .= "</div></details>";
+                }
                 if ( ! $varLive && ! empty( $variations ) ) {
                     $chips = "";
                     foreach ( $variations as $v ) { $chips .= "<span class=\"smpi-sc-vchip\" data-copy=\"" . esc_attr( (string) $v["code"] ) . "\" title=\"" . esc_attr( (string) $v["code"] . " - " . (string) $v["label"] ) . "\">" . esc_html( (string) $v["label"] ) . "</span>"; }
@@ -791,6 +815,7 @@ final class Dashboard {
                 }
                 $rows .= "<div class=\"smpi-sc-detail\">";
                 if ( "" !== $source ) { $rows .= "<div class=\"r\"><b>Source</b> " . esc_html( $source ) . "</div>"; }
+                if ( "" !== $itemReq ) { $rows .= "<div class=\"r\"><b>Requires</b> " . esc_html( $itemReq ) . "</div>"; }
                 if ( $dep ) { $rows .= "<div class=\"r\"><b>Status</b> Deprecated" . ( "" !== $useInstead ? " - use " . esc_html( $useInstead ) . " instead" : "" ) . "</div>"; }
                 $rows .= "<div class=\"r\"><b>Field</b> " . esc_html( isset( $detail["field"] ) ? (string) $detail["field"] : "-" ) . " &nbsp;&nbsp; <b>Group</b> " . esc_html( isset( $detail["group"] ) ? (string) $detail["group"] : "-" ) . "</div>";
                 $rows .= "<div class=\"r\"><b>Type</b> " . esc_html( isset( $detail["type"] ) ? (string) $detail["type"] : "-" ) . " &nbsp;&nbsp; <b>Plugin</b> " . esc_html( isset( $detail["plugin"] ) ? (string) $detail["plugin"] : "-" ) . "</div>";
@@ -805,6 +830,7 @@ final class Dashboard {
             $out .= "<summary class=\"smpi-sc-card-head\"><span class=\"smpi-sc-chev\" aria-hidden=\"true\"></span><span class=\"smpi-sc-layer smpi-sc-layer--" . esc_attr( $lmod ) . "\">" . esc_html( $layer ) . "</span><span class=\"smpi-sc-card-title\">" . esc_html( (string) $ctx["title"] ) . "</span><span class=\"smpi-sc-count\">" . (int) $count . "</span></summary>";
             $out .= "<div class=\"smpi-sc-card-body\">";
             $out .= "<p class=\"smpi-sc-card-blurb\">" . esc_html( (string) $ctx["blurb"] ) . "</p>";
+            $out .= self::sc_req_html( $ctxReq, isset( $ctx["requires_key"] ) ? (string) $ctx["requires_key"] : "", "smpi-sc-card-req" );
             $out .= "<p class=\"smpi-sc-card-meta\"><b>Registered in</b> <code>" . esc_html( $reg ) . "</code> &nbsp; <b>Used</b> " . esc_html( $access ) . "</p>";
             $out .= "<div class=\"smpi-sc-rows\">" . $rows . "</div>";
             $out .= "</div></details>";
