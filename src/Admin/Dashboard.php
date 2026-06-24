@@ -1300,7 +1300,7 @@ final class Dashboard {
             $registry->add( $definition );
         }
         echo "<div class=\"smpi-hero\"><p class=\"smpi-kicker\">Snippets</p><h2>Imported, self-contained functionality registered through the Hexa Core snippet registry.</h2><p>Snippet state is stored in the SMP settings and read by the runtime exactly like the Features toggles.</p></div>";
-        echo ( new SnippetRenderer() )->render( $registry, [
+        echo ( new SnippetsTableRenderer() )->render( $registry, [
             "title"         => "Snippets",
             "description"   => "Self-contained behaviors. Enable, document, and test each from one generic view.",
             "ajax_url"      => admin_url( "admin-ajax.php" ),
