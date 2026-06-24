@@ -41,11 +41,59 @@ final class Visibility {
         $pr_override = (string) get_post_meta( $post->ID, self::PR_OVERRIDE_META, true );
         CoreUi::render_assets();
         ?>
+        <style>
+            #smpi_visibility .smpi-visibility-metabox {
+                margin: -2px 0 0;
+            }
+            #smpi_visibility .smpi-visibility-metabox .hpc-toggle-list {
+                gap: 8px;
+                margin: 0;
+            }
+            #smpi_visibility .smpi-visibility-metabox .hpc-toggle-row {
+                align-items: center;
+                border-color: #dfe4ec;
+                border-radius: 7px;
+                gap: 8px;
+                padding: 9px 10px;
+            }
+            #smpi_visibility .smpi-visibility-metabox .hpc-toggle {
+                align-items: center;
+                display: flex;
+                font-size: 13px;
+                font-weight: 400;
+                gap: 8px;
+                line-height: 1.25;
+                width: 100%;
+            }
+            #smpi_visibility .smpi-visibility-metabox .hpc-toggle-ui {
+                height: 18px;
+                width: 34px;
+            }
+            #smpi_visibility .smpi-visibility-metabox .hpc-toggle-ui:before {
+                height: 12px;
+                width: 12px;
+            }
+            #smpi_visibility .smpi-visibility-metabox .hpc-toggle input:checked + .hpc-toggle-ui:before {
+                transform: translateX(16px);
+            }
+            #smpi_visibility .smpi-visibility-metabox .hpc-toggle-label {
+                color: #2c3338;
+                font-size: 13px;
+                font-weight: 400;
+                gap: 5px;
+            }
+            #smpi_visibility .smpi-visibility-metabox .hpc-tooltip {
+                font-size: 10px;
+                height: 17px;
+                margin-left: auto;
+                width: 17px;
+            }
+        </style>
         <div class="hpc-ui smpi-visibility-metabox">
         <?php if ( $shadow_enabled && "post" === $post->post_type ) : ?>
             <div class="hpc-toggle-list">
                 <div class="hpc-toggle-row"><?php echo CoreUi::toggle( "smpi_shadow_complete", $hide_complete, "Hide from home and archives", [ "id" => "smpi_shadow_complete", "tooltip" => "Direct URL still works. The post is removed from the home page, category archives, and tag archives." ] ); ?></div>
-                <div class="hpc-toggle-row"><?php echo CoreUi::toggle( "smpi_shadow_home", $hide_home, "Hide from homepage only", [ "id" => "smpi_shadow_home", "tooltip" => "The post is removed from the home page query only. Category and tag archives can still show it." ] ); ?></div>
+                <div class="hpc-toggle-row"><?php echo CoreUi::toggle( "smpi_shadow_home", $hide_home, "Hide from home only", [ "id" => "smpi_shadow_home", "tooltip" => "The post is removed from the home page query only. Category and tag archives can still show it." ] ); ?></div>
             </div>
         <?php elseif ( "post" === $post->post_type ) : ?>
             <p class="hpc-small">Shadow Posts is disabled in SMP Publication Integration > Features.</p>

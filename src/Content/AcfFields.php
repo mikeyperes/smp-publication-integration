@@ -301,6 +301,14 @@ final class AcfFields {
             return;
         }
         ?>
+        <style>
+            [data-smpi-add-default-author].button {
+                font-size: 13px;
+                line-height: 2.15384615;
+                min-height: 30px;
+                padding: 0 10px;
+            }
+        </style>
         <script>
         (function($){
             var authorId = <?php echo (int) $author_id; ?>;

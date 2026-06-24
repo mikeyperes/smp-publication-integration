@@ -7,7 +7,12 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.6.110`
+- Version: `0.6.114`
+
+## 0.6.114 Updates
+
+- Tightened the post editor visibility metabox styling so labels are smaller, regular-weight, and scoped to the side metabox.
+- Reduced the multi-author "Add current post author" editor button to a compact WordPress admin button size.
 
 ## 0.6.110 Updates
 
