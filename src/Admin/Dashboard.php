@@ -180,6 +180,10 @@ final class Dashboard {
             <tr><th>Post time display</th><td><select class="smpi-setting" data-key="post_time_mode"><option value="native" <?php selected( $settings['post_time_mode'], 'native' ); ?>>Native WordPress output</option><option value="relative_then_date" <?php selected( $settings['post_time_mode'], 'relative_then_date' ); ?>>5 min ago, then friendly date after 24 hours</option><option value="friendly_date" <?php selected( $settings['post_time_mode'], 'friendly_date' ); ?>>Always friendly date</option></select><span class="spinner"></span><span class="smpi-save-state"></span></td></tr>
         </tbody></table></div>
         <?php
+        echo "<h2 style=\"margin:26px 0 10px\">Plugin &amp; Hexa WP Core</h2>";
+        echo "<p class=\"smpi-muted\" style=\"margin:0 0 14px\">Version and update status for this plugin and the bundled Hexa WP Core. These two panels are provided by Hexa WP Core.</p>";
+        ( new \Hexa\PluginCore\PluginUpdates\UpdaterPanelRenderer( \smp_publication_integration\hexa_plugin_core_updater_config() ) )->render();
+        ( new \Hexa\PluginCore\CorePackageUpdates\CorePackagePanelRenderer( \smp_publication_integration\hexa_plugin_core_package_config() ) )->render();
     }
 
 
