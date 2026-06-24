@@ -1,36 +1,13 @@
 <?php
 namespace smp_publication_integration\Content;
 
+use smp_publication_integration\Authorship\AuthorFieldResolver;
+
 if ( ! defined( "ABSPATH" ) ) {
     exit;
 }
 
 final class AuthorShortcodes {
-    private const FIELD_ALIASES = [
-        "bio_short" => [ "author_bio_short", "bio_short", "short_bio", "user_short_bio", "description_short", "what_best_describe_you" ],
-        "bio" => [ "author_bio", "bio", "biography", "description", "user_description" ],
-        "title" => [ "author_title", "title", "role", "job_title", "position", "profession", "what_best_describe_you" ],
-        "subtitle" => [ "author_subtitle", "subtitle", "tagline", "short_title", "headline" ],
-        "facebook" => [ "author_facebook", "facebook", "facebook_url", "profile_facebook", "social_facebook", "url_facebook" ],
-        "instagram" => [ "author_instagram", "instagram", "instagram_url", "profile_instagram", "social_instagram", "url_instagram" ],
-        "x" => [ "author_x", "x", "x_url", "twitter", "twitter_url", "profile_twitter", "social_twitter", "url_x", "url_twitter" ],
-        "linkedin" => [ "author_linkedin", "linkedin", "linkedin_url", "profile_linkedin", "social_linkedin", "url_linkedin" ],
-        "youtube" => [ "author_youtube", "youtube", "youtube_url", "profile_youtube", "social_youtube", "url_youtube" ],
-        "website" => [ "author_website", "website", "website_url", "user_url", "url", "url_website" ],
-        "crunchbase" => [ "author_crunchbase", "crunchbase", "crunchbase_url", "url_crunchbase" ],
-        "muckrack" => [ "author_muckrack", "author_muck_rack", "muckrack", "muckrack_url", "muck_rack_url", "muckrack_profile" ],
-        "email" => [ "author_email", "email", "user_email" ],
-        "image" => [ "author_image", "profile_photo", "profile_image", "headshot", "photo", "avatar" ],
-    ];
-
-    private const IMAGE_SIZE_PIXELS = [
-        "thumbnail" => 150,
-        "medium" => 300,
-        "medium_large" => 768,
-        "large" => 1024,
-        "full" => 1024,
-    ];
-
     public function register(): void {
         add_action( "init", [ $this, "register_shortcodes" ], 20 );
     }
@@ -79,9 +56,10 @@ final class AuthorShortcodes {
         if ( ! $author_id ) {
             return "";
         }
-        $value = $this->first_author_field( $author_id, self::FIELD_ALIASES["bio_short"] );
+        $resolver = new AuthorFieldResolver();
+        $value = $resolver->value( $author_id, "bio_short" );
         if ( "" === $value ) {
-            $value = $this->first_author_field( $author_id, self::FIELD_ALIASES["bio"] );
+            $value = $resolver->value( $author_id, "bio" );
         }
         return "" !== $value ? esc_html( wp_trim_words( wp_strip_all_tags( $value ), max( 1, (int) $atts["words"] ) ) ) : "";
     }
@@ -92,7 +70,7 @@ final class AuthorShortcodes {
         if ( ! $author_id ) {
             return "";
         }
-        $value = $this->first_author_field( $author_id, self::FIELD_ALIASES["bio"] );
+        $value = ( new AuthorFieldResolver() )->value( $author_id, "bio" );
         if ( "" === $value ) {
             return "";
         }
@@ -103,7 +81,7 @@ final class AuthorShortcodes {
     }
 
     public static function field_aliases(): array {
-        return self::FIELD_ALIASES;
+        return AuthorFieldResolver::aliases();
     }
 
     public function render_title( array $atts = [] ): string {
@@ -189,10 +167,10 @@ final class AuthorShortcodes {
             return "";
         }
         $size = sanitize_key( (string) $atts["size"] );
-        if ( ! isset( self::IMAGE_SIZE_PIXELS[ $size ] ) ) {
+        if ( ! in_array( $size, [ "thumbnail", "medium", "medium_large", "large", "full" ], true ) ) {
             $size = "thumbnail";
         }
-        $url = $this->author_image_url( $author_id, $size );
+        $url = ( new AuthorFieldResolver() )->image_url( $author_id, $size );
         if ( "" === $url ) {
             return "";
         }
@@ -213,7 +191,7 @@ final class AuthorShortcodes {
             $user = get_user_by( "id", $author_id );
             return $user ? esc_html( (string) $user->user_email ) : "";
         }
-        $value = $this->first_author_field( $author_id, self::FIELD_ALIASES[ $key ] ?? [ $key ] );
+        $value = ( new AuthorFieldResolver() )->value( $author_id, $key );
         return "" !== $value ? esc_html( wp_strip_all_tags( $value ) ) : "";
     }
 
@@ -223,8 +201,7 @@ final class AuthorShortcodes {
         if ( ! $author_id ) {
             return "";
         }
-        $value = $this->first_author_field( $author_id, self::FIELD_ALIASES[ $key ] ?? [ $key ] );
-        $url = $this->normalize_social_url( $key, $value );
+        $url = ( new AuthorFieldResolver() )->social_url( $author_id, $key );
         return "" !== $url ? esc_url( $url ) : "";
     }
 
@@ -232,102 +209,4 @@ final class AuthorShortcodes {
         return MultiAuthors::resolve_author_id( $explicit_user_id, $explicit_post_id, max( 0, $author_index ) );
     }
 
-    private function first_author_field( int $author_id, array $fields ): string {
-        foreach ( $fields as $field ) {
-            $value = MuckRackVerification::author_field( $author_id, $field );
-            if ( $this->has_value( $value ) ) {
-                return $this->field_to_string( $value );
-            }
-            $value = get_the_author_meta( $field, $author_id );
-            if ( $this->has_value( $value ) ) {
-                return $this->field_to_string( $value );
-            }
-        }
-        return "";
-    }
-
-    private function author_image_url( int $author_id, string $size ): string {
-        foreach ( self::FIELD_ALIASES["image"] as $field ) {
-            $value = MuckRackVerification::author_field( $author_id, $field );
-            $url = $this->image_value_to_url( $value, $size );
-            if ( "" !== $url ) {
-                return $url;
-            }
-        }
-        try {
-            $avatar = get_avatar_url( $author_id, [ "size" => self::IMAGE_SIZE_PIXELS[ $size ] ] );
-        } catch ( \Throwable $e ) {
-            $avatar = "";
-        }
-        return is_string( $avatar ) ? $avatar : "";
-    }
-
-    private function image_value_to_url( $value, string $size ): string {
-        if ( is_array( $value ) ) {
-            if ( isset( $value["sizes"][ $size ] ) && is_string( $value["sizes"][ $size ] ) ) {
-                return $value["sizes"][ $size ];
-            }
-            if ( isset( $value["url"] ) && is_string( $value["url"] ) ) {
-                return $value["url"];
-            }
-            if ( isset( $value["ID"] ) ) {
-                $url = wp_get_attachment_image_url( (int) $value["ID"], $size );
-                return is_string( $url ) ? $url : "";
-            }
-        }
-        if ( is_numeric( $value ) ) {
-            $url = wp_get_attachment_image_url( (int) $value, $size );
-            return is_string( $url ) ? $url : "";
-        }
-        if ( is_string( $value ) && filter_var( $value, FILTER_VALIDATE_URL ) ) {
-            return $value;
-        }
-        return "";
-    }
-
-    private function normalize_social_url( string $key, string $value ): string {
-        $value = trim( $value );
-        if ( "" === $value ) {
-            return "";
-        }
-        if ( filter_var( $value, FILTER_VALIDATE_URL ) ) {
-            return $value;
-        }
-        if ( 0 === strpos( $value, "www." ) || false !== strpos( $value, ".com/" ) ) {
-            return "https://" . ltrim( $value, "/" );
-        }
-        $handle = ltrim( $value, "@/" );
-        if ( "" === $handle || false !== strpos( $handle, " " ) ) {
-            return "";
-        }
-        $bases = [
-            "facebook" => "https://facebook.com/",
-            "instagram" => "https://instagram.com/",
-            "x" => "https://x.com/",
-            "linkedin" => "https://linkedin.com/in/",
-            "youtube" => "https://youtube.com/",
-            "crunchbase" => "https://crunchbase.com/person/",
-            "muckrack" => "https://muckrack.com/",
-        ];
-        return isset( $bases[ $key ] ) ? $bases[ $key ] . rawurlencode( $handle ) : "";
-    }
-
-    private function field_to_string( $value ): string {
-        if ( is_array( $value ) ) {
-            foreach ( [ "url", "value", "label", "title" ] as $key ) {
-                if ( isset( $value[ $key ] ) && is_scalar( $value[ $key ] ) ) {
-                    return trim( (string) $value[ $key ] );
-                }
-            }
-            return "";
-        }
-        return is_scalar( $value ) ? trim( (string) $value ) : "";
-    }
-
-    private function has_value( $value ): bool {
-        if ( null === $value || false === $value || "" === $value ) {
-            return false;
-        }
-        return ! ( is_array( $value ) && empty( $value ) );
-    }
 }

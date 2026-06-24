@@ -7,7 +7,15 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.6.99`
+- Version: `0.6.103`
+
+## 0.6.103 Updates
+
+- Added an ordered, private author relationship taxonomy as the canonical multi-author assignment store.
+- Kept the existing ACF multi-user field as the editor UI and synchronized its values into canonical assignments.
+- Synchronized native `post_author` to the first selected WordPress author.
+- Added normalized author records, one author field resolver, REST author assignment support, user deletion cleanup, cache invalidation, and incremental legacy migration.
+- Replaced serialized post-meta author archive matching with indexed taxonomy relationships.
 
 ## Structure
 
