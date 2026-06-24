@@ -498,6 +498,24 @@ final class Ajax {
     }
 
     public function filter_smart_search_results( array $results, string $source, string $query, int $limit ): array {
+        if ( "smpi_shortcodes" === $source ) {
+            $needle = strtolower( $query );
+            $hits = [];
+            foreach ( Dashboard::shortcode_catalog() as $ctx ) {
+                foreach ( $ctx["items"] as $item ) {
+                    $tag = (string) $item["tag"];
+                    $code = isset( $item["code"] ) ? (string) $item["code"] : "[" . $tag . "]";
+                    $idesc = isset( $item["desc"] ) ? (string) $item["desc"] : "";
+                    $depk = ! empty( $item["deprecated"] ) ? " deprecated legacy" : "";
+                    $hay = strtolower( $tag . " " . $idesc . " " . (string) $ctx["title"] . $depk );
+                    if ( "" === $needle || false !== strpos( $hay, $needle ) ) {
+                        $hits[] = [ "id" => "", "value" => $tag, "name" => $code, "subtitle" => wp_trim_words( $idesc, 12 ) ];
+                    }
+                    if ( count( $hits ) >= $limit ) { return $hits; }
+                }
+            }
+            return $hits;
+        }
         if ( "smpi_profiles" !== $source ) {
             return $results;
         }
