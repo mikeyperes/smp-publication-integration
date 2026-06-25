@@ -281,7 +281,8 @@ final class ElementorAuthorRenderer {
         if ( "verification" === $field ) {
             $value = $this->badge_html( $author->id(), $this->verification_context( $doc->saveHTML( $node ) ?: "" ) );
         } elseif ( "name" === $field ) {
-            $value = esc_html( (string) $data["name"] );
+            $this->replace_bound_name_node( $doc, $node, $author );
+            return;
         } elseif ( "bio" === $field || "description" === $field ) {
             $value = wp_kses_post( wpautop( $author->field( "bio", $author->field( "description" ) ) ) );
         } else {
@@ -297,6 +298,40 @@ final class ElementorAuthorRenderer {
                 $container->appendChild( $fragment );
             }
         }
+    }
+
+    private function replace_bound_name_node( \DOMDocument $doc, \DOMElement $node, AuthorRecord $author ): void {
+        $data = $author->to_array();
+        $container = $this->descendant_with_class( $node, "elementor-widget-container" ) ?: $node;
+        $existing_link = "a" === strtolower( $container->tagName ) ? $container : $container->getElementsByTagName( "a" )->item( 0 );
+
+        if ( $existing_link instanceof \DOMElement ) {
+            $this->rebind_name_link( $existing_link, $data );
+            return;
+        } else {
+            $link = $doc->createElement( "a" );
+        }
+
+        if ( ! $link instanceof \DOMElement ) {
+            return;
+        }
+
+        $this->rebind_name_link( $link, $data );
+        while ( $container->firstChild ) {
+            $container->removeChild( $container->firstChild );
+        }
+        $container->appendChild( $link );
+    }
+
+    private function rebind_name_link( \DOMElement $link, array $data ): void {
+        $link->removeAttribute( "id" );
+        $link->setAttribute( "href", (string) $data["url"] );
+        $link->setAttribute( "data-smpi-author-id", (string) $data["id"] );
+        $link->setAttribute( "data-smpi-author-slug", (string) $data["slug"] );
+        while ( $link->firstChild ) {
+            $link->removeChild( $link->firstChild );
+        }
+        $link->appendChild( $link->ownerDocument->createTextNode( (string) $data["name"] ) );
     }
 
     private function replace_social_links( \DOMDocument $doc, AuthorRecord $author ): void {
@@ -318,6 +353,45 @@ final class ElementorAuthorRenderer {
             } else {
                 $link->setAttribute( "href", $target );
             }
+        }
+        $this->replace_orphan_social_items( $doc, $author, $resolver );
+    }
+
+    private function replace_orphan_social_items( \DOMDocument $doc, AuthorRecord $author, AuthorFieldResolver $resolver ): void {
+        $xpath = new \DOMXPath( $doc );
+        $nodes = $xpath->query(
+            '//*[contains(concat(" ", normalize-space(@class), " "), " elementor-icon-list-item ")'
+            . ' or contains(concat(" ", normalize-space(@class), " "), " elementor-social-icon ")'
+            . ' or contains(concat(" ", normalize-space(@class), " "), " elementor-widget-button ")]'
+        );
+        if ( ! $nodes ) {
+            return;
+        }
+
+        foreach ( iterator_to_array( $nodes ) as $node ) {
+            if ( ! $node instanceof \DOMElement || $node->getElementsByTagName( "a" )->length > 0 ) {
+                continue;
+            }
+            $kind = $this->social_kind( $node );
+            if ( "" === $kind ) {
+                continue;
+            }
+
+            $target = $resolver->social_url( $author->id(), $kind );
+            if ( "" === $target ) {
+                if ( $node->parentNode ) {
+                    $node->parentNode->removeChild( $node );
+                }
+                continue;
+            }
+
+            $link = $doc->createElement( "a" );
+            $link->setAttribute( "href", $target );
+            $link->setAttribute( "target", "_blank" );
+            while ( $node->firstChild ) {
+                $link->appendChild( $node->firstChild );
+            }
+            $node->appendChild( $link );
         }
     }
 
@@ -345,7 +419,7 @@ final class ElementorAuthorRenderer {
             if ( $has_exact_child ) {
                 continue;
             }
-            $fragment = $this->fragment( $doc, " " . $badge );
+            $fragment = $this->fragment( $doc, "\xc2\xa0" . $badge );
             if ( ! $fragment ) {
                 return;
             }

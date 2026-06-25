@@ -63,9 +63,15 @@ namespace {
         1 => [
             "title" => "Editorial Lead",
             "muckrack_url" => "https://muckrack.com/alpha-author",
+            "muckrack_verified" => "1",
+            "twitter_url" => "https://x.com/alpha-author",
+            "linkedin_url" => "https://linkedin.com/in/alpha-author",
         ],
         2 => [
             "author_title" => "Contributor",
+            "muckrack_verified" => "1",
+            "muckrack_url" => "https://muckrack.com/beta-author",
+            "linkedin_url" => "https://linkedin.com/in/beta-author",
         ],
     ];
     $GLOBALS["test_terms"] = [];
@@ -94,6 +100,7 @@ namespace {
         }
         return false;
     }
+    function get_userdata( int $user_id ) { return get_user_by( "id", $user_id ); }
     function get_post( $post_id = null ) {
         if ( $post_id instanceof WP_Post ) {
             return $post_id;
@@ -190,6 +197,7 @@ namespace {
     function sanitize_key( string $value ): string { return strtolower( preg_replace( '/[^a-z0-9_-]/i', '', $value ) ); }
     function sanitize_title( string $value ): string { return strtolower( preg_replace( '/[^a-z0-9]+/i', '-', trim( $value ) ) ); }
     function sanitize_html_class( string $value ): string { return preg_replace( '/[^A-Za-z0-9_-]/', '', $value ); }
+    function sanitize_hex_color( string $value ) { return preg_match( '/^#[0-9a-fA-F]{6}$/', $value ) ? $value : null; }
     function esc_html( string $value ): string { return htmlspecialchars( $value, ENT_QUOTES, "UTF-8" ); }
     function esc_attr( string $value ): string { return esc_html( $value ); }
     function esc_url( string $value ): string { return $value; }
@@ -202,7 +210,7 @@ namespace {
     function shortcode_atts( array $defaults, array $atts, string $tag = "" ): array { return array_merge( $defaults, $atts ); }
     function absint( $value ): int { return abs( (int) $value ); }
     function is_wp_error( $value ): bool { return false; }
-    function get_posts( array $args ): array { return []; }
+    function get_posts( array $args ): array { return $GLOBALS["test_get_posts"] ?? []; }
     function wp_is_post_revision( int $post_id ) { return false; }
     function wp_is_post_autosave( int $post_id ) { return false; }
 }
@@ -210,12 +218,17 @@ namespace {
 namespace smp_publication_integration\Support {
     final class Settings {
         public static function bool( string $key ): bool {
+            if ( "muckrack_verified_enabled" === $key ) {
+                return (bool) ( $GLOBALS["test_muckrack_enabled"] ?? false );
+            }
             return ! in_array( $key, [ "multi_authors_disable_loop_cards", "muckrack_verified_enabled" ], true );
         }
         public static function get( string $key, $default = null ) {
-            return "multi_authors_loop_output" === $key ? "comma" : $default;
+            return "multi_authors_loop_output" === $key ? ( $GLOBALS["test_loop_output"] ?? "comma" ) : $default;
         }
-        public static function array( string $key ): array { return []; }
+        public static function array( string $key ): array {
+            return "muckrack_verified_contexts" === $key ? ( $GLOBALS["test_muckrack_contexts"] ?? [] ) : [];
+        }
     }
 
     final class RuntimeContext {
@@ -259,6 +272,25 @@ namespace {
     $byline = $loop->filter( '<span class="byline"><a href="https://example.test/author/beta-author/">Beta Author</a></span>' );
     expect_same( 1, substr_count( $byline, 'href="https://example.test/author/beta-author/"' ), "Primary byline has its own URL." );
     expect_same( 1, substr_count( $byline, 'href="https://example.test/author/alpha-author/"' ), "Secondary byline has its own URL." );
+    expect_same( 1, substr_count( $byline, 'smpi-multi-author-loop--comma' ), "Loop byline fallback wraps authors in one detectable inner card group." );
+    expect_same( 2, substr_count( $byline, 'smpi-multi-author-item' ), "Loop byline fallback marks each author as a distinct item." );
+
+    $GLOBALS["test_loop_output"] = "lines";
+    $line_byline = $loop->filter( '<span class="byline"><a href="https://example.test/author/beta-author/">Beta Author</a></span>' );
+    expect_same( 1, substr_count( $line_byline, 'smpi-multi-author-loop--lines' ), "Loop byline fallback reports the stacked loop-card mode on its wrapper." );
+    expect_same( 3, substr_count( $line_byline, 'data-smpi-loop-output="lines"' ), "Stacked loop-card mode marks the wrapper and each author item for debugging." );
+    expect_same( 1, substr_count( $line_byline, "<br" ), "Stacked loop-card mode separates author items by row." );
+    expect_same( 1, substr_count( $line_byline, "Beta\xc2\xa0Author" ), "Stacked loop-card mode keeps an author name together inside narrow card columns." );
+    unset( $GLOBALS["test_loop_output"] );
+
+    $GLOBALS["test_muckrack_enabled"] = true;
+    $GLOBALS["test_muckrack_contexts"] = [ "loop_cards" ];
+    $badge_byline = $loop->filter( '<span class="byline"><a href="https://example.test/author/beta-author/">Beta Author</a></span>' );
+    $badge_byline_normalized = str_replace( "\xc2\xa0", " ", $badge_byline );
+    expect_same( 2, substr_count( $badge_byline, 'class="smpi-multi-author-item"' ), "Loop-card verification badges remain scoped inside each author item." );
+    expect_same( 2, substr_count( $badge_byline, 'smpi-muckrack-link' ), "Loop-card verification badges render once for each verified author." );
+    expect_same( 1, preg_match( '/<span class="smpi-multi-author-item"[^>]*data-smpi-author-id="2"[^>]*>.*?Beta Author<\/a> <a class="smpi-muckrack-link"/s', $badge_byline_normalized ), "Loop-card primary badge stays attached to its author name." );
+    unset( $GLOBALS["test_muckrack_enabled"], $GLOBALS["test_muckrack_contexts"] );
 
     $GLOBALS["test_is_singular"] = true;
     $renderer = new ElementorAuthorRenderer( $repository );
@@ -274,6 +306,36 @@ namespace {
     expect_same( 2, substr_count( $primary_rendered, "smpi-multi-author-item" ), "Primary smp-author contract repeats once per selected author." );
     expect_same( 1, substr_count( $primary_rendered, '<span class="share">SHARE</span>' ), "Non-author direct children inside a marked unit are preserved once." );
     expect_same( 1, substr_count( $primary_rendered, "alpha-author/" ), "Primary smp-author contract rebinds secondary author URLs." );
+
+    $GLOBALS["test_get_posts"] = [ 20 ];
+    $GLOBALS["test_meta"][20]["_elementor_data"] = wp_json_encode(
+        [
+            [
+                "id" => "root1",
+                "settings" => [ "_css_classes" => "smp-author" ],
+                "elements" => [
+                    [
+                        "id" => "name1",
+                        "settings" => [ "__dynamic__" => [ "title" => "[elementor-tag id=\"x\" name=\"author-name\" settings=\"%7B%7D\"]" ] ],
+                    ],
+                    [
+                        "id" => "social1",
+                        "settings" => [],
+                    ],
+                ],
+            ],
+        ]
+    );
+    $bound_renderer = new ElementorAuthorRenderer( $repository );
+    $bound_template = '<div class="elementor-element elementor-element-root1 smp-author"><div class="elementor-element elementor-element-name1"><div class="elementor-widget-container"><div class="elementor-heading-title elementor-size-default"><a class="author-link" href="https://example.test/author/beta-author/">Beta Author</a></div></div></div><div class="elementor-element elementor-element-social1 elementor-widget elementor-widget-icon-list"><div class="elementor-widget-container"><ul class="elementor-icon-list-items elementor-inline-items"><li class="elementor-icon-list-item elementor-inline-item"><span class="elementor-icon-list-text">Twitter / X</span></li><li class="elementor-icon-list-item elementor-inline-item"><a href="https://linkedin.com/in/beta-author"><span class="elementor-icon-list-text">LinkedIn</span></a></li></ul></div></div></div>';
+    $bound_rendered = $bound_renderer->filter_content( $bound_template );
+    expect_same( 1, substr_count( $bound_rendered, 'href="https://example.test/author/beta-author/"' ), "Bound primary author name remains a linked author archive URL." );
+    expect_same( 1, substr_count( $bound_rendered, 'href="https://example.test/author/alpha-author/"' ), "Bound secondary author name remains a linked author archive URL." );
+    expect_same( 2, substr_count( $bound_rendered, "elementor-heading-title elementor-size-default" ), "Bound name replacement preserves Elementor heading wrappers for each author." );
+    expect_same( 1, substr_count( $bound_rendered, 'href="https://x.com/alpha-author"' ), "Orphan social list text becomes a valid author social link when that author has the URL." );
+    expect_same( 1, substr_count( $bound_rendered, 'href="https://linkedin.com/in/alpha-author"' ), "Existing social links rebind to the repeated author." );
+    expect_same( 0, substr_count( $bound_rendered, '<span class="elementor-icon-list-text">Twitter / X</span></li>' ), "Orphan social list items without a URL are removed instead of left as dead text." );
+    unset( $GLOBALS["test_get_posts"], $GLOBALS["test_meta"][20] );
 
     $GLOBALS["test_is_singular"] = false;
     $loop_widget_template = '<div class="elementor-element smp-author"><a href="https://example.test/author/beta-author/">Beta Author</a></div>';

@@ -10,6 +10,9 @@ if ( ! defined( "ABSPATH" ) ) {
 }
 
 final class LoopBylineRenderer {
+    private const GROUP_CLASS = "smpi-multi-author-loop";
+    private const ITEM_CLASS = "smpi-multi-author-item";
+
     private AuthorAssignmentRepository $repository;
 
     public function __construct( AuthorAssignmentRepository $repository ) {
@@ -50,7 +53,7 @@ final class LoopBylineRenderer {
             return $html;
         }
 
-        $format = sanitize_key( (string) Settings::get( "multi_authors_loop_output", "comma" ) );
+        $format = $this->loop_format();
         if ( "primary" === $format ) {
             $records = [ $records[0] ];
         }
@@ -77,44 +80,83 @@ final class LoopBylineRenderer {
             if ( $this->parent_contains_all_authors( $link, $authors ) ) {
                 continue;
             }
-            $fragment = $doc->createDocumentFragment();
-            foreach ( $authors as $index => $author ) {
-                if ( ! $author instanceof AuthorRecord ) {
-                    continue;
-                }
-                if ( $index > 0 ) {
-                    $fragment->appendChild(
-                        "lines" === $format
-                            ? $doc->createElement( "br" )
-                            : $doc->createTextNode( ", " )
-                    );
-                }
-                $data = $author->to_array();
-                $author_link = $link->cloneNode( false );
-                if ( ! $author_link instanceof \DOMElement ) {
-                    continue;
-                }
-                $author_link->removeAttribute( "id" );
-                $author_link->setAttribute( "href", (string) $data["url"] );
-                $author_link->setAttribute( "data-smpi-author-id", (string) $data["id"] );
-                $author_link->setAttribute( "data-smpi-author-slug", (string) $data["slug"] );
-                $author_link->appendChild( $doc->createTextNode( (string) $data["name"] ) );
-                $fragment->appendChild( $author_link );
-
-                $badge = $this->badge_html( (int) $data["id"] );
-                if ( "" !== $badge ) {
-                    $badge_fragment = $this->fragment( $doc, " " . $badge );
-                    if ( $badge_fragment ) {
-                        $fragment->appendChild( $badge_fragment );
-                    }
-                }
-            }
+            $fragment = $this->author_group_fragment( $doc, $link, $authors, $format );
             if ( $link->parentNode ) {
                 $link->parentNode->replaceChild( $fragment, $link );
             }
             break;
         }
         return $this->body_html( $doc, $html );
+    }
+
+    private function loop_format(): string {
+        $format = sanitize_key( (string) Settings::get( "multi_authors_loop_output", "comma" ) );
+        return in_array( $format, [ "primary", "comma", "lines" ], true ) ? $format : "comma";
+    }
+
+    private function author_group_fragment( \DOMDocument $doc, \DOMElement $source_link, array $authors, string $format ): \DOMDocumentFragment {
+        $fragment = $doc->createDocumentFragment();
+        $group = $doc->createElement( "span" );
+        $group->setAttribute( "class", self::GROUP_CLASS . " " . self::GROUP_CLASS . "--" . $format );
+        $group->setAttribute( "data-smpi-loop-output", $format );
+
+        $visible_index = 0;
+        foreach ( $authors as $author ) {
+            if ( ! $author instanceof AuthorRecord ) {
+                continue;
+            }
+
+            if ( $visible_index > 0 ) {
+                if ( "lines" === $format ) {
+                    $group->appendChild( $doc->createElement( "br" ) );
+                } else {
+                    $group->appendChild( $doc->createTextNode( ", " ) );
+                }
+            }
+
+            $group->appendChild( $this->author_item_node( $doc, $source_link, $author, $visible_index, count( $authors ), $format ) );
+            $visible_index++;
+        }
+
+        if ( $visible_index > 0 ) {
+            $fragment->appendChild( $group );
+        }
+        return $fragment;
+    }
+
+    private function author_item_node( \DOMDocument $doc, \DOMElement $source_link, AuthorRecord $author, int $index, int $count, string $format ): \DOMElement {
+        $data = $author->to_array();
+        $item = $doc->createElement( "span" );
+        $item->setAttribute( "class", self::ITEM_CLASS );
+        $item->setAttribute( "data-smpi-author-index", (string) $index );
+        $item->setAttribute( "data-smpi-author-id", (string) $data["id"] );
+        $item->setAttribute( "data-smpi-author-slug", (string) $data["slug"] );
+        $item->setAttribute( "data-smpi-multi-author-count", (string) $count );
+        $item->setAttribute( "data-smpi-loop-output", $format );
+
+        $author_link = $source_link->cloneNode( false );
+        if ( $author_link instanceof \DOMElement ) {
+            $author_link->removeAttribute( "id" );
+            $author_link->setAttribute( "href", (string) $data["url"] );
+            $author_link->setAttribute( "data-smpi-author-id", (string) $data["id"] );
+            $author_link->setAttribute( "data-smpi-author-slug", (string) $data["slug"] );
+            $author_link->appendChild( $doc->createTextNode( $this->no_wrap_name( (string) $data["name"] ) ) );
+            $item->appendChild( $author_link );
+        }
+
+        $badge = $this->badge_html( (int) $data["id"] );
+        if ( "" !== $badge ) {
+            $badge_fragment = $this->fragment( $doc, "\xc2\xa0" . $badge );
+            if ( $badge_fragment ) {
+                $item->appendChild( $badge_fragment );
+            }
+        }
+
+        return $item;
+    }
+
+    private function no_wrap_name( string $name ): string {
+        return str_replace( " ", "\xc2\xa0", $name );
     }
 
     private function parent_contains_all_authors( \DOMElement $link, array $authors ): bool {

@@ -1987,12 +1987,12 @@ final class Dashboard {
             [
                 "comma" => [
                     "label" => "Comma separated",
-                    "description" => "One compact byline inside the existing loop/card author element.",
+                    "description" => "Each loop item gets one inner author group; names stay separate links in a compact byline.",
                     "preview" => "<span class=\"smpi-loop-author-preview smpi-loop-author-preview--comma\">Michael Peres, Mash Viral, Anne Lise Sylta</span>",
                 ],
                 "lines" => [
                     "label" => "Stacked names",
-                    "description" => "Each author appears on its own line inside the existing loop/card author element.",
+                    "description" => "Each loop item gets one inner author group; every selected author renders on its own row.",
                     "preview" => "<span class=\"smpi-loop-author-preview smpi-loop-author-preview--lines\">Michael Peres<br>Mash Viral<br>Anne Lise Sylta</span>",
                 ],
                 "primary" => [

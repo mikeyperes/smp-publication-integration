@@ -492,6 +492,7 @@ final class Ajax {
                 "classes" => trim( (string) $node->getAttribute( "class" ) ),
                 "author_id" => (string) $node->getAttribute( "data-smpi-author-id" ),
                 "author_index" => (string) $node->getAttribute( "data-smpi-author-index" ),
+                "loop_output" => (string) $node->getAttribute( "data-smpi-loop-output" ),
                 "text" => wp_trim_words( $text, 18, "..." ),
                 "author_links" => array_values( array_unique( $links ) ),
                 "has_share_text" => (bool) preg_match( "/(^|\s)share($|\s)/i", $text ),
@@ -582,7 +583,7 @@ final class Ajax {
         if ( empty( $report["detected_units"] ) ) {
             $html .= "<p class=\"smpi-alert smpi-alert-warning\">No marked author unit was found. Add <code>smp-author</code> to the exact author identity container, or rely on the loop-card fallback where Elementor exposes a native author link.</p>";
         } else {
-            $html .= "<table class=\"widefat striped\"><thead><tr><th>#</th><th>Class</th><th>Author ID</th><th>Author links</th><th>Boundary flags</th><th>Detected text</th></tr></thead><tbody>";
+            $html .= "<table class=\"widefat striped\"><thead><tr><th>#</th><th>Class</th><th>Author ID</th><th>Loop mode</th><th>Author links</th><th>Boundary flags</th><th>Detected text</th></tr></thead><tbody>";
             foreach ( (array) $report["detected_units"] as $index => $unit ) {
                 $links = [];
                 foreach ( (array) ( $unit["author_links"] ?? [] ) as $href ) {
@@ -595,7 +596,8 @@ final class Ajax {
                 if ( ! empty( $unit["has_read_time_text"] ) ) {
                     $flags[] = "Read-time inside unit";
                 }
-                $html .= "<tr><td>" . esc_html( (string) $index ) . "</td><td><code>" . esc_html( (string) ( $unit["classes"] ?? "" ) ) . "</code></td><td><code>" . esc_html( (string) ( $unit["author_id"] ?? "" ) ) . "</code></td><td>" . ( $links ? implode( "<br>", $links ) : "<span class=\"smpi-muted\">none</span>" ) . "</td><td>" . ( $flags ? esc_html( implode( ", ", $flags ) ) : "OK" ) . "</td><td>" . esc_html( (string) ( $unit["text"] ?? "" ) ) . "</td></tr>";
+                $loop_output = "" !== (string) ( $unit["loop_output"] ?? "" ) ? (string) $unit["loop_output"] : "n/a";
+                $html .= "<tr><td>" . esc_html( (string) $index ) . "</td><td><code>" . esc_html( (string) ( $unit["classes"] ?? "" ) ) . "</code></td><td><code>" . esc_html( (string) ( $unit["author_id"] ?? "" ) ) . "</code></td><td><code>" . esc_html( $loop_output ) . "</code></td><td>" . ( $links ? implode( "<br>", $links ) : "<span class=\"smpi-muted\">none</span>" ) . "</td><td>" . ( $flags ? esc_html( implode( ", ", $flags ) ) : "OK" ) . "</td><td>" . esc_html( (string) ( $unit["text"] ?? "" ) ) . "</td></tr>";
             }
             $html .= "</tbody></table>";
         }

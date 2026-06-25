@@ -7,7 +7,23 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.6.118`
+- Version: `0.6.121`
+
+## 0.6.121 Updates
+
+- Normalized server-side Elementor author badge insertion to use the same non-breaking author-to-badge adjacency as loop-card multi-author output.
+
+## 0.6.120 Updates
+
+- Preserved Elementor author-name link wrappers during multi-author rebinding so repeated authors keep distinct archive URLs without flattening the design.
+- Rebuilt orphan Elementor social-list items per author: dead social items are removed, and text-only social items become links only when that author has the matching URL.
+- Kept loop-card verification badges scoped to each author item so badges stay attached to the correct linked author.
+
+## 0.6.119 Updates
+
+- Rebuilt loop-card fallback bylines to replace the native author link with one detectable inner author group per loop item.
+- Added per-author loop item markers and loop-mode debug output so the Multiple Authors test panel can prove comma, stacked, and primary-only rendering.
+- Added regression coverage for stacked loop-card author output, distinct author links, and non-breaking author names in narrow card bylines.
 
 ## 0.6.118 Updates
 
