@@ -50,7 +50,12 @@ final class AuthorAssignmentRepository {
         }
 
         $ids = Settings::bool( "multi_authors_enabled" ) ? $this->taxonomy_ids( $post_id ) : [];
-        if ( empty( $ids ) && Settings::bool( "multi_authors_enabled" ) ) {
+        if ( Settings::bool( "multi_authors_enabled" ) && $this->legacy_meta_exists( $post_id ) ) {
+            $legacy_ids = $this->legacy_ids( $post_id );
+            if ( $legacy_ids !== $ids ) {
+                $ids = $this->set_ids( $post_id, $legacy_ids, true );
+            }
+        } elseif ( empty( $ids ) && Settings::bool( "multi_authors_enabled" ) ) {
             $ids = $this->legacy_ids( $post_id );
         }
 
@@ -261,6 +266,14 @@ final class AuthorAssignmentRepository {
     private function legacy_ids( int $post_id ): array {
         $value = get_post_meta( $post_id, self::LEGACY_META_KEY, true );
         return $this->normalize_ids( $value );
+    }
+
+    private function legacy_meta_exists( int $post_id ): bool {
+        if ( function_exists( "metadata_exists" ) ) {
+            return metadata_exists( "post", $post_id, self::LEGACY_META_KEY );
+        }
+        $value = get_post_meta( $post_id, self::LEGACY_META_KEY, true );
+        return null !== $value && false !== $value && "" !== $value && [] !== $value;
     }
 
     private function term_id_for_user( int $user_id ): int {

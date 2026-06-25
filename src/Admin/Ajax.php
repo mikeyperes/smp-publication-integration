@@ -108,15 +108,18 @@ final class Ajax {
 
     public function save_settings( AjaxRequest $request ): array {
         $changes = [];
-        foreach ( [ "founders_enabled", "shadow_posts_enabled", "shadow_press_releases", "post_list_defaults_enabled", "author_social_cleanup", "public_debug_enabled", "estimated_read_time_enabled", "elementor_css_cache_busting", "publication_social_cleanup", "muckrack_verified_enabled", "muckrack_author_always_show", "publication_muckrack_verified_enabled", "multi_authors_enabled", "multi_authors_disable_loop_cards", "press_release_include_enabled", "post_summary_acf_enabled", "post_faqs_acf_enabled", "article_types_enabled", "breadcrumbs_enabled", "breadcrumbs_hide_home", "breadcrumbs_hide_term_archives", "table_of_contents_enabled", "table_of_contents_auto_single", "table_of_contents_include_summary", "inline_photo_treatments_enabled", "featured_image_caption_templates_enabled", "rank_math_breadcrumb_check_enabled", "hws_masked_admin_report_enabled" ] as $key ) {
-            if ( $request->has( $key, 'post' ) ) {
-                $changes[ $key ] = $request->bool( $key, false, 'post' );
+        foreach ( [ "founders_enabled", "shadow_posts_enabled", "shadow_press_releases", "post_list_defaults_enabled", "author_social_cleanup", "public_debug_enabled", "estimated_read_time_enabled", "elementor_css_cache_busting", "publication_social_cleanup", "muckrack_verified_enabled", "muckrack_author_always_show", "publication_muckrack_verified_enabled", "multi_authors_enabled", "multi_authors_disable_loop_cards", "press_release_include_enabled", "post_summary_acf_enabled", "post_faqs_acf_enabled", "article_types_enabled", "breadcrumbs_enabled", "breadcrumbs_hide_home", "breadcrumbs_hide_term_archives", "table_of_contents_enabled", "table_of_contents_auto_single", "table_of_contents_include_summary", "inline_photo_treatments_enabled", "featured_image_caption_templates_enabled", "rank_math_breadcrumb_check_enabled", "hws_masked_admin_report_enabled", "content_generation_enabled", "post_hygiene_enabled", "post_hygiene_strip_inline_styles", "post_hygiene_unwrap_spans", "post_hygiene_remove_font_tags", "post_hygiene_strip_classes_ids", "post_hygiene_strip_empty_tags", "post_hygiene_clean_heading_children" ] as $key ) {
+            if ( $request->has( $key, "post" ) ) {
+                $changes[ $key ] = $request->bool( $key, false, "post" );
             }
         }
-        foreach ( [ "system_publication_user_id" ] as $key ) {
+        foreach ( [ "system_publication_user_id", "content_generation_timeout" ] as $key ) {
             if ( $request->has( $key, 'post' ) ) {
                 $changes[ $key ] = $request->int( $key, 0, 'post' );
             }
+        }
+        if ( $request->has( "content_generation_api_base", "post" ) ) {
+            $changes["content_generation_api_base"] = esc_url_raw( (string) $request->raw( "content_generation_api_base", "", "post" ) );
         }
         foreach ( [ "muckrack_icon_size" => [ 8, 64, 22 ], "publication_muckrack_font_size" => [ 8, 64, 14 ], "breadcrumbs_font_size" => [ 8, 64, 13 ], "table_of_contents_text_font_size" => [ 8, 64, 15 ], "inline_photo_caption_font_size" => [ 8, 64, 16 ], "featured_image_caption_font_size" => [ 8, 64, 16 ], "post_faqs_text_font_size" => [ 8, 64, 16 ], "muckrack_icon_size_single_author" => [ 0, 64, 0 ], "muckrack_icon_size_single_footer" => [ 0, 64, 0 ], "muckrack_icon_size_loop_cards" => [ 0, 64, 0 ], "muckrack_icon_size_home" => [ 0, 64, 0 ], "muckrack_icon_size_author" => [ 0, 64, 0 ] ] as $key => $limits ) {
             if ( $request->has( $key, 'post' ) ) {
@@ -151,9 +154,9 @@ final class Ajax {
                 $changes[ $color_key ] = '' === $raw ? '' : sanitize_hex_color( $raw );
             }
         }
-        foreach ( [ 'muckrack_verified_contexts', 'publication_muckrack_placements', 'press_release_include_contexts', 'breadcrumbs_disabled_post_types' ] as $array_key ) {
-            if ( $request->has( $array_key, 'post' ) || $request->has( $array_key . '_present', 'post' ) ) {
-                $changes[ $array_key ] = $request->key_array( $array_key, 'post' );
+        foreach ( [ "muckrack_verified_contexts", "publication_muckrack_placements", "press_release_include_contexts", "breadcrumbs_disabled_post_types", "post_hygiene_allowed_post_types" ] as $array_key ) {
+            if ( $request->has( $array_key, "post" ) || $request->has( $array_key . "_present", "post" ) ) {
+                $changes[ $array_key ] = $request->key_array( $array_key, "post" );
             }
         }
         $settings = Settings::update( $changes );

@@ -104,6 +104,17 @@ final class Settings {
             "post_faqs_text_color" => $colors["post_faqs_text_color"],
             'rank_math_breadcrumb_check_enabled' => true,
             'hws_masked_admin_report_enabled' => true,
+            "content_generation_enabled" => true,
+            "content_generation_api_base" => "https://publish.scalemypublication.com/api/smp-content-generation/v1",
+            "content_generation_timeout" => 45,
+            "post_hygiene_enabled" => true,
+            "post_hygiene_strip_inline_styles" => true,
+            "post_hygiene_unwrap_spans" => true,
+            "post_hygiene_remove_font_tags" => true,
+            "post_hygiene_strip_classes_ids" => false,
+            "post_hygiene_strip_empty_tags" => true,
+            "post_hygiene_clean_heading_children" => true,
+            "post_hygiene_allowed_post_types" => [ "post" ],
             'system_publication_user_id' => 0,
             'page_assignments'      => [],
             'page_templates'        => self::default_page_templates(),
@@ -248,6 +259,11 @@ final class Settings {
                 continue;
             }
 
+            if ( "content_generation_timeout" === $key ) {
+                $settings[ $key ] = max( 5, min( 120, absint( $value ) ?: 45 ) );
+                continue;
+            }
+
             if ( in_array( $key, [ "muckrack_icon_size", "publication_muckrack_font_size", "breadcrumbs_font_size", "table_of_contents_text_font_size", "inline_photo_caption_font_size", "featured_image_caption_font_size", "post_faqs_text_font_size", "muckrack_icon_size_single_author", "muckrack_icon_size_single_footer", "muckrack_icon_size_loop_cards", "muckrack_icon_size_home", "muckrack_icon_size_author" ], true ) ) {
                 $value = absint( $value );
                 if ( 0 === strpos( $key, "muckrack_icon_size_" ) ) {
@@ -306,7 +322,7 @@ final class Settings {
                 continue;
             }
 
-            if ( in_array( $key, [ 'founders_enabled', 'shadow_posts_enabled', 'shadow_press_releases', 'author_social_cleanup', 'public_debug_enabled', 'estimated_read_time_enabled', 'elementor_css_cache_busting', 'publication_social_cleanup', 'muckrack_verified_enabled', 'muckrack_author_always_show', 'publication_muckrack_verified_enabled', 'multi_authors_enabled', 'multi_authors_disable_loop_cards', 'press_release_include_enabled', 'post_summary_acf_enabled', 'post_faqs_acf_enabled', 'article_types_enabled', 'breadcrumbs_enabled', 'breadcrumbs_hide_home', 'breadcrumbs_hide_term_archives', 'table_of_contents_enabled', 'table_of_contents_auto_single', 'table_of_contents_include_summary', 'rank_math_breadcrumb_check_enabled', 'hws_masked_admin_report_enabled' ], true ) ) {
+            if ( in_array( $key, [ 'founders_enabled', 'shadow_posts_enabled', 'shadow_press_releases', 'author_social_cleanup', 'public_debug_enabled', 'estimated_read_time_enabled', 'elementor_css_cache_busting', 'publication_social_cleanup', 'muckrack_verified_enabled', 'muckrack_author_always_show', 'publication_muckrack_verified_enabled', 'multi_authors_enabled', 'multi_authors_disable_loop_cards', 'press_release_include_enabled', 'post_summary_acf_enabled', 'post_faqs_acf_enabled', 'article_types_enabled', 'breadcrumbs_enabled', 'breadcrumbs_hide_home', 'breadcrumbs_hide_term_archives', 'table_of_contents_enabled', 'table_of_contents_auto_single', 'table_of_contents_include_summary', 'rank_math_breadcrumb_check_enabled', 'hws_masked_admin_report_enabled', "content_generation_enabled", "post_hygiene_enabled", "post_hygiene_strip_inline_styles", "post_hygiene_unwrap_spans", "post_hygiene_remove_font_tags", "post_hygiene_strip_classes_ids", "post_hygiene_strip_empty_tags", "post_hygiene_clean_heading_children" ], true ) ) {
                 $settings[ $key ] = (bool) $value;
                 continue;
             }
@@ -393,6 +409,19 @@ final class Settings {
             if ( "breadcrumbs_disabled_post_types" === $key ) {
                 $items = is_array( $value ) ? array_map( "sanitize_key", $value ) : [];
                 $settings[ $key ] = array_values( array_filter( $items, "post_type_exists" ) );
+                continue;
+            }
+
+            if ( "post_hygiene_allowed_post_types" === $key ) {
+                $items = is_array( $value ) ? array_map( "sanitize_key", $value ) : [];
+                $items = array_values( array_filter( $items, "post_type_exists" ) );
+                $settings[ $key ] = $items ?: [ "post" ];
+                continue;
+            }
+
+            if ( "content_generation_api_base" === $key ) {
+                $url = esc_url_raw( (string) $value );
+                $settings[ $key ] = $url ?: "https://publish.scalemypublication.com/api/smp-content-generation/v1";
                 continue;
             }
         }

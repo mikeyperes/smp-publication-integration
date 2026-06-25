@@ -86,11 +86,19 @@ final class MultiAuthors {
         return AuthorContext::run( $author_id, $callback );
     }
 
-    public static function author_view_models_for_post( int $post_id ): array {
+    public static function author_view_models_for_post( int $post_id, bool $fallback = true ): array {
         return array_map(
             static fn( $record ): array => $record->to_array(),
-            self::repository()->records_for_post( $post_id, true )
+            self::repository()->records_for_post( $post_id, $fallback )
         );
+    }
+
+    public static function selected_author_view_models_for_post( int $post_id ): array {
+        return self::author_view_models_for_post( $post_id, false );
+    }
+
+    public static function has_multiple_authors( int $post_id, bool $fallback = true ): bool {
+        return count( self::author_ids_for_post( $post_id, $fallback ) ) > 1;
     }
 
     public function render_author_ids_shortcode( array $atts = [] ): string {

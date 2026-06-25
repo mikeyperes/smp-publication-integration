@@ -4,7 +4,7 @@
  * Description: Publication profile integration for Scale My Publication systems.
  * Author: Michael Peres
  * Plugin URI: https://github.com/mikeyperes/smp-publication-integration
- * Version: 0.6.125
+ * Version: 0.6.126
  * Text Domain: smp-publication-integration
  * Domain Path: /languages
  * Author URI: https://michaelperes.com
@@ -73,13 +73,15 @@ require_once __DIR__ . "/src/Content/TableOfContents.php";
 require_once __DIR__ . "/src/Content/InlinePhotoTreatments.php";
 require_once __DIR__ . "/src/Content/FeaturedImageCaptions.php";
 require_once __DIR__ . "/src/Content/ArticleStyles.php";
+require_once __DIR__ . "/src/Content/PostHygiene.php";
+require_once __DIR__ . "/src/Content/ContentGeneration.php";
 require_once __DIR__ . "/src/Content/DebugEndpoint.php";
 require_once __DIR__ . "/src/Admin/Ajax.php";
 require_once __DIR__ . "/src/Admin/UiCleanup.php";
 require_once __DIR__ . "/src/Admin/Dashboard.php";
 
 final class Config {
-    public const VERSION = "0.6.125";
+    public const VERSION = "0.6.126";
 
     public static string $plugin_name        = 'SMP Publication Integration';
     public static string $plugin_slug        = 'smp-publication-integration';
@@ -201,6 +203,8 @@ function boot_plugin(): void {
     ( new Content\InlinePhotoTreatments() )->register();
     ( new Content\FeaturedImageCaptions() )->register();
     ( new Content\ArticleStyles() )->register();
+    ( new Content\PostHygiene() )->register();
+    ( new Content\ContentGeneration() )->register();
     ( new Content\DebugEndpoint() )->register();
 
     if ( is_admin() || wp_doing_ajax() ) {

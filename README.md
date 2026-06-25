@@ -335,3 +335,12 @@ WordPress plugin for Scale My Publication publication profiles.
 ### 0.6.69 Updates
 - Post editor schema test buttons are disabled for unpublished content and show a live-post requirement notice.
 - Renamed the SMP visibility metabox to Post visibility and clarified the toggle labels.
+
+## Content Generation and Post Hygiene
+
+SMP adds two publication-wide admin modules:
+
+- `Content Generation` stores an SMP content API key and adds one-click post editor buttons for excerpts, post summaries, and structured FAQs. The Publish Scale API remains the source of truth for writing rules.
+- `Post Hygiene` runs save-time cleanup on selected post types. It removes imported inline formatting such as `<span style="font-weight: 400;">` while preserving headings, paragraphs, lists, links, images, figures, captions, and tables.
+
+The publish-side handoff for the content generation reporting portal lives in `docs/publish-scale-content-generation-handoff.md`.
