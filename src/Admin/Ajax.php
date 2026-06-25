@@ -288,6 +288,11 @@ final class Ajax {
             "frontend_http_code" => $frontend["http_code"],
             "frontend_error" => $frontend["error"],
             "marker_count" => (int) $frontend["marker_count"],
+            "primary_marker_count" => (int) $frontend["primary_marker_count"],
+            "legacy_marker_count" => (int) $frontend["legacy_marker_count"],
+            "item_count" => (int) $frontend["item_count"],
+            "author_link_counts" => $frontend["author_link_counts"],
+            "share_count" => (int) $frontend["share_count"],
             "stack_count" => (int) $frontend["stack_count"],
             "visible_name_counts" => $frontend["visible_name_counts"],
             "schema_matches" => $schema_matches,
@@ -372,9 +377,14 @@ final class Ajax {
             "http_code" => 0,
             "error" => "",
             "marker_count" => 0,
+            "primary_marker_count" => 0,
+            "legacy_marker_count" => 0,
+            "item_count" => 0,
             "stack_count" => 0,
+            "share_count" => 0,
             "schema_author_ids" => [],
             "visible_name_counts" => [],
+            "author_link_counts" => [],
         ];
 
         if ( is_wp_error( $response ) ) {
@@ -389,7 +399,11 @@ final class Ajax {
             return $state;
         }
 
-        $state["marker_count"] = substr_count( $body, "smpi-author-module" );
+        $state["primary_marker_count"] = substr_count( $body, "smp-author" );
+        $state["legacy_marker_count"] = substr_count( $body, "smpi-author-module" );
+        $state["marker_count"] = (int) $state["primary_marker_count"] + (int) $state["legacy_marker_count"];
+        $state["item_count"] = substr_count( $body, "smpi-multi-author-item" );
+        $state["share_count"] = substr_count( strtolower( $body ), ">share<" ) + substr_count( strtolower( $body ), " share " );
         if ( preg_match_all( '/data-smpi-multi-author-count=["\'](\d+)["\']/i', $body, $matches ) ) {
             $state["stack_count"] = array_sum( array_map( "absint", $matches[1] ) );
         }
@@ -397,6 +411,8 @@ final class Ajax {
         foreach ( MultiAuthors::author_view_models_for_post( $post_id ) as $author ) {
             $name = (string) $author["name"];
             $state["visible_name_counts"][ $name ] = substr_count( wp_strip_all_tags( $body ), $name );
+            $url = untrailingslashit( (string) $author["url"] );
+            $state["author_link_counts"][ $name ] = "" !== $url ? substr_count( $body, $url ) : 0;
         }
 
         return $state;
@@ -456,20 +472,23 @@ final class Ajax {
         $html .= "<div><strong>Resolved authors</strong><br><code>" . esc_html( implode( ", ", (array) $report["resolved_ids"] ) ) . "</code></div>";
         $html .= "<div><strong>Schema match</strong><br>" . ( $ok_schema ? "Yes" : "No" ) . "</div>";
         $html .= "<div><strong>Elementor hook</strong><br>" . ( ! empty( $report["hook_ready"] ) ? "Target matched" : "Missing target" ) . "</div>";
-        $html .= "<div><strong>Rendered stack</strong><br>" . esc_html( (string) $report["stack_count"] ) . " rendered author item(s)</div>";
+        $html .= "<div><strong>Class detection</strong><br><code>smp-author</code>: " . esc_html( (string) $report["primary_marker_count"] ) . "<br><code>smpi-author-module</code>: " . esc_html( (string) $report["legacy_marker_count"] ) . "</div>";
+        $html .= "<div><strong>Rendered stack</strong><br>" . esc_html( (string) $report["item_count"] ) . " marked item(s); score " . esc_html( (string) $report["stack_count"] ) . "</div>";
+        $html .= "<div><strong>Share text hits</strong><br>" . esc_html( (string) $report["share_count"] ) . "</div>";
         $html .= "<div><strong>Frontend HTTP</strong><br>" . esc_html( (string) $report["frontend_http_code"] ) . ( "" !== (string) $report["frontend_error"] ? " - " . esc_html( (string) $report["frontend_error"] ) : "" ) . "</div>";
         $html .= "</div>";
-        $html .= "<table class=\"widefat striped\"><thead><tr><th>Index</th><th>User</th><th>Email</th><th>Author URL</th><th>Visible text count</th></tr></thead><tbody>";
+        $html .= "<table class=\"widefat striped\"><thead><tr><th>Index</th><th>User</th><th>Email</th><th>Author URL</th><th>Visible text count</th><th>Author link count</th></tr></thead><tbody>";
         foreach ( (array) $report["authors"] as $index => $author ) {
             $name = (string) $author["name"];
             $count = isset( $report["visible_name_counts"][ $name ] ) ? (int) $report["visible_name_counts"][ $name ] : 0;
-            $html .= "<tr><td>" . esc_html( (string) $index ) . "</td><td>" . esc_html( $name ) . " (#" . esc_html( (string) $author["id"] ) . ")</td><td>" . esc_html( (string) $author["email"] ) . "</td><td><code>" . esc_html( (string) $author["url"] ) . "</code></td><td>" . esc_html( (string) $count ) . "</td></tr>";
+            $link_count = isset( $report["author_link_counts"][ $name ] ) ? (int) $report["author_link_counts"][ $name ] : 0;
+            $html .= "<tr><td>" . esc_html( (string) $index ) . "</td><td>" . esc_html( $name ) . " (#" . esc_html( (string) $author["id"] ) . ")</td><td>" . esc_html( (string) $author["email"] ) . "</td><td><code>" . esc_html( (string) $author["url"] ) . "</code></td><td>" . esc_html( (string) $count ) . "</td><td>" . esc_html( (string) $link_count ) . "</td></tr>";
         }
         $html .= "</tbody></table>";
         $html .= "<p class=\"smpi-muted\">Generated schema authors: <code>" . esc_html( implode( ", ", (array) $report["generated_schema_author_ids"] ) ) . "</code></p>";
         $html .= "<p class=\"smpi-muted\">Fetched frontend schema authors: <code>" . esc_html( implode( ", ", (array) $report["frontend_schema_author_ids"] ) ) . "</code></p>";
         if ( ! $ok_hook ) {
-            $html .= "<p class=\"smpi-alert smpi-alert-warning\">The author resolver and schema can pass while the visual Elementor hook is inactive. Add <code>smpi-author-module</code> to the Elementor author module that should repeat.</p>";
+            $html .= "<p class=\"smpi-alert smpi-alert-warning\">The author resolver and schema can pass while the visual Elementor hook is inactive. Add <code>smp-author</code> to the exact Elementor author unit that should repeat. Legacy <code>smpi-author-module</code> still works for older templates.</p>";
         }
         return $html . "</div>";
     }

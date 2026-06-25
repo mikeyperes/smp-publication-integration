@@ -18,7 +18,7 @@ final class ElementorArchiveContext {
         if ( "" === $element_id || ! in_array( $element_id, $this->element_ids(), true ) ) {
             return;
         }
-        $author = get_queried_object();
+        $author = AuthorQueryIntegration::current_archive_author();
         if ( ! $author instanceof \WP_User ) {
             return;
         }

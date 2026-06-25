@@ -268,6 +268,21 @@ namespace {
     expect_same( 1, substr_count( $rendered, '<div class="share">SHARE</div>' ), "Unrelated sibling markup is never duplicated." );
     expect_same( 1, substr_count( $rendered, "avatar-1-300.jpg" ), "Secondary avatar is rebound." );
     expect_same( 1, substr_count( $rendered, "alpha-author/" ), "Secondary author URL is rebound." );
+
+    $primary_template = '<div class="elementor-element smp-author"><a href="https://example.test/author/beta-author/">Beta Author</a><span class="share">SHARE</span></div>';
+    $primary_rendered = $renderer->filter_content( $primary_template );
+    expect_same( 2, substr_count( $primary_rendered, "smpi-multi-author-item" ), "Primary smp-author contract repeats once per selected author." );
+    expect_same( 1, substr_count( $primary_rendered, '<span class="share">SHARE</span>' ), "Non-author direct children inside a marked unit are preserved once." );
+    expect_same( 1, substr_count( $primary_rendered, "alpha-author/" ), "Primary smp-author contract rebinds secondary author URLs." );
+
+    $GLOBALS["test_is_singular"] = false;
+    $loop_widget_template = '<div class="elementor-element smp-author"><a href="https://example.test/author/beta-author/">Beta Author</a></div>';
+    $loop_widget_rendered = $renderer->filter_widget( $loop_widget_template, null );
+    expect_same( 2, substr_count( $loop_widget_rendered, "smpi-multi-author-item" ), "Primary smp-author contract also runs inside public Elementor loop widgets." );
+    expect_same( 1, substr_count( $loop_widget_rendered, "beta-author/" ), "Loop widget primary author keeps its own URL." );
+    expect_same( 1, substr_count( $loop_widget_rendered, "alpha-author/" ), "Loop widget secondary author gets its own URL." );
+    $GLOBALS["test_is_singular"] = true;
+
     expect_same( "Editorial Lead", MuckRackVerification::author_field( 1, "author_title" ), "MuckRack field lookup uses the canonical author field resolver aliases." );
     expect_same( "https://muckrack.com/alpha-author", MuckRackVerification::author_field( 1, "muckrack_url" ), "MuckRack URL lookup uses the canonical author field resolver aliases." );
 

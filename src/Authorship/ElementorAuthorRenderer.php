@@ -10,6 +10,10 @@ if ( ! defined( "ABSPATH" ) ) {
 }
 
 final class ElementorAuthorRenderer {
+    private const PRIMARY_MARKER_CLASS = "smp-author";
+    private const LEGACY_MARKER_CLASS = "smpi-author-module";
+    private const ITEM_MARKER_CLASS = "smpi-multi-author-item";
+
     private AuthorAssignmentRepository $repository;
     private ?array $marked_element_ids = null;
     private ?array $marked_templates = null;
@@ -22,10 +26,10 @@ final class ElementorAuthorRenderer {
     public function filter_widget( string $content, $widget ): string {
         if (
             "" === trim( $content )
-            || false !== strpos( $content, "smpi-multi-author-item" )
+            || false !== strpos( $content, self::ITEM_MARKER_CLASS )
             || ! Settings::bool( "multi_authors_enabled" )
             || ! RuntimeContext::is_public_dom_context()
-            || ! is_singular( $this->repository->supported_post_types() )
+            || ! $this->is_supported_render_context()
             || ! $this->widget_is_marked( $widget, $content )
         ) {
             return $content;
@@ -36,7 +40,7 @@ final class ElementorAuthorRenderer {
     public function filter_content( string $content ): string {
         if (
             "" === trim( $content )
-            || false !== strpos( $content, "smpi-multi-author-item" )
+            || false !== strpos( $content, self::ITEM_MARKER_CLASS )
             || ! Settings::bool( "multi_authors_enabled" )
             || ! RuntimeContext::is_public_dom_context()
             || ! is_singular( $this->repository->supported_post_types() )
@@ -88,15 +92,88 @@ final class ElementorAuthorRenderer {
         }
 
         $context = $this->verification_context( $template_html );
+        [ $author_template, $preserved_html ] = $this->author_template_and_preserved_children( $template_html );
         $items = [];
         foreach ( $authors as $index => $author ) {
             if ( ! $author instanceof AuthorRecord ) {
                 continue;
             }
-            $html = $this->rebind( $template_html, $source, $author, $context );
+            $html = $this->rebind( $author_template, $source, $author, $context );
             $items[] = $this->mark_item( $html, $author, $index, count( $authors ) );
         }
-        return empty( $items ) ? $template_html : implode( "", $items );
+        return empty( $items ) ? $template_html : implode( "", $items ) . $preserved_html;
+    }
+
+    private function is_supported_render_context(): bool {
+        return is_singular( $this->repository->supported_post_types() )
+            || RuntimeContext::has_article_loop_context();
+    }
+
+    private function author_template_and_preserved_children( string $template_html ): array {
+        $doc = $this->document( $template_html );
+        if ( ! $doc ) {
+            return [ $template_html, "" ];
+        }
+
+        $body = $doc->getElementsByTagName( "body" )->item( 0 );
+        if ( ! $body ) {
+            return [ $template_html, "" ];
+        }
+
+        $preserved = [];
+        foreach ( iterator_to_array( $body->childNodes ) as $root ) {
+            if ( ! $root instanceof \DOMElement || ! $this->element_is_marked( $root ) ) {
+                continue;
+            }
+
+            foreach ( iterator_to_array( $root->childNodes ) as $child ) {
+                if ( ! $child instanceof \DOMElement || ! $this->is_non_author_direct_child( $child ) ) {
+                    continue;
+                }
+                $preserved[] = $doc->saveHTML( $child ) ?: "";
+                $root->removeChild( $child );
+            }
+        }
+
+        return [ $this->body_html( $doc, $template_html ), implode( "", array_filter( $preserved ) ) ];
+    }
+
+    private function is_non_author_direct_child( \DOMElement $element ): bool {
+        $html = $element->ownerDocument ? ( $element->ownerDocument->saveHTML( $element ) ?: "" ) : "";
+        $classes = strtolower(
+            implode(
+                " ",
+                [
+                    $element->getAttribute( "class" ),
+                    $element->getAttribute( "id" ),
+                    $element->getAttribute( "data-widget_type" ),
+                    $element->getAttribute( "data-element_type" ),
+                ]
+            )
+        );
+        $text = strtolower( trim( preg_replace( '/\s+/', ' ', wp_strip_all_tags( $html ) ) ?: "" ) );
+
+        if ( false !== strpos( $classes, "smpi-author-keep" ) ) {
+            return false;
+        }
+        if (
+            false !== strpos( $classes, "share" )
+            || false !== strpos( $classes, "social-share" )
+            || false !== strpos( $classes, "addtoany" )
+            || false !== strpos( $classes, "elementor-share" )
+            || false !== strpos( $classes, "elementor-widget-share" )
+        ) {
+            return true;
+        }
+        if (
+            preg_match( '/(^|\s)share(\s|$)/', $text )
+            && false === strpos( $classes, "author" )
+            && false === strpos( $html, "/author/" )
+        ) {
+            return true;
+        }
+
+        return false;
     }
 
     private function rebind( string $html, AuthorRecord $source, AuthorRecord $author, string $context ): string {
@@ -317,6 +394,10 @@ final class ElementorAuthorRenderer {
     }
 
     private function verification_context( string $html ): string {
+        if ( RuntimeContext::has_article_loop_context() && ! is_singular( $this->repository->supported_post_types() ) ) {
+            return is_author() ? "author" : "loop_cards";
+        }
+
         $lower = strtolower( wp_strip_all_tags( $html ) );
         return preg_match( '/about the author|twitter|linkedin|email/', $lower ) || false !== strpos( $html, "author_bio" )
             ? "single_footer"
@@ -336,7 +417,7 @@ final class ElementorAuthorRenderer {
             if ( ! $child instanceof \DOMElement ) {
                 continue;
             }
-            $classes = trim( $child->getAttribute( "class" ) . " smpi-multi-author-item" );
+            $classes = trim( $child->getAttribute( "class" ) . " " . self::ITEM_MARKER_CLASS );
             $child->setAttribute( "class", $classes );
             $child->setAttribute( "data-smpi-author-index", (string) $index );
             $child->setAttribute( "data-smpi-author-id", (string) $author->id() );
@@ -365,7 +446,7 @@ final class ElementorAuthorRenderer {
     }
 
     private function widget_is_marked( $widget, string $content ): bool {
-        if ( false !== strpos( $content, "smpi-author-module" ) ) {
+        if ( $this->contains_marker_class( $content ) ) {
             return true;
         }
         if ( ! is_object( $widget ) || ! method_exists( $widget, "get_id" ) ) {
@@ -375,7 +456,7 @@ final class ElementorAuthorRenderer {
     }
 
     private function contains_marker( string $content ): bool {
-        if ( false !== strpos( $content, "smpi-author-module" ) ) {
+        if ( $this->contains_marker_class( $content ) ) {
             return true;
         }
         foreach ( $this->marked_element_ids() as $id ) {
@@ -387,7 +468,10 @@ final class ElementorAuthorRenderer {
     }
 
     private function marker_xpath(): string {
-        $tests = [ 'contains(concat(" ", normalize-space(@class), " "), " smpi-author-module ")' ];
+        $tests = [
+            'contains(concat(" ", normalize-space(@class), " "), " ' . self::PRIMARY_MARKER_CLASS . ' ")',
+            'contains(concat(" ", normalize-space(@class), " "), " ' . self::LEGACY_MARKER_CLASS . ' ")',
+        ];
         foreach ( $this->marked_element_ids() as $id ) {
             $tests[] = 'contains(concat(" ", normalize-space(@class), " "), " elementor-element-' . $id . ' ")';
         }
@@ -442,9 +526,15 @@ final class ElementorAuthorRenderer {
                     "fields" => "ids",
                     "no_found_rows" => true,
                     "meta_query" => [
+                        "relation" => "OR",
                         [
                             "key" => "_elementor_data",
-                            "value" => "smpi-author-module",
+                            "value" => self::PRIMARY_MARKER_CLASS,
+                            "compare" => "LIKE",
+                        ],
+                        [
+                            "key" => "_elementor_data",
+                            "value" => self::LEGACY_MARKER_CLASS,
                             "compare" => "LIKE",
                         ],
                     ],
@@ -514,11 +604,11 @@ final class ElementorAuthorRenderer {
             $raw = $settings[ $key ] ?? "";
             $classes .= " " . ( is_array( $raw ) ? implode( " ", array_map( "strval", $raw ) ) : (string) $raw );
         }
-        return (bool) preg_match( '/(^|\s)smpi-author-module(\s|$)/', $classes );
+        return (bool) preg_match( '/(^|\s)(?:' . preg_quote( self::PRIMARY_MARKER_CLASS, "/" ) . '|' . preg_quote( self::LEGACY_MARKER_CLASS, "/" ) . ')(\s|$)/', $classes );
     }
 
     private function element_is_marked( \DOMElement $element ): bool {
-        if ( preg_match( '/(^|\s)smpi-author-module(\s|$)/', $element->getAttribute( "class" ) ) ) {
+        if ( preg_match( '/(^|\s)(?:' . preg_quote( self::PRIMARY_MARKER_CLASS, "/" ) . '|' . preg_quote( self::LEGACY_MARKER_CLASS, "/" ) . ')(\s|$)/', $element->getAttribute( "class" ) ) ) {
             return true;
         }
         foreach ( $this->marked_element_ids() as $id ) {
@@ -527,6 +617,11 @@ final class ElementorAuthorRenderer {
             }
         }
         return false;
+    }
+
+    private function contains_marker_class( string $content ): bool {
+        return false !== strpos( $content, self::PRIMARY_MARKER_CLASS )
+            || false !== strpos( $content, self::LEGACY_MARKER_CLASS );
     }
 
     private function social_kind( \DOMElement $link ): string {

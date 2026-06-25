@@ -7,7 +7,25 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.6.114`
+- Version: `0.6.117`
+
+## 0.6.117 Updates
+
+- Allowed the explicit `smp-author` Elementor author-unit renderer to run inside public loop/archive/front-page Elementor widgets, not only single posts.
+- Added a regression test that confirms marked Elementor loop widgets render every selected author with distinct author URLs.
+- Routed loop-card badge context through `loop_cards`/`author` verification contexts instead of single-post contexts.
+
+## 0.6.116 Updates
+
+- Preserved the requested author identity on author archives while expanding archive queries to include secondary-authored posts.
+- Routed author archive shortcodes, Elementor archive author fields, and Elementor author-query args through the same archive-author resolver so `/author/{slug}/` cannot fall back to the first post author.
+
+## 0.6.115 Updates
+
+- Added a dedicated Multiple Authors admin tab with the frontend hook/debug test runner, shortcode examples, loop-card output controls, and the new `smp-author` Elementor protocol.
+- Kept legacy `.smpi-author-module` support while making `smp-author` the preferred author unit class.
+- Routed Elementor loop-card author widgets through the same multi-author byline renderer so homepage loop items can show all assigned authors without shortcode-only templates.
+- Prevented non-author direct children such as Share controls from being cloned with each repeated author unit.
 
 ## 0.6.114 Updates
 

@@ -37,7 +37,10 @@ final class AuthorContext {
         }
 
         if ( is_author() && $explicit_post_id <= 0 ) {
-            return (int) get_queried_object_id();
+            $archive_author_id = AuthorQueryIntegration::current_archive_author_id();
+            if ( $archive_author_id > 0 ) {
+                return $archive_author_id;
+            }
         }
 
         $post_id = $explicit_post_id;

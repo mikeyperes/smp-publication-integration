@@ -58,6 +58,10 @@ final class LoopBylineRenderer {
         return $this->replace_source_link( $html, $source, $records, $format );
     }
 
+    public function filter_widget_content( string $content, $widget = null ): string {
+        return $this->filter( $content );
+    }
+
     private function replace_source_link( string $html, AuthorRecord $source, array $authors, string $format ): string {
         $doc = $this->document( $html );
         if ( ! $doc ) {
@@ -118,9 +122,18 @@ final class LoopBylineRenderer {
         if ( ! $parent || ! $parent->ownerDocument ) {
             return false;
         }
-        $html = $parent->ownerDocument->saveHTML( $parent ) ?: "";
+        $html = html_entity_decode( $parent->ownerDocument->saveHTML( $parent ) ?: "", ENT_QUOTES | ENT_HTML5, "UTF-8" );
         foreach ( $authors as $author ) {
-            if ( ! $author instanceof AuthorRecord || ! $this->href_matches( $html, $author->to_array() ) ) {
+            if ( ! $author instanceof AuthorRecord ) {
+                return false;
+            }
+            $data = $author->to_array();
+            $slug = (string) ( $data["slug"] ?? "" );
+            $url = (string) ( $data["url"] ?? "" );
+            if (
+                ( "" === $slug || false === strpos( $html, "/author/" . $slug ) )
+                && ( "" === $url || false === strpos( untrailingslashit( $html ), untrailingslashit( $url ) ) )
+            ) {
                 return false;
             }
         }

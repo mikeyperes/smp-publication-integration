@@ -36,6 +36,7 @@ final class MultiAuthors {
         add_shortcode( "smp_post_author_names", [ $this, "render_authors_shortcode" ] );
 
         add_filter( "the_author_posts_link", [ $loop_renderer, "filter" ], 15 );
+        add_filter( "elementor/widget/render_content", [ $loop_renderer, "filter_widget_content" ], 18, 2 );
         add_filter( "elementor/widget/render_content", [ $elementor_renderer, "filter_widget" ], 20, 2 );
         add_filter( "elementor/frontend/the_content", [ $elementor_renderer, "filter_content" ], 20 );
         add_action( "elementor/frontend/before_render", [ self::$archive_context, "before_render" ], 1 );
@@ -69,7 +70,10 @@ final class MultiAuthors {
 
     public static function resolve_author_id( int $explicit_user_id = 0, int $explicit_post_id = 0, int $author_index = 0 ): int {
         if ( self::$archive_context instanceof ElementorArchiveContext && self::$archive_context->active() && is_author() && $explicit_post_id <= 0 ) {
-            return (int) get_queried_object_id();
+            $archive_author_id = AuthorQueryIntegration::current_archive_author_id();
+            if ( $archive_author_id > 0 ) {
+                return $archive_author_id;
+            }
         }
         return AuthorContext::resolve( self::repository(), $explicit_user_id, $explicit_post_id, $author_index );
     }

@@ -120,6 +120,7 @@ final class Dashboard {
             'reports' => 'Reports',
             'custom_fields' => 'Custom Fields',
             'features' => 'Features',
+            'multiple_authors' => 'Multiple Authors',
             'snippets' => 'Snippets',
             'ui_cleanup' => 'UI Cleanup',
             'optimization' => 'Optimization',
@@ -143,6 +144,7 @@ final class Dashboard {
         if ( 'reports' === $id ) { $this->reports(); return; }
         if ( "custom_fields" === $id ) { $this->custom_fields(); return; }
         if ( 'features' === $id ) { $this->features(); return; }
+        if ( 'multiple_authors' === $id ) { $this->multiple_authors(); return; }
         if ( 'snippets' === $id ) { $this->snippets(); return; }
         if ( 'ui_cleanup' === $id ) { $this->ui_cleanup(); return; }
         if ( 'optimization' === $id ) { $this->optimization(); return; }
@@ -1292,9 +1294,7 @@ final class Dashboard {
 [author_muckrack_verified style=\"compact_block\"]
 [author_muckrack]
 [muckrack_verified type=\"icon\" user_id=\"54\"]", $this->muckrack_report_html(), $this->activity_log_html(), $author_muckrack_controls );
-        $multi_author_examples = "<div class=\"smpi-control-group\"><h3>Multiple author shortcode examples</h3><div class=\"smpi-shortcode-list\"><div class=\"smpi-shortcode-row\"><strong>Plain text, comma separated</strong><code>[smp_post_authors format=\"plain\"]</code><small>Example output: Sam Harris, John Smith</small></div><div class=\"smpi-shortcode-row\"><strong>Plain text, one per line</strong><code>[smp_post_authors format=\"lines\"]</code><small>Example output: Sam Harris<br>John Smith</small></div><div class=\"smpi-shortcode-row\"><strong>Loop/card auto option</strong><code>[smp_post_authors context=\"card\"]</code><small>Uses the loop/card option selected above.</small></div><div class=\"smpi-shortcode-row\"><strong>Loop/card comma output</strong><code>[smp_post_authors context=\"card\" format=\"plain\"]</code><small>Example output: Sam Harris, John Smith</small></div><div class=\"smpi-shortcode-row\"><strong>Loop/card one per line</strong><code>[smp_post_authors context=\"card\" format=\"lines\"]</code><small>Example output: Sam Harris<br>John Smith</small></div><div class=\"smpi-shortcode-row\"><strong>Linked author names</strong><code>[smp_post_authors format=\"links\"]</code><small>Outputs author archive links for every selected author.</small></div><div class=\"smpi-shortcode-row\"><strong>HTML list</strong><code>[smp_post_authors format=\"list\"]</code><small>Outputs a simple list when the template needs stacked names.</small></div><div class=\"smpi-shortcode-row\"><strong>Specific field</strong><code>[smp_post_authors field=\"job_title\" format=\"lines\"]</code><small>Supports name, id, url, email, job_title, title, subtitle, bio, bio_short, description, and mapped social fields.</small></div></div></div>";
-        $multi_author_loop_controls = $this->select_setting_html( "multi_authors_loop_output", [ "primary" => [ "label" => "Primary author only", "description" => "Loop cards keep the native WordPress author name only." ], "comma" => [ "label" => "Name, Name", "description" => "Loop cards show all selected authors on one line." ], "lines" => [ "label" => "Name per line", "description" => "Loop cards show each selected author on its own line." ] ], $settings, "Loop/card author name output" );
-        $multi_author_controls = $this->inline_toggle_setting_html( "multi_authors_disable_loop_cards", "Force primary author only on loop/cards" ) . $multi_author_loop_controls . $multi_author_examples . "<div class=\"smpi-control-group smpi-multi-author-test\"><h3>Frontend hook test</h3><p>Enter a post ID or URL, or leave blank to test the most recent published article.</p><div class=\"smpi-inline-test-row\"><input type=\"text\" class=\"regular-text\" data-smpi-multi-author-test-target placeholder=\"Post ID or URL\"><button type=\"button\" class=\"button button-secondary\" data-smpi-test-multi-authors>Test current authors</button><span class=\"spinner\"></span><span class=\"smpi-save-state\" aria-live=\"polite\"></span></div><div class=\"smpi-multi-author-test-result\" data-smpi-multi-author-test-result aria-live=\"polite\"></div></div><div class=\"smpi-control-group\"><h3>Elementor protocol</h3><p>Add the class <code>smpi-author-module</code> to the Elementor author module you want repeated for every selected author. Do not use top/bottom classes. Elementor owns the design; SMP duplicates the module server-side and rebinds author data.</p></div>";
+        $multi_author_controls = $this->multi_author_controls_html( $settings );
         $this->feature_card( "Multiple post authors", "multi_authors_enabled", "Registers one ACF multi-user field on supported article editors: <code>" . esc_html( MultiAuthors::FIELD_NAME ) . "</code>. It is not a repeater.", "Lets posts and press releases store more than one WordPress author. Existing author shortcodes keep using the primary author by default and can target additional authors with author_index.", "[author_name]
 [author_name author_index=\"1\"]
 [acf_author_field field=\"job_title\"]
@@ -1956,6 +1956,29 @@ final class Dashboard {
         $html .= "</tbody></table>";
         $html .= "<p class=smpi-muted>Existing shortcodes now support <code>author_index</code>. Index 0 is the first selected author, and empty selections fall back to the native WordPress author.</p>";
         return $html;
+    }
+
+    private function multiple_authors(): void {
+        $settings = Settings::all();
+        echo "<div class=\"smpi-panel\"><h2>Multiple Authors</h2><p>Author resolution, Elementor author-module cloning, loop card bylines, author archives, schema authors, and shortcode output all read the same selected WordPress authors. Empty selections fall back to the native WordPress author and do not activate the visual cloning layer.</p></div>";
+        $this->feature_card( "Multiple post authors", "multi_authors_enabled", "Registers one ACF multi-user field on supported article editors: <code>" . esc_html( MultiAuthors::FIELD_NAME ) . "</code>. It is not a repeater.", "Use <code>smp-author</code> on the exact Elementor author unit that should repeat. The legacy class <code>smpi-author-module</code> remains supported as a fallback. If no class is present, SMP still tries the older author-link byline fallback for loop/card output.", "[smp_post_authors]
+[smp_post_authors format=\"links\"]
+[smp_post_authors format=\"lines\"]
+[author_name author_index=\"1\"]
+[acf_author_field field=\"job_title\" author_index=\"1\"]", $this->multi_authors_report_html(), $this->activity_log_html(), $this->multi_author_controls_html( $settings ) );
+    }
+
+    private function multi_author_controls_html( array $settings ): string {
+        $loop_controls = $this->select_setting_html( "multi_authors_loop_output", [ "primary" => [ "label" => "Primary author only", "description" => "Loop cards keep the native WordPress author name only." ], "comma" => [ "label" => "Name, Name", "description" => "Loop cards show all selected authors on one line." ], "lines" => [ "label" => "Name per line", "description" => "Loop cards show each selected author on its own line." ] ], $settings, "Loop/card author name output" );
+        return $this->inline_toggle_setting_html( "multi_authors_disable_loop_cards", "Force primary author only on loop/cards" )
+            . $loop_controls
+            . $this->multi_author_examples_html()
+            . "<div class=\"smpi-control-group smpi-multi-author-test\"><h3>Frontend hook and class detection test</h3><p>Enter a post ID or URL, or leave blank to test the most recent published article. The test reports <code>smp-author</code>, legacy <code>smpi-author-module</code>, fallback byline detection, schema authors, visible author names, and rendered author item counts.</p><div class=\"smpi-inline-test-row\"><input type=\"text\" class=\"regular-text\" data-smpi-multi-author-test-target placeholder=\"Post ID or URL\"><button type=\"button\" class=\"button button-secondary\" data-smpi-test-multi-authors>Test authors</button><span class=\"spinner\"></span><span class=\"smpi-save-state\" aria-live=\"polite\"></span></div><div class=\"smpi-multi-author-test-result\" data-smpi-multi-author-test-result aria-live=\"polite\"></div></div>"
+            . "<div class=\"smpi-control-group\"><h3>Elementor protocol</h3><p>Add <code>smp-author</code> to the exact author identity unit that should repeat for every selected author. Do not put it on a row that also contains Share, read-time, ads, or unrelated controls. Legacy <code>smpi-author-module</code> is still supported for older templates, and the loop-card fallback can rewrite author-name links when no class exists.</p></div>";
+    }
+
+    private function multi_author_examples_html(): string {
+        return "<div class=\"smpi-control-group\"><h3>Multiple author shortcode examples</h3><div class=\"smpi-shortcode-list\"><div class=\"smpi-shortcode-row\"><strong>Plain text, comma separated</strong><code>[smp_post_authors format=\"plain\"]</code><small>Example output: Sam Harris, John Smith</small></div><div class=\"smpi-shortcode-row\"><strong>Plain text, one per line</strong><code>[smp_post_authors format=\"lines\"]</code><small>Example output: Sam Harris<br>John Smith</small></div><div class=\"smpi-shortcode-row\"><strong>Loop/card auto option</strong><code>[smp_post_authors context=\"card\"]</code><small>Uses the loop/card option selected above.</small></div><div class=\"smpi-shortcode-row\"><strong>Loop/card comma output</strong><code>[smp_post_authors context=\"card\" format=\"plain\"]</code><small>Example output: Sam Harris, John Smith</small></div><div class=\"smpi-shortcode-row\"><strong>Loop/card one per line</strong><code>[smp_post_authors context=\"card\" format=\"lines\"]</code><small>Example output: Sam Harris<br>John Smith</small></div><div class=\"smpi-shortcode-row\"><strong>Linked author names</strong><code>[smp_post_authors format=\"links\"]</code><small>Outputs author archive links for every selected author.</small></div><div class=\"smpi-shortcode-row\"><strong>HTML list</strong><code>[smp_post_authors format=\"list\"]</code><small>Outputs a simple list when the template needs stacked names.</small></div><div class=\"smpi-shortcode-row\"><strong>Specific field</strong><code>[smp_post_authors field=\"job_title\" format=\"lines\"]</code><small>Supports name, id, url, email, job_title, title, subtitle, bio, bio_short, description, and mapped social fields.</small></div></div></div>";
     }
 
     private function publication_muckrack_report_html(): string {

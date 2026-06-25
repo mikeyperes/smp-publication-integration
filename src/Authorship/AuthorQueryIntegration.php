@@ -18,6 +18,7 @@ final class AuthorQueryIntegration {
 
     public function register(): void {
         add_action( "pre_get_posts", [ $this, "prepare_author_query" ], 20 );
+        add_action( "wp", [ $this, "restore_queried_author_object" ], 1 );
         add_filter( "posts_clauses", [ $this, "filter_author_clauses" ], 20, 2 );
         add_filter( "elementor/query/get_query_args/current_query", [ $this, "filter_elementor_query_args" ], 20 );
         add_filter( "elementor/query/query_args", [ $this, "filter_elementor_query_args" ], 20 );
@@ -44,6 +45,30 @@ final class AuthorQueryIntegration {
         if ( empty( $current ) || "post" === $current ) {
             $query->set( "post_type", $this->repository->supported_post_types() );
         }
+    }
+
+    public function restore_queried_author_object(): void {
+        if ( is_admin() || ! is_author() ) {
+            return;
+        }
+
+        global $wp_query;
+        if ( ! $wp_query instanceof \WP_Query ) {
+            return;
+        }
+
+        $author_id = absint( $wp_query->get( self::QUERY_VAR ) );
+        if ( $author_id <= 0 ) {
+            return;
+        }
+
+        $author = get_user_by( "id", $author_id );
+        if ( ! $author instanceof \WP_User ) {
+            return;
+        }
+
+        $wp_query->queried_object = $author;
+        $wp_query->queried_object_id = $author_id;
     }
 
     public function filter_author_clauses( array $clauses, \WP_Query $query ): array {
@@ -78,7 +103,7 @@ final class AuthorQueryIntegration {
         if ( is_admin() || ! Settings::bool( "multi_authors_enabled" ) || ! is_author() ) {
             return $query_args;
         }
-        $author_id = (int) get_queried_object_id();
+        $author_id = self::current_archive_author_id();
         if ( $author_id <= 0 ) {
             return $query_args;
         }
@@ -87,5 +112,50 @@ final class AuthorQueryIntegration {
         $query_args["post__in"] = ! empty( $ids ) ? $ids : [ 0 ];
         $query_args["post_type"] = $this->repository->supported_post_types();
         return $query_args;
+    }
+
+    public static function current_archive_author_id(): int {
+        if ( ! function_exists( "is_author" ) || ! is_author() ) {
+            return 0;
+        }
+
+        global $wp_query;
+        if ( $wp_query instanceof \WP_Query ) {
+            $stored = absint( $wp_query->get( self::QUERY_VAR ) );
+            if ( $stored > 0 && get_user_by( "id", $stored ) instanceof \WP_User ) {
+                return $stored;
+            }
+        }
+
+        $queried = function_exists( "get_queried_object" ) ? get_queried_object() : null;
+        if ( $queried instanceof \WP_User ) {
+            return (int) $queried->ID;
+        }
+
+        $queried_id = function_exists( "get_queried_object_id" ) ? absint( get_queried_object_id() ) : 0;
+        if ( $queried_id > 0 && get_user_by( "id", $queried_id ) instanceof \WP_User ) {
+            return $queried_id;
+        }
+
+        if ( $wp_query instanceof \WP_Query ) {
+            $native_id = absint( $wp_query->get( "author" ) );
+            if ( $native_id > 0 && get_user_by( "id", $native_id ) instanceof \WP_User ) {
+                return $native_id;
+            }
+
+            $slug = sanitize_title( (string) $wp_query->get( "author_name" ) );
+            $author = "" !== $slug ? get_user_by( "slug", $slug ) : null;
+            if ( $author instanceof \WP_User ) {
+                return (int) $author->ID;
+            }
+        }
+
+        return 0;
+    }
+
+    public static function current_archive_author(): ?\WP_User {
+        $author_id = self::current_archive_author_id();
+        $author = $author_id > 0 ? get_user_by( "id", $author_id ) : null;
+        return $author instanceof \WP_User ? $author : null;
     }
 }
