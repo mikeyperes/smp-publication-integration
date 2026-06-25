@@ -7,7 +7,13 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.6.124`
+- Version: `0.6.125`
+
+## 0.6.125 Updates
+
+- Added breadcrumb rendering support for category and tag archive pages.
+- Added a `Hide on category and tag pages` Breadcrumbs setting that defaults off, so archive breadcrumbs show by default.
+- Extended breadcrumb fallback markup and reporting for term archive contexts.
 
 ## 0.6.124 Updates
 

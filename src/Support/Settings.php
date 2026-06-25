@@ -74,6 +74,7 @@ final class Settings {
             "breadcrumbs_accent_color" => $colors["breadcrumbs_accent_color"],
             "breadcrumbs_font_size" => 13,
             "breadcrumbs_hide_home" => true,
+            "breadcrumbs_hide_term_archives" => false,
             "breadcrumbs_disabled_post_types" => [],
             'table_of_contents_enabled' => false,
             'table_of_contents_auto_single' => false,
@@ -305,7 +306,7 @@ final class Settings {
                 continue;
             }
 
-            if ( in_array( $key, [ 'founders_enabled', 'shadow_posts_enabled', 'shadow_press_releases', 'author_social_cleanup', 'public_debug_enabled', 'estimated_read_time_enabled', 'elementor_css_cache_busting', 'publication_social_cleanup', 'muckrack_verified_enabled', 'muckrack_author_always_show', 'publication_muckrack_verified_enabled', 'multi_authors_enabled', 'multi_authors_disable_loop_cards', 'press_release_include_enabled', 'post_summary_acf_enabled', 'post_faqs_acf_enabled', 'article_types_enabled', 'breadcrumbs_enabled', 'breadcrumbs_hide_home', 'table_of_contents_enabled', 'table_of_contents_auto_single', 'table_of_contents_include_summary', 'rank_math_breadcrumb_check_enabled', 'hws_masked_admin_report_enabled' ], true ) ) {
+            if ( in_array( $key, [ 'founders_enabled', 'shadow_posts_enabled', 'shadow_press_releases', 'author_social_cleanup', 'public_debug_enabled', 'estimated_read_time_enabled', 'elementor_css_cache_busting', 'publication_social_cleanup', 'muckrack_verified_enabled', 'muckrack_author_always_show', 'publication_muckrack_verified_enabled', 'multi_authors_enabled', 'multi_authors_disable_loop_cards', 'press_release_include_enabled', 'post_summary_acf_enabled', 'post_faqs_acf_enabled', 'article_types_enabled', 'breadcrumbs_enabled', 'breadcrumbs_hide_home', 'breadcrumbs_hide_term_archives', 'table_of_contents_enabled', 'table_of_contents_auto_single', 'table_of_contents_include_summary', 'rank_math_breadcrumb_check_enabled', 'hws_masked_admin_report_enabled' ], true ) ) {
                 $settings[ $key ] = (bool) $value;
                 continue;
             }

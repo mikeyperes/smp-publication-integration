@@ -53,6 +53,10 @@ final class Breadcrumbs {
             return false;
         }
 
+        if ( is_category() || is_tag() ) {
+            return ! Settings::bool( "breadcrumbs_hide_term_archives" );
+        }
+
         if ( ! is_singular() ) {
             return false;
         }
@@ -98,6 +102,7 @@ final class Breadcrumbs {
             "style" => ArticleStyles::normalize_breadcrumb_style( (string) Settings::get( "breadcrumbs_style", "bc-b2" ) ),
             "rank_math_active" => self::rank_math_available(),
             "hide_home" => Settings::bool( "breadcrumbs_hide_home" ),
+            "hide_term_archives" => Settings::bool( "breadcrumbs_hide_term_archives" ),
             "disabled_post_types" => Settings::array( "breadcrumbs_disabled_post_types" ),
             "disabled_object_count" => count( self::disabled_object_ids() ),
             "shortcode" => "[" . self::SHORTCODE . "]",
@@ -123,6 +128,13 @@ final class Breadcrumbs {
     private static function fallback_markup(): string {
         $items = [];
         $items[] = [ "url" => home_url( "/" ), "label" => __( "Home", "smp-publication-integration" ) ];
+        $term = get_queried_object();
+        if ( $term instanceof \WP_Term && ( is_category() || is_tag() ) ) {
+            $term_link = get_term_link( $term );
+            $items[] = [ "url" => is_wp_error( $term_link ) ? "" : $term_link, "label" => $term->name ];
+            return self::items_markup( $items );
+        }
+
         $post = get_post();
         if ( $post instanceof \WP_Post ) {
             if ( "post" === get_post_type( $post ) ) {
@@ -141,10 +153,13 @@ final class Breadcrumbs {
         if ( "" !== $last ) {
             $items[] = [ "url" => "", "label" => $last ];
         }
+        return self::items_markup( $items );
+    }
+
+    private static function items_markup( array $items ): string {
         if ( count( $items ) < 2 ) {
             return "";
         }
-
         $html = "<nav aria-label=\"breadcrumbs\" class=\"rank-math-breadcrumb\"><p>";
         foreach ( $items as $index => $item ) {
             if ( $index > 0 ) {
@@ -160,6 +175,11 @@ final class Breadcrumbs {
     }
 
     private static function current_title(): string {
+        $term = get_queried_object();
+        if ( $term instanceof \WP_Term && ( is_category() || is_tag() ) ) {
+            return wp_strip_all_tags( single_term_title( "", false ) );
+        }
+
         $post = get_post();
         return $post instanceof \WP_Post ? wp_strip_all_tags( get_the_title( $post ) ) : "";
     }
