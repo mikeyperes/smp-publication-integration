@@ -7,7 +7,13 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.6.117`
+- Version: `0.6.118`
+
+## 0.6.118 Updates
+
+- Restored the Multiple Authors tab frontend hook test module as a top-level diagnostic panel.
+- Added visual loop-card author output choices for comma-separated, stacked, and primary-only bylines.
+- Expanded the test report to show detected author unit classes, author links, loop mode, schema authors, and boundary warnings when Share or read-time content is inside the author unit.
 
 ## 0.6.117 Updates
 

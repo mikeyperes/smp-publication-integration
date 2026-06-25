@@ -295,6 +295,9 @@ final class Ajax {
             "share_count" => (int) $frontend["share_count"],
             "stack_count" => (int) $frontend["stack_count"],
             "visible_name_counts" => $frontend["visible_name_counts"],
+            "detected_units" => $frontend["detected_units"],
+            "loop_output" => (string) Settings::get( "multi_authors_loop_output", "comma" ),
+            "loop_cards_disabled" => Settings::bool( "multi_authors_disable_loop_cards" ),
             "schema_matches" => $schema_matches,
             "frontend_schema_matches" => $frontend_schema_matches,
             "hook_ready" => $hook_ready,
@@ -361,15 +364,20 @@ final class Ajax {
 
     private function fetch_frontend_author_state( int $post_id ): array {
         $url = add_query_arg( "smpi_multi_author_test", (string) time(), get_permalink( $post_id ) );
+        $headers = [
+            "Cache-Control" => "no-cache",
+            "Pragma" => "no-cache",
+        ];
+        $cookie_header = $this->current_request_cookie_header();
+        if ( "" !== $cookie_header ) {
+            $headers["Cookie"] = $cookie_header;
+        }
         $response = wp_remote_get(
             $url,
             [
                 "timeout" => 15,
                 "redirection" => 5,
-                "headers" => [
-                    "Cache-Control" => "no-cache",
-                    "Pragma" => "no-cache",
-                ],
+                "headers" => $headers,
             ]
         );
 
@@ -385,6 +393,7 @@ final class Ajax {
             "schema_author_ids" => [],
             "visible_name_counts" => [],
             "author_link_counts" => [],
+            "detected_units" => [],
         ];
 
         if ( is_wp_error( $response ) ) {
@@ -414,8 +423,87 @@ final class Ajax {
             $url = untrailingslashit( (string) $author["url"] );
             $state["author_link_counts"][ $name ] = "" !== $url ? substr_count( $body, $url ) : 0;
         }
+        $state["detected_units"] = $this->frontend_detected_author_units( $body );
 
         return $state;
+    }
+
+    private function current_request_cookie_header(): string {
+        if ( empty( $_COOKIE ) || ! is_array( $_COOKIE ) ) {
+            return "";
+        }
+
+        $pairs = [];
+        foreach ( $_COOKIE as $name => $value ) {
+            if ( ! is_scalar( $value ) ) {
+                continue;
+            }
+            $cookie_name = preg_replace( '/[^A-Za-z0-9_\-]/', '', (string) $name );
+            if ( "" === $cookie_name ) {
+                continue;
+            }
+            $cookie_value = str_replace( [ "\r", "\n", ";" ], "", (string) wp_unslash( $value ) );
+            $pairs[] = $cookie_name . "=" . $cookie_value;
+        }
+
+        return implode( "; ", $pairs );
+    }
+
+    private function frontend_detected_author_units( string $body ): array {
+        if ( ! class_exists( "\\DOMDocument" ) || "" === trim( $body ) ) {
+            return [];
+        }
+
+        $previous = libxml_use_internal_errors( true );
+        $dom = new \DOMDocument();
+        $loaded = $dom->loadHTML( "<?xml encoding=\"utf-8\" ?>" . $body, LIBXML_NOWARNING | LIBXML_NOERROR );
+        libxml_clear_errors();
+        libxml_use_internal_errors( $previous );
+        if ( ! $loaded ) {
+            return [];
+        }
+
+        $xpath = new \DOMXPath( $dom );
+        $nodes = $xpath->query( "//*[contains(concat(' ', normalize-space(@class), ' '), ' smp-author ') or contains(concat(' ', normalize-space(@class), ' '), ' smpi-author-module ') or contains(concat(' ', normalize-space(@class), ' '), ' smpi-multi-author-item ')]" );
+        if ( ! $nodes ) {
+            return [];
+        }
+
+        $units = [];
+        foreach ( $nodes as $node ) {
+            if ( ! $node instanceof \DOMElement ) {
+                continue;
+            }
+            $text = trim( preg_replace( "/\s+/", " ", (string) $node->textContent ) );
+            $links = [];
+            $link_nodes = $xpath->query( ".//a[contains(@href, '/author/')]", $node );
+            if ( $link_nodes ) {
+                foreach ( $link_nodes as $link_node ) {
+                    if ( $link_node instanceof \DOMElement ) {
+                        $href = trim( (string) $link_node->getAttribute( "href" ) );
+                        if ( "" !== $href ) {
+                            $links[] = $href;
+                        }
+                    }
+                }
+            }
+
+            $units[] = [
+                "classes" => trim( (string) $node->getAttribute( "class" ) ),
+                "author_id" => (string) $node->getAttribute( "data-smpi-author-id" ),
+                "author_index" => (string) $node->getAttribute( "data-smpi-author-index" ),
+                "text" => wp_trim_words( $text, 18, "..." ),
+                "author_links" => array_values( array_unique( $links ) ),
+                "has_share_text" => (bool) preg_match( "/(^|\s)share($|\s)/i", $text ),
+                "has_read_time_text" => (bool) preg_match( "/\bmin read\b/i", $text ),
+            ];
+
+            if ( count( $units ) >= 30 ) {
+                break;
+            }
+        }
+
+        return $units;
     }
 
     private function frontend_schema_author_ids( string $body ): array {
@@ -465,10 +553,15 @@ final class Ajax {
     private function multi_author_test_html( array $report ): string {
         $ok_hook = ! empty( $report["hook_rendered"] );
         $ok_schema = ! empty( $report["schema_matches"] ) && ! empty( $report["frontend_schema_matches"] );
+        $boundary_issues = array_filter(
+            (array) ( $report["detected_units"] ?? [] ),
+            static fn( array $unit ): bool => ! empty( $unit["has_share_text"] ) || ! empty( $unit["has_read_time_text"] )
+        );
         $html = "<div class=\"smpi-test-proof\">";
         $html .= "<p>" . ( $ok_hook ? "<span class=\"smpi-ico smpi-ico--ok\">✓</span>" : "<span class=\"smpi-ico smpi-ico--warn\">!</span>" ) . " <strong>" . esc_html( (string) $report["title"] ) . "</strong> <a target=\"_blank\" rel=\"noopener noreferrer\" href=\"" . esc_url( (string) $report["permalink"] ) . "\">Open post</a></p>";
         $html .= "<div class=\"smpi-test-proof-grid\">";
         $html .= "<div><strong>Feature enabled</strong><br>" . ( ! empty( $report["enabled"] ) ? "Yes" : "No" ) . "</div>";
+        $html .= "<div><strong>Loop/card mode</strong><br><code>" . esc_html( (string) ( $report["loop_output"] ?? "comma" ) ) . "</code>" . ( ! empty( $report["loop_cards_disabled"] ) ? "<br>Loop cards forced to primary only." : "" ) . "</div>";
         $html .= "<div><strong>Resolved authors</strong><br><code>" . esc_html( implode( ", ", (array) $report["resolved_ids"] ) ) . "</code></div>";
         $html .= "<div><strong>Schema match</strong><br>" . ( $ok_schema ? "Yes" : "No" ) . "</div>";
         $html .= "<div><strong>Elementor hook</strong><br>" . ( ! empty( $report["hook_ready"] ) ? "Target matched" : "Missing target" ) . "</div>";
@@ -485,6 +578,30 @@ final class Ajax {
             $html .= "<tr><td>" . esc_html( (string) $index ) . "</td><td>" . esc_html( $name ) . " (#" . esc_html( (string) $author["id"] ) . ")</td><td>" . esc_html( (string) $author["email"] ) . "</td><td><code>" . esc_html( (string) $author["url"] ) . "</code></td><td>" . esc_html( (string) $count ) . "</td><td>" . esc_html( (string) $link_count ) . "</td></tr>";
         }
         $html .= "</tbody></table>";
+        $html .= "<h3>Detected author units</h3>";
+        if ( empty( $report["detected_units"] ) ) {
+            $html .= "<p class=\"smpi-alert smpi-alert-warning\">No marked author unit was found. Add <code>smp-author</code> to the exact author identity container, or rely on the loop-card fallback where Elementor exposes a native author link.</p>";
+        } else {
+            $html .= "<table class=\"widefat striped\"><thead><tr><th>#</th><th>Class</th><th>Author ID</th><th>Author links</th><th>Boundary flags</th><th>Detected text</th></tr></thead><tbody>";
+            foreach ( (array) $report["detected_units"] as $index => $unit ) {
+                $links = [];
+                foreach ( (array) ( $unit["author_links"] ?? [] ) as $href ) {
+                    $links[] = "<code>" . esc_html( (string) $href ) . "</code>";
+                }
+                $flags = [];
+                if ( ! empty( $unit["has_share_text"] ) ) {
+                    $flags[] = "Share inside unit";
+                }
+                if ( ! empty( $unit["has_read_time_text"] ) ) {
+                    $flags[] = "Read-time inside unit";
+                }
+                $html .= "<tr><td>" . esc_html( (string) $index ) . "</td><td><code>" . esc_html( (string) ( $unit["classes"] ?? "" ) ) . "</code></td><td><code>" . esc_html( (string) ( $unit["author_id"] ?? "" ) ) . "</code></td><td>" . ( $links ? implode( "<br>", $links ) : "<span class=\"smpi-muted\">none</span>" ) . "</td><td>" . ( $flags ? esc_html( implode( ", ", $flags ) ) : "OK" ) . "</td><td>" . esc_html( (string) ( $unit["text"] ?? "" ) ) . "</td></tr>";
+            }
+            $html .= "</tbody></table>";
+        }
+        if ( ! empty( $boundary_issues ) ) {
+            $html .= "<p class=\"smpi-alert smpi-alert-warning smpi-detected-unit-warning\">At least one detected author unit includes Share or read-time text. Move <code>smp-author</code> down to the smallest repeated author identity unit so the plugin does not duplicate unrelated controls.</p>";
+        }
         $html .= "<p class=\"smpi-muted\">Generated schema authors: <code>" . esc_html( implode( ", ", (array) $report["generated_schema_author_ids"] ) ) . "</code></p>";
         $html .= "<p class=\"smpi-muted\">Fetched frontend schema authors: <code>" . esc_html( implode( ", ", (array) $report["frontend_schema_author_ids"] ) ) . "</code></p>";
         if ( ! $ok_hook ) {
