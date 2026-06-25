@@ -7,7 +7,13 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.6.121`
+- Version: `0.6.124`
+
+## 0.6.124 Updates
+
+- Added inline-photo legacy caption normalization so raw editor markup like image plus italic `Photo credit` text is converted into a real figure/figcaption pair before treatments apply.
+- Extended inline-photo treatment selectors to include normalized `.smpi-inline-photo` wrappers, making Treatment 2 caption plates work on older non-figure article markup.
+- Brought the live author template helper bootstrap into the tracked package so the Git release matches the active site package.
 
 ## 0.6.121 Updates
 

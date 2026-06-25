@@ -239,9 +239,9 @@ final class ArticleStyles {
         if ( "none" === $style || ! Settings::bool( "inline_photo_treatments_enabled" ) ) {
             return "";
         }
-        $fig = "body.single-post .elementor-widget-theme-post-content figure,body.single-post .entry-content figure,body.single-post .wp-caption,body.single-press-release .elementor-widget-theme-post-content figure,body.single-press-release .entry-content figure,body.single-press-release .wp-caption";
-        $img = ".elementor-widget-theme-post-content figure img,.entry-content figure img,.wp-caption img";
-        $cap = ".elementor-widget-theme-post-content figure figcaption,.entry-content figure figcaption,.wp-caption .wp-caption-text";
+        $fig = "body.single-post .elementor-widget-theme-post-content figure,body.single-post .entry-content figure,body.single-post .wp-caption,body.single-post .smpi-inline-photo,body.single-press-release .elementor-widget-theme-post-content figure,body.single-press-release .entry-content figure,body.single-press-release .wp-caption,body.single-press-release .smpi-inline-photo";
+        $img = ".elementor-widget-theme-post-content figure img,.entry-content figure img,.wp-caption img,.smpi-inline-photo img";
+        $cap = ".elementor-widget-theme-post-content figure figcaption,.entry-content figure figcaption,.wp-caption .wp-caption-text,.smpi-inline-photo figcaption";
         return self::inline_photo_rules( $style, $fig, $img, $cap );
     }
 
