@@ -35,9 +35,11 @@ final class InlinePhotoTreatments {
             return $html;
         }
 
+        $caption_prefix = "(?:Photo(?:\\s+credit)?|Image(?:\\s+credit)?|Credit)";
+        $image_pattern = "<img\\b(?=[^>]*\\bsrc=)[^>]*>";
         $patterns = [
-            '~<p>\s*(?:<b\b[^>]*>\s*)?(<img\b(?=[^>]*\bwp-image-\d+)[^>]*>)\s*(?:<br\s*/?>\s*)?(?:</b>\s*)?(?:<br\s*/?>\s*)?<i\b[^>]*>\s*(?:<span\b[^>]*>\s*)?((?:Photo|Image|Photo\s+credit|Image\s+credit|Credit)[^<]{3,500})\s*(?:</span>\s*)?</i>\s*</p>~i',
-            '~<p>\s*<i\b[^>]*>\s*(?:<span\b[^>]*>\s*)?(<img\b(?=[^>]*\bwp-image-\d+)[^>]*>)\s*(?:<br\s*/?>\s*)?((?:Photo|Image|Photo\s+credit|Image\s+credit|Credit)[^<]{3,500})\s*(?:</span>\s*)?</i>\s*</p>~i',
+            "~<p>\\s*(?:<b\\b[^>]*>\\s*)?(" . $image_pattern . ")\\s*(?:<br\\s*/?>\\s*)?(?:</b>\\s*)?(?:<br\\s*/?>\\s*)?<i\\b[^>]*>\\s*(?:<span\\b[^>]*>\\s*)?(" . $caption_prefix . "[^<]{3,500})\\s*(?:</span>\\s*)?</i>\\s*</p>~i",
+            "~<p>\\s*<i\\b[^>]*>\\s*(?:<span\\b[^>]*>\\s*)?(" . $image_pattern . ")\\s*(?:<br\\s*/?>\\s*)?(" . $caption_prefix . "[^<]{3,500})\\s*(?:</span>\\s*)?</i>\\s*</p>~i",
         ];
 
         foreach ( $patterns as $pattern ) {

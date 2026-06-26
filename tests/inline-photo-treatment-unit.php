@@ -43,5 +43,18 @@ Photo credit: Brooke Triplett, used with permission.</span></i></p>';
     assert_true( false !== strpos( $normalized_two, 'class="smpi-inline-photo smpi-inline-photo--fig2"' ), "same-italic-node image/caption pair is wrapped" );
     assert_true( false !== strpos( $normalized_two, "<figcaption>Photo credit: Brooke Triplett, used with permission.</figcaption>" ), "same-node caption text moves into figcaption" );
 
+
+    $sanitized_bold = "<p><b><img src=\"https://example.com/photo-3.jpg\" alt=\"\" width=\"800\" height=\"1000\" />\n</b><i>Photo credit: Brooke Triplett, used with permission.</i></p>";
+    $normalized_sanitized_bold = InlinePhotoTreatments::normalize_legacy_caption_markup( $sanitized_bold, "fig2" );
+
+    assert_true( false !== strpos( $normalized_sanitized_bold, "class=\"smpi-inline-photo smpi-inline-photo--fig2\"" ), "sanitized bold image/caption pair is wrapped without wp-image class" );
+    assert_true( false !== strpos( $normalized_sanitized_bold, "<figcaption>Photo credit: Brooke Triplett, used with permission.</figcaption>" ), "sanitized bold caption text moves into figcaption" );
+
+    $sanitized_italic = "<p><i><img src=\"https://example.com/photo-4.jpg\" alt=\"\" width=\"400\" height=\"600\" /><br>\nPhoto credit: Brooke Triplett, used with permission.</i></p>";
+    $normalized_sanitized_italic = InlinePhotoTreatments::normalize_legacy_caption_markup( $sanitized_italic, "fig2" );
+
+    assert_true( false !== strpos( $normalized_sanitized_italic, "class=\"smpi-inline-photo smpi-inline-photo--fig2\"" ), "sanitized italic image/caption pair is wrapped without wp-image class" );
+    assert_true( false !== strpos( $normalized_sanitized_italic, "<figcaption>Photo credit: Brooke Triplett, used with permission.</figcaption>" ), "sanitized italic caption text moves into figcaption" );
+
     echo "PASS: inline photo treatment normalization tests" . PHP_EOL;
 }

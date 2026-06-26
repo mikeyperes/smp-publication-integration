@@ -228,7 +228,7 @@ final class PostHygiene {
             "p" => $common, "h1" => $common, "h2" => $common, "h3" => $common, "h4" => $common, "h5" => $common, "h6" => $common,
             "ul" => $common, "ol" => $common, "li" => $common, "blockquote" => $common, "strong" => $common, "b" => $common, "em" => $common, "i" => $common, "br" => [],
             "a" => array_merge( $common, [ "href" => true, "target" => true, "rel" => true, "title" => true ] ),
-            "img" => [ "src" => true, "alt" => true, "width" => true, "height" => true, "loading" => true, "decoding" => true, "srcset" => true, "sizes" => true ],
+            "img" => array_merge( $common, [ "src" => true, "alt" => true, "width" => true, "height" => true, "loading" => true, "decoding" => true, "srcset" => true, "sizes" => true ] ),
             "figure" => $common, "figcaption" => $common,
             "table" => $common, "thead" => $common, "tbody" => $common, "tr" => $common, "th" => array_merge( $common, [ "scope" => true, "colspan" => true, "rowspan" => true ] ), "td" => array_merge( $common, [ "colspan" => true, "rowspan" => true ] ),
         ];
