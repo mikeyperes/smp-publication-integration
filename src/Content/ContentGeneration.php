@@ -2,6 +2,7 @@
 namespace smp_publication_integration\Content;
 
 use Hexa\PluginCore\CredentialVault\CredentialStore;
+use Hexa\PluginCore\WpAdminComponents\DynamicButton;
 use smp_publication_integration\Admin\Ajax;
 use smp_publication_integration\Config;
 use smp_publication_integration\Support\Settings;
@@ -55,7 +56,7 @@ final class ContentGeneration {
             <div class="smpi-card-grid smpi-card-grid--three">
                 <div class="smpi-feature-card"><h3>API base</h3><input class="regular-text smpi-setting" data-key="content_generation_api_base" value="<?php echo esc_attr( (string) $settings["content_generation_api_base"] ); ?>"><span class="spinner"></span><span class="smpi-save-state"></span></div>
                 <div class="smpi-feature-card"><h3>Timeout</h3><label><input class="small-text smpi-setting" type="number" min="5" max="120" data-key="content_generation_timeout" value="<?php echo esc_attr( (string) $settings["content_generation_timeout"] ); ?>"> seconds</label><span class="spinner"></span><span class="smpi-save-state"></span></div>
-                <div class="smpi-feature-card"><h3>API key</h3><p>Stored in Hexa Credential Vault. <?php echo esc_html( $fallback ); ?>.</p><p><code data-smpi-content-key-mask><?php echo esc_html( $masked ?: "No SMP key saved" ); ?></code></p><input class="regular-text" type="password" autocomplete="new-password" data-smpi-content-api-key placeholder="Paste SMP content API key"><p><button type="button" class="button button-primary" data-smpi-save-content-key>Save key</button> <button type="button" class="button" data-smpi-test-content-api>Test connection</button> <span class="spinner"></span> <span data-smpi-content-key-state></span></p></div>
+                <div class="smpi-feature-card"><h3>API key</h3><p>Stored in Hexa Credential Vault. <?php echo esc_html( $fallback ); ?>.</p><p><code data-smpi-content-key-mask><?php echo esc_html( $masked ?: "No SMP key saved" ); ?></code></p><input class="regular-text" type="password" autocomplete="new-password" data-smpi-content-api-key placeholder="Paste SMP content API key"><p><?php echo $this->dynamic_button( [ "label" => "Save key", "working_label" => "Saving key...", "success_label" => "Key saved", "error_label" => "Save failed", "class" => "button button-primary", "attrs" => [ "data-smpi-save-content-key" => "1" ] ] ); ?> <?php echo $this->dynamic_button( [ "label" => "Test connection", "working_label" => "Testing...", "success_label" => "Connected", "error_label" => "Failed", "class" => "button", "attrs" => [ "data-smpi-test-content-api" => "1" ] ] ); ?> <span class="spinner"></span> <span data-smpi-content-key-state></span></p></div>
             </div>
 
             <div class="smpi-feature-card">
@@ -74,12 +75,9 @@ final class ContentGeneration {
     }
 
     public function add_meta_boxes(): void {
-        if ( ! Settings::bool( "content_generation_enabled" ) ) {
-            return;
-        }
-        foreach ( [ "post", "press-release", "press_release" ] as $post_type ) {
-            add_meta_box( "smpi-content-generation", "SMP Content Generation", [ $this, "render_meta_box" ], $post_type, "side", "default" );
-        }
+        // Generation controls are installed inline beside their target fields.
+        // Keep the old side metabox disabled so buttons do not appear away from the content they update.
+        return;
     }
 
     public function render_meta_box( \WP_Post $post ): void {
@@ -87,7 +85,7 @@ final class ContentGeneration {
         echo "<p>Generate excerpt, summary, or FAQs from the current post content.</p>";
         foreach ( [ "excerpt" => "Generate excerpt", "summary" => "Generate summary", "faqs" => "Generate FAQs" ] as $target => $label ) {
             echo "<div class=\"smpi-generation-control\" data-smpi-generation-control=\"" . esc_attr( $target ) . "\">";
-            echo "<div class=\"smpi-generation-actions\"><button type=\"button\" class=\"button button-secondary smpi-generate-content-button\" data-smpi-generate-target=\"" . esc_attr( $target ) . "\">" . esc_html( $label ) . "</button><span class=\"spinner\"></span><span class=\"smpi-generation-status\">Ready.</span></div>";
+            echo "<div class=\"smpi-generation-actions\">" . $this->dynamic_button( [ "label" => $label, "working_label" => "Creating " . $target . "...", "success_label" => ucfirst( $target ) . " saved", "error_label" => "Failed", "class" => "button button-secondary smpi-generate-content-button", "attrs" => [ "data-smpi-generate-target" => $target ] ] ) . "<span class=\"spinner\"></span><span class=\"smpi-generation-status\">Ready.</span></div>";
             echo "<div class=\"smpi-generation-log\" data-smpi-generation-log>";
             $entries = $this->target_log_entries( $log, $target, 5 );
             if ( empty( $entries ) ) {
@@ -112,35 +110,110 @@ final class ContentGeneration {
         }
         ?>
         <style>
-        .smpi-generation-control{border:1px solid #d7deea;border-radius:10px;margin:12px 0;padding:12px;background:#f8fafc}.smpi-generation-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.smpi-generation-log{font-size:12px;line-height:1.5;margin-top:8px}.smpi-generation-status.is-ok{color:#138a36}.smpi-generation-status.is-error{color:#b42318}.smpi-generation-status.is-working{color:#3858e9}
+        .smpi-generation-control{border:1px solid #d7deea;border-radius:10px;margin:12px 0;padding:12px;background:#f8fafc}.smpi-generation-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.smpi-generation-log{font-size:12px;line-height:1.5;margin-top:8px}.smpi-generation-status.is-ok{color:#138a36}.smpi-generation-status.is-error{color:#b42318}.smpi-generation-status.is-working{color:#3858e9}.smpi-generation-control .hpc-dynamic-button{min-height:32px}
         </style>
         <script>
         jQuery(function($){
             const config = {ajaxUrl: window.ajaxurl, nonce: <?php echo wp_json_encode( Ajax::nonce() ); ?>, postId: <?php echo (int) $post_id; ?>};
             const targets = [
-                {key:"excerpt", label:"excerpt", button:"Generate excerpt", host:"#postexcerpt .inside, #submitpost", field:"#excerpt"},
-                {key:"summary", label:"post summary", button:"Generate summary", host:"[data-name=\"post_summary\"], .acf-field[data-name=\"post_summary\"]", field:"[data-name=\"post_summary\"] textarea, .acf-field[data-name=\"post_summary\"] textarea"},
-                {key:"faqs", label:"FAQs", button:"Generate FAQs", host:"[data-name=\"post_faq_items\"], .acf-field[data-name=\"post_faq_items\"]", field:""}
+                {key:"excerpt", label:"excerpt", button:"Generate excerpt", host:"#postexcerpt #excerpt, #postexcerpt textarea[name=\"excerpt\"]", field:"#excerpt", placement:"afterField"},
+                {key:"summary", label:"post summary", button:"Generate summary", host:"[data-name=\"post_summary\"], .acf-field[data-name=\"post_summary\"]", field:"[data-name=\"post_summary\"] textarea, .acf-field[data-name=\"post_summary\"] textarea", placement:"afterHost"},
+                {key:"faqs", label:"FAQs", button:"Generate FAQs", host:"[data-key=\"field_smpi_post_faq_accordion\"], .acf-field-smpi-post-faq-accordion, .acf-field[data-name=\"post_faq_items\"]", field:"", placement:"beforeHost"}
             ];
             function state(control, type, text){control.find(".smpi-generation-status").removeClass("is-ok is-error is-working").addClass("is-" + type).text(text);control.find(".spinner").toggleClass("is-active", type === "working");}
             function log(control, type, text){const line=$("<div/>").append($("<strong/>").text(type + " ")).append(document.createTextNode(text));control.find(".smpi-generation-log").first().prepend(line);}
-            function updateVisibleField(target, value){if(!value){return;} const meta=targets.find(function(item){return item.key===target;}); if(!meta || !meta.field){return;} const field=$(meta.field).first(); if(!field.length){return;} field.val(value).trigger("change");}
-            function install(meta){const host=$(meta.host).first(); if(!host.length || host.data("smpiGenerationInstalled")){return;} host.data("smpiGenerationInstalled", true); const control=$("<div class=\"smpi-generation-control\" data-smpi-generation-control=\""+meta.key+"\"><div class=\"smpi-generation-actions\"><button type=\"button\" class=\"button button-primary\" data-smpi-generate-target=\""+meta.key+"\">"+meta.button+"</button><span class=\"spinner\"></span><span class=\"smpi-generation-status\">Ready.</span></div><div class=\"smpi-generation-log\"></div></div>"); host.append(control);}
+            function syncEditor(field, value){field.val(value).trigger("input").trigger("change"); const id=field.attr("id"); if(id && window.tinymce && window.tinymce.get(id)){window.tinymce.get(id).setContent(value || ""); window.tinymce.get(id).fire("change"); window.tinymce.triggerSave();}}
+            function updateVisibleField(target, value){if(value===undefined || value===null){return false;} if(target==="faqs"){return updateFaqRepeater(value);} const meta=targets.find(function(item){return item.key===target;}); if(!meta || !meta.field){return false;} const field=$(meta.field).first(); if(!field.length){return false;} syncEditor(field, value); return true;}
+            function faqRows(repeater){return repeater.find(".acf-row:not(.acf-clone)").filter(function(){return $(this).closest(".acf-field[data-name='post_faq_items']")[0]===repeater[0];});}
+            function setFaqSubField(row, name, value){const field=row.find(".acf-field[data-name='"+name+"']").first(); const input=field.find("textarea, input[type='text']").first(); if(input.length){syncEditor(input, value || "");}}
+            function updateFaqRepeater(value){
+                const rows = Array.isArray(value) ? value : ((value && Array.isArray(value.faqs)) ? value.faqs : []);
+                const repeater = $(".acf-field[data-name=post_faq_items]").first();
+                if (!rows.length || !repeater.length) {
+                    return false;
+                }
+
+                faqRows(repeater).each(function(){
+                    const row = $(this);
+                    if (window.tinymce) {
+                        row.find("textarea.wp-editor-area").each(function(){
+                            const id = $(this).attr("id");
+                            const editor = id ? window.tinymce.get(id) : null;
+                            if (editor) {
+                                window.tinymce.remove(editor);
+                            }
+                        });
+                    }
+                    row.remove();
+                });
+
+                const clone = repeater.find(".acf-row.acf-clone").first();
+                if (!clone.length) {
+                    return false;
+                }
+
+                rows.forEach(function(item, index){
+                    const row = clone.clone(false, false).removeClass("acf-clone").removeAttr("data-id").show();
+                    row.find("[id]").each(function(){
+                        const el = $(this);
+                        el.attr("id", (el.attr("id") || "").replace(/acfcloneindex/g, index));
+                    });
+                    row.find("[for]").each(function(){
+                        const el = $(this);
+                        el.attr("for", (el.attr("for") || "").replace(/acfcloneindex/g, index));
+                    });
+                    row.find("[name]").each(function(){
+                        const el = $(this);
+                        el.attr("name", (el.attr("name") || "").replace(/acfcloneindex/g, index));
+                    });
+                    row.find("input, textarea, select, button").prop("disabled", false).removeAttr("disabled");
+                    clone.before(row);
+                    setFaqSubField(row, "question", item.question || "");
+                    setFaqSubField(row, "answer", item.answer || "");
+                    if (window.acf && window.acf.doAction) {
+                        window.acf.doAction("append", row);
+                    }
+                });
+
+                const schema = $("[data-key=field_smpi_post_faq_schema_enabled] input[type=checkbox]").first();
+                if (schema.length && !schema.is(":checked")) {
+                    schema.prop("checked", true).trigger("change");
+                }
+                if (window.tinymce) {
+                    window.tinymce.triggerSave();
+                }
+                if (window.acf && window.acf.doAction) {
+                    window.acf.doAction("change", repeater);
+                }
+
+                const painted = faqRows(repeater).map(function(){
+                    const row = $(this);
+                    const question = row.find("[data-key=field_smpi_post_faq_question] input, .acf-field[data-name=question] input[type=text]").first().val() || "";
+                    const answer = row.find("[data-key=field_smpi_post_faq_answer] textarea, .acf-field[data-name=answer] textarea").first().val() || "";
+                    return question.length > 0 && answer.length > 0;
+                }).get();
+                return painted.length === rows.length && painted.every(Boolean);
+            }
+
+            function buttonHtml(meta){return "<button type=\"button\" class=\"hpc-dynamic-button button button-primary smpi-generate-content-button\" data-hpc-dynamic-button data-default-label=\""+meta.button+"\" data-working-label=\"Creating "+meta.key+"...\" data-success-label=\"Saved\" data-error-label=\"Failed\" data-smpi-generate-target=\""+meta.key+"\" aria-live=\"polite\"><span class=\"hpc-dynamic-button-spinner\" aria-hidden=\"true\"></span><span class=\"hpc-dynamic-button-icon\" aria-hidden=\"true\"></span><span class=\"hpc-dynamic-button-label\">"+meta.button+"</span></button>";}
+            function install(meta){if($("[data-smpi-generation-control=\""+meta.key+"\"].smpi-generation-inline").length){return;} const host=$(meta.host).first(); if(!host.length){return;} const control=$("<div class=\"smpi-generation-control smpi-generation-inline\" data-smpi-generation-control=\""+meta.key+"\"><div class=\"smpi-generation-actions\">"+buttonHtml(meta)+"<span class=\"spinner\"></span><span class=\"smpi-generation-status\">Ready.</span></div><div class=\"smpi-generation-log\"></div></div>"); if(meta.placement==="beforeHost"){host.before(control);return;} if(meta.placement==="afterField"){const field=$(meta.field).first(); if(field.length){field.after(control);return;}} if(meta.placement==="afterHost"){host.after(control);return;} host.append(control);}
             targets.forEach(install);
             $(document).on("click", "[data-smpi-generate-target]", function(){
                 const button=$(this); const target=button.data("smpi-generate-target"); const control=button.closest("[data-smpi-generation-control], #smpi-content-generation");
-                button.prop("disabled", true); state(control, "working", "Creating " + target + "..."); log(control, "working", "Creating " + target + ".");
+                button.prop("disabled", true); if(window.HexaWpCoreDynamicButton){ window.HexaWpCoreDynamicButton.start(button, "Creating " + target + "..."); } state(control, "working", "Creating " + target + "..."); log(control, "working", "Creating " + target + ".");
                 $.post(config.ajaxUrl, {action:"smpi_generate_content", nonce:config.nonce, post_id:config.postId, target:target}).done(function(response){
                     const ok=!!(response && response.success); const data=(response && response.data) || {}; const message=data.message || (ok ? "Generated." : "Generation failed.");
-                    state(control, ok ? "ok" : "error", (ok ? "✓ " : "✕ ") + message); log(control, ok ? "ok" : "error", message);
+                    state(control, ok ? "ok" : "error", (ok ? "✓ " : "✕ ") + message); if(window.HexaWpCoreDynamicButton){ ok ? window.HexaWpCoreDynamicButton.success(button, message) : window.HexaWpCoreDynamicButton.error(button, message, false); } log(control, ok ? "ok" : "error", message);
                     if(data.log && Array.isArray(data.log)){
                         const logBox = control.find(".smpi-generation-log").first();
                         logBox.empty();
                         data.log.slice().reverse().filter(function(entry){ return !entry.target || entry.target === target; }).slice(0,5).forEach(function(entry){ log(control, entry.status || "log", entry.message || ""); });
                     }
-                    if(ok && data.value){ updateVisibleField(target, data.value); }
-                    if(ok && target === "faqs"){ log(control, "ok", "FAQ rows saved. Reload the editor to see repeater rows."); }
-                }).fail(function(xhr){ const message="HTTP " + (xhr.status || 0) + " request failed."; state(control, "error", "✕ " + message); log(control, "error", message); }).always(function(){ button.prop("disabled", false); });
+                    if(ok && Object.prototype.hasOwnProperty.call(data, "value")){
+                        const visibleUpdated = updateVisibleField(target, data.value);
+                        if(!visibleUpdated && target === "faqs"){ log(control, "ok", "FAQ rows saved. Refresh if the repeater UI does not repaint."); }
+                    }
+                }).fail(function(xhr){ const message="HTTP " + (xhr.status || 0) + " request failed."; state(control, "error", "✕ " + message); if(window.HexaWpCoreDynamicButton){ window.HexaWpCoreDynamicButton.error(button, message, false); } log(control, "error", message); }).always(function(){ button.prop("disabled", false); });
             });
         });
         </script>
@@ -166,18 +239,18 @@ final class ContentGeneration {
             }
             $(document).on("click", "[data-smpi-save-content-key]", function(){
                 const button = $(this); const card = button.closest(".smpi-feature-card");
-                button.prop("disabled", true); state(card, "working", "Saving API key...");
+                button.prop("disabled", true); if(window.HexaWpCoreDynamicButton){ window.HexaWpCoreDynamicButton.start(button, "Saving key..."); } state(card, "working", "Saving API key...");
                 $.post(window.ajaxurl, {action:"smpi_content_generation_save_key", nonce:nonce, api_key:card.find("[data-smpi-content-api-key]").val() || ""})
-                    .done(function(response){ const data = (response && response.data) || {}; if (response && response.success) { card.find("[data-smpi-content-key-mask]").text(data.masked || "No SMP key saved"); card.find("[data-smpi-content-api-key]").val(""); state(card, "ok", "Saved: " + (data.message || "API key saved.")); } else { state(card, "error", "Failed: " + (data.message || "Save failed.")); } })
-                    .fail(function(xhr){ state(card, "error", "Failed: HTTP " + (xhr.status || 0) + " save failed."); })
+                    .done(function(response){ const data = (response && response.data) || {}; if (response && response.success) { card.find("[data-smpi-content-key-mask]").text(data.masked || "No SMP key saved"); card.find("[data-smpi-content-api-key]").val(""); state(card, "ok", "Saved: " + (data.message || "API key saved.")); if(window.HexaWpCoreDynamicButton){ window.HexaWpCoreDynamicButton.success(button, "Key saved"); } } else { state(card, "error", "Failed: " + (data.message || "Save failed.")); if(window.HexaWpCoreDynamicButton){ window.HexaWpCoreDynamicButton.error(button, "Save failed", false); } } })
+                    .fail(function(xhr){ state(card, "error", "Failed: HTTP " + (xhr.status || 0) + " save failed."); if(window.HexaWpCoreDynamicButton){ window.HexaWpCoreDynamicButton.error(button, "Save failed", false); } })
                     .always(function(){ button.prop("disabled", false); });
             });
             $(document).on("click", "[data-smpi-test-content-api]", function(){
                 const button = $(this); const card = button.closest(".smpi-feature-card");
-                button.prop("disabled", true); state(card, "working", "Testing API connection...");
+                button.prop("disabled", true); if(window.HexaWpCoreDynamicButton){ window.HexaWpCoreDynamicButton.start(button, "Testing..."); } state(card, "working", "Testing API connection...");
                 $.post(window.ajaxurl, {action:"smpi_content_generation_test", nonce:nonce})
-                    .done(function(response){ const data = (response && response.data) || {}; state(card, response && response.success ? "ok" : "error", (response && response.success ? "Connected: " : "Failed: " ) + (data.message || "Connection test failed.")); })
-                    .fail(function(xhr){ state(card, "error", "Failed: HTTP " + (xhr.status || 0) + " test failed."); })
+                    .done(function(response){ const data = (response && response.data) || {}; state(card, response && response.success ? "ok" : "error", (response && response.success ? "Connected: " : "Failed: " ) + (data.message || "Connection test failed.")); if(window.HexaWpCoreDynamicButton){ response && response.success ? window.HexaWpCoreDynamicButton.success(button, "Connected") : window.HexaWpCoreDynamicButton.error(button, "Failed", false); } })
+                    .fail(function(xhr){ state(card, "error", "Failed: HTTP " + (xhr.status || 0) + " test failed."); if(window.HexaWpCoreDynamicButton){ window.HexaWpCoreDynamicButton.error(button, "Failed", false); } })
                     .always(function(){ button.prop("disabled", false); });
             });
         });
@@ -246,6 +319,26 @@ final class ContentGeneration {
         $message = ucfirst( $target ) . " saved.";
         $this->add_generation_log( $post_id, "ok", $message, $target );
         wp_send_json_success( [ "message" => $message, "value" => $value, "log" => $this->generation_log( $post_id ) ] );
+    }
+
+
+    private function dynamic_button( array $args ): string {
+        if ( class_exists( DynamicButton::class ) ) {
+            return DynamicButton::render( $args );
+        }
+        $label = (string) ( $args["label"] ?? "Run" );
+        $class = trim( (string) ( $args["class"] ?? "button" ) );
+        $attrs = "";
+        foreach ( (array) ( $args["attrs"] ?? [] ) as $name => $value ) {
+            if ( null === $value || false === $value ) {
+                continue;
+            }
+            $attrs .= " " . esc_attr( (string) $name );
+            if ( true !== $value ) {
+                $attrs .= "=\"" . esc_attr( (string) $value ) . "\"";
+            }
+        }
+        return "<button type=\"button\" class=\"" . esc_attr( $class ) . "\"" . $attrs . ">" . esc_html( $label ) . "</button>";
     }
 
     private function switch_control( string $key, bool $enabled ): string {
@@ -371,8 +464,8 @@ final class ContentGeneration {
                 return new \WP_Error( "smpi_content_faq_empty", "API response did not include FAQ question and answer rows." );
             }
             if ( function_exists( "update_field" ) ) {
-                update_field( "post_faq_items", $rows, $post_id );
-                update_field( "post_faq_schema_enabled", 1, $post_id );
+                update_field( "field_smpi_post_faq_items", $rows, $post_id );
+                update_field( "field_smpi_post_faq_schema_enabled", 1, $post_id );
             } else {
                 update_post_meta( $post_id, "post_faq_items", $rows );
                 update_post_meta( $post_id, "post_faq_schema_enabled", 1 );
