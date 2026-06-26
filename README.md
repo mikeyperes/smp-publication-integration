@@ -7,7 +7,11 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.6.127`
+- Version: `0.6.128`
+
+## 0.6.128 Updates
+
+- Improved Content Generation editor controls so side metabox actions use the same creating, success/error, and per-target activity log feedback as field-level controls.
 
 ## 0.6.127 Updates
 

@@ -86,17 +86,19 @@ final class ContentGeneration {
         $log = $this->generation_log( $post->ID );
         echo "<p>Generate excerpt, summary, or FAQs from the current post content.</p>";
         foreach ( [ "excerpt" => "Generate excerpt", "summary" => "Generate summary", "faqs" => "Generate FAQs" ] as $target => $label ) {
-            echo "<p><button type=\"button\" class=\"button button-secondary smpi-generate-content-button\" data-smpi-generate-target=\"" . esc_attr( $target ) . "\">" . esc_html( $label ) . "</button></p>";
-        }
-        echo "<div class=\"smpi-generation-log\" data-smpi-generation-log>";
-        if ( empty( $log ) ) {
-            echo "<p>No generation activity for this post yet.</p>";
-        } else {
-            foreach ( array_slice( array_reverse( $log ), 0, 5 ) as $entry ) {
-                echo "<p><strong>" . esc_html( $entry["status"] ?? "log" ) . "</strong> " . esc_html( $entry["message"] ?? "" ) . "</p>";
+            echo "<div class=\"smpi-generation-control\" data-smpi-generation-control=\"" . esc_attr( $target ) . "\">";
+            echo "<div class=\"smpi-generation-actions\"><button type=\"button\" class=\"button button-secondary smpi-generate-content-button\" data-smpi-generate-target=\"" . esc_attr( $target ) . "\">" . esc_html( $label ) . "</button><span class=\"spinner\"></span><span class=\"smpi-generation-status\">Ready.</span></div>";
+            echo "<div class=\"smpi-generation-log\" data-smpi-generation-log>";
+            $entries = $this->target_log_entries( $log, $target, 5 );
+            if ( empty( $entries ) ) {
+                echo "<p>No " . esc_html( $target ) . " generation activity yet.</p>";
+            } else {
+                foreach ( $entries as $entry ) {
+                    echo "<p><strong>" . esc_html( $entry["status"] ?? "log" ) . "</strong> " . esc_html( $entry["message"] ?? "" ) . "</p>";
+                }
             }
+            echo "</div></div>";
         }
-        echo "</div>";
     }
 
     public function post_footer_script(): void {
@@ -121,7 +123,7 @@ final class ContentGeneration {
                 {key:"faqs", label:"FAQs", button:"Generate FAQs", host:"[data-name=\"post_faq_items\"], .acf-field[data-name=\"post_faq_items\"]", field:""}
             ];
             function state(control, type, text){control.find(".smpi-generation-status").removeClass("is-ok is-error is-working").addClass("is-" + type).text(text);control.find(".spinner").toggleClass("is-active", type === "working");}
-            function log(control, type, text){const line=$("<div/>").append($("<strong/>").text(type + " ")).append(document.createTextNode(text));control.find(".smpi-generation-log").prepend(line);}
+            function log(control, type, text){const line=$("<div/>").append($("<strong/>").text(type + " ")).append(document.createTextNode(text));control.find(".smpi-generation-log").first().prepend(line);}
             function updateVisibleField(target, value){if(!value){return;} const meta=targets.find(function(item){return item.key===target;}); if(!meta || !meta.field){return;} const field=$(meta.field).first(); if(!field.length){return;} field.val(value).trigger("change");}
             function install(meta){const host=$(meta.host).first(); if(!host.length || host.data("smpiGenerationInstalled")){return;} host.data("smpiGenerationInstalled", true); const control=$("<div class=\"smpi-generation-control\" data-smpi-generation-control=\""+meta.key+"\"><div class=\"smpi-generation-actions\"><button type=\"button\" class=\"button button-primary\" data-smpi-generate-target=\""+meta.key+"\">"+meta.button+"</button><span class=\"spinner\"></span><span class=\"smpi-generation-status\">Ready.</span></div><div class=\"smpi-generation-log\"></div></div>"); host.append(control);}
             targets.forEach(install);
@@ -131,6 +133,11 @@ final class ContentGeneration {
                 $.post(config.ajaxUrl, {action:"smpi_generate_content", nonce:config.nonce, post_id:config.postId, target:target}).done(function(response){
                     const ok=!!(response && response.success); const data=(response && response.data) || {}; const message=data.message || (ok ? "Generated." : "Generation failed.");
                     state(control, ok ? "ok" : "error", (ok ? "✓ " : "✕ ") + message); log(control, ok ? "ok" : "error", message);
+                    if(data.log && Array.isArray(data.log)){
+                        const logBox = control.find(".smpi-generation-log").first();
+                        logBox.empty();
+                        data.log.slice().reverse().filter(function(entry){ return !entry.target || entry.target === target; }).slice(0,5).forEach(function(entry){ log(control, entry.status || "log", entry.message || ""); });
+                    }
                     if(ok && data.value){ updateVisibleField(target, data.value); }
                     if(ok && target === "faqs"){ log(control, "ok", "FAQ rows saved. Reload the editor to see repeater rows."); }
                 }).fail(function(xhr){ const message="HTTP " + (xhr.status || 0) + " request failed."; state(control, "error", "✕ " + message); log(control, "error", message); }).always(function(){ button.prop("disabled", false); });
@@ -212,7 +219,7 @@ final class ContentGeneration {
         if ( ! Settings::bool( "content_generation_enabled" ) ) {
             wp_send_json_error( [ "message" => "Content generation is disabled." ] );
         }
-        $this->add_generation_log( $post_id, "working", "Creating " . $target . "." );
+        $this->add_generation_log( $post_id, "working", "Creating " . $target . ".", $target );
         $post = get_post( $post_id );
         if ( ! $post ) {
             wp_send_json_error( [ "message" => "Post not found." ] );
@@ -221,23 +228,23 @@ final class ContentGeneration {
         $result = $this->api_request( "/generate", $payload, (int) Settings::get( "content_generation_timeout", 45 ) );
         if ( is_wp_error( $result ) ) {
             $message = $result->get_error_message();
-            $this->add_generation_log( $post_id, "error", $message );
+            $this->add_generation_log( $post_id, "error", $message, $target );
             wp_send_json_error( [ "message" => $message, "log" => $this->generation_log( $post_id ) ] );
         }
         $value = $this->extract_generated_value( $result, $target );
         if ( "" === $value && "faqs" !== $target ) {
             $message = "API response did not include " . $target . ".";
-            $this->add_generation_log( $post_id, "error", $message );
-            wp_send_json_error( [ "message" => $message, "response" => $result ] );
+            $this->add_generation_log( $post_id, "error", $message, $target );
+            wp_send_json_error( [ "message" => $message, "response" => $result, "log" => $this->generation_log( $post_id ) ] );
         }
         $saved = $this->save_generated_value( $post_id, $target, $value, $result );
         if ( is_wp_error( $saved ) ) {
             $message = $saved->get_error_message();
-            $this->add_generation_log( $post_id, "error", $message );
-            wp_send_json_error( [ "message" => $message ] );
+            $this->add_generation_log( $post_id, "error", $message, $target );
+            wp_send_json_error( [ "message" => $message, "log" => $this->generation_log( $post_id ) ] );
         }
         $message = ucfirst( $target ) . " saved.";
-        $this->add_generation_log( $post_id, "ok", $message );
+        $this->add_generation_log( $post_id, "ok", $message, $target );
         wp_send_json_success( [ "message" => $message, "value" => $value, "log" => $this->generation_log( $post_id ) ] );
     }
 
@@ -407,9 +414,25 @@ final class ContentGeneration {
         return is_array( $log ) ? $log : [];
     }
 
-    private function add_generation_log( int $post_id, string $status, string $message ): void {
+    private function target_log_entries( array $log, string $target, int $limit ): array {
+        $entries = [];
+        foreach ( array_reverse( $log ) as $entry ) {
+            $entry_target = isset( $entry["target"] ) ? (string) $entry["target"] : "";
+            if ( "" !== $entry_target && $target !== $entry_target ) {
+                continue;
+            }
+            $entries[] = $entry;
+            if ( count( $entries ) >= $limit ) {
+                break;
+            }
+        }
+        return $entries;
+    }
+
+    private function add_generation_log( int $post_id, string $status, string $message, string $target = "" ): void {
+        $target = in_array( $target, [ "excerpt", "summary", "faqs" ], true ) ? $target : "";
         $log = $this->generation_log( $post_id );
-        $log[] = [ "time" => current_time( "mysql" ), "status" => $status, "message" => $message ];
+        $log[] = [ "time" => current_time( "mysql" ), "status" => $status, "target" => $target, "message" => $message ];
         update_post_meta( $post_id, self::LOG_META_KEY, array_slice( $log, -30 ) );
     }
 }
