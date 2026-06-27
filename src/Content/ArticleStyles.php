@@ -247,7 +247,7 @@ final class ArticleStyles {
         if ( "none" === $style ) {
             return "";
         }
-        $base = $h2 . "," . $h3 . "{font-family:var(--smpi-heading-sans,Arial,sans-serif);font-weight:700;line-height:1.3;color:var(--smpi-heading-ink,#111827);margin:1.75em 0 .75em;clear:both}" . $h2 . "{font-size:var(--smpi-heading-h2-size,23px)}" . $h3 . "{font-size:var(--smpi-heading-h3-size,20px)}";
+        $base = $h2 . "," . $h3 . "{font-family:var(--smpi-heading-sans,Arial,sans-serif);font-weight:700;line-height:1.3;color:var(--smpi-heading-ink,#111827);margin:1.75em 0 .75em;clear:both;text-transform:none;letter-spacing:0}" . $h2 . "{font-size:var(--smpi-heading-h2-size,23px)}" . $h3 . "{font-size:var(--smpi-heading-h3-size,20px)}";
         return $base . self::article_heading_template( $style, $scope, $h2, $h3 );
     }
 
@@ -370,8 +370,9 @@ final class ArticleStyles {
      * ------------------------------------------------------------------- */
     public static function preview_bundle_css(): string {
         $css = self::breadcrumbs_css() . self::toc_css() . self::post_acf_css();
+        $css .= ".smpi-choice-preview .smpi-ah-preview-stack{display:grid;gap:14px;max-width:760px}.smpi-choice-preview .smpi-ah-preview{background:#fff;border:1px solid var(--smpi-heading-line,#e5e7eb);border-radius:12px;box-sizing:border-box;counter-reset:hx;display:block;margin:0!important;max-width:100%;padding:26px 28px}.smpi-choice-preview .smpi-ah-preview p{font-family:var(--smpi-heading-sans,Arial,sans-serif);font-size:15px;line-height:1.7;color:var(--smpi-heading-body,#475569);margin:14px 0 0;max-width:680px}.smpi-choice-preview .smpi-ah-preview h2,.smpi-choice-preview .smpi-ah-preview h3{font-family:var(--smpi-heading-sans,Arial,sans-serif);font-weight:700;line-height:1.3;color:var(--smpi-heading-ink,#111827);margin:0;clear:none;text-transform:none;letter-spacing:0}.smpi-choice-preview .smpi-ah-preview h2{font-size:var(--smpi-heading-h2-size,23px)}.smpi-choice-preview .smpi-ah-preview h3{font-size:var(--smpi-heading-h3-size,20px)}";
         foreach ( array_diff( self::article_heading_style_keys(), [ "none" ] ) as $style ) {
-            $sel = ".smpi-ah-preview.smpi-ah-preview-" . $style;
+            $sel = ".smpi-choice-preview .smpi-ah-preview.smpi-ah-preview-" . $style;
             $css .= self::article_heading_rules( $style, $sel, $sel . " h2", $sel . " h3" );
         }
         foreach ( [ "fig1", "fig2", "fig4", "fig5" ] as $style ) {
@@ -392,7 +393,7 @@ final class ArticleStyles {
         $fp = self::featured_image_var_values();
         $css .= ".smpi-design-host{--smpi-bc-accent:" . $b["accent"] . ";--smpi-bc-tint:" . $b["tint"] . ";--smpi-bc-font-size:" . $b["size"] . ";--smpi-toc-accent:" . $t["accent"] . ";--smpi-toc-text:" . $t["text"] . ";--smpi-toc-size:" . $t["size"] . ";--smpi-toc-fstyle:" . $t["fstyle"] . ";--smpi-heading-accent:" . $h["accent"] . ";--smpi-heading-accent-fade:" . $h["accent_fade"] . ";--smpi-heading-highlight:" . $h["highlight"] . ";--smpi-heading-line:" . $h["line"] . ";--smpi-heading-ink:" . $h["ink"] . ";--smpi-heading-h2-size:" . $h["h2_size"] . ";--smpi-heading-h3-size:" . $h["h3_size"] . ";--smpi-faq-accent:" . $f["accent"] . ";--smpi-faq-text:" . $f["text"] . ";--smpi-faq-size:" . $f["size"] . ";--smpi-faq-fstyle:" . $f["fstyle"] . ";--smpi-photo-accent:" . $p["accent"] . ";--smpi-photo-cap-color:" . $p["color"] . ";--smpi-photo-cap-size:" . $p["size"] . ";--smpi-photo-cap-fstyle:" . $p["fstyle"] . "}";
         // Keep previews contained inside the small sample cards.
-        $css .= ".smpi-choice-preview .smpi-breadcrumbs,.smpi-choice-preview .smpi-table-of-contents,.smpi-choice-preview .smpi-post-summary,.smpi-choice-preview .smpi-post-faqs,.smpi-choice-preview .smpi-ah-preview,.smpi-choice-preview .smpi-pp,.smpi-choice-preview .smpi-fi-preview{max-width:100%!important;margin:0!important}.smpi-choice-preview .smpi-ah-preview{display:block;padding:10px 0}.smpi-choice-preview .smpi-ah-preview p{font-size:13px;line-height:1.55;color:#64748b;margin:9px 0 0}.smpi-choice-preview .smpi-pp,.smpi-choice-preview .smpi-fi-preview{display:block}.smpi-choice-preview .smpi-pp img,.smpi-choice-preview .smpi-fi-preview img{height:120px;width:100%;object-fit:cover}.smpi-choice-preview .smpi-table-of-contents a,.smpi-choice-preview .smpi-post-faqs-content>ul>li,.smpi-choice-preview .smpi-post-faqs-content>ol>li{font-size:13px}";
+        $css .= ".smpi-choice-preview .smpi-breadcrumbs,.smpi-choice-preview .smpi-table-of-contents,.smpi-choice-preview .smpi-post-summary,.smpi-choice-preview .smpi-post-faqs,.smpi-choice-preview .smpi-pp,.smpi-choice-preview .smpi-fi-preview{max-width:100%!important;margin:0!important}.smpi-choice-preview .smpi-pp,.smpi-choice-preview .smpi-fi-preview{display:block}.smpi-choice-preview .smpi-pp img,.smpi-choice-preview .smpi-fi-preview img{height:120px;width:100%;object-fit:cover}.smpi-choice-preview .smpi-table-of-contents a,.smpi-choice-preview .smpi-post-faqs-content>ul>li,.smpi-choice-preview .smpi-post-faqs-content>ol>li{font-size:13px}";
         return $css;
     }
 }
