@@ -1043,16 +1043,45 @@ final class Dashboard {
         return (string) ob_get_clean();
     }
 
-    private function post_acf_shortcode_reference_html(): string {
-        $rows = [
-            [ "Post Summary", "post_summary", "[smp_post_summary]", "[smp_post_acf field=post_summary] [smp_post_summary post_id=123 format=text]" ],
-            [ "Post FAQs Structured Repeater", "post_faq_items", "[smp_post_faqs]", "[smp_post_acf field=post_faq_items format=json] [smp_post_faqs post_id=123 format=text]" ],
-        ];
-        $html = "<div class=smpi-panel><h2>Post ACF add-on shortcode examples</h2><p>These match the Post ACF add-ons toggles. They resolve the current post inside single.php; pass <code>post_id</code> when testing elsewhere.</p><table class=widefat><thead><tr><th>Field</th><th>ACF name</th><th>Primary shortcode</th><th>Variations / parameters</th></tr></thead><tbody>";
-        foreach ( $rows as $row ) {
-            $html .= "<tr><td>" . esc_html( $row[0] ) . "</td><td><code>" . esc_html( $row[1] ) . "</code></td><td><code>" . esc_html( $row[2] ) . "</code></td><td><code>" . esc_html( $row[3] ) . "</code></td></tr>";
+    private function post_content_blocks_required_fields_html(): string {
+        $summary_enabled = Settings::bool( "post_summary_acf_enabled" );
+        $faqs_enabled = Settings::bool( "post_faqs_acf_enabled" );
+        $summary_registered = function_exists( "acf_get_field" ) && (bool) acf_get_field( "field_65ab7ba0e849b" );
+        $faqs_registered = function_exists( "acf_get_field" ) && (bool) acf_get_field( "field_smpi_post_faq_items" );
+        $summary_ready = $summary_enabled && $summary_registered;
+        $faqs_ready = $faqs_enabled && $faqs_registered;
+        $custom_fields_url = admin_url( "options-general.php?page=smp-publication-integration&tab=custom_fields" );
+
+        $html = "<div class=\"smpi-control-group\"><h3>Required editor fields</h3>";
+        if ( $summary_ready && $faqs_ready ) {
+            $html .= $this->simple_status_html( true, "Editor fields are ready. Article summaries and structured FAQs are available on supported article editors." );
+        } else {
+            $missing = [];
+            if ( ! $summary_ready ) {
+                $missing[] = "Article Summary";
+            }
+            if ( ! $faqs_ready ) {
+                $missing[] = "Structured FAQ";
+            }
+            $field_label = implode( " and ", $missing ) . " editor field" . ( count( $missing ) > 1 ? "s are" : " is" );
+            $html .= "<div class=\"smpi-alert smpi-alert-warning\"><strong>Editor fields not ready.</strong><p>" . esc_html( $field_label ) . " not ready yet. Open Custom Fields and enable the required editor fields before using these output styles.</p><p><a class=\"button button-secondary\" href=\"" . esc_url( $custom_fields_url ) . "\">Open Custom Fields</a></p></div>";
         }
-        return $html . "</tbody></table></div>";
+
+        $html .= "<div class=\"smpi-status-rows\"><div class=\"smpi-status-row\">" . $this->ico( $summary_ready, true ) . "<span>Article Summary editor field: " . esc_html( $summary_ready ? "Ready" : "Not ready" ) . "</span></div>";
+        $html .= "<div class=\"smpi-status-row\">" . $this->ico( $faqs_ready, true ) . "<span>Structured FAQ editor fields: " . esc_html( $faqs_ready ? "Ready" : "Not ready" ) . "</span></div></div>";
+        return $html . "</div>";
+    }
+
+    private function post_content_blocks_shortcode_reference_html(): string {
+        $rows = [
+            [ "Article Summary", "post_summary", "[smp_post_summary style=\"sum00\"]", "[smp_post_acf field=\"post_summary\"] [smp_post_summary post_id=\"123\" format=\"text\"]" ],
+            [ "Structured FAQs", "post_faq_items", "[smp_post_faqs style=\"faq02\"]", "[smp_post_acf field=\"post_faq_items\" format=\"json\"] [smp_post_faqs post_id=\"123\" format=\"text\"]" ],
+        ];
+        $html = "<div class=\"smpi-control-group smpi-shortcode-reference\"><h3>Shortcodes</h3><p class=smpi-muted>These resolve the current post inside single.php. Pass <code>post_id</code> when testing elsewhere.</p><div class=smpi-shortcode-list>";
+        foreach ( $rows as $row ) {
+            $html .= "<div class=smpi-shortcode-row><strong>" . esc_html( $row[0] ) . "</strong><code>" . esc_html( $row[2] ) . "</code><small>Content source: <code>" . esc_html( $row[1] ) . "</code>. Variations: <code>" . esc_html( $row[3] ) . "</code></small></div>";
+        }
+        return $html . "</div></div>";
     }
 
 
@@ -1324,8 +1353,8 @@ final class Dashboard {
         $this->feature_card( "Inline photo treatments", "inline_photo_treatments_enabled", "No ACF changes. Applies selected treatment to inline figures in posts and press-release articles.", "Prestyles inline photos and captions in single.php without editing each article. Treatments 1, 2, 4, and 5 are imported from the HerForward inline redesign page.", "No shortcode needed. Enable the feature and select a treatment.", $this->simple_status_html( Settings::bool( "inline_photo_treatments_enabled" ), "Current treatment: " . (string) Settings::get( "inline_photo_treatment", "none" ) . "." ), $this->activity_log_html(), $inline_photo_controls );
         $featured_image_caption_controls = $this->select_setting_html( "featured_image_caption_template", $this->featured_image_caption_template_options(), $settings, "Featured image caption template" ) . $this->color_setting_html( "featured_image_caption_accent_color", "Featured caption accent color", $settings ) . $this->font_style_setting_html( "featured_image_caption_font_style", "Featured caption font style", $settings ) . $this->number_setting_html( "featured_image_caption_font_size", "Featured caption font size", $settings, 8, 64, "px" ) . $this->color_setting_html( "featured_image_caption_text_color", "Featured caption text color", $settings );
         $this->feature_card( "Featured image caption templates", "featured_image_caption_templates_enabled", "No ACF changes. Reads the caption from the media attachment used as the post featured image.", "Auto-detects the single post or press-release featured image and applies a selected caption template. The designs intentionally duplicate the inline image treatments but use separate settings, selectors, and rendering code.", "No shortcode needed. Add a media caption to the featured image, enable this feature, and select a template.", $this->featured_image_caption_report_html(), $this->activity_log_html(), $featured_image_caption_controls );
-        $post_acf_controls = "<div class=\"smpi-control-group\"><h3>Field registration</h3><p>Field registration toggles live in Custom Fields. Use this section only for display styling and shortcode reference.</p></div>" . $this->select_setting_html( "post_summary_style", $this->post_summary_style_options(), $settings, "Post Summary design" ) . $this->select_setting_html( "post_faqs_style", $this->post_faq_style_options(), $settings, "Post FAQ design" ) . $this->color_setting_html( "post_faqs_accent_color", "FAQ accent color", $settings ) . $this->font_style_setting_html( "post_faqs_text_font_style", "FAQ text font style", $settings ) . $this->number_setting_html( "post_faqs_text_font_size", "FAQ text font size", $settings, 8, 64, "px" ) . $this->color_setting_html( "post_faqs_text_color", "FAQ text color", $settings ) . $this->post_acf_shortcode_reference_html();
-        $this->feature_card( "Post ACF add-ons", "", "Registration moved to the Custom Fields tab. This card keeps style controls and shortcode examples for summary and FAQ output.", "Summary and structured FAQ shortcodes can render raw content or the selected single.php style.", "[smp_post_summary style=\"sum00\"]\n[smp_post_faqs style=\"faq02\"]\n[smp_post_acf field=\"post_summary\"]", $this->post_acf_addons_report_html(), $this->activity_log_html(), $post_acf_controls );
+        $post_content_blocks_controls = $this->post_content_blocks_required_fields_html() . $this->select_setting_html( "post_summary_style", $this->post_summary_style_options(), $settings, "Summary output style" ) . $this->select_setting_html( "post_faqs_style", $this->post_faq_style_options(), $settings, "FAQ output style" ) . $this->color_setting_html( "post_faqs_accent_color", "FAQ accent color", $settings ) . $this->font_style_setting_html( "post_faqs_text_font_style", "FAQ text font style", $settings ) . $this->number_setting_html( "post_faqs_text_font_size", "FAQ text font size", $settings, 8, 64, "px" ) . $this->color_setting_html( "post_faqs_text_color", "FAQ text color", $settings ) . $this->post_content_blocks_shortcode_reference_html();
+        $this->feature_card( "Article Summary & FAQ Blocks", "", "Editor fields live in the Custom Fields tab. This card controls display styles and shortcode reference for article summary and structured FAQ output.", "Styles and documents the article summary and structured FAQ blocks rendered by SMP shortcodes. Turn on the corresponding editor fields from Custom Fields before using these outputs.", "[smp_post_summary style=\"sum00\"]\n[smp_post_faqs style=\"faq02\"]\n[smp_post_acf field=\"post_summary\"]", $this->post_acf_addons_report_html(), $this->activity_log_html(), $post_content_blocks_controls );
         $this->feature_card_from_snippet( "publication_social_link_cleanup", $this->simple_status_html( Settings::bool( "publication_social_cleanup" ), "Publication social link cleanup script active on frontend pages." ) );
         $this->feature_card( "HWS masked admin URL", "hws_masked_admin_report_enabled", "HWS Base Tools owns this feature. SMP only reports status and links to it.", "Confirms whether HWS Base Tools masked login is enabled and exposes the masked URL in the Overview and Features tabs.", "HWS option: hws_login_mask_options with slug hexa-admin.", $this->hws_masked_login_report_html(), $this->activity_log_html() );
         echo "</div>";
@@ -1934,11 +1963,13 @@ final class Dashboard {
         $faqs_enabled = Settings::bool( "post_faqs_acf_enabled" );
         $summary_registered = function_exists( "acf_get_field" ) && (bool) acf_get_field( "field_65ab7ba0e849b" );
         $faqs_registered = function_exists( "acf_get_field" ) && (bool) acf_get_field( "field_smpi_post_faq_items" );
-        $ok = ( ! $summary_enabled || $summary_registered ) && ( ! $faqs_enabled || $faqs_registered );
-        $html = $this->simple_status_html( $ok, "Post Summary enabled: " . ( $summary_enabled ? "yes" : "no" ) . ". Post FAQs enabled: " . ( $faqs_enabled ? "yes" : "no" ) . "." );
-        $html .= "<table class=\"widefat striped\"><thead><tr><th>Field</th><th>Setting</th><th>ACF runtime</th><th>Key</th><th>Locations</th></tr></thead><tbody>";
-        $html .= "<tr><td>Post Summary</td><td>" . ( $summary_enabled ? "Enabled" : "Disabled" ) . "</td><td>" . $this->ico( (bool) $summary_registered ) . "</td><td><code>field_65ab7ba0e849b</code></td><td><code>post</code>, <code>press-release</code>, <code>imported-news</code></td></tr>";
-        $html .= "<tr><td>Post FAQs</td><td>" . ( $faqs_enabled ? "Enabled" : "Disabled" ) . "</td><td>" . $this->ico( (bool) $faqs_registered ) . "</td><td><code>field_smpi_post_faq_items</code></td><td><code>post</code>, <code>press-release</code>, <code>imported-news</code></td></tr>";
+        $summary_ready = $summary_enabled && $summary_registered;
+        $faqs_ready = $faqs_enabled && $faqs_registered;
+        $ok = $summary_ready && $faqs_ready;
+        $html = $this->simple_status_html( $ok, "Article Summary field: " . ( $summary_ready ? "ready" : "not ready" ) . ". Structured FAQ fields: " . ( $faqs_ready ? "ready" : "not ready" ) . "." );
+        $html .= "<table class=\"widefat striped\"><thead><tr><th>Editor field</th><th>Custom Fields setting</th><th>Editor field status</th><th>Content source</th><th>Locations</th></tr></thead><tbody>";
+        $html .= "<tr><td>Article Summary</td><td>" . ( $summary_enabled ? "Enabled" : "Disabled" ) . "</td><td>" . $this->ico( (bool) $summary_ready, true ) . "</td><td><code>post_summary</code></td><td><code>post</code>, <code>press-release</code>, <code>imported-news</code></td></tr>";
+        $html .= "<tr><td>Structured FAQs</td><td>" . ( $faqs_enabled ? "Enabled" : "Disabled" ) . "</td><td>" . $this->ico( (bool) $faqs_ready, true ) . "</td><td><code>post_faq_items</code></td><td><code>post</code>, <code>press-release</code>, <code>imported-news</code></td></tr>";
         return $html . "</tbody></table>";
     }
 
@@ -1949,7 +1980,7 @@ final class Dashboard {
         $faqs_enabled = Settings::bool( "post_faqs_acf_enabled" );
         $summary_registered = function_exists( "acf_get_field" ) && (bool) acf_get_field( "field_65ab7ba0e849b" );
         $faqs_registered = function_exists( "acf_get_field" ) && (bool) acf_get_field( "field_smpi_post_faq_items" );
-        return "Post Summary enabled: " . ( $summary_enabled ? "yes" : "no" ) . "; registered: " . ( $summary_registered ? "yes" : "no" ) . ". Post FAQs enabled: " . ( $faqs_enabled ? "yes" : "no" ) . "; registered: " . ( $faqs_registered ? "yes" : "no" ) . ".";
+        return "Article Summary editor field: " . ( $summary_enabled && $summary_registered ? "ready" : "not ready" ) . ". Structured FAQ editor fields: " . ( $faqs_enabled && $faqs_registered ? "ready" : "not ready" ) . ".";
     }
 
     private function breadcrumbs_report_html(): string {
