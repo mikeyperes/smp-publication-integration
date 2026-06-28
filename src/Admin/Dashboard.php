@@ -1125,47 +1125,66 @@ final class Dashboard {
         $single_report = $post_id ? Schema::integrity_report( $post_id ) : [ "types" => [], "checks" => [] ];
         $debug_url = rest_url( "smpi/v1/schema" );
         $single_debug_url = $post_id ? add_query_arg( "post_id", $post_id, $debug_url ) : $debug_url;
-
-        echo "<div class=\"smpi-hero\"><p class=\"smpi-kicker\">Schema</p><h2>Publication and article schema integrity</h2><p>Home uses NewsMediaOrganization, WebSite, CollectionPage, and ItemList. Singles use WebPage, article schema, publisher, author, image, breadcrumbs, and FAQPage when structured FAQ rows exist.</p></div>";
-        echo "<div class=\"smpi-grid\">";
-        $this->status_card( "Home schema graph", in_array( "NewsMediaOrganization", $home_report["types"], true ) && in_array( "CollectionPage", $home_report["types"], true ), "Types: " . implode( ", ", $home_report["types"] ) );
-        $this->status_card( "Single schema graph", $post_id && in_array( "WebPage", $single_report["types"], true ), $post_id ? "Latest post #" . $post_id . " types: " . implode( ", ", $single_report["types"] ) : "No published post found." );
         $article_types_enabled = \smp_publication_integration\Content\ArticleTypes::is_enabled();
         $article_types_taxonomy_ready = taxonomy_exists( \smp_publication_integration\Content\ArticleTypes::TAXONOMY );
-        $this->status_card( "Article type selector", ! $article_types_enabled || $article_types_taxonomy_ready, $article_types_enabled ? "Enabled and taxonomy registered." : "Feature disabled; schema falls back by post type." );
-        $this->status_card( "Debug JSON URL", true, esc_url( $debug_url ) );
-        echo "</div>";
 
-        echo "<div class=\"smpi-panel\"><h2>Run Schema Integrity Test</h2><p><button id=\"smpi-reprocess-schema\" type=\"button\" class=\"button button-primary\">Run schema refresh and sample test</button></p><p><a class=\"button\" target=\"_blank\" rel=\"noopener noreferrer\" href=\"" . esc_url( $debug_url ) . "\">Open home schema JSON</a> " . ( $post_id ? "<a class=\"button\" target=\"_blank\" rel=\"noopener noreferrer\" href=\"" . esc_url( $single_debug_url ) . "\">Open latest post schema JSON</a>" : "" ) . "</p><div id=\"smpi-schema-report\" class=\"smpi-code-panel\"></div></div>";
+        $run_panel = "<h3>Run Schema Integrity Test</h3><p><button id=\"smpi-reprocess-schema\" type=\"button\" class=\"button button-primary\">Run schema refresh and sample test</button></p><p><a class=\"button\" target=\"_blank\" rel=\"noopener noreferrer\" href=\"" . esc_url( $debug_url ) . "\">Open home schema JSON</a> " . ( $post_id ? "<a class=\"button\" target=\"_blank\" rel=\"noopener noreferrer\" href=\"" . esc_url( $single_debug_url ) . "\">Open latest post schema JSON</a>" : "" ) . "</p><div id=\"smpi-schema-report\" class=\"smpi-code-panel\"></div>";
 
-        echo $this->schema_detection_report_html(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-
-        echo "<div class=\"smpi-panel\"><h2>Home Page Integrity</h2><table class=\"widefat striped\"><tbody>";
-        foreach ( $home_report["checks"] as $check ) {
-            $class = "green" === $check["status"] ? "smpi-ok" : ( "red" === $check["status"] ? "smpi-bad" : "smpi-warn" );
-            echo "<tr><th>" . esc_html( $check["label"] ) . "</th><td><span class=\"" . esc_attr( $class ) . "\">" . esc_html( strtoupper( $check["status"] ) ) . "</span></td></tr>";
-        }
-        echo "</tbody></table></div>";
-
-        echo "<div class=\"smpi-panel\"><h2>Single Page Integrity</h2><table class=\"widefat striped\"><tbody>";
-        foreach ( $single_report["checks"] as $check ) {
-            $class = "green" === $check["status"] ? "smpi-ok" : ( "red" === $check["status"] ? "smpi-bad" : "smpi-warn" );
-            echo "<tr><th>" . esc_html( $check["label"] ) . "</th><td><span class=\"" . esc_attr( $class ) . "\">" . esc_html( strtoupper( $check["status"] ) ) . "</span></td></tr>";
-        }
-        echo "</tbody></table></div>";
-
-        echo "<div class=\"smpi-panel\"><h2>Article Type Taxonomy Mapping</h2><table class=\"widefat striped\"><thead><tr><th>Term</th><th>Schema Type</th><th>Use Case</th></tr></thead><tbody>";
+        $article_type_map = "<h3>Article Type Taxonomy Mapping</h3><table class=\"widefat striped\"><thead><tr><th>Term</th><th>Schema Type</th><th>Use Case</th></tr></thead><tbody>";
         foreach ( \smp_publication_integration\Content\ArticleTypes::terms() as $slug => $config ) {
-            echo "<tr><td><code>" . esc_html( $slug ) . "</code></td><td><code>" . esc_html( $config["schema_type"] ) . "</code></td><td>" . esc_html( $config["description"] ) . "</td></tr>";
+            $article_type_map .= "<tr><td><code>" . esc_html( $slug ) . "</code></td><td><code>" . esc_html( $config["schema_type"] ) . "</code></td><td>" . esc_html( $config["description"] ) . "</td></tr>";
         }
-        echo "</tbody></table></div>";
+        $article_type_map .= "</tbody></table>";
 
         $ideal_home = [ "@context" => "https://schema.org", "@graph" => [ [ "@type" => "NewsMediaOrganization" ], [ "@type" => "WebSite" ], [ "@type" => "CollectionPage" ], [ "@type" => "ItemList" ] ] ];
         $ideal_single = [ "@context" => "https://schema.org", "@graph" => [ [ "@type" => "NewsMediaOrganization" ], [ "@type" => "WebSite" ], [ "@type" => "WebPage" ], [ "@type" => "NewsArticle" ], [ "@type" => "Person" ], [ "@type" => "ImageObject" ], [ "@type" => "BreadcrumbList" ], [ "@type" => "FAQPage" ] ] ];
-        echo "<div class=\"smpi-grid\"><div class=\"smpi-panel\"><h2>Ideal Home Graph</h2><pre class=\"smpi-code\">" . esc_html( wp_json_encode( $ideal_home, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) ) . "</pre></div><div class=\"smpi-panel\"><h2>Actual Home Graph</h2><pre class=\"smpi-code\">" . esc_html( wp_json_encode( $home_schema, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ) ) . "</pre></div></div>";
-        if ( $post_id ) {
-            echo "<div class=\"smpi-grid\"><div class=\"smpi-panel\"><h2>Ideal Single Graph</h2><pre class=\"smpi-code\">" . esc_html( wp_json_encode( $ideal_single, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) ) . "</pre></div><div class=\"smpi-panel\"><h2>Actual Latest Single Graph</h2><pre class=\"smpi-code\">" . esc_html( wp_json_encode( $single_schema, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ) ) . "</pre></div></div>";
+
+        if ( class_exists( "\\Hexa\\PluginCore\\SchemaTools\\SchemaDashboardRenderer" ) ) {
+            $actions = [
+                [ "label" => "Open home schema JSON", "url" => $debug_url ],
+            ];
+            if ( $post_id ) {
+                $actions[] = [ "label" => "Open latest post schema JSON", "url" => $single_debug_url ];
+                if ( class_exists( "\\Hexa\\PluginCore\\SchemaTools\\SchemaGraph" ) ) {
+                    $actions[] = [ "label" => "Open Schema Validator", "url" => \Hexa\PluginCore\SchemaTools\SchemaGraph::validator_url( (string) get_permalink( $post_id ) ) ];
+                }
+            }
+
+            $graphs = [
+                [ "title" => "Ideal Home Graph", "schema" => $ideal_home ],
+                [ "title" => "Actual Home Graph", "schema" => $home_schema ],
+            ];
+            if ( $post_id ) {
+                $graphs[] = [ "title" => "Ideal Single Graph", "schema" => $ideal_single ];
+                $graphs[] = [ "title" => "Actual Latest Single Graph", "schema" => $single_schema ];
+            }
+
+            echo ( new \Hexa\PluginCore\SchemaTools\SchemaDashboardRenderer() )->render(
+                [
+                    "kicker" => "Schema",
+                    "title" => "Publication and article schema integrity",
+                    "description" => "Home uses NewsMediaOrganization, WebSite, CollectionPage, and ItemList. Singles use WebPage, article schema, publisher, author, image, breadcrumbs, and FAQPage when structured FAQ rows exist.",
+                    "status_cards" => [
+                        [ "title" => "Home schema graph", "ok" => in_array( "NewsMediaOrganization", $home_report["types"], true ) && in_array( "CollectionPage", $home_report["types"], true ), "body" => "Types: " . implode( ", ", $home_report["types"] ) ],
+                        [ "title" => "Single schema graph", "ok" => $post_id && in_array( "WebPage", $single_report["types"], true ), "body" => $post_id ? "Latest post #" . $post_id . " types: " . implode( ", ", $single_report["types"] ) : "No published post found." ],
+                        [ "title" => "Article type selector", "ok" => ! $article_types_enabled || $article_types_taxonomy_ready, "body" => $article_types_enabled ? "Enabled and taxonomy registered." : "Feature disabled; schema falls back by post type." ],
+                        [ "title" => "Debug JSON URL", "ok" => true, "body" => $debug_url ],
+                    ],
+                    "actions" => $actions,
+                    "html_sections" => [ $run_panel, $article_type_map ],
+                    "integrity_sections" => [
+                        [ "title" => "Home Page Integrity", "checks" => $home_report["checks"] ],
+                        [ "title" => "Single Page Integrity", "checks" => $single_report["checks"] ],
+                    ],
+                    "graphs" => $graphs,
+                    "scan_report_html" => $this->schema_detection_report_html(),
+                ]
+            );
+            return;
         }
+
+        echo "<div class=\"smpi-hero\"><p class=\"smpi-kicker\">Schema</p><h2>Publication and article schema integrity</h2><p>HexaWP Core schema dashboard renderer is unavailable.</p></div>";
+        echo $run_panel; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
     }
 
 

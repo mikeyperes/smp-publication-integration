@@ -122,6 +122,45 @@ final class BrandColorProvider {
         );
     }
 
+    /**
+     * Return every Elementor site color as a normalized, display-ready palette.
+     *
+     * @return array<int,array{id:string,label:string,hex:string,source:string}>
+     */
+    public static function elementor_palette(): array {
+        $settings = self::elementor_settings();
+        if ( empty( $settings ) ) {
+            return [];
+        }
+
+        $palette = [];
+        foreach ( [ "system_colors" => "System", "custom_colors" => "Custom" ] as $group => $source ) {
+            foreach ( (array) ( $settings[ $group ] ?? [] ) as $color ) {
+                if ( ! is_array( $color ) || empty( $color["_id"] ) || empty( $color["color"] ) ) {
+                    continue;
+                }
+
+                $hex = self::normalize_hex( (string) $color["color"], "" );
+                if ( "#000000" === $hex && ! preg_match( "/^#?0{6}$/", (string) $color["color"] ) ) {
+                    continue;
+                }
+
+                $label = isset( $color["title"] ) && is_scalar( $color["title"] ) && "" !== trim( (string) $color["title"] )
+                    ? sanitize_text_field( (string) $color["title"] )
+                    : ucwords( str_replace( [ "_", "-" ], " ", (string) $color["_id"] ) );
+
+                $palette[] = [
+                    "id"     => sanitize_key( (string) $color["_id"] ),
+                    "label"  => $label,
+                    "hex"    => $hex,
+                    "source" => $source,
+                ];
+            }
+        }
+
+        return $palette;
+    }
+
     public static function elementor_fonts(): array {
         $settings = self::elementor_settings();
         if ( empty( $settings ) ) {
