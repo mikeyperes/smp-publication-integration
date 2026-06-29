@@ -270,7 +270,6 @@ final class Schema {
             "publisher" => [ "@id" => $org_id ],
             "primaryImageOfPage" => $image ? [ "@id" => $image["@id"] ] : null,
             "breadcrumb" => $breadcrumb ? [ "@id" => $breadcrumb["@id"] ] : null,
-            "mainEntity" => [ "@id" => $article_id ],
             "hasPart" => $faq ? [ [ "@id" => $faq["@id"] ] ] : null,
             "datePublished" => get_the_date( DATE_W3C, $post ),
             "dateModified" => get_the_modified_date( DATE_W3C, $post ),
