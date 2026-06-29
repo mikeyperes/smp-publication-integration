@@ -313,7 +313,8 @@ final class Schema {
         ] );
 
         $graph = array_values( array_filter( array_merge( [ $org, $website, $webpage, $article ], $authors, [ $image, $breadcrumb, $faq ] ) ) );
-        return [ "@context" => "https://schema.org", "@graph" => $graph ];
+        $schema = [ "@context" => "https://schema.org", "@graph" => $graph ];
+        return apply_filters( "smpi_single_schema_array", $schema, $post_id );
     }
 
     public static function schema_types( array $schema ): array {
