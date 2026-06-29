@@ -307,11 +307,7 @@ final class Schema {
             "discussionUrl" => get_comments_link( $post_id ),
             "speakable" => [
                 "@type" => "SpeakableSpecification",
-                "cssSelector" => [
-                    "h1",
-                    ".elementor-widget-theme-post-excerpt p:first-of-type",
-                    ".elementor-widget-theme-post-content p:first-of-type",
-                ],
+                "cssSelector" => "h1, .elementor-widget-theme-post-content p:first-of-type, .elementor-widget-post-content p:first-of-type, article .entry-content p:first-of-type, .entry-content p:first-of-type, .post-content p:first-of-type",
             ],
             "hasPart" => $faq ? [ [ "@id" => $faq["@id"] ] ] : null,
         ] );
