@@ -241,10 +241,20 @@ final class Schema {
         $article_type = ArticleTypes::schema_type_for_post( $post_id );
         $image = $this->primary_image_entity( $post_id, $permalink . "#primaryimage", $org["logo"] ?? null );
         $authors = $this->author_entities_for_post( $post_id );
-        $author_ref = $authors ? array_map( static fn( array $author ): array => [ "@id" => $author["@id"] ], $authors ) : [ [ "@id" => $org_id ] ];
+        $org_ref = $this->compact_publication_reference( $org );
+        $website_ref = $this->clean_schema( [
+            "@type" => "WebSite",
+            "url" => $home_url,
+            "name" => get_bloginfo( "name" ),
+            "description" => get_bloginfo( "description" ),
+            "inLanguage" => get_bloginfo( "language" ) ?: "en-US",
+        ] );
+        $image_ref = $image ? $this->unlinked_schema_node( $image ) : null;
+        $author_ref = $authors ? array_map( [ $this, "unlinked_schema_node" ], $authors ) : [ $org_ref ];
         $faq_rows = self::faq_rows_for_post( $post_id, true );
-        $faq = $faq_rows ? $this->faq_entity( $post_id, $permalink . "#faq", $faq_rows, $webpage_id ) : [];
+        $faq = $faq_rows ? $this->faq_entity( $post_id, $permalink . "#faq", $faq_rows ) : [];
         $breadcrumb = $this->breadcrumb_entity( $post_id, $permalink . "#breadcrumb" );
+        $breadcrumb_ref = $breadcrumb ? $this->unlinked_schema_node( $breadcrumb ) : null;
         $description = $this->post_description( $post );
         $language = get_bloginfo( "language" ) ?: "en-US";
 
@@ -254,8 +264,8 @@ final class Schema {
             "url" => $home_url,
             "name" => get_bloginfo( "name" ),
             "description" => get_bloginfo( "description" ),
-            "publisher" => [ "@id" => $org_id ],
-            "about" => [ "@id" => $org_id ],
+            "publisher" => $org_ref,
+            "about" => $org_ref,
             "inLanguage" => $language,
         ] );
 
@@ -265,12 +275,11 @@ final class Schema {
             "url" => $permalink,
             "name" => get_the_title( $post ),
             "description" => $description,
-            "isPartOf" => [ "@id" => $website_id ],
-            "about" => [ "@id" => $org_id ],
-            "publisher" => [ "@id" => $org_id ],
-            "primaryImageOfPage" => $image ? [ "@id" => $image["@id"] ] : null,
-            "breadcrumb" => $breadcrumb ? [ "@id" => $breadcrumb["@id"] ] : null,
-            "hasPart" => $faq ? [ [ "@id" => $faq["@id"] ] ] : null,
+            "isPartOf" => $website_ref,
+            "about" => $org_ref,
+            "publisher" => $org_ref,
+            "primaryImageOfPage" => $image_ref,
+            "breadcrumb" => $breadcrumb_ref,
             "datePublished" => get_the_date( DATE_W3C, $post ),
             "dateModified" => get_the_modified_date( DATE_W3C, $post ),
             "inLanguage" => $language,
@@ -279,8 +288,7 @@ final class Schema {
         $article = $this->clean_schema( [
             "@type" => $article_type,
             "@id" => $article_id,
-            "mainEntityOfPage" => [ "@id" => $webpage_id ],
-            "isPartOf" => [ "@id" => $webpage_id ],
+            "mainEntityOfPage" => $permalink,
             "headline" => get_the_title( $post ),
             "name" => get_the_title( $post ),
             "description" => $description,
@@ -290,8 +298,8 @@ final class Schema {
             "datePublished" => get_the_date( DATE_W3C, $post ),
             "dateModified" => get_the_modified_date( DATE_W3C, $post ),
             "author" => 1 === count( $author_ref ) ? $author_ref[0] : $author_ref,
-            "publisher" => [ "@id" => $org_id ],
-            "image" => $image ? [ "@id" => $image["@id"] ] : null,
+            "publisher" => $org_ref,
+            "image" => $image_ref,
             "thumbnailUrl" => $image["url"] ?? null,
             "articleSection" => $this->article_sections( $post_id ),
             "keywords" => $this->post_keywords( $post_id ),
@@ -301,14 +309,13 @@ final class Schema {
             "inLanguage" => $language,
             "genre" => ArticleTypes::schema_type_label( $article_type ),
             "copyrightYear" => get_the_date( "Y", $post ),
-            "copyrightHolder" => [ "@id" => $org_id ],
+            "copyrightHolder" => $org_ref,
             "commentCount" => (int) get_comments_number( $post_id ),
             "discussionUrl" => get_comments_link( $post_id ),
             "speakable" => [
                 "@type" => "SpeakableSpecification",
                 "cssSelector" => "h1, .elementor-widget-theme-post-content p:first-of-type, .elementor-widget-post-content p:first-of-type, article .entry-content p:first-of-type, .entry-content p:first-of-type, .post-content p:first-of-type",
             ],
-            "hasPart" => $faq ? [ [ "@id" => $faq["@id"] ] ] : null,
         ] );
 
         $graph = array_values( array_filter( array_merge( [ $org, $website, $webpage, $article ], $authors, [ $image, $breadcrumb, $faq ] ) ) );
@@ -579,12 +586,26 @@ final class Schema {
         return $this->clean_schema( [ "@type" => "BreadcrumbList", "@id" => $id, "itemListElement" => $items ] );
     }
 
-    private function faq_entity( int $post_id, string $id, array $rows, string $webpage_id ): array {
+    private function faq_entity( int $post_id, string $id, array $rows ): array {
         $items = [];
         foreach ( $rows as $row ) {
             $items[] = [ "@type" => "Question", "name" => $row["question"], "acceptedAnswer" => [ "@type" => "Answer", "text" => wp_strip_all_tags( (string) $row["answer"] ) ] ];
         }
-        return $this->clean_schema( [ "@type" => "FAQPage", "@id" => $id, "url" => get_permalink( $post_id ) . "#faq", "isPartOf" => [ "@id" => $webpage_id ], "mainEntityOfPage" => [ "@id" => $webpage_id ], "mainEntity" => $items ] );
+        return $this->clean_schema( [ "@type" => "FAQPage", "@id" => $id, "url" => get_permalink( $post_id ) . "#faq", "mainEntity" => $items ] );
+    }
+
+    private function compact_publication_reference( array $org ): array {
+        return $this->clean_schema( [
+            "@type" => $org["@type"] ?? "NewsMediaOrganization",
+            "name" => $org["name"] ?? get_bloginfo( "name" ),
+            "url" => $org["url"] ?? home_url( "/" ),
+            "logo" => $org["logo"] ?? null,
+        ] );
+    }
+
+    private function unlinked_schema_node( array $node ): array {
+        unset( $node["@id"] );
+        return $this->clean_schema( $node );
     }
 
     private function post_article_body( \WP_Post $post ): string {
