@@ -125,6 +125,7 @@ final class Dashboard {
             'ui_cleanup' => 'UI Cleanup',
             'optimization' => 'Optimization',
             'pages' => 'Pages',
+            'menu' => 'Menu',
             'verified_profiles' => 'Verified Profiles',
             'integrations' => 'Integrations',
             'quick_run' => 'Quick Run',
@@ -149,6 +150,7 @@ final class Dashboard {
         if ( 'ui_cleanup' === $id ) { $this->ui_cleanup(); return; }
         if ( 'optimization' === $id ) { $this->optimization(); return; }
         if ( 'pages' === $id ) { $this->pages(); return; }
+        if ( 'menu' === $id ) { $this->menu(); return; }
         if ( 'verified_profiles' === $id ) { $this->verified_profiles(); return; }
         if ( 'integrations' === $id ) { $this->integrations(); return; }
         if ( 'quick_run' === $id ) { echo '<div class="smpi-panel"><h2>Quick Run</h2><p>Reserved for safe setup scripts once the exact setup sequence is supplied.</p></div>'; return; }
@@ -2272,7 +2274,7 @@ final class Dashboard {
 
     private function pages(): void {
         $manager = PageStructure::manager();
-        echo "<div class=\"smpi-panel\"><h2>Publication Pages</h2><p>Assign canonical pages, manage starter templates, and build matching WordPress menus through Hexa Core SiteStructure.</p></div>";
+        echo "<div class=\"smpi-panel\"><h2>Publication Pages</h2><p>Assign canonical pages and manage starter templates through Hexa Core SiteStructure.</p></div>";
         echo $this->pages_cross_plugin_links_html();
         echo $this->pages_shortcode_reference_html();
         echo ( new SiteStructureRenderer(
@@ -2286,12 +2288,35 @@ final class Dashboard {
                 'enable_template_editors'       => true,
                 'template_editor_media_buttons' => false,
                 'template_editor_rows'          => 8,
+                'show_menus'                    => false,
                 'show_page_details'             => true,
                 'actions'                       => PageStructure::ajax_actions(),
                 'labels'                        => [
                     'pages_title'       => 'Critical Publication Pages',
                     'pages_heading'     => 'Publication page assignments',
                     'pages_description' => 'Assign existing pages or create published canonical pages using stored starter templates.',
+                    'menus_title'       => 'Publication Navigation Menus',
+                    'menus_heading'     => 'Create menus and attach assigned pages',
+                    'menus_description' => 'Create WordPress menus, custom menu items, attach assigned pages, and attach publication menu blueprints.',
+                ],
+            ]
+        ) )->render();
+    }
+
+    private function menu(): void {
+        $manager = PageStructure::manager();
+        echo "<div class=\"smpi-panel\"><h2>Publication Menu</h2><p>Create WordPress menus, add custom menu items, attach assigned publication pages, and apply publication menu blueprints.</p></div>";
+        echo ( new SiteStructureRenderer(
+            $manager,
+            [
+                'instance_id'                   => 'smpi-publication-menu',
+                'nonce'                         => Ajax::nonce(),
+                'card_class'                    => 'smpi-panel hpc-card',
+                'table_class'                   => 'widefat striped hpc-table',
+                'show_pages'                    => false,
+                'show_menus'                    => true,
+                'actions'                       => PageStructure::ajax_actions(),
+                'labels'                        => [
                     'menus_title'       => 'Publication Navigation Menus',
                     'menus_heading'     => 'Create menus and attach assigned pages',
                     'menus_description' => 'Create WordPress menus, custom menu items, attach assigned pages, and attach publication menu blueprints.',
