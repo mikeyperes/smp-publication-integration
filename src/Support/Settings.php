@@ -538,6 +538,61 @@ final class Settings {
         return is_string( $permalink ) ? $permalink : "";
     }
 
+    public static function page_slug( string $type ): string {
+        $type = sanitize_key( $type );
+        $slugs = self::default_page_slugs();
+        if ( isset( $slugs[ $type ] ) ) {
+            return $slugs[ $type ];
+        }
+
+        $page_types = self::page_types();
+        $label = isset( $page_types[ $type ]['label'] ) ? (string) $page_types[ $type ]['label'] : str_replace( '_', ' ', $type );
+        return sanitize_title( $label );
+    }
+
+    public static function default_page_slugs(): array {
+        return [
+            "about_publication" => "about",
+            "founder_about" => "founder",
+            "writers" => "writers",
+            "contributors" => "contributors",
+            "staff" => "staff",
+            "executive_team" => "executive-team",
+            "team" => "team",
+            "headquarters" => "headquarters",
+            "founding_date" => "founding-date",
+            "mission_statement" => "mission",
+            "founders" => "founders",
+            "become_contributor" => "become-a-contributor",
+            "brand_assets" => "brand-assets",
+            "submit_press_release" => "submit-your-press-release",
+            "press_releases" => "press-releases",
+            "dmca" => "dmca-takedown-request",
+            "terms" => "terms-of-use",
+            "privacy" => "privacy-policy",
+            "editorial_guidelines" => "editorial-guidelines",
+            "editorial_policy" => "editorial-policy",
+            "contact" => "contact",
+            "faqs" => "faqs",
+            "parent_organization" => "parent-organization",
+            "publishing_principles" => "publishing-principles",
+            "verification_fact_checking_policy" => "verification-and-fact-checking-policy",
+            "corrections_policy" => "corrections-policy",
+            "ethics_policy" => "ethics-policy",
+            "diversity_policy" => "diversity-policy",
+            "diversity_staffing_report" => "diversity-staffing-report",
+            "masthead" => "masthead",
+            "mission_coverage_priorities_policy" => "mission-and-coverage-priorities-policy",
+            "no_bylines_policy" => "no-bylines-policy",
+            "unnamed_sources_policy" => "unnamed-sources-policy",
+            "actionable_feedback_policy" => "actionable-feedback-policy",
+            "ownership_funding" => "ownership-and-funding",
+            "advertise" => "advertise",
+            "advertise_with_us" => "advertise-with-us",
+            "accessibility" => "accessibility",
+        ];
+    }
+
     public static function page_types(): array {
         return [
             "about_publication" => [ "label" => "About The Publication", "description" => "Public overview of the outlet, editorial focus, audience, ownership context, and mission. This is the canonical about page for readers and schema reviewers.", "template" => true ],

@@ -803,7 +803,7 @@ final class Ajax {
         }
 
         $title = (string) $page_types[ $type ]["label"];
-        $slug = sanitize_title( $title );
+        $slug = Settings::page_slug( $type );
         $existing = get_page_by_path( $slug, OBJECT, "page" );
         $mode = "reused_existing";
         if ( is_a( $existing, "WP_Post" ) ) {
