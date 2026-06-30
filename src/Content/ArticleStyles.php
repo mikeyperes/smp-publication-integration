@@ -253,38 +253,40 @@ final class ArticleStyles {
 
     private static function article_heading_template( string $style, string $scope, string $h2, string $h3 ): string {
         $heading = $h2 . "," . $h3;
+        $before = $h2 . "::before," . $h3 . "::before";
+        $after = $h2 . "::after," . $h3 . "::after";
         switch ( $style ) {
             case "h2-leftrule":
                 return $heading . "{padding-left:18px;border-left:3px solid var(--smpi-heading-accent,#d63428)}";
             case "h2-underline":
-                return $heading . "{position:relative;padding-bottom:12px}" . $heading . "::after{content:\"\";position:absolute;left:0;bottom:0;width:52px;height:3px;border-radius:2px;background:var(--smpi-heading-accent,#d63428)}";
+                return $heading . "{position:relative;padding-bottom:12px}" . $after . "{content:\"\";position:absolute;left:0;bottom:0;width:52px;height:3px;border-radius:2px;background:var(--smpi-heading-accent,#d63428)}";
             case "h2-topline":
                 return $heading . "{border-top:1px solid var(--smpi-heading-line,#e5e7eb);padding-top:18px}";
             case "h2-dot":
-                return $heading . "{display:flex;align-items:center;gap:14px}" . $heading . "::before{content:\"\";width:10px;height:10px;border-radius:50%;background:var(--smpi-heading-accent,#d63428);flex:0 0 auto}";
+                return $heading . "{display:flex;align-items:center;gap:14px}" . $before . "{content:\"\";width:10px;height:10px;border-radius:50%;background:var(--smpi-heading-accent,#d63428);flex:0 0 auto}";
             case "h2-trailingrule":
-                return $heading . "{display:flex;align-items:center;gap:20px;white-space:nowrap}" . $heading . "::after{content:\"\";flex:1;height:1px;background:var(--smpi-heading-line,#e5e7eb)}";
+                return $heading . "{display:flex;align-items:center;gap:20px;white-space:nowrap}" . $after . "{content:\"\";flex:1;height:1px;background:var(--smpi-heading-line,#e5e7eb)}";
             case "h2-serif":
-                return $heading . "{font-family:var(--smpi-heading-serif,Georgia,serif)!important;font-weight:700}" . $heading . "::before{content:\"\";display:inline-block;width:22px;height:2px;background:var(--smpi-heading-accent,#d63428);vertical-align:middle;margin-right:15px}";
+                return $heading . "{font-family:var(--smpi-heading-serif,Georgia,serif)!important;font-weight:700}" . $before . "{content:\"\";display:inline-block;width:22px;height:2px;background:var(--smpi-heading-accent,#d63428);vertical-align:middle;margin-right:15px}";
             case "h2-uppercase":
                 return $heading . "{display:inline-block;text-transform:uppercase;letter-spacing:.12em;font-weight:700;padding-top:13px;border-top:2px solid var(--smpi-heading-accent,#d63428)}";
             case "h2-gradient":
-                return $heading . "{position:relative;padding-bottom:12px}" . $heading . "::after{content:\"\";position:absolute;left:0;bottom:0;width:92px;height:3px;background:linear-gradient(90deg,var(--smpi-heading-accent,#d63428),var(--smpi-heading-accent-fade,rgba(214,52,40,0)))}";
+                return $heading . "{position:relative;padding-bottom:12px}" . $after . "{content:\"\";position:absolute;left:0;bottom:0;width:92px;height:3px;background:linear-gradient(90deg,var(--smpi-heading-accent,#d63428),var(--smpi-heading-accent-fade,rgba(214,52,40,0)))}";
             case "h2-bracket":
-                return $heading . "{position:relative;padding-left:18px}" . $heading . "::before{content:\"\";position:absolute;left:0;top:3px;width:9px;height:16px;border-left:3px solid var(--smpi-heading-accent,#d63428);border-top:3px solid var(--smpi-heading-accent,#d63428)}";
+                return $heading . "{position:relative;padding-left:18px}" . $before . "{content:\"\";position:absolute;left:0;top:3px;width:9px;height:16px;border-left:3px solid var(--smpi-heading-accent,#d63428);border-top:3px solid var(--smpi-heading-accent,#d63428)}";
             case "h2-number":
-                return $scope . "{counter-reset:hx}" . $heading . "{counter-increment:hx}" . $heading . "::before{content:counter(hx,decimal-leading-zero);color:var(--smpi-heading-accent,#d63428);font-weight:800;margin-right:16px;font-variant-numeric:tabular-nums}";
+                return $scope . "{counter-reset:hx}" . $heading . "{counter-increment:hx}" . $before . "{content:counter(hx,decimal-leading-zero);color:var(--smpi-heading-accent,#d63428);font-weight:800;margin-right:16px;font-variant-numeric:tabular-nums}";
             case "h2-square":
-                return $heading . "{display:flex;align-items:center;gap:14px}" . $heading . "::before{content:\"\";width:15px;height:15px;border-radius:4px;background:var(--smpi-heading-accent,#d63428);flex:0 0 auto}";
+                return $heading . "{display:flex;align-items:center;gap:14px}" . $before . "{content:\"\";width:15px;height:15px;border-radius:4px;background:var(--smpi-heading-accent,#d63428);flex:0 0 auto}";
             case "h2-highlight":
                 return $heading . "{display:inline-block;background:linear-gradient(transparent 62%,var(--smpi-heading-highlight,rgba(214,52,40,.16)) 0);padding:0 3px}";
             case "h2-double":
                 return $heading . "{padding:14px 0;border-top:2px solid var(--smpi-heading-accent,#d63428);border-bottom:1px solid var(--smpi-heading-line,#e5e7eb)}";
             case "h2-corner_tick":
-                return $heading . "{position:relative;padding-top:16px}" . $heading . "::before{content:\"\";position:absolute;left:0;top:0;width:3px;height:11px;background:var(--smpi-heading-accent,#d63428);border-radius:2px}";
+                return $heading . "{position:relative;padding-top:16px}" . $before . "{content:\"\";position:absolute;left:0;top:0;width:3px;height:11px;background:var(--smpi-heading-accent,#d63428);border-radius:2px}";
             case "h2-tick":
             default:
-                return $heading . "::before{content:\"\";display:inline-block;width:26px;height:3px;border-radius:2px;background:var(--smpi-heading-accent,#d63428);vertical-align:middle;margin-right:16px}";
+                return $before . "{content:\"\";display:inline-block;width:26px;height:3px;border-radius:2px;background:var(--smpi-heading-accent,#d63428);vertical-align:middle;margin-right:16px}";
         }
     }
 
@@ -375,6 +377,7 @@ final class ArticleStyles {
             $sel = ".smpi-choice-preview .smpi-ah-preview.smpi-ah-preview-" . $style;
             $css .= self::article_heading_rules( $style, $sel, $sel . " h2", $sel . " h3" );
         }
+        $css .= ".smpi-choice-preview .smpi-ah-preview-stack{box-sizing:border-box;width:100%;max-width:820px;overflow:hidden}.smpi-choice-preview .smpi-ah-preview{box-sizing:border-box;width:100%;min-width:0;overflow:hidden;position:relative}.smpi-choice-preview .smpi-ah-preview *{box-sizing:border-box}.smpi-choice-preview .smpi-ah-preview h2,.smpi-choice-preview .smpi-ah-preview h3{clear:none!important;margin:0!important;max-width:100%;overflow-wrap:anywhere;white-space:normal!important}.smpi-choice-preview .smpi-ah-preview h2::before,.smpi-choice-preview .smpi-ah-preview h2::after,.smpi-choice-preview .smpi-ah-preview h3::before,.smpi-choice-preview .smpi-ah-preview h3::after{box-sizing:border-box}.smpi-choice-preview .smpi-ah-preview p{margin:14px 0 0!important;max-width:100%;overflow-wrap:anywhere}";
         foreach ( [ "fig1", "fig2", "fig4", "fig5" ] as $style ) {
             $sel = ".smpi-pp.smpi-pp-" . $style;
             $css .= self::inline_photo_rules( $style, $sel, $sel . " img", $sel . " figcaption" );
