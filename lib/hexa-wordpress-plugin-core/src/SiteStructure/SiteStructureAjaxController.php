@@ -149,7 +149,8 @@ final class SiteStructureAjaxController {
                 'callback' => fn( AjaxRequest $request ): array|\WP_Error => $this->manager->attach_menu_structure(
                     $request->int( 'menu_id' ),
                     $request->key( 'structure' ),
-                    $request->int( 'parent_item_id' )
+                    $request->int( 'parent_item_id' ),
+                    $request->key_array( 'page_keys' )
                 ),
             ];
         }

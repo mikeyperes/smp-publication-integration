@@ -29,13 +29,14 @@ final class PageStructure {
         ];
     }
 
-    public static function manager(): PageStructureManager {
+    public static function manager( bool $include_hws_owned_pages = false ): PageStructureManager {
         return new PageStructureManager(
             [
-                'pages'                => self::page_definitions(),
+                'pages'                => self::page_definitions( $include_hws_owned_pages ),
                 'menu_structures'      => self::menu_structures(),
                 'managed_meta_key'     => '_smpi_managed_page',
                 'managed_key_meta_key' => '_smpi_page_key',
+                'readonly_page_keys'   => $include_hws_owned_pages ? self::hws_owned_page_keys() : [],
                 'created_page_status'  => 'publish',
                 'select_post_statuses' => [ 'publish', 'draft', 'private', 'pending' ],
                 'assignment_statuses'  => [ 'publish', 'draft', 'private', 'pending' ],
@@ -59,6 +60,10 @@ final class PageStructure {
         );
     }
 
+    public static function menu_manager(): PageStructureManager {
+        return self::manager( true );
+    }
+
     public static function hws_owned_page_keys(): array {
         return Settings::hws_owned_page_keys();
     }
@@ -66,10 +71,10 @@ final class PageStructure {
     /**
      * @return array<string,array<string,mixed>>
      */
-    public static function page_definitions(): array {
+    public static function page_definitions( bool $include_hws_owned_pages = false ): array {
         $pages = [];
         foreach ( Settings::page_types() as $key => $config ) {
-            if ( in_array( (string) $key, self::hws_owned_page_keys(), true ) ) {
+            if ( ! $include_hws_owned_pages && in_array( (string) $key, self::hws_owned_page_keys(), true ) ) {
                 continue;
             }
             $title = (string) ( $config['label'] ?? $key );
@@ -88,38 +93,30 @@ final class PageStructure {
      * @return array<string,array<string,mixed>>
      */
     public static function menu_structures(): array {
+        $legal = [ 'terms', 'privacy', 'dmca', 'accessibility' ];
+        $editorial_pages = array_values(
+            array_filter(
+                array_keys( Settings::page_types() ),
+                static fn( string $key ): bool => ! in_array( $key, $legal, true )
+            )
+        );
+
         return [
-            'header' => [
-                'title'       => 'Header Menu',
-                'description' => 'Primary reader navigation for publication identity, team, and contact pages.',
-                'page_keys'   => [ 'about_publication', 'writers', 'contributors' ],
-            ],
-            'footer' => [
-                'title'       => 'Footer Menu',
-                'description' => 'Core transparency, team, contact, advertising, and legal links for the footer.',
-                'page_keys'   => [ 'about_publication', 'team', 'advertise', 'advertise_with_us', 'press_releases', 'submit_press_release', 'dmca' ],
-            ],
             'legal' => [
-                'title'       => 'Legal Menu',
-                'description' => 'Legal and compliance pages for footer or sub-footer placement.',
-                'page_keys'   => [ 'dmca', 'accessibility' ],
+                'title'       => 'Legal',
+                'description' => 'Legal and compliance pages from the publication page set.',
+                'page_keys'   => $legal,
             ],
-            'policy' => [
-                'title'       => 'Editorial Policy Menu',
-                'description' => 'Schema and reader-trust policy pages for NewsMediaOrganization transparency.',
-                'page_keys'   => [ 'editorial_guidelines', 'editorial_policy', 'publishing_principles', 'verification_fact_checking_policy', 'corrections_policy', 'ethics_policy', 'diversity_policy', 'masthead', 'mission_coverage_priorities_policy', 'no_bylines_policy', 'unnamed_sources_policy', 'actionable_feedback_policy', 'ownership_funding' ],
-            ],
-            'team' => [
-                'title'       => 'Team Menu',
-                'description' => 'Founder, writer, contributor, staff, and executive pages for publication profile navigation.',
-                'page_keys'   => [ 'founder_about', 'founders', 'writers', 'contributors', 'staff', 'executive_team', 'team' ],
+            'editorial_pages' => [
+                'title'       => 'Editorial pages',
+                'description' => 'All non-legal publication pages from the Pages tab.',
+                'page_keys'   => $editorial_pages,
             ],
         ];
     }
 
     public static function assigned_page_id( string $page_key ): int {
-        $settings = Settings::all();
-        return isset( $settings['page_assignments'][ $page_key ] ) ? absint( $settings['page_assignments'][ $page_key ] ) : 0;
+        return Settings::page_assignment_id( $page_key );
     }
 
     public static function save_assignment( string $page_key, int $page_id ): void {

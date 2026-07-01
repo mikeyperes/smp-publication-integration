@@ -2303,8 +2303,7 @@ final class Dashboard {
     }
 
     private function menu(): void {
-        $manager = PageStructure::manager();
-        echo "<div class=\"smpi-panel\"><h2>Publication Menu</h2><p>Create WordPress menus, add custom menu items, attach assigned publication pages, and apply publication menu blueprints.</p></div>";
+        $manager = PageStructure::menu_manager();
         echo ( new SiteStructureRenderer(
             $manager,
             [
@@ -2314,11 +2313,25 @@ final class Dashboard {
                 'table_class'                   => 'widefat striped hpc-table',
                 'show_pages'                    => false,
                 'show_menus'                    => true,
+                'menu_sections'                 => [
+                    'create_menus'       => true,
+                    'custom_items'       => false,
+                    'menu_structures'    => true,
+                    'single_page_attach' => false,
+                    'inventory'          => false,
+                ],
+                'menu_structure_layout'         => 'rows',
+                'menu_structure_page_display'   => 'checkboxes',
+                'menu_structure_show_parent'    => false,
                 'actions'                       => PageStructure::ajax_actions(),
                 'labels'                        => [
-                    'menus_title'       => 'Publication Navigation Menus',
-                    'menus_heading'     => 'Create menus and attach assigned pages',
-                    'menus_description' => 'Create WordPress menus, custom menu items, attach assigned pages, and attach publication menu blueprints.',
+                    'menus_title'                 => 'Menu',
+                    'menus_heading'               => 'Publication menu setup',
+                    'menus_description'           => 'Create WordPress menus, then attach reusable publication page lists to existing menus.',
+                    'create_menus_title'          => 'Create menus',
+                    'create_menus_description'    => 'Create a WordPress menu for Legal, Editorial pages, Footer, or another site location.',
+                    'menu_structures_title'       => 'Assign page lists to existing menus',
+                    'menu_structures_description' => 'Attach the Legal or Editorial pages list to a selected WordPress menu. Unassigned pages stay visible but are skipped.',
                 ],
             ]
         ) )->render();

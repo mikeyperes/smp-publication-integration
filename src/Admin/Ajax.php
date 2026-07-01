@@ -54,7 +54,7 @@ final class Ajax {
         );
 
         ( new SiteStructureAjaxController(
-            PageStructure::manager(),
+            PageStructure::menu_manager(),
             [
                 'capability'   => 'manage_options',
                 'nonce_action' => self::NONCE,

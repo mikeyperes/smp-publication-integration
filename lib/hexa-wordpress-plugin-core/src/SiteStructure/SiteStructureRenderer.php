@@ -29,6 +29,10 @@ final class SiteStructureRenderer {
                 'show_pages'            => true,
                 'show_menus'            => true,
                 'show_page_details'     => false,
+                'menu_sections'         => [],
+                'menu_structure_layout' => 'grid',
+                'menu_structure_page_display' => 'pills',
+                'menu_structure_show_parent' => true,
                 'actions'               => [],
                 'labels'                => [],
             ],
@@ -68,6 +72,10 @@ final class SiteStructureRenderer {
                 'menus_title'       => 'Navigation Menus',
                 'menus_heading'     => 'Menu Blueprint Manager',
                 'menus_description' => 'Create WordPress menus, attach groups of assigned pages, or attach a single assigned page beneath a specific menu item.',
+                'create_menus_title' => 'Create Menus',
+                'create_menus_description' => 'Create reusable WordPress navigation menus.',
+                'menu_structures_title' => 'Assign Page Lists To Existing Menus',
+                'menu_structures_description' => 'Attach configured page lists to an existing WordPress menu. Unassigned pages are skipped.',
             ],
             is_array( $this->config['labels'] ) ? $this->config['labels'] : []
         );
@@ -269,6 +277,14 @@ final class SiteStructureRenderer {
         $flat_pages = $this->manager->flat_pages();
         $nav_menus  = function_exists( 'wp_get_nav_menus' ) ? wp_get_nav_menus() : [];
         $inventory  = [];
+        $sections   = $this->menu_sections();
+        $rows_layout = 'rows' === (string) $this->config['menu_structure_layout'];
+        $structure_grid_style = $rows_layout
+            ? 'display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:18px;'
+            : 'display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-bottom:18px;';
+        $structure_card_style = $rows_layout
+            ? 'border:1px solid #d8dee8;border-radius:8px;padding:16px;background:#fff;'
+            : 'border:1px solid #e5e7eb;border-radius:8px;padding:14px;background:#f9fafb;';
 
         foreach ( $nav_menus as $menu ) {
             $items = function_exists( 'wp_get_nav_menu_items' ) ? ( wp_get_nav_menu_items( $menu->term_id ) ?: [] ) : [];
@@ -289,152 +305,247 @@ final class SiteStructureRenderer {
             <h4 style="margin:0 0 8px;font-size:15px;"><?php echo esc_html( $labels['menus_heading'] ); ?></h4>
             <p style="color:#666;margin:0 0 15px;"><?php echo esc_html( $labels['menus_description'] ); ?></p>
 
-            <div style="display:grid;grid-template-columns:minmax(260px,1fr) auto;gap:10px;align-items:end;margin-bottom:18px;max-width:760px;">
-                <label style="display:block;">
-                    <span style="display:block;font-weight:600;margin-bottom:4px;">Create new menu</span>
-                    <input type="text" class="regular-text hpc-new-menu-name" placeholder="Header, Footer, Sub-Footer" style="width:100%;max-width:none;">
-                </label>
-                <button type="button" class="button button-primary hpc-create-navigation-menu">Create Menu</button>
-                <span class="hpc-create-menu-status" style="grid-column:1 / -1;font-size:13px;color:#666;"></span>
-            </div>
-
-            <div style="border:1px solid #e5e7eb;border-radius:8px;padding:14px;margin-bottom:18px;background:#fff;">
-                <h4 style="margin:0 0 10px;font-size:15px;">Create Menu Item</h4>
-                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;align-items:end;">
-                    <label>
-                        <span style="display:block;font-weight:600;margin-bottom:4px;">Menu</span>
-                        <select class="hpc-custom-item-menu" style="width:100%;" <?php disabled( empty( $nav_menus ) ); ?>>
-                            <?php echo $this->menu_options( $nav_menus, 0 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-                        </select>
-                    </label>
-                    <label>
-                        <span style="display:block;font-weight:600;margin-bottom:4px;">Parent item</span>
-                        <select class="hpc-custom-item-parent" style="width:100%;" <?php disabled( empty( $nav_menus ) ); ?>>
-                            <?php echo $this->menu_item_options( $inventory ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-                        </select>
-                    </label>
-                    <label>
-                        <span style="display:block;font-weight:600;margin-bottom:4px;">Item label</span>
-                        <input type="text" class="regular-text hpc-custom-item-title" placeholder="Advertise" style="width:100%;max-width:none;" <?php disabled( empty( $nav_menus ) ); ?>>
-                    </label>
-                    <label>
-                        <span style="display:block;font-weight:600;margin-bottom:4px;">URL</span>
-                        <input type="text" class="regular-text hpc-custom-item-url" placeholder="/advertise/ or https://example.com" style="width:100%;max-width:none;" <?php disabled( empty( $nav_menus ) ); ?>>
-                    </label>
-                    <button type="button" class="button button-primary hpc-create-menu-item" <?php disabled( empty( $nav_menus ) ); ?>>Create Menu Item</button>
+            <?php if ( ! empty( $sections['create_menus'] ) ) : ?>
+                <div class="hpc-menu-section hpc-create-menus-section" style="border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-bottom:18px;background:#fff;">
+                    <h4 style="margin:0 0 6px;font-size:15px;"><?php echo esc_html( $labels['create_menus_title'] ); ?></h4>
+                    <p style="color:#666;margin:0 0 14px;"><?php echo esc_html( $labels['create_menus_description'] ); ?></p>
+                    <div style="display:grid;grid-template-columns:minmax(260px,1fr) auto;gap:10px;align-items:end;max-width:760px;">
+                        <label style="display:block;">
+                            <span style="display:block;font-weight:600;margin-bottom:4px;">Menu name</span>
+                            <input type="text" class="regular-text hpc-new-menu-name" placeholder="Legal, Editorial pages, Footer" style="width:100%;max-width:none;">
+                        </label>
+                        <button type="button" class="button button-primary hpc-create-navigation-menu">Create Menu</button>
+                        <span class="hpc-create-menu-status" style="grid-column:1 / -1;font-size:13px;color:#666;"></span>
+                    </div>
                 </div>
-                <span class="hpc-create-menu-item-status" style="display:block;margin-top:8px;font-size:13px;color:#666;"></span>
-            </div>
+            <?php endif; ?>
 
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-bottom:18px;">
-                <?php foreach ( $structures as $structure_key => $structure ) : ?>
-                    <?php $guessed_menu_id = $this->manager->guess_menu_id_for_structure( (string) $structure_key, $nav_menus ); ?>
-                    <div class="hpc-menu-structure-card" data-structure="<?php echo esc_attr( (string) $structure_key ); ?>" style="border:1px solid #e5e7eb;border-radius:8px;padding:14px;background:#f9fafb;">
-                        <h4 style="margin:0 0 4px;font-size:15px;"><?php echo esc_html( (string) ( $structure['title'] ?? $structure_key ) ); ?></h4>
-                        <p style="margin:0 0 10px;color:#666;font-size:13px;"><?php echo esc_html( (string) ( $structure['description'] ?? '' ) ); ?></p>
-
-                        <label style="display:block;margin-bottom:8px;">
-                            <span style="display:block;font-weight:600;margin-bottom:4px;">WordPress menu</span>
-                            <select class="hpc-structure-menu" style="width:100%;" <?php disabled( empty( $nav_menus ) ); ?>>
-                                <?php echo $this->menu_options( $nav_menus, $guessed_menu_id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+            <?php if ( ! empty( $sections['custom_items'] ) ) : ?>
+                <div style="border:1px solid #e5e7eb;border-radius:8px;padding:14px;margin-bottom:18px;background:#fff;">
+                    <h4 style="margin:0 0 10px;font-size:15px;">Create Menu Item</h4>
+                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;align-items:end;">
+                        <label>
+                            <span style="display:block;font-weight:600;margin-bottom:4px;">Menu</span>
+                            <select class="hpc-custom-item-menu" style="width:100%;" <?php disabled( empty( $nav_menus ) ); ?>>
+                                <?php echo $this->menu_options( $nav_menus, 0 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
                             </select>
                         </label>
-
-                        <label style="display:block;margin-bottom:10px;">
-                            <span style="display:block;font-weight:600;margin-bottom:4px;">Attach under menu item</span>
-                            <select class="hpc-structure-parent" style="width:100%;" <?php disabled( empty( $nav_menus ) ); ?>>
+                        <label>
+                            <span style="display:block;font-weight:600;margin-bottom:4px;">Parent item</span>
+                            <select class="hpc-custom-item-parent" style="width:100%;" <?php disabled( empty( $nav_menus ) ); ?>>
                                 <?php echo $this->menu_item_options( $inventory ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
                             </select>
                         </label>
+                        <label>
+                            <span style="display:block;font-weight:600;margin-bottom:4px;">Item label</span>
+                            <input type="text" class="regular-text hpc-custom-item-title" placeholder="Advertise" style="width:100%;max-width:none;" <?php disabled( empty( $nav_menus ) ); ?>>
+                        </label>
+                        <label>
+                            <span style="display:block;font-weight:600;margin-bottom:4px;">URL</span>
+                            <input type="text" class="regular-text hpc-custom-item-url" placeholder="/advertise/ or https://example.com" style="width:100%;max-width:none;" <?php disabled( empty( $nav_menus ) ); ?>>
+                        </label>
+                        <button type="button" class="button button-primary hpc-create-menu-item" <?php disabled( empty( $nav_menus ) ); ?>>Create Menu Item</button>
+                    </div>
+                    <span class="hpc-create-menu-item-status" style="display:block;margin-top:8px;font-size:13px;color:#666;"></span>
+                </div>
+            <?php endif; ?>
 
-                        <div style="font-size:12px;color:#4b5563;margin-bottom:10px;">
-                            <?php foreach ( (array) ( $structure['page_keys'] ?? [] ) as $page_key ) : ?>
-                                <?php $page_key = (string) $page_key; $page_data = $flat_pages[ $page_key ] ?? null; $assigned_id = $this->manager->assigned_page_id( $page_key ); ?>
-                                <?php if ( $page_data ) : ?>
-                                    <span style="display:inline-block;margin:0 4px 4px 0;padding:2px 7px;border-radius:999px;background:<?php echo $assigned_id ? '#dcfce7' : '#f3f4f6'; ?>;color:<?php echo $assigned_id ? '#166534' : '#6b7280'; ?>;">
-                                        <?php echo esc_html( (string) $page_data['title'] ); ?><?php echo $assigned_id ? '' : ' (not set)'; ?>
-                                    </span>
-                                <?php endif; ?>
+            <?php if ( ! empty( $sections['menu_structures'] ) ) : ?>
+                <div class="hpc-menu-section hpc-menu-structures-section" style="border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-bottom:18px;background:#f8fafc;">
+                    <h4 style="margin:0 0 6px;font-size:15px;"><?php echo esc_html( $labels['menu_structures_title'] ); ?></h4>
+                    <p style="color:#666;margin:0 0 14px;"><?php echo esc_html( $labels['menu_structures_description'] ); ?></p>
+
+                    <?php if ( empty( $structures ) ) : ?>
+                        <p style="color:#666;margin:0;">No page lists are configured.</p>
+                    <?php else : ?>
+                        <div style="<?php echo esc_attr( $structure_grid_style ); ?>">
+                            <?php foreach ( $structures as $structure_key => $structure ) : ?>
+                                <?php $guessed_menu_id = $this->manager->guess_menu_id_for_structure( (string) $structure_key, $nav_menus ); ?>
+                                <?php $structure_title = (string) ( $structure['title'] ?? $structure_key ); ?>
+                                <div class="hpc-menu-structure-card" data-structure="<?php echo esc_attr( (string) $structure_key ); ?>" style="<?php echo esc_attr( $structure_card_style ); ?>">
+                                    <h4 style="margin:0 0 4px;font-size:15px;"><?php echo esc_html( $structure_title ); ?></h4>
+                                    <p style="margin:0 0 12px;color:#666;font-size:13px;"><?php echo esc_html( (string) ( $structure['description'] ?? '' ) ); ?></p>
+
+                                    <label style="display:block;margin-bottom:10px;">
+                                        <span style="display:block;font-weight:600;margin-bottom:4px;">Existing WordPress menu</span>
+                                        <select class="hpc-structure-menu" style="width:100%;" <?php disabled( empty( $nav_menus ) ); ?>>
+                                            <?php echo $this->menu_options( $nav_menus, $guessed_menu_id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                                        </select>
+                                    </label>
+
+                                    <?php if ( ! empty( $this->config['menu_structure_show_parent'] ) ) : ?>
+                                        <label style="display:block;margin-bottom:10px;">
+                                            <span style="display:block;font-weight:600;margin-bottom:4px;">Attach under menu item</span>
+                                            <select class="hpc-structure-parent" style="width:100%;" <?php disabled( empty( $nav_menus ) ); ?>>
+                                                <?php echo $this->menu_item_options( $inventory ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                                            </select>
+                                        </label>
+                                    <?php endif; ?>
+
+                                    <?php echo $this->render_menu_structure_pages( is_array( $structure ) ? $structure : [], $flat_pages ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+
+                                    <button type="button" class="button button-secondary hpc-attach-menu-structure" <?php disabled( empty( $nav_menus ) ); ?>>Attach <?php echo esc_html( $structure_title ); ?></button>
+                                    <span class="hpc-structure-status" style="display:block;margin-top:8px;font-size:13px;color:#666;"></span>
+                                </div>
                             <?php endforeach; ?>
                         </div>
-
-                        <button type="button" class="button button-secondary hpc-attach-menu-structure" <?php disabled( empty( $nav_menus ) ); ?>>Attach <?php echo esc_html( (string) ( $structure['title'] ?? $structure_key ) ); ?></button>
-                        <span class="hpc-structure-status" style="display:block;margin-top:8px;font-size:13px;color:#666;"></span>
-                    </div>
-                <?php endforeach; ?>
-            </div>
-
-            <div style="border:1px solid #e5e7eb;border-radius:8px;padding:14px;margin-bottom:18px;background:#fff;">
-                <h4 style="margin:0 0 10px;font-size:15px;">Attach Assigned Page To Menu Item</h4>
-                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;align-items:end;">
-                    <label>
-                        <span style="display:block;font-weight:600;margin-bottom:4px;">Menu</span>
-                        <select class="hpc-attach-menu" style="width:100%;" <?php disabled( empty( $nav_menus ) ); ?>>
-                            <?php echo $this->menu_options( $nav_menus, 0 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-                        </select>
-                    </label>
-                    <label>
-                        <span style="display:block;font-weight:600;margin-bottom:4px;">Parent menu item</span>
-                        <select class="hpc-attach-parent-item" style="width:100%;" <?php disabled( empty( $nav_menus ) ); ?>>
-                            <?php echo $this->menu_item_options( $inventory ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-                        </select>
-                    </label>
-                    <label>
-                        <span style="display:block;font-weight:600;margin-bottom:4px;">Assigned page</span>
-                        <select class="hpc-attach-page-key" style="width:100%;" <?php disabled( empty( $nav_menus ) ); ?>>
-                            <?php foreach ( $flat_pages as $page_key => $page_data ) : ?>
-                                <?php $assigned_id = $this->manager->assigned_page_id( (string) $page_key ); ?>
-                                <option value="<?php echo esc_attr( (string) $page_key ); ?>" <?php disabled( ! $assigned_id ); ?>>
-                                    <?php echo esc_html( (string) $page_data['title'] . ( $assigned_id ? '' : ' (not set)' ) ); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </label>
-                    <button type="button" class="button button-primary hpc-attach-page-to-menu-item" <?php disabled( empty( $nav_menus ) ); ?>>Attach Page</button>
+                    <?php endif; ?>
                 </div>
-                <span class="hpc-attach-page-status" style="display:block;margin-top:8px;font-size:13px;color:#666;"></span>
-            </div>
-
-            <h4 style="margin:0 0 10px;font-size:15px;">WordPress Menu Items</h4>
-            <div class="hpc-menu-inventory-wrap">
-            <?php if ( empty( $nav_menus ) ) : ?>
-                <p class="hpc-menu-inventory-empty" style="color:#666;margin:0;">No WordPress menus exist yet. Create the required menus above.</p>
-            <?php else : ?>
-                <table class="<?php echo esc_attr( (string) $this->config['table_class'] ); ?> hpc-menu-inventory-table">
-                    <thead>
-                        <tr>
-                            <th style="width:24%;">Menu</th>
-                            <th>Items</th>
-                            <th style="width:20%;">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ( $inventory as $row ) : ?>
-                            <?php $menu = $row['menu']; ?>
-                            <tr>
-                                <td><strong><?php echo esc_html( $menu->name ); ?></strong><div><code><?php echo esc_html( $menu->slug ); ?></code></div></td>
-                                <td>
-                                    <?php if ( empty( $row['items'] ) ) : ?>
-                                        <span style="color:#6b7280;">No items</span>
-                                    <?php else : ?>
-                                        <?php foreach ( $row['items'] as $item ) : ?>
-                                            <div style="margin-bottom:3px;"><code>#<?php echo esc_html( (string) $item['id'] ); ?></code> <?php echo esc_html( (string) $item['label'] ); ?></div>
-                                        <?php endforeach; ?>
-                                    <?php endif; ?>
-                                </td>
-                                <td>
-                                    <a class="button button-small" href="<?php echo esc_url( admin_url( 'nav-menus.php?menu=' . (int) $menu->term_id ) ); ?>" target="_blank" rel="noopener">Edit</a>
-                                    <button type="button" class="button button-small hpc-delete-navigation-menu" data-menu-id="<?php echo esc_attr( (string) $menu->term_id ); ?>" data-menu-name="<?php echo esc_attr( $menu->name ); ?>">Delete</button>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
             <?php endif; ?>
-            </div>
+
+            <?php if ( ! empty( $sections['single_page_attach'] ) ) : ?>
+                <div style="border:1px solid #e5e7eb;border-radius:8px;padding:14px;margin-bottom:18px;background:#fff;">
+                    <h4 style="margin:0 0 10px;font-size:15px;">Attach Assigned Page To Menu Item</h4>
+                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;align-items:end;">
+                        <label>
+                            <span style="display:block;font-weight:600;margin-bottom:4px;">Menu</span>
+                            <select class="hpc-attach-menu" style="width:100%;" <?php disabled( empty( $nav_menus ) ); ?>>
+                                <?php echo $this->menu_options( $nav_menus, 0 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                            </select>
+                        </label>
+                        <label>
+                            <span style="display:block;font-weight:600;margin-bottom:4px;">Parent menu item</span>
+                            <select class="hpc-attach-parent-item" style="width:100%;" <?php disabled( empty( $nav_menus ) ); ?>>
+                                <?php echo $this->menu_item_options( $inventory ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                            </select>
+                        </label>
+                        <label>
+                            <span style="display:block;font-weight:600;margin-bottom:4px;">Assigned page</span>
+                            <select class="hpc-attach-page-key" style="width:100%;" <?php disabled( empty( $nav_menus ) ); ?>>
+                                <?php foreach ( $flat_pages as $page_key => $page_data ) : ?>
+                                    <?php $assigned_id = $this->manager->assigned_page_id( (string) $page_key ); ?>
+                                    <option value="<?php echo esc_attr( (string) $page_key ); ?>" <?php disabled( ! $assigned_id ); ?>>
+                                        <?php echo esc_html( (string) $page_data['title'] . ( $assigned_id ? '' : ' (not set)' ) ); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </label>
+                        <button type="button" class="button button-primary hpc-attach-page-to-menu-item" <?php disabled( empty( $nav_menus ) ); ?>>Attach Page</button>
+                    </div>
+                    <span class="hpc-attach-page-status" style="display:block;margin-top:8px;font-size:13px;color:#666;"></span>
+                </div>
+            <?php endif; ?>
+
+            <?php if ( ! empty( $sections['inventory'] ) ) : ?>
+                <h4 style="margin:0 0 10px;font-size:15px;">WordPress Menu Items</h4>
+                <div class="hpc-menu-inventory-wrap">
+                <?php if ( empty( $nav_menus ) ) : ?>
+                    <p class="hpc-menu-inventory-empty" style="color:#666;margin:0;">No WordPress menus exist yet. Create the required menus above.</p>
+                <?php else : ?>
+                    <table class="<?php echo esc_attr( (string) $this->config['table_class'] ); ?> hpc-menu-inventory-table">
+                        <thead>
+                            <tr>
+                                <th style="width:24%;">Menu</th>
+                                <th>Items</th>
+                                <th style="width:20%;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ( $inventory as $row ) : ?>
+                                <?php $menu = $row['menu']; ?>
+                                <tr>
+                                    <td><strong><?php echo esc_html( $menu->name ); ?></strong><div><code><?php echo esc_html( $menu->slug ); ?></code></div></td>
+                                    <td>
+                                        <?php if ( empty( $row['items'] ) ) : ?>
+                                            <span style="color:#6b7280;">No items</span>
+                                        <?php else : ?>
+                                            <?php foreach ( $row['items'] as $item ) : ?>
+                                                <div style="margin-bottom:3px;"><code>#<?php echo esc_html( (string) $item['id'] ); ?></code> <?php echo esc_html( (string) $item['label'] ); ?></div>
+                                            <?php endforeach; ?>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <a class="button button-small" href="<?php echo esc_url( admin_url( 'nav-menus.php?menu=' . (int) $menu->term_id ) ); ?>" target="_blank" rel="noopener">Edit</a>
+                                        <button type="button" class="button button-small hpc-delete-navigation-menu" data-menu-id="<?php echo esc_attr( (string) $menu->term_id ); ?>" data-menu-name="<?php echo esc_attr( $menu->name ); ?>">Delete</button>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                <?php endif; ?>
+                </div>
+            <?php endif; ?>
         </div>
         <?php
 
+        return (string) ob_get_clean();
+    }
+
+    /**
+     * @return array<string,bool>
+     */
+    private function menu_sections(): array {
+        $defaults = [
+            'create_menus'       => true,
+            'custom_items'       => true,
+            'menu_structures'    => true,
+            'single_page_attach' => true,
+            'inventory'          => true,
+        ];
+        $sections = is_array( $this->config['menu_sections'] ) ? $this->config['menu_sections'] : [];
+
+        foreach ( $defaults as $key => $default ) {
+            $defaults[ $key ] = array_key_exists( $key, $sections ) ? (bool) $sections[ $key ] : $default;
+        }
+
+        return $defaults;
+    }
+
+    /**
+     * @param array<string,mixed> $structure
+     * @param array<string,array<string,mixed>> $flat_pages
+     */
+    private function render_menu_structure_pages( array $structure, array $flat_pages ): string {
+        $display = (string) $this->config['menu_structure_page_display'];
+        $page_keys = array_values( array_map( 'strval', (array) ( $structure['page_keys'] ?? [] ) ) );
+
+        if ( 'checkboxes' === $display || 'list' === $display ) {
+            ob_start();
+            ?>
+            <div class="hpc-menu-structure-pages" style="display:grid;gap:8px;margin:0 0 12px;">
+                <?php $rendered = 0; ?>
+                <?php foreach ( $page_keys as $page_key ) : ?>
+                    <?php $page_data = $flat_pages[ $page_key ] ?? null; ?>
+                    <?php if ( ! $page_data ) : ?>
+                        <?php continue; ?>
+                    <?php endif; ?>
+                    <?php $assigned_id = $this->manager->assigned_page_id( $page_key ); ?>
+                    <?php $is_assigned = $assigned_id > 0; ?>
+                    <?php $rendered++; ?>
+                    <label style="display:grid;grid-template-columns:<?php echo 'checkboxes' === $display ? 'auto ' : ''; ?>minmax(0,1fr) auto;gap:10px;align-items:start;padding:10px 12px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;<?php echo $is_assigned ? '' : 'opacity:.72;'; ?>">
+                        <?php if ( 'checkboxes' === $display ) : ?>
+                            <input type="checkbox" class="hpc-structure-page-key" value="<?php echo esc_attr( $page_key ); ?>" <?php echo $is_assigned ? 'checked' : 'disabled'; ?>>
+                        <?php endif; ?>
+                        <span style="min-width:0;">
+                            <strong style="display:block;color:#1f2937;"><?php echo esc_html( (string) ( $page_data['title'] ?? $page_key ) ); ?></strong>
+                            <code style="display:inline-block;margin-top:3px;white-space:normal;"><?php echo esc_html( (string) ( $page_data['slug'] ?? $page_key ) ); ?></code>
+                        </span>
+                        <span style="display:inline-block;background:<?php echo $is_assigned ? '#dcfce7' : '#f3f4f6'; ?>;color:<?php echo $is_assigned ? '#166534' : '#6b7280'; ?>;border-radius:999px;padding:3px 8px;font-size:11px;font-weight:700;white-space:nowrap;">
+                            <?php echo esc_html( $is_assigned ? 'Assigned' : 'Not assigned' ); ?>
+                        </span>
+                    </label>
+                <?php endforeach; ?>
+                <?php if ( 0 === $rendered ) : ?>
+                    <p style="color:#666;margin:0;">No pages are configured for this list.</p>
+                <?php endif; ?>
+            </div>
+            <?php
+            return (string) ob_get_clean();
+        }
+
+        ob_start();
+        ?>
+        <div style="font-size:12px;color:#4b5563;margin-bottom:10px;">
+            <?php foreach ( $page_keys as $page_key ) : ?>
+                <?php $page_data = $flat_pages[ $page_key ] ?? null; $assigned_id = $this->manager->assigned_page_id( $page_key ); ?>
+                <?php if ( $page_data ) : ?>
+                    <span style="display:inline-block;margin:0 4px 4px 0;padding:2px 7px;border-radius:999px;background:<?php echo $assigned_id ? '#dcfce7' : '#f3f4f6'; ?>;color:<?php echo $assigned_id ? '#166534' : '#6b7280'; ?>;">
+                        <?php echo esc_html( (string) $page_data['title'] ); ?><?php echo $assigned_id ? '' : ' (not set)'; ?>
+                    </span>
+                <?php endif; ?>
+            <?php endforeach; ?>
+        </div>
+        <?php
         return (string) ob_get_clean();
     }
 
@@ -924,8 +1035,16 @@ final class SiteStructureRenderer {
                 var $card = $btn.closest(".hpc-menu-structure-card");
                 var $status = $card.find(".hpc-structure-status");
                 var menuId = $card.find(".hpc-structure-menu").val();
+                var pageKeys = [];
                 if (!menuId) {
                     setStatus($status, "Select a menu first.", false);
+                    return;
+                }
+                $card.find(".hpc-structure-page-key:checked").each(function() {
+                    pageKeys.push($(this).val());
+                });
+                if ($card.find(".hpc-structure-page-key").length && !pageKeys.length) {
+                    setStatus($status, "Select at least one assigned page.", false);
                     return;
                 }
                 originalText($btn);
@@ -933,7 +1052,8 @@ final class SiteStructureRenderer {
                 post("attach_menu_structure", {
                     menu_id: menuId,
                     parent_item_id: $card.find(".hpc-structure-parent").val() || "0",
-                    structure: $card.data("structure")
+                    structure: $card.data("structure"),
+                    page_keys: pageKeys
                 }, function(response) {
                     if (response.success) {
                         refreshMenuInventory($status, message(response, "Structure attached."), function() {

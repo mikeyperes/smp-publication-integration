@@ -28,6 +28,7 @@ final class PageStructureManager {
                 'assignment_getter'    => null,
                 'assignment_saver'     => null,
                 'assignment_deleter'   => null,
+                'readonly_page_keys'    => [],
                 'default_templates'    => [],
                 'default_template_getter' => null,
                 'template_getter'      => null,
@@ -78,6 +79,12 @@ final class PageStructureManager {
         }
 
         return function_exists( 'get_option' ) ? max( 0, (int) get_option( $this->option_key( $page_key ), 0 ) ) : 0;
+    }
+
+    private function is_readonly_page_key( string $page_key ): bool {
+        $readonly = is_array( $this->config['readonly_page_keys'] ) ? array_map( 'strval', $this->config['readonly_page_keys'] ) : [];
+
+        return in_array( $page_key, $readonly, true );
     }
 
     public function assigned_page( string $page_key ): ?\WP_Post {
@@ -144,6 +151,10 @@ final class PageStructureManager {
             return new \WP_Error( 'unknown_page_key', 'Unknown page key.' );
         }
 
+        if ( $this->is_readonly_page_key( $page_key ) ) {
+            return new \WP_Error( 'readonly_page_key', 'This page assignment is managed by another site tool.' );
+        }
+
         if ( $page_id > 0 && ( ! function_exists( 'get_post' ) || ! get_post( $page_id ) ) ) {
             return new \WP_Error( 'page_not_found', 'Selected page was not found.' );
         }
@@ -183,6 +194,10 @@ final class PageStructureManager {
         $flat_pages = $this->flat_pages();
         if ( '' === $page_key || ! isset( $flat_pages[ $page_key ] ) ) {
             return new \WP_Error( 'unknown_page_key', 'Unknown page key.' );
+        }
+
+        if ( $this->is_readonly_page_key( $page_key ) ) {
+            return new \WP_Error( 'readonly_page_key', 'This page assignment is managed by another site tool.' );
         }
 
         $page_def = $flat_pages[ $page_key ];
@@ -272,6 +287,10 @@ final class PageStructureManager {
     public function delete_page( string $page_key, int $page_id = 0 ): array|\WP_Error {
         if ( '' === $page_key ) {
             return new \WP_Error( 'missing_page_key', 'Page key is required.' );
+        }
+
+        if ( $this->is_readonly_page_key( $page_key ) ) {
+            return new \WP_Error( 'readonly_page_key', 'This page assignment is managed by another site tool.' );
         }
 
         $assigned_page_id = $this->assigned_page_id( $page_key );
@@ -591,7 +610,7 @@ final class PageStructureManager {
     /**
      * @return array<string,mixed>|\WP_Error
      */
-    public function attach_menu_structure( int $menu_id, string $structure_key, int $parent_item_id = 0 ): array|\WP_Error {
+    public function attach_menu_structure( int $menu_id, string $structure_key, int $parent_item_id = 0, array $page_keys = [] ): array|\WP_Error {
         $structures = $this->menu_structures();
         $flat_pages = $this->flat_pages();
 
@@ -611,8 +630,24 @@ final class PageStructureManager {
         $updated        = 0;
         $skipped        = 0;
         $created_by_key = [];
+        $configured_keys = array_values( array_map( 'strval', (array) ( $structures[ $structure_key ]['page_keys'] ?? [] ) ) );
+        $selected_keys   = array_values( array_unique( array_filter( array_map( 'strval', $page_keys ), static fn( string $key ): bool => '' !== $key ) ) );
+        if ( ! empty( $selected_keys ) ) {
+            $allowed = array_fill_keys( $configured_keys, true );
+            $selected_keys = array_values(
+                array_filter(
+                    $selected_keys,
+                    static fn( string $key ): bool => isset( $allowed[ $key ] )
+                )
+            );
+        }
 
-        foreach ( $structures[ $structure_key ]['page_keys'] ?? [] as $page_key ) {
+        $page_keys_to_attach = ! empty( $selected_keys ) ? $selected_keys : $configured_keys;
+        if ( empty( $page_keys_to_attach ) ) {
+            return new \WP_Error( 'no_menu_structure_pages', 'No pages were selected for this list.' );
+        }
+
+        foreach ( $page_keys_to_attach as $page_key ) {
             $page_key = (string) $page_key;
             if ( empty( $flat_pages[ $page_key ] ) ) {
                 $skipped++;
@@ -734,6 +769,10 @@ final class PageStructureManager {
             return new \WP_Error( 'unknown_page_key', 'Unknown page key.' );
         }
 
+        if ( $this->is_readonly_page_key( $page_key ) ) {
+            return new \WP_Error( 'readonly_page_key', 'This page template is managed by another site tool.' );
+        }
+
         $template = ! empty( $this->config['template_kses'] ) && function_exists( 'wp_kses_post' ) ? wp_kses_post( $template ) : $template;
 
         if ( isset( $this->config['template_saver'] ) && is_callable( $this->config['template_saver'] ) ) {
@@ -763,6 +802,10 @@ final class PageStructureManager {
         $flat_pages = $this->flat_pages();
         if ( '' === $page_key || ! isset( $flat_pages[ $page_key ] ) ) {
             return new \WP_Error( 'unknown_page_key', 'Unknown page key.' );
+        }
+
+        if ( $this->is_readonly_page_key( $page_key ) ) {
+            return new \WP_Error( 'readonly_page_key', 'This page template is managed by another site tool.' );
         }
 
         $page_id = $page_id > 0 ? $page_id : $this->assigned_page_id( $page_key );
@@ -811,6 +854,10 @@ final class PageStructureManager {
         $flat_pages = $this->flat_pages();
         if ( '' === $page_key || ! isset( $flat_pages[ $page_key ] ) ) {
             return new \WP_Error( 'unknown_page_key', 'Unknown page key.' );
+        }
+
+        if ( $this->is_readonly_page_key( $page_key ) ) {
+            return new \WP_Error( 'readonly_page_key', 'This page slug is managed by another site tool.' );
         }
 
         $post = $page_id > 0 && function_exists( 'get_post' ) ? get_post( $page_id ) : null;
