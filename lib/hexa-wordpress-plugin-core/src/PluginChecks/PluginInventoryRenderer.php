@@ -66,7 +66,6 @@ final class PluginInventoryRenderer {
                 <thead>
                     <tr>
                         <th>Plugin</th>
-                        <th class="hpc-plugin-inventory-icon-col">Installed</th>
                         <th>Status</th>
                         <?php if ( ! empty( $args['columns']['auto_update'] ) ) : ?>
                             <th>Auto-Update</th>
@@ -82,7 +81,7 @@ final class PluginInventoryRenderer {
                 </thead>
                 <tbody>
                     <?php if ( [] === $items ) : ?>
-                        <tr><td colspan="7"><?php echo esc_html( (string) $args['empty_text'] ); ?></td></tr>
+                        <tr><td colspan="<?php echo esc_attr( (string) $this->column_count( $args ) ); ?>"><?php echo esc_html( (string) $args['empty_text'] ); ?></td></tr>
                     <?php endif; ?>
                     <?php foreach ( $items as $definition ) : ?>
                         <?php echo $this->row_html( $definition, $status_by_id[ $definition->id ] ?? PluginCheckService::status( $definition ), $args ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
@@ -135,15 +134,23 @@ final class PluginInventoryRenderer {
     private function row_html( PluginCheckDefinition $definition, array $status, array $args ): string {
         $installed = ! empty( $status['installed'] );
         $active    = ! empty( $status['active'] );
-        $recommended = $this->is_recommended( $definition, $status );
+        $required  = $this->is_required( $definition, $status );
+        $row_class = trim(
+            ( $installed ? 'is-installed' : 'is-missing' )
+            . ' '
+            . ( $required ? 'is-required' : 'is-optional' )
+            . ' '
+            . ( ! $installed && $required ? 'is-required-missing' : '' )
+        );
 
         ob_start();
         ?>
-        <tr data-plugin-inventory-row data-plugin-id="<?php echo esc_attr( $definition->id ); ?>" data-plugin-installed="<?php echo $installed ? '1' : '0'; ?>" data-plugin-active="<?php echo $active ? '1' : '0'; ?>">
+        <tr class="<?php echo esc_attr( $row_class ); ?>" data-plugin-inventory-row data-plugin-id="<?php echo esc_attr( $definition->id ); ?>" data-plugin-installed="<?php echo $installed ? '1' : '0'; ?>" data-plugin-active="<?php echo $active ? '1' : '0'; ?>" data-plugin-required="<?php echo $required ? '1' : '0'; ?>">
             <td class="hpc-plugin-inventory-plugin-cell">
                 <div class="hpc-plugin-inventory-title">
-                    <?php echo $this->icon( $recommended, $recommended ? 'Recommended' : 'Not recommended' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                    <?php echo $this->icon( $installed, $installed ? 'Plugin installed' : 'Plugin missing' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
                     <strong><?php echo esc_html( $definition->name ); ?></strong>
+                    <?php echo $this->requirement_badge( $required ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
                 </div>
                 <div class="hpc-plugin-inventory-meta">
                     <code><?php echo esc_html( (string) $status['plugin_file'] ?: $definition->plugin_file ?: $definition->slug ); ?></code>
@@ -151,9 +158,6 @@ final class PluginInventoryRenderer {
                         <span><?php echo esc_html( wp_strip_all_tags( $definition->notes ) ); ?></span>
                     <?php endif; ?>
                 </div>
-            </td>
-            <td class="hpc-plugin-inventory-icon-col">
-                <?php echo $this->icon( $installed, $installed ? 'Installed' : 'Not installed' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
             </td>
             <td>
                 <?php echo $this->status_text( $active, $active ? 'Active' : 'Inactive' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
@@ -280,24 +284,48 @@ final class PluginInventoryRenderer {
     /**
      * @param array<string,mixed> $status
      */
-    private function is_recommended( PluginCheckDefinition $definition, array $status ): bool {
-        if ( array_key_exists( 'recommended', $status ) ) {
-            return (bool) $status['recommended'];
+    private function is_required( PluginCheckDefinition $definition, array $status ): bool {
+        if ( array_key_exists( 'required', $status ) ) {
+            return (bool) $status['required'];
         }
 
-        if ( property_exists( $definition, 'recommended' ) ) {
-            return (bool) $definition->recommended;
-        }
-
-        return (bool) $definition->required;
+        return property_exists( $definition, 'required' ) ? (bool) $definition->required : true;
     }
 
     private function icon( bool $passed, string $label ): string {
-        return '<span class="hpc-plugin-inventory-fa ' . ( $passed ? 'hpc-plugin-inventory-fa-check' : 'hpc-plugin-inventory-fa-xmark' ) . '" aria-label="' . esc_attr( $label ) . '" role="img"></span>';
+        $path    = $passed
+            ? 'M438.6 105.4c12.5 12.5 12.5 32.8 0 45.3l-256 256c-12.5 12.5-32.8 12.5-45.3 0l-128-128c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0L160 338.7 393.4 105.4c12.5-12.5 32.8-12.5 45.3 0z'
+            : 'M342.6 150.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L192 210.7 86.6 105.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L146.7 256 41.4 361.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L192 301.3 297.4 406.6c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L237.3 256 342.6 150.6z';
+        $viewbox = $passed ? '0 0 448 512' : '0 0 384 512';
+
+        return '<span class="hpc-plugin-inventory-fa ' . ( $passed ? 'hpc-plugin-inventory-fa-check' : 'hpc-plugin-inventory-fa-xmark' ) . '" aria-label="' . esc_attr( $label ) . '" title="' . esc_attr( $label ) . '" role="img"><svg class="hpc-plugin-inventory-fa-svg" viewBox="' . esc_attr( $viewbox ) . '" aria-hidden="true" focusable="false"><path d="' . esc_attr( $path ) . '"></path></svg></span>';
+    }
+
+    private function requirement_badge( bool $required ): string {
+        return '<span class="hpc-plugin-inventory-requirement ' . ( $required ? 'is-required' : 'is-optional' ) . '">' . ( $required ? 'Required' : 'Optional' ) . '</span>';
     }
 
     private function summary_item( string $label, int $count, string $tone ): string {
         return '<span class="hpc-plugin-inventory-summary-item is-' . esc_attr( $tone ) . '"><strong>' . $count . '</strong> ' . esc_html( $label ) . '</span>';
+    }
+
+    /**
+     * @param array<string,mixed> $args
+     */
+    private function column_count( array $args ): int {
+        $count = 3; // Plugin, Status, Action.
+
+        if ( ! empty( $args['columns']['auto_update'] ) ) {
+            $count++;
+        }
+        if ( ! empty( $args['columns']['version'] ) ) {
+            $count++;
+        }
+        if ( ! empty( $args['columns']['source'] ) ) {
+            $count++;
+        }
+
+        return $count;
     }
 
     /**
@@ -372,21 +400,25 @@ final class PluginInventoryRenderer {
 .hpc-plugin-inventory-table th{background:#f8fafc;border-bottom:1px solid var(--hpc-line);color:#253650;font-size:12px;font-weight:900;letter-spacing:.02em;padding:11px 12px;text-align:left;text-transform:uppercase;white-space:nowrap}
 .hpc-plugin-inventory-table td{border-bottom:1px solid #edf1f6;padding:12px;vertical-align:middle}
 .hpc-plugin-inventory-table tr:last-child td{border-bottom:0}
-.hpc-plugin-inventory-icon-col{text-align:center;width:86px}
+.hpc-plugin-inventory-table tr.is-missing td{background:#f8fafc;color:#546179}
+.hpc-plugin-inventory-table tr.is-required-missing td:first-child{box-shadow:inset 4px 0 0 var(--hpc-red)}
+.hpc-plugin-inventory-table tr.is-required-missing .hpc-plugin-inventory-title strong{color:#3f4d63}
 .hpc-plugin-inventory-plugin-cell{min-width:280px}
 .hpc-plugin-inventory-title{align-items:center;display:flex;gap:8px;margin:0 0 7px}
 .hpc-plugin-inventory-title strong{font-size:14px}
+.hpc-plugin-inventory-requirement{border-radius:999px;display:inline-flex;font-size:10px;font-weight:900;line-height:1;padding:5px 7px;text-transform:uppercase}
+.hpc-plugin-inventory-requirement.is-required{background:#fff0f2;border:1px solid #ffd0d8;color:var(--hpc-red)}
+.hpc-plugin-inventory-requirement.is-optional{background:#eef2ff;border:1px solid #dbe4ff;color:#2944ad}
 .hpc-plugin-inventory-meta{display:grid;gap:5px}
 .hpc-plugin-inventory-meta code{background:#eef0f2;border-radius:5px;color:#2f3a4a;font-size:12px;padding:2px 5px;word-break:break-all}
 .hpc-plugin-inventory-meta span{color:var(--hpc-muted);font-size:12px;line-height:1.35}
 .hpc-plugin-inventory-status{align-items:center;display:inline-flex;font-size:13px;font-weight:900;gap:5px;white-space:nowrap}
 .hpc-plugin-inventory-status.is-pass{color:var(--hpc-green)}
 .hpc-plugin-inventory-status.is-fail{color:var(--hpc-red)}
-.hpc-plugin-inventory-fa{display:inline-flex;font-family:"Font Awesome 6 Free","Font Awesome 5 Free","FontAwesome",Arial,sans-serif;font-size:14px;font-weight:900;justify-content:center;line-height:1;min-width:16px}
+.hpc-plugin-inventory-fa{align-items:center;border-radius:999px;display:inline-flex;height:18px;justify-content:center;line-height:1;min-width:18px;width:18px}
 .hpc-plugin-inventory-fa-check{color:var(--hpc-green)}
-.hpc-plugin-inventory-fa-check:before{content:"\f00c"}
 .hpc-plugin-inventory-fa-xmark{color:var(--hpc-red)}
-.hpc-plugin-inventory-fa-xmark:before{content:"\f00d"}
+.hpc-plugin-inventory-fa-svg{display:block;fill:currentColor;height:14px;width:14px}
 .hpc-plugin-inventory-source-link{color:var(--hpc-blue);font-size:12px;font-weight:800;text-decoration:none;white-space:nowrap}
 .hpc-plugin-inventory-source-text,.hpc-plugin-inventory-muted{color:var(--hpc-muted);font-size:12px}
 .hpc-plugin-inventory-update{color:var(--hpc-amber);font-size:12px;font-weight:800}

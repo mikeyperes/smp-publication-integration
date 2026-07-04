@@ -25,6 +25,7 @@ src/CoreBootstrap/      Hexa\PluginCore\CoreBootstrap
 src/CoreContracts/      Hexa\PluginCore\CoreContracts
 src/CorePackageUpdates/ Hexa\PluginCore\CorePackageUpdates
 src/CoreRuntime/        Hexa\PluginCore\CoreRuntime
+src/ContentCleanup/     Hexa\PluginCore\ContentCleanup
 src/CredentialVault/    Hexa\PluginCore\CredentialVault
 src/FieldStructures/    Hexa\PluginCore\FieldStructures
 src/FaqSets/            Hexa\PluginCore\FaqSets
@@ -82,6 +83,178 @@ default: true
 admin_pages: post.php, post-new.php
 mode: css_hide
 selectors: #commentsdiv, #commentsdiv-hide, label[for="commentsdiv-hide"]
+```
+
+## Content Cleanup
+
+Namespace:
+
+```text
+Hexa\PluginCore\ContentCleanup
+```
+
+Use `ContentCleanupConfig` for host-specific action names, nonce settings, allowed post types, statuses, default age filters, fixed report mode, detection rules, limits, and protected IDs. Use `ContentCleanupAjaxController` to register scan/trash/delete actions. Use `ContentCleanupRenderer` for the filters or no-filter report UI, detected rows table, row flags, edit-new-tab links, red destructive buttons, and Hexa Core Log Type 1 live activity log.
+
+Use `BackupCleanupConfig`, `BackupCleanupAjaxController`, and `BackupCleanupRenderer` when a plugin needs a reusable backup-file cleanup table. The host plugin supplies configured roots and allowed extensions; Core scans those locations, returns row IDs, and deletes only files that still match the configured roots/extensions.
+
+Use `ArticleMediaCleanupConfig`, `ArticleMediaCleanupAjaxController`, and `ArticleMediaCleanupRenderer` when a plugin needs reusable post cleanup. Core renders filters, "keep most recent X posts", select-all/row selection, row-by-row AJAX deletion, and optional associated media deletion. Media deletion is off by default and only runs when the visible checkbox is enabled. Associated media includes featured images plus inline/gallery attachment IDs detected from post content.
+
+Core automatically protects the WordPress front page, posts page, and privacy policy page.
+
+## Plugin Checks And Plugin Inventory
+
+Namespace:
+
+```text
+Hexa\PluginCore\PluginChecks
+```
+
+Use `PluginCheckDefinition` arrays for host-owned plugin lists. Use `PluginCheckService` for installed/active/update/auto-update status. Use `PluginInventoryRenderer` when a plugin needs a reusable table UI for plugin status or a plugin library. Use `PluginInventoryAjaxController` for no-refresh refresh, install-and-activate, and activate actions.
+
+Required rules:
+
+- Keep plugin-specific catalog data in the host plugin.
+- Keep table UI, collapsible cards, install/activate actions, and status rendering in Hexa Core.
+- The green check or red X beside the plugin title is based on actual installed/present status.
+- Use `required` to show the Required/Optional badge and to style missing required rows.
+- Use `source => wordpress_org` with `wp_org_slug` for WordPress.org installs.
+- Use `source => github` with `github_repo` for GitHub ZIP installs. Core normalizes extracted `repo-main` folders to the configured slug.
+- Use `source => pro` or `manual` when a plugin requires a manual upload/download.
+- Use `source => must_use` or `dropin` for MU plugins and WordPress drop-ins; Core treats installed/present as active and skips update/auto-update checks.
+- Do not render a separate Installed column. Show installed/missing state as a Font Awesome SVG green check or red X beside the plugin title, with hover text explaining the state.
+- The Status column prints the icon plus `Active` or `Inactive`.
+- Do not use emoji indicators in plugin inventory UIs.
+
+Example:
+
+```php
+$definitions = [
+    [
+        'id'                   => 'classic-editor',
+        'name'                 => 'Classic Editor',
+        'plugin_file'          => 'classic-editor/classic-editor.php',
+        'slug'                 => 'classic-editor',
+        'source'               => 'wordpress_org',
+        'wp_org_slug'          => 'classic-editor',
+        'required'             => true,
+        'recommended'          => true,
+        'auto_update_expected' => true,
+        'checks'               => [
+            'installed'   => true,
+            'active'      => true,
+            'up_to_date'  => false,
+            'auto_update' => true,
+        ],
+    ],
+];
+
+( new \Hexa\PluginCore\PluginChecks\PluginInventoryAjaxController(
+    $definitions,
+    [
+        'capability'    => 'install_plugins',
+        'nonce_action'  => 'my_plugin_admin',
+        'nonce_field'   => 'nonce',
+        'action_prefix' => 'my_plugin_inventory',
+        'renderer_args' => [
+            'title'       => 'Plugin Status',
+            'persist_key' => 'my-plugin-status',
+            'columns'     => [
+                'auto_update' => true,
+                'version'     => true,
+                'source'      => true,
+            ],
+        ],
+    ]
+) )->register();
+
+echo ( new \Hexa\PluginCore\PluginChecks\PluginInventoryRenderer() )->render(
+    $definitions,
+    [
+        'title'         => 'Plugin Status',
+        'description'   => 'Plugin health for this integration.',
+        'nonce'         => wp_create_nonce( 'my_plugin_admin' ),
+        'nonce_field'   => 'nonce',
+        'action_prefix' => 'my_plugin_inventory',
+        'persist_key'   => 'my-plugin-status',
+        'open'          => true,
+    ]
+);
+```
+
+```php
+use Hexa\PluginCore\ContentCleanup\ContentCleanupAjaxController;
+use Hexa\PluginCore\ContentCleanup\ContentCleanupConfig;
+use Hexa\PluginCore\ContentCleanup\ContentCleanupRenderer;
+
+$config = new ContentCleanupConfig([
+    'root_id'                => 'example-cleanup',
+    'title'                  => 'Cleanup',
+    'nonce_action'           => 'example_cleanup',
+    'scan_action'            => 'example_cleanup_scan',
+    'trash_action'           => 'example_cleanup_trash',
+    'delete_action'          => 'example_cleanup_delete',
+    'post_types'             => [ 'page' => 'Pages' ],
+    'default_published_days' => 365,
+    'show_filters'           => false,
+    'count_label'            => 'Reported',
+    'detection_rules'        => [
+        [
+            'id'                 => 'home_not_front',
+            'label'              => 'Home',
+            'tone'               => 'warning',
+            'terms'              => [ 'home' ],
+            'fields'             => [ 'title', 'slug' ],
+            'exclude_option_ids' => [ 'page_on_front' ],
+        ],
+    ],
+]);
+
+( new ContentCleanupAjaxController( $config ) )->register();
+( new ContentCleanupRenderer( $config ) )->render();
+```
+
+Backup cleanup example:
+
+```php
+use Hexa\PluginCore\ContentCleanup\BackupCleanupAjaxController;
+use Hexa\PluginCore\ContentCleanup\BackupCleanupConfig;
+use Hexa\PluginCore\ContentCleanup\BackupCleanupRenderer;
+
+$backup_config = new BackupCleanupConfig([
+    'root_id'       => 'example-backup-cleanup',
+    'nonce_action'  => 'example_cleanup',
+    'scan_action'   => 'example_backup_scan',
+    'delete_action' => 'example_backup_delete',
+    'locations'     => [
+        'updraftplus' => [
+            'name'       => 'UpdraftPlus',
+            'path'       => WP_CONTENT_DIR . '/updraft/',
+            'extensions' => [ 'zip', 'gz', 'sql' ],
+        ],
+    ],
+]);
+
+( new BackupCleanupAjaxController( $backup_config ) )->register();
+( new BackupCleanupRenderer( $backup_config ) )->render();
+```
+
+Article cleanup example:
+
+```php
+use Hexa\PluginCore\ContentCleanup\ArticleMediaCleanupAjaxController;
+use Hexa\PluginCore\ContentCleanup\ArticleMediaCleanupConfig;
+use Hexa\PluginCore\ContentCleanup\ArticleMediaCleanupRenderer;
+
+$article_config = new ArticleMediaCleanupConfig([
+    'root_id'       => 'example-article-cleanup',
+    'nonce_action'  => 'example_cleanup',
+    'scan_action'   => 'example_article_scan',
+    'delete_action' => 'example_article_delete',
+    'post_types'    => [ 'post' => 'Posts' ],
+]);
+
+( new ArticleMediaCleanupAjaxController( $article_config ) )->register();
+( new ArticleMediaCleanupRenderer( $article_config ) )->render();
 ```
 
 ## WP Admin AJAX

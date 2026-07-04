@@ -4,7 +4,7 @@
  * Description: Publication profile integration for Scale My Publication systems.
  * Author: Michael Peres
  * Plugin URI: https://github.com/mikeyperes/smp-publication-integration
- * Version: 0.6.147
+ * Version: 0.6.149
  * Text Domain: smp-publication-integration
  * Domain Path: /languages
  * Author URI: https://michaelperes.com
@@ -54,6 +54,26 @@ function register_hexa_plugin_core_autoloader(): void {
 
 register_hexa_plugin_core_autoloader();
 
+function require_plugin_inventory_core(): void {
+    $files = [
+        'Hexa\\PluginCore\\WpAdminComponents\\CoreUi'                  => __DIR__ . '/lib/hexa-wordpress-plugin-core/src/WpAdminComponents/CoreUi.php',
+        'Hexa\\PluginCore\\WpAdminComponents\\DynamicButton'           => __DIR__ . '/lib/hexa-wordpress-plugin-core/src/WpAdminComponents/DynamicButton.php',
+        'Hexa\\PluginCore\\PluginProvisioning\\PluginProvisioner'      => __DIR__ . '/lib/hexa-wordpress-plugin-core/src/PluginProvisioning/PluginProvisioner.php',
+        'Hexa\\PluginCore\\PluginChecks\\PluginCheckDefinition'        => __DIR__ . '/lib/hexa-wordpress-plugin-core/src/PluginChecks/PluginCheckDefinition.php',
+        'Hexa\\PluginCore\\PluginChecks\\PluginCheckService'           => __DIR__ . '/lib/hexa-wordpress-plugin-core/src/PluginChecks/PluginCheckService.php',
+        'Hexa\\PluginCore\\PluginChecks\\PluginInventoryRenderer'      => __DIR__ . '/lib/hexa-wordpress-plugin-core/src/PluginChecks/PluginInventoryRenderer.php',
+        'Hexa\\PluginCore\\PluginChecks\\PluginInventoryAjaxController'=> __DIR__ . '/lib/hexa-wordpress-plugin-core/src/PluginChecks/PluginInventoryAjaxController.php',
+    ];
+
+    foreach ( $files as $class_name => $file ) {
+        if ( ! class_exists( $class_name, false ) && is_readable( $file ) ) {
+            require_once $file;
+        }
+    }
+}
+
+require_plugin_inventory_core();
+
 require_once __DIR__ . "/src/Content/AcfFields.php";
 require_once __DIR__ . "/src/Content/Shortcodes.php";
 require_once __DIR__ . "/src/Content/MultiAuthors.php";
@@ -83,7 +103,7 @@ require_once __DIR__ . "/src/Admin/UiCleanup.php";
 require_once __DIR__ . "/src/Admin/Dashboard.php";
 
 final class Config {
-    public const VERSION = "0.6.147";
+    public const VERSION = "0.6.149";
 
     public static string $plugin_name        = 'SMP Publication Integration';
     public static string $plugin_slug        = 'smp-publication-integration';

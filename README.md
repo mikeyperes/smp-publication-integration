@@ -7,7 +7,15 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.6.132`
+- Version: `0.6.149`
+
+## 0.6.149 Updates
+
+- Loads SMP's vendored Hexa Core plugin inventory classes during bootstrap so the Plugins tab cannot be rendered by an older Core copy from another active plugin.
+
+## 0.6.148 Updates
+
+- Updated vendored Hexa WP Core to `0.19.9` so plugin inventory tables remove the Installed column and use inline Font Awesome SVG check/X title indicators.
 
 ## 0.6.128 Updates
 

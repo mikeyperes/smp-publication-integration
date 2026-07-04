@@ -31,6 +31,7 @@ hexa-wordpress-plugin-core/
     CoreContracts/      -> Hexa\PluginCore\CoreContracts
     CorePackageUpdates/ -> Hexa\PluginCore\CorePackageUpdates
     CoreRuntime/        -> Hexa\PluginCore\CoreRuntime
+    ContentCleanup/     -> Hexa\PluginCore\ContentCleanup
     CredentialVault/    -> Hexa\PluginCore\CredentialVault
     FieldStructures/    -> Hexa\PluginCore\FieldStructures
     FaqSets/            -> Hexa\PluginCore\FaqSets
@@ -68,11 +69,12 @@ Do not create `HWS\BaseTools\PluginCore`, `HexaWordPressPluginCore`, `Hexa\Core`
 - `CoreContracts`: interfaces that host plugins and core modules must follow.
 - `CorePackageUpdates`: compares and updates the vendored Hexa WordPress Plugin Core package.
 - `CoreRuntime`: runtime value objects such as plugin context and core version metadata.
+- `ContentCleanup`: old content detection, backup file detection/deletion, article/media cleanup, guarded AJAX actions, AJAX table updates, and Hexa Core Log Type 1 cleanup activity UI.
 - `CredentialVault`: encrypted API-key/secret storage, masking, and credential field examples.
 - `FieldStructures`: reusable displays and status checks for ACF groups, custom post types, taxonomies, and option-backed feature structures.
 - `FaqSets`: shared FAQ set sanitizing, item normalization, primary-set resolution, safe answer links, FAQPage schema, and reusable list or accordion output.
 - `LogFiles`: shared error-log source definitions, tail readers, classifiers, search/highlight UI, and renderers.
-- `PluginChecks`: shared required-plugin definition checks, status renderer, AJAX install/activate actions, update-cache refresh, and activity-log UI.
+- `PluginChecks`: shared required-plugin definitions, status checks, reusable collapsible plugin inventory tables, presence-based green/red Font Awesome SVG title indicators, Required/Optional badges, AJAX install/activate actions, update-cache refresh, and activity-log UI.
 - `PluginProvisioning`: shared plugin discovery, status checks, WordPress.org installs, GitHub ZIP installs, folder normalization, and activation.
 - `PluginUpdates`: shared GitHub/update configuration objects and host plugin updater.
 - `SnippetRegistry`: shared snippet definitions, option toggles, test rules, related snippets, related shortcodes, basic README rendering, generic AJAX handlers, and the canonical snippets table UI.
@@ -151,6 +153,7 @@ Before adding implementations in another Codex or Claude chat, read:
 - `docs/setup-protocol.md`
 - `docs/implementation-checklist.md`
 - `docs/new-plugin-master-checklist.md`
+- `docs/content-cleanup.md`
 - `docs/site-structure.md`
 - `docs/schema-detection.md`
 - `docs/field-structures.md`
@@ -187,6 +190,47 @@ $core_config = CorePackageConfig::from_core_root(
 ```
 
 This panel compares the vendored `VERSION` in the host plugin with the public GitHub repository `VERSION`. The host plugin updater and the vendored core updater both render as default-open persistent collapse cards. Each card reports the Git repo, Git URL, Git branch, Git version, current version, current-vs-Git comparison, green/red status flag, check-for-updates action, normalized ZIP download, and live update activity log.
+
+## Content Cleanup
+
+`Hexa\PluginCore\ContentCleanup` provides reusable cleanup structures for wp-admin. Host plugins pass their own action names, allowed post types, backup locations, and deletion limits; Core renders fixed reports, filters, result tables, edit links, row flags, destructive buttons, row loaders, and live dark activity logs.
+
+```php
+use Hexa\PluginCore\ContentCleanup\ContentCleanupAjaxController;
+use Hexa\PluginCore\ContentCleanup\ContentCleanupConfig;
+use Hexa\PluginCore\ContentCleanup\ContentCleanupRenderer;
+
+$config = new ContentCleanupConfig([
+    'root_id'                => 'example-cleanup',
+    'title'                  => 'Cleanup',
+    'nonce_action'           => 'example_cleanup',
+    'scan_action'            => 'example_cleanup_scan',
+    'trash_action'           => 'example_cleanup_trash',
+    'delete_action'          => 'example_cleanup_delete',
+    'post_types'             => [ 'page' => 'Pages' ],
+    'default_published_days' => 365,
+    'show_filters'           => false,
+    'count_label'            => 'Reported',
+    'detection_rules'        => [
+        [
+            'id'                 => 'home_not_front',
+            'label'              => 'Home',
+            'tone'               => 'warning',
+            'terms'              => [ 'home' ],
+            'fields'             => [ 'title', 'slug' ],
+            'exclude_option_ids' => [ 'page_on_front' ],
+        ],
+    ],
+]);
+
+( new ContentCleanupAjaxController( $config ) )->register();
+( new ContentCleanupRenderer( $config ) )->render();
+```
+
+Version 0.19.4 adds:
+
+- `BackupCleanupConfig`, `BackupCleanupScanner`, `BackupCleanupAjaxController`, and `BackupCleanupRenderer` for configured backup-file roots and extension-limited AJAX deletion.
+- `ArticleMediaCleanupConfig`, `ArticleMediaCleanupScanner`, `ArticleMediaCleanupAjaxController`, and `ArticleMediaCleanupRenderer` for filtering posts, keeping the most recent X matches, selecting rows, deleting posts, and optionally deleting detected featured/inline/gallery media attachments.
 
 ## Brand Color Controls
 
