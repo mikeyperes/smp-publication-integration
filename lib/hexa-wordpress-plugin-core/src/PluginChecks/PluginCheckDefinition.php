@@ -15,6 +15,8 @@ final class PluginCheckDefinition {
     public string $download_label;
     public string $notes;
     public bool $required;
+    public bool $recommended;
+    public bool $auto_update_expected;
     public array $checks;
 
     public function __construct( array $config ) {
@@ -33,6 +35,8 @@ final class PluginCheckDefinition {
         $this->download_label = (string) ( $config['download_label'] ?? 'Download plugin' );
         $this->notes          = (string) ( $config['notes'] ?? $config['description'] ?? $config['additional_info'] ?? '' );
         $this->required       = (bool) ( $config['required'] ?? true );
+        $this->recommended    = (bool) ( $config['recommended'] ?? $config['is_recommended'] ?? $this->required );
+        $this->auto_update_expected = (bool) ( $config['auto_update_expected'] ?? $config['auto_update'] ?? false );
         $this->checks         = self::normalize_checks( $config['checks'] ?? $config['approved_constraints'] ?? [] );
     }
 
@@ -61,6 +65,7 @@ final class PluginCheckDefinition {
             'installed'  => (bool) ( $checks['installed'] ?? $checks['is_installed'] ?? true ),
             'active'     => (bool) ( $checks['active'] ?? $checks['is_active'] ?? true ),
             'up_to_date' => (bool) ( $checks['up_to_date'] ?? $checks['is_up_to_date'] ?? true ),
+            'auto_update' => (bool) ( $checks['auto_update'] ?? $checks['auto_updates'] ?? false ),
         ];
     }
 
@@ -87,6 +92,6 @@ final class PluginCheckDefinition {
     private static function clean_source( string $source ): string {
         $source = function_exists( 'sanitize_key' ) ? sanitize_key( $source ) : strtolower( preg_replace( '/[^a-z0-9_\-]/', '', $source ) );
 
-        return in_array( $source, [ 'wordpress_org', 'github', 'manual', 'pro' ], true ) ? $source : 'manual';
+        return in_array( $source, [ 'wordpress_org', 'github', 'manual', 'pro', 'must_use', 'dropin' ], true ) ? $source : 'manual';
     }
 }

@@ -2,6 +2,7 @@
 namespace smp_publication_integration\Admin;
 
 use Hexa\PluginCore\BrandColors\BrandColorProvider;
+use Hexa\PluginCore\PluginChecks\PluginInventoryAjaxController;
 use Hexa\PluginCore\SiteStructure\SiteStructureAjaxController;
 use Hexa\PluginCore\WpAdminAjax\AjaxActionRegistry;
 use Hexa\PluginCore\WpAdminAjax\AjaxFailure;
@@ -11,6 +12,7 @@ use smp_publication_integration\Content\MultiAuthors;
 use smp_publication_integration\Content\Schema;
 use smp_publication_integration\Support\Dependencies;
 use smp_publication_integration\Support\PageStructure;
+use smp_publication_integration\Support\PluginInventory;
 use smp_publication_integration\Support\PluginRegistry;
 use smp_publication_integration\Support\Settings;
 use smp_publication_integration\Support\SnippetDefinitions;
@@ -63,6 +65,28 @@ final class Ajax {
                 'logger'       => static function ( \Throwable $throwable ): void {
                     error_log( '[SMP Publication Integration] SiteStructure AJAX error: ' . $throwable->getMessage() );
                 },
+            ]
+        ) )->register();
+
+        ( new PluginInventoryAjaxController(
+            PluginInventory::recommended_definitions(),
+            [
+                'capability'    => 'install_plugins',
+                'nonce_action'  => self::NONCE,
+                'nonce_field'   => 'nonce',
+                'action_prefix' => PluginInventory::recommended_action_prefix(),
+                'renderer_args' => PluginInventory::recommended_renderer_args(),
+            ]
+        ) )->register();
+
+        ( new PluginInventoryAjaxController(
+            PluginInventory::outside_definitions(),
+            [
+                'capability'    => 'install_plugins',
+                'nonce_action'  => self::NONCE,
+                'nonce_field'   => 'nonce',
+                'action_prefix' => PluginInventory::outside_action_prefix(),
+                'renderer_args' => PluginInventory::outside_renderer_args(),
             ]
         ) )->register();
 

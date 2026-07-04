@@ -2,6 +2,7 @@
 namespace smp_publication_integration\Admin;
 
 use Hexa\PluginCore\BrandColors\BrandColorProvider;
+use Hexa\PluginCore\PluginChecks\PluginInventoryRenderer;
 use Hexa\PluginCore\ShortcodeRegistry\ShortcodeDisplayRenderer;
 use Hexa\PluginCore\SmartSearch\SmartSearchRenderer;
 use Hexa\PluginCore\FieldStructures\FieldStructureRenderer;
@@ -20,6 +21,7 @@ use smp_publication_integration\Content\Schema;
 use smp_publication_integration\Content\Shortcodes;
 use smp_publication_integration\Support\Dependencies;
 use smp_publication_integration\Support\PageStructure;
+use smp_publication_integration\Support\PluginInventory;
 use smp_publication_integration\Support\PluginRegistry;
 use smp_publication_integration\Support\Settings;
 use smp_publication_integration\Support\SnippetDefinitions;
@@ -126,6 +128,7 @@ final class Dashboard {
             'optimization' => 'Optimization',
             'pages' => 'Pages',
             'menu' => 'Menu',
+            'plugins' => 'Plugins',
             'verified_profiles' => 'Verified Profiles',
             'integrations' => 'Integrations',
             'quick_run' => 'Quick Run',
@@ -151,6 +154,7 @@ final class Dashboard {
         if ( 'optimization' === $id ) { $this->optimization(); return; }
         if ( 'pages' === $id ) { $this->pages(); return; }
         if ( 'menu' === $id ) { $this->menu(); return; }
+        if ( 'plugins' === $id ) { $this->plugins(); return; }
         if ( 'verified_profiles' === $id ) { $this->verified_profiles(); return; }
         if ( 'integrations' === $id ) { $this->integrations(); return; }
         if ( 'quick_run' === $id ) { echo '<div class="smpi-panel"><h2>Quick Run</h2><p>Reserved for safe setup scripts once the exact setup sequence is supplied.</p></div>'; return; }
@@ -2386,9 +2390,15 @@ final class Dashboard {
     }
 
     private function integrations(): void {
-        echo '<div class="smpi-panel"><h2>Dependency and Plugin Registry</h2><p>Required dependencies block boot when missing. Recommended dependencies are reported when inactive.</p>';
-        $this->plugin_table( PluginRegistry::all() );
-        echo '</div>';
+        echo '<div class="smpi-panel"><h2>Dependency and Plugin Registry</h2><p>Plugin detection now uses the shared Hexa Core inventory structure.</p><p><a class="button button-primary" href="' . esc_url( admin_url( 'options-general.php?page=smp-publication-integration&tab=plugins' ) ) . '">Open Plugins tab</a></p></div>';
+    }
+
+    private function plugins(): void {
+        $renderer = new PluginInventoryRenderer();
+
+        echo '<div class="smpi-panel"><h2>Plugins</h2><p>Recommended and unexpected plugin detection for the Mash Viral SMP runtime. The recommended list is the audited active runtime stack; installed plugins outside that list are marked with the red X recommendation indicator.</p></div>';
+        echo $renderer->render( PluginInventory::recommended_definitions(), PluginInventory::recommended_renderer_args() ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+        echo $renderer->render( PluginInventory::outside_definitions(), PluginInventory::outside_renderer_args() ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
     }
 
     public function plugin_row_fragment( string $plugin_file ): string {

@@ -44,12 +44,12 @@ final class PluginCheckService {
     public static function status( PluginCheckDefinition $definition ): array {
         self::load_plugin_functions();
 
-        $plugins      = get_plugins();
+        $plugins      = self::inventory_plugins( $definition );
         $plugin_file  = $definition->plugin_file;
         $installed    = '' !== $plugin_file && isset( $plugins[ $plugin_file ] );
-        $resolved_by  = 'plugin_file';
+        $resolved_by  = in_array( $definition->source, [ 'must_use', 'dropin' ], true ) ? $definition->source : 'plugin_file';
 
-        if ( ! $installed && '' !== $definition->slug ) {
+        if ( ! $installed && '' !== $definition->slug && ! in_array( $definition->source, [ 'must_use', 'dropin' ], true ) ) {
             $found = PluginProvisioner::find_plugin_file_by_folder( $definition->slug );
             if ( '' !== $found ) {
                 $plugin_file = $found;
@@ -59,21 +59,28 @@ final class PluginCheckService {
         }
 
         $version          = $installed ? (string) ( $plugins[ $plugin_file ]['Version'] ?? '' ) : '';
-        $active           = $installed && is_plugin_active( $plugin_file );
+        $active           = in_array( $definition->source, [ 'must_use', 'dropin' ], true ) ? $installed : ( $installed && is_plugin_active( $plugin_file ) );
+        $auto_updates     = (array) get_site_option( 'auto_update_plugins', [] );
+        $auto_update      = ! in_array( $definition->source, [ 'must_use', 'dropin' ], true ) && $installed && in_array( $plugin_file, $auto_updates, true );
         $updates          = self::plugin_updates();
-        $update_available = $installed && isset( $updates[ $plugin_file ] );
+        $update_available = ! in_array( $definition->source, [ 'must_use', 'dropin' ], true ) && $installed && isset( $updates[ $plugin_file ] );
         $new_version      = $update_available ? (string) ( $updates[ $plugin_file ]->update->new_version ?? '' ) : '';
         $up_to_date       = $installed && ! $update_available;
+        $recommended      = property_exists( $definition, 'recommended' ) ? (bool) $definition->recommended : (bool) $definition->required;
+        $auto_update_expected = property_exists( $definition, 'auto_update_expected' ) ? (bool) $definition->auto_update_expected : false;
 
         $required_failures = [];
-        if ( $definition->checks['installed'] && ! $installed ) {
+        if ( ! empty( $definition->checks['installed'] ) && ! $installed ) {
             $required_failures[] = 'missing';
         }
-        if ( $definition->checks['active'] && ! $active ) {
+        if ( ! empty( $definition->checks['active'] ) && ! $active ) {
             $required_failures[] = 'inactive';
         }
-        if ( $definition->checks['up_to_date'] && $installed && ! $up_to_date ) {
+        if ( ! empty( $definition->checks['up_to_date'] ) && $installed && ! $up_to_date ) {
             $required_failures[] = 'outdated';
+        }
+        if ( ! empty( $definition->checks['auto_update'] ) && $installed && $auto_update_expected !== $auto_update ) {
+            $required_failures[] = $auto_update ? 'auto_update_enabled' : 'auto_update_disabled';
         }
 
         return [
@@ -84,9 +91,12 @@ final class PluginCheckService {
             'slug'              => $definition->slug,
             'source'            => $definition->source,
             'required'          => $definition->required,
+            'recommended'       => $recommended,
+            'auto_update_expected' => $auto_update_expected,
             'checks'            => $definition->checks,
             'installed'         => $installed,
             'active'            => $active,
+            'auto_update'       => $auto_update,
             'version'           => $version,
             'up_to_date'        => $up_to_date,
             'update_available'  => $update_available,
@@ -247,6 +257,25 @@ final class PluginCheckService {
         if ( ! function_exists( 'get_plugins' ) || ! function_exists( 'is_plugin_active' ) ) {
             require_once ABSPATH . 'wp-admin/includes/plugin.php';
         }
+    }
+
+    /**
+     * @return array<string,array<string,mixed>>
+     */
+    private static function inventory_plugins( PluginCheckDefinition $definition ): array {
+        if ( 'must_use' === $definition->source ) {
+            return function_exists( 'get_mu_plugins' ) ? get_mu_plugins() : [];
+        }
+
+        if ( 'dropin' === $definition->source ) {
+            if ( function_exists( 'get_dropins' ) ) {
+                return get_dropins();
+            }
+
+            return function_exists( '_get_dropins' ) ? _get_dropins() : [];
+        }
+
+        return get_plugins();
     }
 
     private static function load_update_functions(): void {
