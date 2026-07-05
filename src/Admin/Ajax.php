@@ -80,13 +80,13 @@ final class Ajax {
         ) )->register();
 
         ( new PluginInventoryAjaxController(
-            PluginInventory::outside_definitions(),
+            PluginInventory::forbidden_definitions(),
             [
-                'capability'    => 'install_plugins',
+                'capability'    => 'delete_plugins',
                 'nonce_action'  => self::NONCE,
                 'nonce_field'   => 'nonce',
-                'action_prefix' => PluginInventory::outside_action_prefix(),
-                'renderer_args' => PluginInventory::outside_renderer_args(),
+                'action_prefix' => PluginInventory::forbidden_action_prefix(),
+                'renderer_args' => PluginInventory::forbidden_renderer_args(),
             ]
         ) )->register();
 

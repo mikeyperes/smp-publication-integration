@@ -18,7 +18,7 @@ final class PluginInventoryRenderer {
         CoreUi::render_assets();
         DynamicButton::render_assets();
         ?>
-        <div class="hpc-ui hpc-plugin-inventory" data-hpc-plugin-inventory data-ajax-url="<?php echo esc_url( $args['ajax_url'] ); ?>" data-status-action="<?php echo esc_attr( $args['actions']['status'] ); ?>" data-refresh-action="<?php echo esc_attr( $args['actions']['refresh'] ); ?>" data-install-action="<?php echo esc_attr( $args['actions']['install_activate'] ); ?>" data-activate-action="<?php echo esc_attr( $args['actions']['activate'] ); ?>" data-nonce-field="<?php echo esc_attr( $args['nonce_field'] ); ?>" data-nonce="<?php echo esc_attr( $args['nonce'] ); ?>">
+        <div class="hpc-ui hpc-plugin-inventory" data-hpc-plugin-inventory data-ajax-url="<?php echo esc_url( $args['ajax_url'] ); ?>" data-status-action="<?php echo esc_attr( $args['actions']['status'] ); ?>" data-refresh-action="<?php echo esc_attr( $args['actions']['refresh'] ); ?>" data-install-action="<?php echo esc_attr( $args['actions']['install_activate'] ); ?>" data-activate-action="<?php echo esc_attr( $args['actions']['activate'] ); ?>" data-deactivate-action="<?php echo esc_attr( $args['actions']['deactivate'] ); ?>" data-delete-action="<?php echo esc_attr( $args['actions']['delete'] ); ?>" data-nonce-field="<?php echo esc_attr( $args['nonce_field'] ); ?>" data-nonce="<?php echo esc_attr( $args['nonce'] ); ?>">
             <?php echo $this->assets(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
             <?php
             echo CoreUi::collapsible(
@@ -26,8 +26,102 @@ final class PluginInventoryRenderer {
                     'title'       => (string) $args['title'],
                     'open'        => (bool) $args['open'],
                     'persist_key' => (string) $args['persist_key'],
-                    'meta_html'   => $this->summary_meta( $definitions ),
+                    'meta_html'   => $this->summary_meta( $definitions, $args ),
                     'body_html'   => $this->body_html( $definitions, $args ),
+                ]
+            ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+            ?>
+        </div>
+        <?php
+        return (string) ob_get_clean();
+    }
+
+    /**
+     * @param array<int,array<string,mixed>> $sections
+     * @param array<string,mixed> $args
+     */
+    private function group_body_html( array $sections, array $args ): string {
+        ob_start();
+        ?>
+        <?php if ( '' !== (string) $args['description'] ) : ?>
+            <p class="hpc-plugin-inventory-description"><?php echo esc_html( (string) $args['description'] ); ?></p>
+        <?php endif; ?>
+        <div class="hpc-plugin-inventory-subcards">
+            <?php foreach ( $sections as $section ) : ?>
+                <?php
+                $definitions = isset( $section['definitions'] ) && is_array( $section['definitions'] ) ? $section['definitions'] : [];
+                $section_args = isset( $section['args'] ) && is_array( $section['args'] ) ? $section['args'] : [];
+                echo $this->subcard_html( $definitions, $section_args ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+                ?>
+            <?php endforeach; ?>
+        </div>
+        <?php
+        return (string) ob_get_clean();
+    }
+
+    /**
+     * @param array<int,PluginCheckDefinition|array<string,mixed>> $definitions
+     * @param array<string,mixed> $args
+     */
+    private function subcard_html( array $definitions, array $args ): string {
+        $args = $this->args( $args );
+
+        ob_start();
+        ?>
+        <article class="hpc-plugin-inventory-subcard" data-hpc-plugin-inventory data-ajax-url="<?php echo esc_url( $args['ajax_url'] ); ?>" data-status-action="<?php echo esc_attr( $args['actions']['status'] ); ?>" data-refresh-action="<?php echo esc_attr( $args['actions']['refresh'] ); ?>" data-install-action="<?php echo esc_attr( $args['actions']['install_activate'] ); ?>" data-activate-action="<?php echo esc_attr( $args['actions']['activate'] ); ?>" data-deactivate-action="<?php echo esc_attr( $args['actions']['deactivate'] ); ?>" data-delete-action="<?php echo esc_attr( $args['actions']['delete'] ); ?>" data-nonce-field="<?php echo esc_attr( $args['nonce_field'] ); ?>" data-nonce="<?php echo esc_attr( $args['nonce'] ); ?>">
+            <header class="hpc-plugin-inventory-subcard-head">
+                <div>
+                    <h3><?php echo esc_html( (string) $args['title'] ); ?></h3>
+                    <?php if ( '' !== (string) $args['description'] ) : ?>
+                        <p><?php echo esc_html( (string) $args['description'] ); ?></p>
+                    <?php endif; ?>
+                </div>
+                <?php echo $this->summary_meta( $definitions, $args ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+            </header>
+            <div data-plugin-inventory-content>
+                <?php echo $this->render_content( $definitions, $args ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+            </div>
+            <section class="hpc-plugin-inventory-log" aria-live="polite">
+                <div class="hpc-plugin-inventory-log-head">
+                    <strong>Activity log</strong>
+                    <button type="button" class="hpc-button secondary" data-plugin-inventory-clear-log>Clear</button>
+                </div>
+                <pre data-plugin-inventory-log>Ready.</pre>
+            </section>
+        </article>
+        <?php
+        return (string) ob_get_clean();
+    }
+
+    /**
+     * @param array<int,array<string,mixed>> $sections
+     * @param array<string,mixed> $args
+     */
+    public function render_group( array $sections, array $args = [] ): string {
+        $args = array_merge(
+            [
+                'title'       => 'Plugin Inventory',
+                'description' => '',
+                'open'        => true,
+                'persist_key' => 'hexa-plugin-inventory-group',
+            ],
+            $args
+        );
+
+        ob_start();
+        CoreUi::render_assets();
+        DynamicButton::render_assets();
+        ?>
+        <div class="hpc-ui hpc-plugin-inventory-group">
+            <?php echo $this->assets(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+            <?php
+            echo CoreUi::collapsible(
+                [
+                    'title'       => (string) $args['title'],
+                    'open'        => (bool) $args['open'],
+                    'persist_key' => (string) $args['persist_key'],
+                    'meta_html'   => $this->group_summary_meta( $sections ),
+                    'body_html'   => $this->group_body_html( $sections, $args ),
                 ]
             ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
             ?>
@@ -44,12 +138,30 @@ final class PluginInventoryRenderer {
         $args         = $this->args( $args );
         $items        = PluginCheckService::normalize_definitions( $definitions );
         $statuses     = PluginCheckService::statuses( $items );
-        $summary      = PluginCheckService::summary( $statuses );
         $status_by_id = [];
 
         foreach ( $statuses as $status ) {
             $status_by_id[ (string) $status['id'] ] = $status;
         }
+
+        $items = array_values(
+            array_filter(
+                $items,
+                static function( PluginCheckDefinition $definition ) use ( $status_by_id, $args ): bool {
+                    $status = $status_by_id[ $definition->id ] ?? [];
+                    if ( ! empty( $args['hide_compliant_forbidden'] ) && $definition->should_not_contain() && empty( $status['installed'] ) ) {
+                        return false;
+                    }
+
+                    return true;
+                }
+            )
+        );
+        $statuses = array_map(
+            static fn( PluginCheckDefinition $definition ): array => $status_by_id[ $definition->id ] ?? PluginCheckService::status( $definition ),
+            $items
+        );
+        $summary = PluginCheckService::summary( $statuses );
 
         ob_start();
         ?>
@@ -57,6 +169,9 @@ final class PluginInventoryRenderer {
             <?php echo $this->summary_item( 'Ready', (int) $summary['ready'], 'success' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
             <?php echo $this->summary_item( 'Missing', (int) $summary['missing'], 'danger' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
             <?php echo $this->summary_item( 'Inactive', (int) $summary['inactive'], 'danger' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+            <?php if ( ! empty( $summary['unwanted'] ) || ! empty( $args['show_unwanted'] ) ) : ?>
+                <?php echo $this->summary_item( 'Unwanted', (int) $summary['unwanted'], 'danger' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+            <?php endif; ?>
             <?php echo $this->summary_item( 'Outdated', (int) $summary['outdated'], 'warning' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
             <?php echo $this->summary_item( 'Configured', (int) $summary['total'], 'neutral' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
         </div>
@@ -134,13 +249,26 @@ final class PluginInventoryRenderer {
     private function row_html( PluginCheckDefinition $definition, array $status, array $args ): string {
         $installed = ! empty( $status['installed'] );
         $active    = ! empty( $status['active'] );
-        $required  = $this->is_required( $definition, $status );
+        $forbidden = $definition->should_not_contain();
+        $required  = $forbidden ? false : $this->is_required( $definition, $status );
+        $installed_passed = $forbidden ? ! $installed : $installed;
+        $installed_label = $forbidden
+            ? ( $installed ? 'Plugin should not be installed' : 'Plugin absent' )
+            : ( $installed ? 'Plugin installed' : 'Plugin missing' );
+        $status_passed = $forbidden ? ! $installed : $active;
+        $status_label = $forbidden
+            ? ( $installed ? ( $active ? 'Active unwanted' : 'Inactive unwanted' ) : 'Absent' )
+            : ( $active ? 'Active' : 'Inactive' );
         $row_class = trim(
             ( $installed ? 'is-installed' : 'is-missing' )
             . ' '
             . ( $required ? 'is-required' : 'is-optional' )
             . ' '
             . ( ! $installed && $required ? 'is-required-missing' : '' )
+            . ' '
+            . ( $forbidden ? 'is-forbidden' : '' )
+            . ' '
+            . ( $forbidden && $installed ? 'is-unwanted-installed' : '' )
         );
 
         ob_start();
@@ -148,9 +276,9 @@ final class PluginInventoryRenderer {
         <tr class="<?php echo esc_attr( $row_class ); ?>" data-plugin-inventory-row data-plugin-id="<?php echo esc_attr( $definition->id ); ?>" data-plugin-installed="<?php echo $installed ? '1' : '0'; ?>" data-plugin-active="<?php echo $active ? '1' : '0'; ?>" data-plugin-required="<?php echo $required ? '1' : '0'; ?>">
             <td class="hpc-plugin-inventory-plugin-cell">
                 <div class="hpc-plugin-inventory-title">
-                    <?php echo $this->icon( $installed, $installed ? 'Plugin installed' : 'Plugin missing' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                    <?php echo $this->icon( $installed_passed, $installed_label ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
                     <strong><?php echo esc_html( $definition->name ); ?></strong>
-                    <?php echo $this->requirement_badge( $required ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                    <?php echo $this->requirement_badge( $required, $forbidden ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
                 </div>
                 <div class="hpc-plugin-inventory-meta">
                     <code><?php echo esc_html( (string) $status['plugin_file'] ?: $definition->plugin_file ?: $definition->slug ); ?></code>
@@ -160,7 +288,7 @@ final class PluginInventoryRenderer {
                 </div>
             </td>
             <td>
-                <?php echo $this->status_text( $active, $active ? 'Active' : 'Inactive' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                <?php echo $this->status_text( $status_passed, $status_label ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
             </td>
             <?php if ( ! empty( $args['columns']['auto_update'] ) ) : ?>
                 <td>
@@ -198,6 +326,49 @@ final class PluginInventoryRenderer {
      * @param array<string,mixed> $status
      */
     private function actions_html( PluginCheckDefinition $definition, array $status ): string {
+        if ( $definition->should_not_contain() ) {
+            if ( empty( $status['installed'] ) ) {
+                return '<span class="hpc-plugin-inventory-ready">' . $this->icon( true, 'Absent' ) . ' Not installed</span>';
+            }
+
+            if ( empty( $status['removable'] ) ) {
+                return '<span class="hpc-plugin-inventory-muted">Manual removal required</span>';
+            }
+
+            $actions = [];
+            if ( ! empty( $status['active'] ) ) {
+                $actions[] = DynamicButton::render(
+                    [
+                        'label'         => 'Deactivate',
+                        'working_label' => 'Deactivating...',
+                        'success_label' => 'Deactivated',
+                        'error_label'   => 'Failed',
+                        'class'         => 'hpc-button secondary',
+                        'attrs'         => [
+                            'data-plugin-inventory-action' => 'deactivate',
+                            'data-plugin-id'               => $definition->id,
+                        ],
+                    ]
+                );
+            }
+            $actions[] = DynamicButton::render(
+                [
+                    'label'         => 'Delete',
+                    'working_label' => 'Deleting...',
+                    'success_label' => 'Deleted',
+                    'error_label'   => 'Failed',
+                    'class'         => 'hpc-button danger',
+                    'attrs'         => [
+                        'data-plugin-inventory-action'  => 'delete',
+                        'data-plugin-inventory-confirm' => 'Delete ' . $definition->name . '?',
+                        'data-plugin-id'                => $definition->id,
+                    ],
+                ]
+            );
+
+            return '<div class="hpc-plugin-inventory-action-stack">' . implode( ' ', $actions ) . '</div>';
+        }
+
         if ( empty( $status['installed'] ) ) {
             if ( ! empty( $status['installable'] ) ) {
                 return DynamicButton::render(
@@ -301,7 +472,11 @@ final class PluginInventoryRenderer {
         return '<span class="hpc-plugin-inventory-fa ' . ( $passed ? 'hpc-plugin-inventory-fa-check' : 'hpc-plugin-inventory-fa-xmark' ) . '" aria-label="' . esc_attr( $label ) . '" title="' . esc_attr( $label ) . '" role="img"><svg class="hpc-plugin-inventory-fa-svg" viewBox="' . esc_attr( $viewbox ) . '" aria-hidden="true" focusable="false"><path d="' . esc_attr( $path ) . '"></path></svg></span>';
     }
 
-    private function requirement_badge( bool $required ): string {
+    private function requirement_badge( bool $required, bool $forbidden = false ): string {
+        if ( $forbidden ) {
+            return '<span class="hpc-plugin-inventory-requirement is-forbidden">Forbidden</span>';
+        }
+
         return '<span class="hpc-plugin-inventory-requirement ' . ( $required ? 'is-required' : 'is-optional' ) . '">' . ( $required ? 'Required' : 'Optional' ) . '</span>';
     }
 
@@ -331,11 +506,62 @@ final class PluginInventoryRenderer {
     /**
      * @param array<int,PluginCheckDefinition|array<string,mixed>> $definitions
      */
-    private function summary_meta( array $definitions ): string {
-        $summary = PluginCheckService::summary( PluginCheckService::statuses( $definitions ) );
+    private function summary_meta( array $definitions, array $args = [] ): string {
+        $summary = PluginCheckService::summary( $this->visible_statuses( $definitions, $args ) );
         $tone    = empty( $summary['attention'] ) ? 'success' : 'warning';
 
+        if ( ! empty( $summary['unwanted'] ) ) {
+            return CoreUi::pill( (int) $summary['unwanted'] . ' unwanted', 'danger' );
+        }
+
         return CoreUi::pill( (int) $summary['ready'] . ' / ' . (int) $summary['total'] . ' ready', $tone );
+    }
+
+    /**
+     * @param array<int,array<string,mixed>> $sections
+     */
+    private function group_summary_meta( array $sections ): string {
+        $statuses = [];
+
+        foreach ( $sections as $section ) {
+            $definitions = isset( $section['definitions'] ) && is_array( $section['definitions'] ) ? $section['definitions'] : [];
+            $args        = isset( $section['args'] ) && is_array( $section['args'] ) ? $section['args'] : [];
+            $statuses    = array_merge( $statuses, $this->visible_statuses( $definitions, $args ) );
+        }
+
+        $summary = PluginCheckService::summary( $statuses );
+        if ( ! empty( $summary['unwanted'] ) ) {
+            return CoreUi::pill( (int) $summary['unwanted'] . ' unwanted', 'danger' );
+        }
+
+        $tone = empty( $summary['attention'] ) ? 'success' : 'warning';
+        return CoreUi::pill( (int) $summary['ready'] . ' / ' . (int) $summary['total'] . ' ready', $tone );
+    }
+
+    /**
+     * @param array<int,PluginCheckDefinition|array<string,mixed>> $definitions
+     * @param array<string,mixed> $args
+     * @return array<int,array<string,mixed>>
+     */
+    private function visible_statuses( array $definitions, array $args = [] ): array {
+        $items    = PluginCheckService::normalize_definitions( $definitions );
+        $statuses = PluginCheckService::statuses( $items );
+        $status_by_id = [];
+
+        foreach ( $statuses as $status ) {
+            $status_by_id[ (string) $status['id'] ] = $status;
+        }
+
+        $visible = [];
+        foreach ( $items as $definition ) {
+            $status = $status_by_id[ $definition->id ] ?? PluginCheckService::status( $definition );
+            if ( ! empty( $args['hide_compliant_forbidden'] ) && $definition->should_not_contain() && empty( $status['installed'] ) ) {
+                continue;
+            }
+            $visible[] = $status;
+        }
+
+        return $visible;
     }
 
     /**
@@ -358,6 +584,8 @@ final class PluginInventoryRenderer {
                 'persist_key'      => 'hexa-plugin-inventory',
                 'empty_text'       => 'No plugins configured.',
                 'show_install_all' => true,
+                'hide_compliant_forbidden' => false,
+                'show_unwanted'     => false,
             ],
             $args
         );
@@ -374,6 +602,8 @@ final class PluginInventoryRenderer {
             'refresh'          => $actions['refresh'] ?? $action_prefix . '_refresh',
             'install_activate' => $actions['install_activate'] ?? $action_prefix . '_install_activate',
             'activate'         => $actions['activate'] ?? $action_prefix . '_activate',
+            'deactivate'       => $actions['deactivate'] ?? $action_prefix . '_deactivate',
+            'delete'           => $actions['delete'] ?? $action_prefix . '_delete',
         ];
 
         return $normalized;
@@ -409,6 +639,7 @@ final class PluginInventoryRenderer {
 .hpc-plugin-inventory-requirement{border-radius:999px;display:inline-flex;font-size:10px;font-weight:900;line-height:1;padding:5px 7px;text-transform:uppercase}
 .hpc-plugin-inventory-requirement.is-required{background:#fff0f2;border:1px solid #ffd0d8;color:var(--hpc-red)}
 .hpc-plugin-inventory-requirement.is-optional{background:#eef2ff;border:1px solid #dbe4ff;color:#2944ad}
+.hpc-plugin-inventory-requirement.is-forbidden{background:#fff0f2;border:1px solid #ffd0d8;color:var(--hpc-red)}
 .hpc-plugin-inventory-meta{display:grid;gap:5px}
 .hpc-plugin-inventory-meta code{background:#eef0f2;border-radius:5px;color:#2f3a4a;font-size:12px;padding:2px 5px;word-break:break-all}
 .hpc-plugin-inventory-meta span{color:var(--hpc-muted);font-size:12px;line-height:1.35}
@@ -423,6 +654,12 @@ final class PluginInventoryRenderer {
 .hpc-plugin-inventory-source-text,.hpc-plugin-inventory-muted{color:var(--hpc-muted);font-size:12px}
 .hpc-plugin-inventory-update{color:var(--hpc-amber);font-size:12px;font-weight:800}
 .hpc-plugin-inventory-action-cell{min-width:150px}
+.hpc-plugin-inventory-action-stack{align-items:center;display:flex;flex-wrap:wrap;gap:8px}
+.hpc-plugin-inventory-subcards{display:grid;gap:16px}
+.hpc-plugin-inventory-subcard{background:#fff;border:1px solid var(--hpc-line);border-radius:8px;padding:16px}
+.hpc-plugin-inventory-subcard-head{align-items:flex-start;display:flex;gap:16px;justify-content:space-between;margin:0 0 14px}
+.hpc-plugin-inventory-subcard-head h3{font-size:15px;margin:0 0 6px}
+.hpc-plugin-inventory-subcard-head p{color:var(--hpc-muted);font-size:13px;line-height:1.45;margin:0;max-width:860px}
 .hpc-plugin-inventory-ready{align-items:center;color:var(--hpc-green);display:inline-flex;font-weight:900;gap:5px;white-space:nowrap}
 .hpc-plugin-inventory-actions{align-items:center;display:flex;flex-wrap:wrap;gap:10px;margin:13px 0 0}
 .hpc-plugin-inventory-log{background:#111827;border-radius:8px;color:#dbe7f3;margin-top:14px;overflow:hidden}
@@ -499,7 +736,12 @@ final class PluginInventoryRenderer {
     }
     var actionButton=event.target.closest('[data-plugin-inventory-action]');
     if(actionButton){
-      var actionName=actionButton.dataset.pluginInventoryAction==='activate'?root.dataset.activateAction:root.dataset.installAction;
+      if(actionButton.dataset.pluginInventoryConfirm&&!window.confirm(actionButton.dataset.pluginInventoryConfirm))return;
+      var mode=actionButton.dataset.pluginInventoryAction||'';
+      var actionName=root.dataset.installAction;
+      if(mode==='activate')actionName=root.dataset.activateAction;
+      if(mode==='deactivate')actionName=root.dataset.deactivateAction;
+      if(mode==='delete')actionName=root.dataset.deleteAction;
       if(window.HexaWpCoreDynamicButton)window.HexaWpCoreDynamicButton.start(actionButton);
       log(root,'Processing '+(actionButton.dataset.pluginId||'plugin')+'.');
       post(root,actionName,{plugin_id:actionButton.dataset.pluginId||''}).then(function(response){

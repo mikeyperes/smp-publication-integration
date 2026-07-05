@@ -54,6 +54,12 @@ final class PluginInventoryAjaxController {
                 'activate' => [
                     'callback' => [ $this, 'activate' ],
                 ],
+                'deactivate' => [
+                    'callback' => [ $this, 'deactivate' ],
+                ],
+                'delete' => [
+                    'callback' => [ $this, 'delete' ],
+                ],
             ]
         );
     }
@@ -102,6 +108,40 @@ final class PluginInventoryAjaxController {
         );
     }
 
+    public function deactivate( AjaxRequest $request ): array {
+        $definition = $this->definition_from_request( $request );
+        $result     = PluginCheckService::deactivate( $definition );
+
+        if ( is_wp_error( $result ) ) {
+            throw AjaxFailure::bad_request( $result->get_error_message(), $result->get_error_code() ?: 'plugin_deactivation_failed' );
+        }
+
+        return $this->payload(
+            [
+                'Deactivating ' . $definition->name . '.',
+                (string) ( $result['message'] ?? 'Plugin deactivated.' ),
+            ],
+            $definition->id
+        );
+    }
+
+    public function delete( AjaxRequest $request ): array {
+        $definition = $this->definition_from_request( $request );
+        $result     = PluginCheckService::delete( $definition );
+
+        if ( is_wp_error( $result ) ) {
+            throw AjaxFailure::bad_request( $result->get_error_message(), $result->get_error_code() ?: 'plugin_delete_failed' );
+        }
+
+        return $this->payload(
+            [
+                'Deleting ' . $definition->name . '.',
+                (string) ( $result['message'] ?? 'Plugin deleted.' ),
+            ],
+            $definition->id
+        );
+    }
+
     private function definition_from_request( AjaxRequest $request ): PluginCheckDefinition {
         $plugin_id = $request->text( 'plugin_id', '', 'post' );
         $map       = PluginCheckService::definitions_by_id( $this->definitions );
@@ -125,6 +165,14 @@ final class PluginInventoryAjaxController {
                 'nonce'         => function_exists( 'wp_create_nonce' ) ? wp_create_nonce( (string) $this->config['nonce_action'] ) : '',
                 'nonce_field'   => (string) $this->config['nonce_field'],
                 'action_prefix' => (string) $this->config['action_prefix'],
+                'actions'       => [
+                    'status'           => (string) $this->config['action_prefix'] . '_status',
+                    'refresh'          => (string) $this->config['action_prefix'] . '_refresh',
+                    'install_activate' => (string) $this->config['action_prefix'] . '_install_activate',
+                    'activate'         => (string) $this->config['action_prefix'] . '_activate',
+                    'deactivate'       => (string) $this->config['action_prefix'] . '_deactivate',
+                    'delete'           => (string) $this->config['action_prefix'] . '_delete',
+                ],
             ]
         );
 

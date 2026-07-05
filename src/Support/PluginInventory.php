@@ -14,6 +14,10 @@ final class PluginInventory {
         return 'smpi_outside_plugins';
     }
 
+    public static function forbidden_action_prefix(): string {
+        return 'smpi_forbidden_plugins';
+    }
+
     /**
      * @return array<int,array<string,mixed>>
      */
@@ -52,20 +56,36 @@ final class PluginInventory {
      * @return array<int,array<string,mixed>>
      */
     public static function outside_definitions(): array {
+        return self::forbidden_definitions();
+    }
+
+    /**
+     * @return array<int,array<string,mixed>>
+     */
+    public static function forbidden_definitions(): array {
         self::load_plugin_functions();
 
         $recommended = array_fill_keys( self::recommended_plugin_files(), true );
-        $definitions = [];
+        $forbidden_slugs = [
+            'jet-engine' => true,
+        ];
+        $definitions = [
+            self::forbidden( 'jet-engine/jet-engine.php', 'JetEngine', 'jet-engine' ),
+        ];
 
         foreach ( get_plugins() as $plugin_file => $plugin_data ) {
             $plugin_file = (string) $plugin_file;
             if ( isset( $recommended[ $plugin_file ] ) ) {
                 continue;
             }
+            if ( isset( $forbidden_slugs[ dirname( $plugin_file ) ] ) ) {
+                continue;
+            }
 
-            $definitions[] = self::outside(
+            $definitions[] = self::forbidden(
                 $plugin_file,
-                (string) ( $plugin_data['Name'] ?? $plugin_file )
+                (string) ( $plugin_data['Name'] ?? $plugin_file ),
+                dirname( $plugin_file )
             );
         }
 
@@ -75,9 +95,10 @@ final class PluginInventory {
                 continue;
             }
 
-            $definitions[] = self::outside(
+            $definitions[] = self::forbidden(
                 $plugin_file,
                 (string) ( $plugin_data['Name'] ?? $plugin_data['Title'] ?? $plugin_file ),
+                $plugin_file,
                 isset( $plugin_data['_smpi_source'] ) ? (string) $plugin_data['_smpi_source'] : 'manual'
             );
         }
@@ -110,16 +131,25 @@ final class PluginInventory {
      * @return array<string,mixed>
      */
     public static function outside_renderer_args(): array {
+        return self::forbidden_renderer_args();
+    }
+
+    /**
+     * @return array<string,mixed>
+     */
+    public static function forbidden_renderer_args(): array {
         return [
-            'title'            => 'Installed Outside Recommended Stack',
-            'description'      => 'Installed plugins that are not part of the recommended Mash Viral stack. These are intentionally marked with the red X recommendation indicator.',
-            'action_prefix'    => self::outside_action_prefix(),
+            'title'            => "Everything That Shouldn't Be There",
+            'description'      => 'Plugins that should not be installed for this SMP runtime. Installed matches expose Core-managed Deactivate and Delete actions.',
+            'action_prefix'    => self::forbidden_action_prefix(),
             'nonce'            => \smp_publication_integration\Admin\Ajax::nonce(),
             'nonce_field'      => 'nonce',
-            'persist_key'      => 'smpi-outside-plugin-stack',
+            'persist_key'      => 'smpi-forbidden-plugin-stack',
             'open'             => true,
-            'empty_text'       => 'No installed plugins were found outside the recommended stack.',
+            'empty_text'       => 'No forbidden or outside-recommended plugins are installed.',
             'show_install_all' => false,
+            'hide_compliant_forbidden' => true,
+            'show_unwanted'    => true,
             'columns'          => [
                 'auto_update' => true,
                 'version'     => true,
@@ -158,6 +188,22 @@ final class PluginInventory {
 
     private static function outside( string $plugin_file, string $name, string $source = 'manual' ): array {
         return self::definition( $plugin_file, $name, $source, '', '', false, false, false, false );
+    }
+
+    private static function forbidden( string $plugin_file, string $name, string $slug, string $source = 'manual' ): array {
+        $definition = self::definition( $plugin_file, $name, $source, '', '', false, false, false, false );
+        $definition['slug'] = $slug;
+        $definition['should_not_contain'] = true;
+        $definition['checks'] = [
+            'installed'     => false,
+            'active'        => false,
+            'up_to_date'    => false,
+            'auto_update'   => false,
+            'not_installed' => true,
+        ];
+        $definition['notes'] = 'This plugin should not be installed in the recommended Mash Viral SMP stack.';
+
+        return $definition;
     }
 
     private static function definition( string $plugin_file, string $name, string $source, string $wp_org_slug, string $repo, bool $required, bool $recommended, bool $active_check, bool $auto_update ): array {

@@ -17,6 +17,7 @@ final class PluginCheckDefinition {
     public bool $required;
     public bool $recommended;
     public bool $auto_update_expected;
+    public bool $should_not_contain;
     public array $checks;
 
     public function __construct( array $config ) {
@@ -34,10 +35,11 @@ final class PluginCheckDefinition {
         $this->download_url   = (string) ( $config['download_url'] ?? $config['url'] ?? '' );
         $this->download_label = (string) ( $config['download_label'] ?? 'Download plugin' );
         $this->notes          = (string) ( $config['notes'] ?? $config['description'] ?? $config['additional_info'] ?? '' );
-        $this->required       = (bool) ( $config['required'] ?? true );
-        $this->recommended    = (bool) ( $config['recommended'] ?? $config['is_recommended'] ?? $this->required );
+        $this->should_not_contain = (bool) ( $config['should_not_contain'] ?? $config['forbidden'] ?? $config['prohibited'] ?? $config['not_allowed'] ?? false );
+        $this->required       = $this->should_not_contain ? false : (bool) ( $config['required'] ?? true );
+        $this->recommended    = $this->should_not_contain ? false : (bool) ( $config['recommended'] ?? $config['is_recommended'] ?? $this->required );
         $this->auto_update_expected = (bool) ( $config['auto_update_expected'] ?? $config['auto_update'] ?? false );
-        $this->checks         = self::normalize_checks( $config['checks'] ?? $config['approved_constraints'] ?? [] );
+        $this->checks         = self::normalize_checks( $config['checks'] ?? $config['approved_constraints'] ?? [], $this->should_not_contain );
     }
 
     public static function from_array( array $config ): self {
@@ -45,6 +47,10 @@ final class PluginCheckDefinition {
     }
 
     public function supports_ajax_install(): bool {
+        if ( $this->should_not_contain ) {
+            return false;
+        }
+
         if ( 'wordpress_org' === $this->source ) {
             return '' !== $this->wp_org_slug;
         }
@@ -56,16 +62,21 @@ final class PluginCheckDefinition {
         return false;
     }
 
-    private static function normalize_checks( mixed $checks ): array {
+    public function should_not_contain(): bool {
+        return $this->should_not_contain;
+    }
+
+    private static function normalize_checks( mixed $checks, bool $should_not_contain ): array {
         if ( ! is_array( $checks ) ) {
             $checks = [];
         }
 
         return [
-            'installed'  => (bool) ( $checks['installed'] ?? $checks['is_installed'] ?? true ),
-            'active'     => (bool) ( $checks['active'] ?? $checks['is_active'] ?? true ),
+            'installed'  => $should_not_contain ? false : (bool) ( $checks['installed'] ?? $checks['is_installed'] ?? true ),
+            'active'     => $should_not_contain ? false : (bool) ( $checks['active'] ?? $checks['is_active'] ?? true ),
             'up_to_date' => (bool) ( $checks['up_to_date'] ?? $checks['is_up_to_date'] ?? true ),
             'auto_update' => (bool) ( $checks['auto_update'] ?? $checks['auto_updates'] ?? false ),
+            'not_installed' => (bool) ( $checks['not_installed'] ?? $checks['absent'] ?? $should_not_contain ),
         ];
     }
 

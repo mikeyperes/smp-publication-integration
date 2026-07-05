@@ -2396,9 +2396,30 @@ final class Dashboard {
     private function plugins(): void {
         $renderer = new PluginInventoryRenderer();
 
-        echo '<div class="smpi-panel"><h2>Plugins</h2><p>Recommended and unexpected plugin detection for the Mash Viral SMP runtime. The recommended list is the audited active runtime stack; installed plugins outside that list are marked with the red X recommendation indicator.</p></div>';
-        echo $renderer->render( PluginInventory::recommended_definitions(), PluginInventory::recommended_renderer_args() ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-        echo $renderer->render( PluginInventory::outside_definitions(), PluginInventory::outside_renderer_args() ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+        echo $renderer->render_group(
+            [
+                [
+                    'definitions' => PluginInventory::recommended_definitions(),
+                    'args'        => array_merge(
+                        PluginInventory::recommended_renderer_args(),
+                        [
+                            'title'       => 'Everything You Should Have',
+                            'description' => 'Required plugin stack audited from the active Mash Viral runtime. Missing items from this list are treated as required.',
+                        ]
+                    ),
+                ],
+                [
+                    'definitions' => PluginInventory::forbidden_definitions(),
+                    'args'        => PluginInventory::forbidden_renderer_args(),
+                ],
+            ],
+            [
+                'title'       => 'Plugins',
+                'description' => 'Recommended and forbidden plugin detection for the Mash Viral SMP runtime.',
+                'persist_key' => 'smpi-plugin-inventory',
+                'open'        => true,
+            ]
+        ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
     }
 
     public function plugin_row_fragment( string $plugin_file ): string {
