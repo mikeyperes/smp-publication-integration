@@ -18,7 +18,8 @@ final class PluginInventoryAjaxController {
         $this->definitions = PluginCheckService::normalize_definitions( $definitions );
         $this->config      = array_merge(
             [
-                'capability'    => 'install_plugins',
+                'capability'    => '',
+                'capabilities'  => [],
                 'nonce_action'  => '',
                 'nonce_field'   => 'nonce',
                 'action_prefix' => 'hexa_plugin_inventory',
@@ -33,9 +34,11 @@ final class PluginInventoryAjaxController {
             return;
         }
 
+        $capabilities = $this->operation_capabilities();
+
         ( new AjaxActionRegistry(
             [
-                'capability'    => (string) $this->config['capability'],
+                'capability'    => '',
                 'nonce_action'  => (string) $this->config['nonce_action'],
                 'nonce_field'   => (string) $this->config['nonce_field'],
                 'action_prefix' => (string) $this->config['action_prefix'],
@@ -43,25 +46,66 @@ final class PluginInventoryAjaxController {
         ) )->register(
             [
                 'status' => [
-                    'callback' => [ $this, 'status' ],
+                    'callback'   => [ $this, 'status' ],
+                    'capability' => $capabilities['status'],
                 ],
                 'refresh' => [
-                    'callback' => [ $this, 'refresh' ],
+                    'callback'   => [ $this, 'refresh' ],
+                    'capability' => $capabilities['refresh'],
                 ],
                 'install_activate' => [
-                    'callback' => [ $this, 'install_activate' ],
+                    'callback'   => [ $this, 'install_activate' ],
+                    'capability' => $capabilities['install_activate'],
                 ],
                 'activate' => [
-                    'callback' => [ $this, 'activate' ],
+                    'callback'   => [ $this, 'activate' ],
+                    'capability' => $capabilities['activate'],
                 ],
                 'deactivate' => [
-                    'callback' => [ $this, 'deactivate' ],
+                    'callback'   => [ $this, 'deactivate' ],
+                    'capability' => $capabilities['deactivate'],
                 ],
                 'delete' => [
-                    'callback' => [ $this, 'delete' ],
+                    'callback'   => [ $this, 'delete' ],
+                    'capability' => $capabilities['delete'],
                 ],
             ]
         );
+    }
+
+    /**
+     * @return array<string,string>
+     */
+    private function operation_capabilities(): array {
+        $defaults = [
+            'status'           => 'update_plugins',
+            'refresh'          => 'update_plugins',
+            'install_activate' => 'install_plugins',
+            'activate'         => 'activate_plugins',
+            'deactivate'       => 'activate_plugins',
+            'delete'           => 'delete_plugins',
+        ];
+
+        $overrides = isset( $this->config['capabilities'] ) && is_array( $this->config['capabilities'] )
+            ? $this->config['capabilities']
+            : [];
+        $fallback = isset( $this->config['capability'] ) && is_string( $this->config['capability'] )
+            ? trim( $this->config['capability'] )
+            : '';
+
+        if ( '' !== $fallback ) {
+            foreach ( $defaults as $operation => $capability ) {
+                $defaults[ $operation ] = $fallback;
+            }
+        }
+
+        foreach ( $defaults as $operation => $capability ) {
+            if ( isset( $overrides[ $operation ] ) && is_string( $overrides[ $operation ] ) && '' !== trim( $overrides[ $operation ] ) ) {
+                $defaults[ $operation ] = trim( $overrides[ $operation ] );
+            }
+        }
+
+        return $defaults;
     }
 
     public function status( AjaxRequest $request ): array {
