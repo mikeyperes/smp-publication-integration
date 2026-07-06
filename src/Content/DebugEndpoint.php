@@ -30,15 +30,35 @@ final class DebugEndpoint {
         if ( ! Settings::bool( 'public_debug_enabled' ) ) {
             return new \WP_REST_Response( [ 'message' => 'SMP public debug is disabled.' ], 404 );
         }
+
+        $health = [
+            'plugin' => [
+                'name'    => Config::$plugin_name,
+                'version' => Config::VERSION,
+            ],
+            'site'   => [
+                'name' => get_bloginfo( 'name' ),
+                'url'  => home_url( '/' ),
+            ],
+            'status' => 'ok',
+        ];
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            return new \WP_REST_Response( $health );
+        }
+
         return new \WP_REST_Response(
-            [
+            array_merge(
+                $health,
+                [
                 'plugin' => [ 'name' => Config::$plugin_name, 'version' => Config::VERSION, 'namespace' => 'smp_publication_integration', 'github' => Config::$github_repo ],
                 'site' => [ 'name' => get_bloginfo( 'name' ), 'url' => home_url( '/' ), 'wp_version' => get_bloginfo( 'version' ), 'theme' => wp_get_theme()->get( 'Name' ), 'site_icon' => get_site_icon_url( 64 ) ],
                 'settings' => Settings::all(),
                 'plugins' => PluginRegistry::all(),
                 'counts' => $this->counts(),
                 'shortcodes' => array_keys( Shortcodes::shortcodes() ),
-            ]
+                ]
+            )
         );
     }
 

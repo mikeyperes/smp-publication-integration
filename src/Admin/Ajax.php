@@ -13,7 +13,6 @@ use smp_publication_integration\Content\Schema;
 use smp_publication_integration\Support\Dependencies;
 use smp_publication_integration\Support\PageStructure;
 use smp_publication_integration\Support\PluginInventory;
-use smp_publication_integration\Support\PluginRegistry;
 use smp_publication_integration\Support\Settings;
 use smp_publication_integration\Support\SnippetDefinitions;
 
@@ -39,17 +38,12 @@ final class Ajax {
                 'smpi_load_tab'                => [ 'callback' => [ $this, 'load_tab' ] ],
                 'smpi_save_settings'           => [ 'callback' => [ $this, 'save_settings' ] ],
                 'smpi_import_brand_primary_color' => [ 'callback' => [ $this, 'import_brand_primary_color' ] ],
-                'smpi_save_page_assignment'    => [ 'callback' => [ $this, 'save_page_assignment' ] ],
-                'smpi_create_page_assignment'  => [ 'callback' => [ $this, 'create_page_assignment' ] ],
-                'smpi_page_details'            => [ 'callback' => [ $this, 'page_details' ] ],
-                'smpi_update_page_slug'        => [ 'callback' => [ $this, 'update_page_slug' ] ],
                 'smpi_search_users'            => [ 'callback' => [ $this, 'search_users' ] ],
                 'smpi_shortcode_user_preview'  => [ 'callback' => [ $this, 'shortcode_user_preview' ] ],
                 'smpi_search_profiles'         => [ 'callback' => [ $this, 'search_profiles' ] ],
                 'smpi_save_founder_profiles'   => [ 'callback' => [ $this, 'save_founder_profiles' ] ],
                 'smpi_test_multi_authors'       => [ 'callback' => [ $this, 'test_multi_authors' ] ],
                 'smpi_refresh_optimization'    => [ 'callback' => [ $this, 'refresh_optimization' ] ],
-                'smpi_plugin_action'           => [ 'callback' => [ $this, 'plugin_action' ] ],
                 'smpi_snippet_toggle'          => [ 'callback' => [ $this, 'toggle_snippet' ] ],
                 'smpi_snippet_test'            => [ 'callback' => [ $this, 'test_snippet' ] ],
             ]
@@ -71,7 +65,6 @@ final class Ajax {
         ( new PluginInventoryAjaxController(
             PluginInventory::recommended_definitions(),
             [
-                'capability'    => 'install_plugins',
                 'nonce_action'  => self::NONCE,
                 'nonce_field'   => 'nonce',
                 'action_prefix' => PluginInventory::recommended_action_prefix(),
@@ -82,7 +75,6 @@ final class Ajax {
         ( new PluginInventoryAjaxController(
             PluginInventory::forbidden_definitions(),
             [
-                'capability'    => 'delete_plugins',
                 'nonce_action'  => self::NONCE,
                 'nonce_field'   => 'nonce',
                 'action_prefix' => PluginInventory::forbidden_action_prefix(),
@@ -801,125 +793,6 @@ final class Ajax {
         Settings::log( "Publication author selected: user #" . $user_id );
     }
 
-    public function save_page_assignment( AjaxRequest $request ): array {
-        $type = $request->key( 'page_type', '', 'post' );
-        $page_id = $request->int( 'page_id', 0, 'post' );
-        $template = $request->html( 'template', '', 'post' );
-        $settings = Settings::update_page( $type, $page_id, $template );
-        $response = [ "settings" => $settings, "page" => null ];
-        if ( $page_id > 0 ) {
-            $response["page"] = $this->page_result( $page_id );
-        }
-        return $response;
-    }
-
-    public function create_page_assignment( AjaxRequest $request ): array {
-        $type = $request->key( 'page_type', '', 'post' );
-        $page_types = Settings::page_types();
-        if ( ! isset( $page_types[ $type ] ) ) {
-            throw AjaxFailure::bad_request( "Unknown page type." );
-        }
-
-        $settings = Settings::all();
-        $current = isset( $settings["page_assignments"][ $type ] ) ? absint( $settings["page_assignments"][ $type ] ) : 0;
-        if ( $current && get_post( $current ) ) {
-            return [ "mode" => "already_assigned", "message" => "Already assigned.", "page" => $this->page_result( $current ), "settings" => $settings ];
-        }
-
-        $title = (string) $page_types[ $type ]["label"];
-        $slug = Settings::page_slug( $type );
-        $existing = get_page_by_path( $slug, OBJECT, "page" );
-        $mode = "reused_existing";
-        if ( is_a( $existing, "WP_Post" ) ) {
-            $page_id = (int) $existing->ID;
-        } else {
-            $templates = Settings::default_page_templates();
-            $stored_template = isset( $settings["page_templates"][ $type ] ) ? trim( (string) $settings["page_templates"][ $type ] ) : "";
-            $content = "" !== $stored_template ? (string) $settings["page_templates"][ $type ] : (string) ( $templates[ $type ] ?? "" );
-            $page_id = wp_insert_post(
-                [
-                    "post_type" => "page",
-                    "post_status" => "publish",
-                    "post_title" => $title,
-                    "post_name" => $slug,
-                    "post_content" => $content,
-                ],
-                true
-            );
-            if ( is_wp_error( $page_id ) ) {
-                throw AjaxFailure::server_error( $page_id->get_error_message() );
-            }
-            $mode = "created";
-        }
-
-        $settings = Settings::update_page( $type, (int) $page_id, (string) ( $settings["page_templates"][ $type ] ?? "" ) );
-        $message = "created" === $mode ? "Created published page and assigned it." : "Reused existing page and assigned it.";
-        return [ "mode" => $mode, "message" => $message, "page" => $this->page_result( (int) $page_id ), "settings" => $settings ];
-    }
-
-    public function page_details( AjaxRequest $request ): array {
-        $page_id = $request->int( 'page_id', 0, 'post' );
-        if ( $page_id <= 0 ) {
-            return [ "page" => null ];
-        }
-        $post = get_post( $page_id );
-        if ( ! $post || "page" !== $post->post_type ) {
-            throw AjaxFailure::not_found( "Selected page was not found." );
-        }
-        return [ "page" => $this->page_result( $page_id ) ];
-    }
-
-    public function update_page_slug( AjaxRequest $request ): array {
-        $type = $request->key( 'page_type', '', 'post' );
-        if ( ! isset( Settings::page_types()[ $type ] ) ) {
-            throw AjaxFailure::bad_request( "Unknown page type." );
-        }
-        $page_id = $request->int( 'page_id', 0, 'post' );
-        $post = get_post( $page_id );
-        if ( ! $post || "page" !== $post->post_type ) {
-            throw AjaxFailure::not_found( "Selected page was not found." );
-        }
-        $requested = $request->title_slug( 'slug', '', 'post' );
-        if ( "" === $requested ) {
-            throw AjaxFailure::bad_request( "Slug cannot be empty." );
-        }
-        $unique = wp_unique_post_slug( $requested, $page_id, $post->post_status, "page", (int) $post->post_parent );
-        $updated = wp_update_post( [ "ID" => $page_id, "post_name" => $unique ], true );
-        if ( is_wp_error( $updated ) ) {
-            throw AjaxFailure::server_error( $updated->get_error_message() );
-        }
-        clean_post_cache( $page_id );
-        Settings::log( "Page slug updated: " . $type . " -> " . $unique );
-        $message = $unique === $requested ? "Slug updated." : "Slug updated with a unique suffix because the requested slug was unavailable.";
-        return [ "message" => $message, "requested_slug" => $requested, "slug_adjusted" => $unique !== $requested, "page" => $this->page_result( $page_id ) ];
-    }
-
-    private function page_result( int $page_id ): array {
-        $post = get_post( $page_id );
-        if ( ! $post ) {
-            return [];
-        }
-        $status = (string) $post->post_status;
-        $status_obj = get_post_status_object( $status );
-        $permalink = Settings::page_slug_url( $page_id );
-        $edit_url = get_edit_post_link( $page_id, "raw" );
-        return [
-            "id" => $page_id,
-            "title" => get_the_title( $page_id ),
-            "status" => $status,
-            "status_label" => $status_obj ? (string) $status_obj->label : ucfirst( $status ),
-            "slug" => (string) $post->post_name,
-            "post_type" => (string) $post->post_type,
-            "permalink" => $permalink,
-            "view_url" => $permalink,
-            "edit_url" => $edit_url,
-            "date" => get_the_date( "M j, Y g:i a", $page_id ),
-            "modified" => get_the_modified_date( "M j, Y g:i a", $page_id ),
-            "author" => get_the_author_meta( "display_name", (int) $post->post_author ),
-            "detail_html" => Dashboard::page_detail_html( $page_id ),
-        ];
-    }
-
     public function refresh_optimization(): array {
         return [ 'html' => Dashboard::render_optimization_report_html() ];
     }
@@ -939,14 +812,4 @@ final class Ajax {
         exit;
     }
 
-    public function plugin_action( AjaxRequest $request ): array {
-        $plugin_file = $request->text( 'plugin_file', '', 'post' );
-        $operation = $request->key( 'operation', '', 'post' );
-        $result = PluginRegistry::perform_action( $plugin_file, $operation );
-        if ( is_wp_error( $result ) ) {
-            throw AjaxFailure::bad_request( $result->get_error_message(), $result->get_error_code() ?: 'plugin_action_failed' );
-        }
-        $dashboard = new Dashboard();
-        return [ 'plugin' => PluginRegistry::info( $plugin_file ), 'row_html' => $dashboard->plugin_row_fragment( $plugin_file ) ];
-    }
 }
