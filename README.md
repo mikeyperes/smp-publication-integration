@@ -7,7 +7,13 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.6.149`
+- Version: `0.6.152`
+
+## 0.6.152 Updates
+
+- Removed Custom Post Type UI from the recommended plugin stack.
+- Removed MU-plugin and drop-in runtime files from SMP plugin inventory output.
+- Added Visibility Logic for Elementor as an installed but inactive recommended plugin.
 
 ## 0.6.149 Updates
 

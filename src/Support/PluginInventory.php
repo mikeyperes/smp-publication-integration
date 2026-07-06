@@ -26,7 +26,6 @@ final class PluginInventory {
             self::normal( 'advanced-custom-fields-pro/acf.php', 'Advanced Custom Fields PRO', 'pro', true ),
             self::wp_org( 'classic-editor/classic-editor.php', 'Classic Editor', 'classic-editor', true ),
             self::wp_org( 'code-snippets/code-snippets.php', 'Code Snippets', 'code-snippets', true ),
-            self::wp_org( 'custom-post-type-ui/custom-post-type-ui.php', 'Custom Post Type UI', 'custom-post-type-ui', true ),
             self::normal( 'rss-feed-post-generator-echo/rss-feed-post-generator-echo.php', 'Echo RSS Feed Post Generator', 'pro', true ),
             self::wp_org( 'elementor/elementor.php', 'Elementor', 'elementor', true ),
             self::normal( 'elementor-pro/elementor-pro.php', 'Elementor Pro', 'pro', true ),
@@ -42,13 +41,11 @@ final class PluginInventory {
             self::wp_org( 'google-site-kit/google-site-kit.php', 'Site Kit by Google', 'google-site-kit', true ),
             self::github( 'smp-publication-integration/smp-publication-integration.php', 'SMP Publication Integration', 'mikeyperes/smp-publication-integration', false ),
             self::normal( 'smp-wp-text-to-speech/smp-wp-text-to-speech.php', 'SMP WP Text To Speech', 'manual', false ),
+            self::definition( 'visibility-logic-elementor/conditional.php', 'Visibility Logic for Elementor', 'wordpress_org', 'visibility-logic-elementor', '', true, true, false, false ),
             self::wp_org( 'under-construction-page/under-construction.php', 'Under Construction', 'under-construction-page', false ),
             self::github( 'smp-verified-profiles/smp-verified-profiles.php', 'Verified Profiles - Scale My Publication (Michael Peres)', 'mikeyperes/smp-verified-profiles', false ),
             self::wp_org( 'wp-optimize/wp-optimize.php', 'WP-Optimize - Clean, Compress, Cache', 'wp-optimize', false ),
             self::wp_org( 'wp-mail-smtp/wp_mail_smtp.php', 'WP Mail SMTP', 'wp-mail-smtp', true ),
-            self::runtime( 'mashviral-tweaks.php', 'Mashviral Tweaks', 'must_use' ),
-            self::runtime( 'maintenance.php', 'maintenance.php', 'dropin' ),
-            self::runtime( 'object-cache.php', 'LiteSpeed Cache - Object Cache (Drop-in)', 'dropin' ),
         ];
     }
 
@@ -86,20 +83,6 @@ final class PluginInventory {
                 $plugin_file,
                 (string) ( $plugin_data['Name'] ?? $plugin_file ),
                 dirname( $plugin_file )
-            );
-        }
-
-        foreach ( self::runtime_inventory() as $plugin_file => $plugin_data ) {
-            $plugin_file = (string) $plugin_file;
-            if ( isset( $recommended[ $plugin_file ] ) ) {
-                continue;
-            }
-
-            $definitions[] = self::forbidden(
-                $plugin_file,
-                (string) ( $plugin_data['Name'] ?? $plugin_data['Title'] ?? $plugin_file ),
-                $plugin_file,
-                isset( $plugin_data['_smpi_source'] ) ? (string) $plugin_data['_smpi_source'] : 'manual'
             );
         }
 
@@ -182,10 +165,6 @@ final class PluginInventory {
         return self::definition( $plugin_file, $name, 'github', '', $repo, true, true, true, $auto_update );
     }
 
-    private static function runtime( string $plugin_file, string $name, string $source ): array {
-        return self::definition( $plugin_file, $name, $source, '', '', true, true, true, false );
-    }
-
     private static function outside( string $plugin_file, string $name, string $source = 'manual' ): array {
         return self::definition( $plugin_file, $name, $source, '', '', false, false, false, false );
     }
@@ -247,27 +226,8 @@ final class PluginInventory {
         return admin_url( 'plugin-install.php?tab=upload' );
     }
 
-    /**
-     * @return array<string,array<string,mixed>>
-     */
-    private static function runtime_inventory(): array {
-        self::load_plugin_functions();
-
-        $items = [];
-        foreach ( function_exists( 'get_mu_plugins' ) ? get_mu_plugins() : [] as $plugin_file => $plugin_data ) {
-            $plugin_data['_smpi_source'] = 'must_use';
-            $items[ (string) $plugin_file ] = $plugin_data;
-        }
-        foreach ( function_exists( 'get_dropins' ) ? get_dropins() : ( function_exists( '_get_dropins' ) ? _get_dropins() : [] ) as $plugin_file => $plugin_data ) {
-            $plugin_data['_smpi_source'] = 'dropin';
-            $items[ (string) $plugin_file ] = $plugin_data;
-        }
-
-        return $items;
-    }
-
     private static function load_plugin_functions(): void {
-        if ( ! function_exists( 'get_plugins' ) || ! function_exists( 'get_mu_plugins' ) ) {
+        if ( ! function_exists( 'get_plugins' ) ) {
             require_once ABSPATH . 'wp-admin/includes/plugin.php';
         }
     }
