@@ -1,6 +1,7 @@
 <?php
 namespace smp_publication_integration\Content;
 
+use Hexa\PluginCore\WpAdminComponents\CoreUi;
 use smp_publication_integration\Support\Dependencies;
 use smp_publication_integration\Support\Settings;
 
@@ -13,7 +14,6 @@ final class Visibility {
     private const ARCHIVE_META = "_smpi_shadow_archives";
     private const COMPLETE_META = "_smpi_shadow_complete";
     private const PR_OVERRIDE_META = "_smpi_pr_shadow_override";
-
     public function register(): void {
         add_action( "init", [ $this, "register_press_release_taxonomies" ], 20 );
         add_action( "add_meta_boxes", [ $this, "add_meta_boxes" ] );
@@ -30,7 +30,7 @@ final class Visibility {
     }
 
     public function add_meta_boxes(): void {
-        add_meta_box( "smpi_visibility", "SMP Publication Visibility", [ $this, "render_meta_box" ], [ "post", "press-release" ], "side", "high" );
+        add_meta_box( "smpi_visibility", "Post visibility", [ $this, "render_meta_box" ], [ "post", "press-release" ], "side", "high" );
     }
 
     public function render_meta_box( \WP_Post $post ): void {
@@ -39,21 +39,74 @@ final class Visibility {
         $hide_home = (bool) get_post_meta( $post->ID, self::HOME_META, true );
         $hide_complete = (bool) get_post_meta( $post->ID, self::COMPLETE_META, true );
         $pr_override = (string) get_post_meta( $post->ID, self::PR_OVERRIDE_META, true );
+        CoreUi::render_assets();
         ?>
+        <style>
+            #smpi_visibility .smpi-visibility-metabox {
+                margin: -2px 0 0;
+            }
+            #smpi_visibility .smpi-visibility-metabox .hpc-toggle-list {
+                gap: 8px;
+                margin: 0;
+            }
+            #smpi_visibility .smpi-visibility-metabox .hpc-toggle-row {
+                align-items: center;
+                border-color: #dfe4ec;
+                border-radius: 7px;
+                gap: 8px;
+                padding: 9px 10px;
+            }
+            #smpi_visibility .smpi-visibility-metabox .hpc-toggle {
+                align-items: center;
+                display: flex;
+                font-size: 13px;
+                font-weight: 400;
+                gap: 8px;
+                line-height: 1.25;
+                width: 100%;
+            }
+            #smpi_visibility .smpi-visibility-metabox .hpc-toggle-ui {
+                height: 18px;
+                width: 34px;
+            }
+            #smpi_visibility .smpi-visibility-metabox .hpc-toggle-ui:before {
+                height: 12px;
+                width: 12px;
+            }
+            #smpi_visibility .smpi-visibility-metabox .hpc-toggle input:checked + .hpc-toggle-ui:before {
+                transform: translateX(16px);
+            }
+            #smpi_visibility .smpi-visibility-metabox .hpc-toggle-label {
+                color: #2c3338;
+                font-size: 13px;
+                font-weight: 400;
+                gap: 5px;
+            }
+            #smpi_visibility .smpi-visibility-metabox .hpc-tooltip {
+                font-size: 10px;
+                height: 17px;
+                margin-left: auto;
+                width: 17px;
+            }
+        </style>
+        <div class="hpc-ui smpi-visibility-metabox">
         <?php if ( $shadow_enabled && "post" === $post->post_type ) : ?>
-            <p><label><input type="checkbox" name="smpi_shadow_complete" value="1" <?php checked( $hide_complete ); ?>> Completely shadow this post. It remains link-accessible only and is hidden from home, category, and tag pages.</label></p>
-            <p><label><input type="checkbox" name="smpi_shadow_home" value="1" <?php checked( $hide_home ); ?>> Shadow from home page only. It can still show on category and tag pages.</label></p>
+            <div class="hpc-toggle-list">
+                <div class="hpc-toggle-row"><?php echo CoreUi::toggle( "smpi_shadow_complete", $hide_complete, "Hide from home and archives", [ "id" => "smpi_shadow_complete", "tooltip" => "Direct URL still works. The post is removed from the home page, category archives, and tag archives." ] ); ?></div>
+                <div class="hpc-toggle-row"><?php echo CoreUi::toggle( "smpi_shadow_home", $hide_home, "Hide from home only", [ "id" => "smpi_shadow_home", "tooltip" => "The post is removed from the home page query only. Category and tag archives can still show it." ] ); ?></div>
+            </div>
         <?php elseif ( "post" === $post->post_type ) : ?>
-            <p>Shadow Posts is disabled in SMP Publication Integration > Features.</p>
+            <p class="hpc-small">Shadow Posts is disabled in SMP Publication Integration > Features.</p>
         <?php endif; ?>
         <?php if ( "press-release" === $post->post_type ) : ?>
-            <p><label for="smpi_pr_shadow_override"><strong>Press-release force include/exclude</strong></label></p>
-            <select id="smpi_pr_shadow_override" name="smpi_pr_shadow_override" style="width:100%;">
+            <label class="hpc-field" for="smpi_pr_shadow_override"><span>PR visibility <?php echo CoreUi::tooltip( "Overrides SMP-managed loops without changing the single press-release URL." ); ?></span>
+            <select id="smpi_pr_shadow_override" name="smpi_pr_shadow_override">
                 <option value="" <?php selected( $pr_override, "" ); ?>>Use global setting</option>
-                <option value="show" <?php selected( $pr_override, "show" ); ?>>Force include where SMP manages press releases</option>
-                <option value="hide" <?php selected( $pr_override, "hide" ); ?>>Force exclude from SMP-managed loops</option>
-            </select>
+                <option value="show" <?php selected( $pr_override, "show" ); ?>>Always show</option>
+                <option value="hide" <?php selected( $pr_override, "hide" ); ?>>Always hide</option>
+            </select></label>
         <?php endif; ?>
+        </div>
         <?php
     }
 
@@ -76,7 +129,7 @@ final class Visibility {
     }
 
     public function filter_queries( \WP_Query $query ): void {
-        if ( is_admin() || $query->is_search() || $query->is_feed() || ( function_exists( "wp_doing_ajax" ) && wp_doing_ajax() ) || ( defined( "REST_REQUEST" ) && REST_REQUEST ) || $query->is_post_type_archive() ) {
+        if ( is_admin() || $query->is_search() || $query->is_feed() || ( function_exists( "wp_doing_ajax" ) && wp_doing_ajax() ) || ( defined( "REST_REQUEST" ) && REST_REQUEST ) || ( $query->is_post_type_archive() && ! ( function_exists( "is_author" ) && is_author() ) ) ) {
             return;
         }
         $context = $this->query_context( $query );
@@ -123,6 +176,9 @@ final class Visibility {
         if ( $query->is_main_query() && $query->is_author() ) {
             return "author";
         }
+        if ( ! $query->is_main_query() && function_exists( "is_author" ) && is_author() && ! is_singular() ) {
+            return "author";
+        }
         if ( ! $query->is_main_query() && is_singular( "post" ) ) {
             return "single_recent";
         }
@@ -150,6 +206,7 @@ final class Visibility {
             $query->set( "post_type", array_values( array_unique( $current ) ) );
         }
     }
+
 
     private function append_meta_exclusion( \WP_Query $query, string $meta_key ): void {
         $current = $query->get( "meta_query" );

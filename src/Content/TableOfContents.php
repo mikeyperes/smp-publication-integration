@@ -1,6 +1,8 @@
 <?php
 namespace smp_publication_integration\Content;
 
+use smp_publication_integration\Support\Fields;
+use smp_publication_integration\Support\RuntimeContext;
 use smp_publication_integration\Support\Settings;
 
 if ( ! defined( "ABSPATH" ) ) {
@@ -26,11 +28,15 @@ final class TableOfContents {
         if ( ! $post ) {
             return "";
         }
-        return self::build_toc( (string) $post->post_content, (string) $atts["title"], sanitize_key( (string) $atts["style"] ) );
+        $items = self::items_for_post( $post );
+        if ( empty( $items ) ) {
+            return "";
+        }
+        return self::build_toc_from_items( $items, (string) $atts["title"], sanitize_key( (string) $atts["style"] ) ) . self::shortcode_anchor_script( $items );
     }
 
     public function filter_content( string $content ): string {
-        if ( is_admin() || ! Settings::bool( "table_of_contents_enabled" ) || ! Settings::bool( "table_of_contents_auto_single" ) ) {
+        if ( ! RuntimeContext::is_public_dom_context() || ! Settings::bool( "table_of_contents_enabled" ) || ! Settings::bool( "table_of_contents_auto_single" ) ) {
             return $content;
         }
         static $inserted = false;
@@ -49,6 +55,9 @@ final class TableOfContents {
     }
 
     public function print_styles(): void {
+        if ( ! RuntimeContext::is_public_dom_context() ) {
+            return;
+        }
         if ( ! Settings::bool( "table_of_contents_enabled" ) ) {
             return;
         }
@@ -68,29 +77,51 @@ final class TableOfContents {
         return self::build_toc_from_items( self::items( $content ), $title, $style );
     }
 
+    private static function items_for_post( \WP_Post $post ): array {
+        $items = self::items( (string) $post->post_content );
+        $summary = self::summary_item( (int) $post->ID );
+        if ( $summary ) {
+            array_unshift( $items, $summary );
+        }
+        return $items;
+    }
+
+    private static function summary_item( int $post_id ): array {
+        if ( $post_id <= 0 || ! Settings::bool( "table_of_contents_include_summary" ) || ! Settings::bool( "post_summary_acf_enabled" ) ) {
+            return [];
+        }
+        $summary = Fields::get( $post_id, "post_summary", "" );
+        if ( ! Fields::has_value( $summary ) ) {
+            return [];
+        }
+        $style = ArticleStyles::normalize_summary_style( (string) Settings::get( "post_summary_style", "none" ) );
+        return [ "level" => 2, "text" => ArticleStyles::summary_title( $style ), "id" => "smpi-summary-heading", "source" => "summary" ];
+    }
+
     private static function build_toc_from_items( array $items, string $title, string $style = "" ): string {
         if ( empty( $items ) ) {
             return "";
         }
         $style = ArticleStyles::normalize_toc_style( $style );
-        $class = "smpi-table-of-contents smpi-" . $style;
+        $class = "smpi-table-of-contents smpi-" . $style . " smpi-toc-collapsible";
+        $caret = "<span class=\"smpi-toc-caret\" aria-hidden=\"true\"></span>";
         if ( "toc04" === $style ) {
-            $html = "<nav class=\"" . esc_attr( $class ) . "\" aria-label=\"Table of contents\"><span class=\"smpi-toc-label\">" . esc_html( "Jump to" ) . "</span>";
+            $html = "<details class=\"" . esc_attr( $class ) . "\"><summary class=\"smpi-toc-label\"><span>" . esc_html( "Jump to" ) . "</span>" . $caret . "</summary><div class=\"smpi-toc-panel\">";
             foreach ( $items as $item ) {
                 $html .= "<a href=#" . esc_attr( $item["id"] ) . ">" . esc_html( $item["text"] ) . "</a>";
             }
-            return $html . "</nav>";
+            return $html . "</div></details>";
         }
         $label = "toc00" === $style ? "In this article" : ( "toc02" === $style ? "On this page" : $title );
-        $html = "<nav class=\"" . esc_attr( $class ) . "\" aria-label=\"Table of contents\"><p class=\"smpi-toc-label\">" . esc_html( $label ) . "</p><ol>";
+        $html = "<details class=\"" . esc_attr( $class ) . "\"><summary class=\"smpi-toc-label\"><span>" . esc_html( $label ) . "</span>" . $caret . "</summary><ol>";
         foreach ( $items as $item ) {
             $html .= "<li class=smpi-toc-level-" . esc_attr( (string) $item["level"] ) . "><a href=#" . esc_attr( $item["id"] ) . ">" . esc_html( $item["text"] ) . "</a></li>";
         }
-        return $html . "</ol></nav>";
+        return $html . "</ol></details>";
     }
 
     private static function items( string $content ): array {
-        if ( ! preg_match_all( "/<h([2-4])([^>]*)>(.*?)<\/h\1>/is", $content, $matches, PREG_SET_ORDER ) ) {
+        if ( ! preg_match_all( "/<h([2-4])([^>]*)>(.*?)<\\/h\\1>/is", $content, $matches, PREG_SET_ORDER ) ) {
             return [];
         }
         $items = [];
@@ -99,14 +130,21 @@ final class TableOfContents {
             if ( "" === $text ) {
                 continue;
             }
-            $items[] = [ "level" => (int) $match[1], "text" => $text, "id" => "smpi-toc-" . sanitize_title( $text ) . "-" . ( $index + 1 ) ];
+            $id = "";
+            if ( preg_match( "/\\sid=\"?([^\"\\s>]+)/i", (string) $match[2], $id_match ) ) {
+                $id = sanitize_title( (string) $id_match[1] );
+            }
+            if ( "" === $id ) {
+                $id = "smpi-toc-" . sanitize_title( $text ) . "-" . ( $index + 1 );
+            }
+            $items[] = [ "level" => (int) $match[1], "text" => $text, "id" => $id, "source" => "heading" ];
         }
         return $items;
     }
 
     private static function add_heading_ids( string $content, array $items ): string {
         $index = 0;
-        return (string) preg_replace_callback( "/<h([2-4])([^>]*)>(.*?)<\/h\1>/is", static function ( array $match ) use ( &$index, $items ): string {
+        return (string) preg_replace_callback( "/<h([2-4])([^>]*)>(.*?)<\\/h\\1>/is", static function ( array $match ) use ( &$index, $items ): string {
             if ( ! isset( $items[ $index ] ) ) {
                 return $match[0];
             }
@@ -115,21 +153,38 @@ final class TableOfContents {
             if ( preg_match( "/\sid=/i", $match[2] ) ) {
                 return $match[0];
             }
-            return "<h" . $match[1] . $match[2] . " id=" . esc_attr( $id ) . ">" . $match[3] . "</h" . $match[1] . ">";
+            return "<h" . $match[1] . $match[2] . " id=\"" . esc_attr( $id ) . "\">" . $match[3] . "</h" . $match[1] . ">";
         }, $content );
     }
 
+    private static function shortcode_anchor_script( array $items ): string {
+        $headings = [];
+        $summary_id = "";
+        foreach ( $items as $item ) {
+            if ( "summary" === (string) ( $item["source"] ?? "heading" ) ) {
+                $summary_id = (string) $item["id"];
+                continue;
+            }
+            $headings[] = [ "id" => (string) $item["id"], "text" => (string) $item["text"] ];
+        }
+        $payload = wp_json_encode( [ "headings" => $headings, "summary_id" => $summary_id ] );
+        if ( ! is_string( $payload ) || "" === $payload ) {
+            return "";
+        }
+        return "<script class=\"smpi-toc-shortcode-anchor-script\">(function(data){if(!data)return;function ready(fn){if(document.readyState!==\"loading\"){fn();return;}document.addEventListener(\"DOMContentLoaded\",fn,{once:true});}function visible(el){var r=el.getBoundingClientRect();return r.width>1&&r.height>1&&window.getComputedStyle(el).display!==\"none\";}ready(function(){if(data.summary_id){var sum=document.querySelector(\".smpi-post-summary h2\");if(sum&&visible(sum)){sum.id=data.summary_id;}}var selectors=[\".elementor-widget-theme-post-content .elementor-widget-container\",\".elementor-widget-theme-post-content\",\".elementor-widget-post-content\",\"article .entry-content\",\".entry-content\",\".post-content\"];var target=null;for(var i=0;i<selectors.length;i++){target=document.querySelector(selectors[i]);if(target)break;}if(!target||!data.headings||!data.headings.length)return;var nodes=Array.from(target.querySelectorAll(\"h2,h3,h4\")).filter(function(h){return visible(h)&&(h.textContent||\"\").trim();});for(var j=0;j<nodes.length&&j<data.headings.length;j++){if(data.headings[j]&&data.headings[j].id){nodes[j].id=data.headings[j].id;}}});})(" . $payload . ");</script>";
+    }
+
     public function print_auto_inject_script(): void {
-        if ( is_admin() || ! Settings::bool( "table_of_contents_enabled" ) || ! Settings::bool( "table_of_contents_auto_single" ) || ! is_singular( "post" ) ) {
+        if ( ! RuntimeContext::is_public_dom_context() || ! Settings::bool( "table_of_contents_enabled" ) || ! Settings::bool( "table_of_contents_auto_single" ) || ! is_singular( "post" ) ) {
             return;
         }
         $style = ArticleStyles::normalize_toc_style( (string) Settings::get( "table_of_contents_style", "toc02" ) );
         if ( "none" === $style ) {
             return;
         }
-        $payload = wp_json_encode( [ "style" => $style ] );
+        $payload = wp_json_encode( [ "style" => $style, "include_summary" => Settings::bool( "table_of_contents_include_summary" ) ] );
         $script = <<<SMPI_JS
-(function(data){if(!data||document.querySelector(".smpi-table-of-contents"))return;function visible(el){var r=el.getBoundingClientRect();return r.width>1&&r.height>1&&window.getComputedStyle(el).display!=="none";}function slug(text,index){return "smpi-toc-"+text.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")+"-"+index;}var selectors=[".elementor-widget-theme-post-content .elementor-widget-container",".elementor-widget-theme-post-content",".elementor-widget-post-content","article .entry-content",".entry-content",".post-content"];var target=null;for(var i=0;i<selectors.length;i++){target=document.querySelector(selectors[i]);if(target)break;}if(!target)return;var headings=Array.from(target.querySelectorAll("h2,h3,h4")).filter(function(h){return visible(h)&&(h.textContent||"").trim();});if(!headings.length)return;var nav=document.createElement("nav");nav.className="smpi-table-of-contents smpi-"+(data.style||"toc02");nav.setAttribute("aria-label","Table of contents");if(data.style==="toc04"){var span=document.createElement("span");span.className="smpi-toc-label";span.textContent="Jump to";nav.appendChild(span);headings.forEach(function(h,idx){if(!h.id)h.id=slug(h.textContent,idx+1);var a=document.createElement("a");a.href="#"+h.id;a.textContent=h.textContent.trim();nav.appendChild(a);});}else{var label=document.createElement("p");label.className="smpi-toc-label";label.textContent=data.style==="toc00"?"In this article":(data.style==="toc02"?"On this page":"Table of Contents");nav.appendChild(label);var ol=document.createElement("ol");headings.forEach(function(h,idx){if(!h.id)h.id=slug(h.textContent,idx+1);var li=document.createElement("li");li.className="smpi-toc-level-"+h.tagName.slice(1);var a=document.createElement("a");a.href="#"+h.id;a.textContent=h.textContent.trim();li.appendChild(a);ol.appendChild(li);});nav.appendChild(ol);}target.parentNode.insertBefore(nav,target);})(
+(function(data){if(!data||document.querySelector(".smpi-table-of-contents"))return;function visible(el){var r=el.getBoundingClientRect();return r.width>1&&r.height>1&&window.getComputedStyle(el).display!=="none";}function slug(text,index){return "smpi-toc-"+text.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")+"-"+index;}var selectors=[".elementor-widget-theme-post-content .elementor-widget-container",".elementor-widget-theme-post-content",".elementor-widget-post-content","article .entry-content",".entry-content",".post-content"];var target=null;for(var i=0;i<selectors.length;i++){target=document.querySelector(selectors[i]);if(target)break;}if(!target)return;var headings=Array.from(target.querySelectorAll("h2,h3,h4")).filter(function(h){return visible(h)&&(h.textContent||"").trim();});if(data.include_summary){var sumH=document.querySelector(".smpi-post-summary h2");if(sumH&&visible(sumH)&&(sumH.textContent||"").trim()){if(!sumH.id)sumH.id="smpi-summary-heading";headings.unshift(sumH);}}if(!headings.length)return;var details=document.createElement("details");details.className="smpi-table-of-contents smpi-"+(data.style||"toc02")+" smpi-toc-collapsible";details.setAttribute("aria-label","Table of contents");var summary=document.createElement("summary");summary.className="smpi-toc-label";var labelText=data.style==="toc04"?"Jump to":(data.style==="toc00"?"In this article":(data.style==="toc02"?"On this page":"Table of Contents"));var lspan=document.createElement("span");lspan.textContent=labelText;summary.appendChild(lspan);var caret=document.createElement("span");caret.className="smpi-toc-caret";caret.setAttribute("aria-hidden","true");summary.appendChild(caret);details.appendChild(summary);if(data.style==="toc04"){var panel=document.createElement("div");panel.className="smpi-toc-panel";headings.forEach(function(h,idx){if(!h.id)h.id=slug(h.textContent,idx+1);var a=document.createElement("a");a.href="#"+h.id;a.textContent=h.textContent.trim();panel.appendChild(a);});details.appendChild(panel);}else{var ol=document.createElement("ol");headings.forEach(function(h,idx){if(!h.id)h.id=slug(h.textContent,idx+1);var li=document.createElement("li");li.className="smpi-toc-level-"+h.tagName.slice(1);var a=document.createElement("a");a.href="#"+h.id;a.textContent=h.textContent.trim();li.appendChild(a);ol.appendChild(li);});details.appendChild(ol);}target.parentNode.insertBefore(details,target);})(
 SMPI_JS;
         echo "<script id=\"smpi-toc-auto-inject\">" . $script . $payload . ");</script>";
     }

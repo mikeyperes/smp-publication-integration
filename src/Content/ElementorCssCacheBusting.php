@@ -1,6 +1,7 @@
 <?php
 namespace smp_publication_integration\Content;
 
+use smp_publication_integration\Support\RuntimeContext;
 use smp_publication_integration\Support\Settings;
 
 if ( ! defined( "ABSPATH" ) ) {
@@ -13,7 +14,7 @@ final class ElementorCssCacheBusting {
     }
 
     public function bust_elementor_upload_css( string $src ): string {
-        if ( ! Settings::bool( "elementor_css_cache_busting" ) || false === strpos( $src, "/wp-content/uploads/elementor/css/" ) ) {
+        if ( ! RuntimeContext::is_public_frontend() || ! Settings::bool( "elementor_css_cache_busting" ) || false === strpos( $src, "/wp-content/uploads/elementor/css/" ) ) {
             return $src;
         }
         $path = wp_parse_url( $src, PHP_URL_PATH );

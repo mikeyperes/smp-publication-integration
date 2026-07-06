@@ -1,30 +1,13 @@
 <?php
 namespace smp_publication_integration\Content;
 
+use smp_publication_integration\Authorship\AuthorFieldResolver;
+
 if ( ! defined( "ABSPATH" ) ) {
     exit;
 }
 
 final class AuthorShortcodes {
-    private const FIELD_ALIASES = [
-        "bio_short" => [ "author_bio_short", "bio_short", "short_bio", "user_short_bio", "description_short", "what_best_describe_you" ],
-        "bio" => [ "author_bio", "bio", "biography", "description", "user_description" ],
-        "facebook" => [ "author_facebook", "facebook", "facebook_url", "profile_facebook", "social_facebook" ],
-        "instagram" => [ "author_instagram", "instagram", "instagram_url", "profile_instagram", "social_instagram" ],
-        "x" => [ "author_x", "x", "x_url", "twitter", "twitter_url", "profile_twitter", "social_twitter" ],
-        "youtube" => [ "author_youtube", "youtube", "youtube_url", "profile_youtube", "social_youtube" ],
-        "muckrack" => [ "author_muckrack", "muckrack", "muckrack_url", "muckrack_profile" ],
-        "image" => [ "author_image", "profile_photo", "profile_image", "headshot", "photo", "avatar" ],
-    ];
-
-    private const IMAGE_SIZE_PIXELS = [
-        "thumbnail" => 150,
-        "medium" => 300,
-        "medium_large" => 768,
-        "large" => 1024,
-        "full" => 1024,
-    ];
-
     public function register(): void {
         add_action( "init", [ $this, "register_shortcodes" ], 20 );
     }
@@ -37,38 +20,57 @@ final class AuthorShortcodes {
 
     public static function shortcodes(): array {
         return [
+            "author_name" => "render_name",
             "author_bio_short" => "render_bio_short",
             "author_bio" => "render_bio",
+            "author_title" => "render_title",
+            "author_subtitle" => "render_subtitle",
             "author_facebook" => "render_facebook",
             "author_instagram" => "render_instagram",
+            "author" => "render_author",
             "author_x" => "render_x",
+            "author_linkedin" => "render_linkedin",
             "author_youtube" => "render_youtube",
+            "author_website" => "render_website",
+            "author_crunchbase" => "render_crunchbase",
             "author_muckrack" => "render_muckrack",
+            "author_muck_rack" => "render_muckrack",
+            "author_email" => "render_email",
             "author_muckrack_verified" => "render_muckrack_verified",
             "author_image" => "render_image",
         ];
     }
 
-    public function render_bio_short( array $atts = [] ): string {
-        $atts = shortcode_atts( [ "user_id" => 0, "post_id" => 0, "words" => 35 ], $atts, "author_bio_short" );
-        $author_id = $this->resolve_author_id( (int) $atts["user_id"], (int) $atts["post_id"] );
+    public function render_name( array $atts = [] ): string {
+        $atts = shortcode_atts( [ "user_id" => 0, "post_id" => 0, "author_index" => 0 ], $atts, "author_name" );
+        $author_id = $this->resolve_author_id( (int) $atts["user_id"], (int) $atts["post_id"], (int) $atts["author_index"] );
         if ( ! $author_id ) {
             return "";
         }
-        $value = $this->first_author_field( $author_id, self::FIELD_ALIASES["bio_short"] );
+        return esc_html( (string) get_the_author_meta( "display_name", $author_id ) );
+    }
+
+    public function render_bio_short( array $atts = [] ): string {
+        $atts = shortcode_atts( [ "user_id" => 0, "post_id" => 0, "author_index" => 0, "words" => 35 ], $atts, "author_bio_short" );
+        $author_id = $this->resolve_author_id( (int) $atts["user_id"], (int) $atts["post_id"], (int) $atts["author_index"] );
+        if ( ! $author_id ) {
+            return "";
+        }
+        $resolver = new AuthorFieldResolver();
+        $value = $resolver->value( $author_id, "bio_short" );
         if ( "" === $value ) {
-            $value = $this->first_author_field( $author_id, self::FIELD_ALIASES["bio"] );
+            $value = $resolver->value( $author_id, "bio" );
         }
         return "" !== $value ? esc_html( wp_trim_words( wp_strip_all_tags( $value ), max( 1, (int) $atts["words"] ) ) ) : "";
     }
 
     public function render_bio( array $atts = [] ): string {
-        $atts = shortcode_atts( [ "user_id" => 0, "post_id" => 0, "format" => "html" ], $atts, "author_bio" );
-        $author_id = $this->resolve_author_id( (int) $atts["user_id"], (int) $atts["post_id"] );
+        $atts = shortcode_atts( [ "user_id" => 0, "post_id" => 0, "author_index" => 0, "format" => "html" ], $atts, "author_bio" );
+        $author_id = $this->resolve_author_id( (int) $atts["user_id"], (int) $atts["post_id"], (int) $atts["author_index"] );
         if ( ! $author_id ) {
             return "";
         }
-        $value = $this->first_author_field( $author_id, self::FIELD_ALIASES["bio"] );
+        $value = ( new AuthorFieldResolver() )->value( $author_id, "bio" );
         if ( "" === $value ) {
             return "";
         }
@@ -76,6 +78,18 @@ final class AuthorShortcodes {
             return esc_html( wp_strip_all_tags( $value ) );
         }
         return "<div class=\"smpi-author-bio\">" . wp_kses_post( wpautop( $value ) ) . "</div>";
+    }
+
+    public static function field_aliases(): array {
+        return AuthorFieldResolver::aliases();
+    }
+
+    public function render_title( array $atts = [] ): string {
+        return $this->render_author_text( "title", $atts );
+    }
+
+    public function render_subtitle( array $atts = [] ): string {
+        return $this->render_author_text( "subtitle", $atts );
     }
 
     public function render_facebook( array $atts = [] ): string {
@@ -86,38 +100,77 @@ final class AuthorShortcodes {
         return $this->render_social_url( "instagram", $atts );
     }
 
+    public function render_author( array $atts = [] ): string {
+        $atts = shortcode_atts( [ "url" => "", "user_id" => 0, "post_id" => 0, "author_index" => 0 ], $atts, "author" );
+        $key = sanitize_key( (string) $atts["url"] );
+        if ( "twitter" === $key || "tw" === $key ) {
+            $key = "x";
+        }
+        $allowed = [ "facebook", "instagram", "x", "linkedin", "youtube", "crunchbase", "muckrack", "website" ];
+        if ( ! in_array( $key, $allowed, true ) ) {
+            return "";
+        }
+        return $this->render_social_url( $key, $atts );
+    }
+
     public function render_x( array $atts = [] ): string {
         return $this->render_social_url( "x", $atts );
+    }
+
+    public function render_linkedin( array $atts = [] ): string {
+        return $this->render_social_url( "linkedin", $atts );
     }
 
     public function render_youtube( array $atts = [] ): string {
         return $this->render_social_url( "youtube", $atts );
     }
 
+    public function render_website( array $atts = [] ): string {
+        return $this->render_social_url( "website", $atts );
+    }
+
+    public function render_crunchbase( array $atts = [] ): string {
+        return $this->render_social_url( "crunchbase", $atts );
+    }
+
     public function render_muckrack( array $atts = [] ): string {
         return $this->render_social_url( "muckrack", $atts );
     }
 
+    public function render_email( array $atts = [] ): string {
+        return $this->render_author_text( "email", $atts );
+    }
+
     public function render_muckrack_verified( array $atts = [] ): string {
-        $atts = shortcode_atts( [ "user_id" => 0, "post_id" => 0, "type" => "icon", "style" => "" ], $atts, "author_muckrack_verified" );
-        $author_id = $this->resolve_author_id( (int) $atts["user_id"], (int) $atts["post_id"] );
+        $atts = shortcode_atts( [ "user_id" => 0, "post_id" => 0, "author_index" => 0, "type" => "icon", "style" => "", "context" => "" ], $atts, "author_muckrack_verified" );
+        $author_id = $this->resolve_author_id( (int) $atts["user_id"], (int) $atts["post_id"], (int) $atts["author_index"] );
         if ( ! $author_id || ! MuckRackVerification::author_verified( $author_id ) ) {
             return "";
         }
-        return "text" === sanitize_key( (string) $atts["type"] ) ? MuckRackVerification::verification_text( $author_id ) : MuckRackVerification::verification_icon( $author_id, sanitize_key( (string) $atts["style"] ) );
+        $context = sanitize_key( (string) $atts["context"] );
+        if ( "" === $context ) {
+            if ( is_singular( "post" ) ) {
+                $context = "single_author";
+            } elseif ( is_author() ) {
+                $context = "author";
+            } elseif ( is_home() || is_front_page() ) {
+                $context = "home";
+            }
+        }
+        return "text" === sanitize_key( (string) $atts["type"] ) ? MuckRackVerification::verification_text( $author_id ) : MuckRackVerification::verification_icon( $author_id, sanitize_key( (string) $atts["style"] ), $context );
     }
 
     public function render_image( array $atts = [] ): string {
-        $atts = shortcode_atts( [ "user_id" => 0, "post_id" => 0, "size" => "thumbnail", "output" => "html", "class" => "smpi-author-image" ], $atts, "author_image" );
-        $author_id = $this->resolve_author_id( (int) $atts["user_id"], (int) $atts["post_id"] );
+        $atts = shortcode_atts( [ "user_id" => 0, "post_id" => 0, "author_index" => 0, "size" => "thumbnail", "output" => "html", "class" => "smpi-author-image" ], $atts, "author_image" );
+        $author_id = $this->resolve_author_id( (int) $atts["user_id"], (int) $atts["post_id"], (int) $atts["author_index"] );
         if ( ! $author_id ) {
             return "";
         }
         $size = sanitize_key( (string) $atts["size"] );
-        if ( ! isset( self::IMAGE_SIZE_PIXELS[ $size ] ) ) {
+        if ( ! in_array( $size, [ "thumbnail", "medium", "medium_large", "large", "full" ], true ) ) {
             $size = "thumbnail";
         }
-        $url = $this->author_image_url( $author_id, $size );
+        $url = ( new AuthorFieldResolver() )->image_url( $author_id, $size );
         if ( "" === $url ) {
             return "";
         }
@@ -128,122 +181,32 @@ final class AuthorShortcodes {
         return sprintf( "<img class=\"%s\" src=\"%s\" alt=\"%s\" loading=\"lazy\" decoding=\"async\">", esc_attr( (string) $atts["class"] ), esc_url( $url ), esc_attr( $name ) );
     }
 
-    private function render_social_url( string $key, array $atts = [] ): string {
-        $atts = shortcode_atts( [ "user_id" => 0, "post_id" => 0 ], $atts, "author_" . $key );
-        $author_id = $this->resolve_author_id( (int) $atts["user_id"], (int) $atts["post_id"] );
+    private function render_author_text( string $key, array $atts = [] ): string {
+        $atts = shortcode_atts( [ "user_id" => 0, "post_id" => 0, "author_index" => 0 ], $atts, "author_" . $key );
+        $author_id = $this->resolve_author_id( (int) $atts["user_id"], (int) $atts["post_id"], (int) $atts["author_index"] );
         if ( ! $author_id ) {
             return "";
         }
-        $value = $this->first_author_field( $author_id, self::FIELD_ALIASES[ $key ] ?? [ $key ] );
-        $url = $this->normalize_social_url( $key, $value );
+        if ( "email" === $key ) {
+            $user = get_user_by( "id", $author_id );
+            return $user ? esc_html( (string) $user->user_email ) : "";
+        }
+        $value = ( new AuthorFieldResolver() )->value( $author_id, $key );
+        return "" !== $value ? esc_html( wp_strip_all_tags( $value ) ) : "";
+    }
+
+    private function render_social_url( string $key, array $atts = [] ): string {
+        $atts = shortcode_atts( [ "user_id" => 0, "post_id" => 0, "author_index" => 0 ], $atts, "author_" . $key );
+        $author_id = $this->resolve_author_id( (int) $atts["user_id"], (int) $atts["post_id"], (int) $atts["author_index"] );
+        if ( ! $author_id ) {
+            return "";
+        }
+        $url = ( new AuthorFieldResolver() )->social_url( $author_id, $key );
         return "" !== $url ? esc_url( $url ) : "";
     }
 
-    private function resolve_author_id( int $explicit_user_id = 0, int $explicit_post_id = 0 ): int {
-        if ( $explicit_user_id > 0 && get_user_by( "id", $explicit_user_id ) ) {
-            return $explicit_user_id;
-        }
-        if ( $explicit_post_id > 0 ) {
-            $post = get_post( $explicit_post_id );
-            return $post ? (int) $post->post_author : 0;
-        }
-        if ( is_author() ) {
-            return (int) get_queried_object_id();
-        }
-        $post = get_post();
-        return $post ? (int) $post->post_author : 0;
+    private function resolve_author_id( int $explicit_user_id = 0, int $explicit_post_id = 0, int $author_index = 0 ): int {
+        return MultiAuthors::resolve_author_id( $explicit_user_id, $explicit_post_id, max( 0, $author_index ) );
     }
 
-    private function first_author_field( int $author_id, array $fields ): string {
-        foreach ( $fields as $field ) {
-            $value = MuckRackVerification::author_field( $author_id, $field );
-            if ( $this->has_value( $value ) ) {
-                return $this->field_to_string( $value );
-            }
-            $value = get_the_author_meta( $field, $author_id );
-            if ( $this->has_value( $value ) ) {
-                return $this->field_to_string( $value );
-            }
-        }
-        return "";
-    }
-
-    private function author_image_url( int $author_id, string $size ): string {
-        foreach ( self::FIELD_ALIASES["image"] as $field ) {
-            $value = MuckRackVerification::author_field( $author_id, $field );
-            $url = $this->image_value_to_url( $value, $size );
-            if ( "" !== $url ) {
-                return $url;
-            }
-        }
-        $avatar = get_avatar_url( $author_id, [ "size" => self::IMAGE_SIZE_PIXELS[ $size ] ] );
-        return is_string( $avatar ) ? $avatar : "";
-    }
-
-    private function image_value_to_url( $value, string $size ): string {
-        if ( is_array( $value ) ) {
-            if ( isset( $value["sizes"][ $size ] ) && is_string( $value["sizes"][ $size ] ) ) {
-                return $value["sizes"][ $size ];
-            }
-            if ( isset( $value["url"] ) && is_string( $value["url"] ) ) {
-                return $value["url"];
-            }
-            if ( isset( $value["ID"] ) ) {
-                $url = wp_get_attachment_image_url( (int) $value["ID"], $size );
-                return is_string( $url ) ? $url : "";
-            }
-        }
-        if ( is_numeric( $value ) ) {
-            $url = wp_get_attachment_image_url( (int) $value, $size );
-            return is_string( $url ) ? $url : "";
-        }
-        if ( is_string( $value ) && filter_var( $value, FILTER_VALIDATE_URL ) ) {
-            return $value;
-        }
-        return "";
-    }
-
-    private function normalize_social_url( string $key, string $value ): string {
-        $value = trim( $value );
-        if ( "" === $value ) {
-            return "";
-        }
-        if ( filter_var( $value, FILTER_VALIDATE_URL ) ) {
-            return $value;
-        }
-        if ( 0 === strpos( $value, "www." ) || false !== strpos( $value, ".com/" ) ) {
-            return "https://" . ltrim( $value, "/" );
-        }
-        $handle = ltrim( $value, "@/" );
-        if ( "" === $handle || false !== strpos( $handle, " " ) ) {
-            return "";
-        }
-        $bases = [
-            "facebook" => "https://facebook.com/",
-            "instagram" => "https://instagram.com/",
-            "x" => "https://x.com/",
-            "youtube" => "https://youtube.com/",
-            "muckrack" => "https://muckrack.com/",
-        ];
-        return isset( $bases[ $key ] ) ? $bases[ $key ] . rawurlencode( $handle ) : "";
-    }
-
-    private function field_to_string( $value ): string {
-        if ( is_array( $value ) ) {
-            foreach ( [ "url", "value", "label", "title" ] as $key ) {
-                if ( isset( $value[ $key ] ) && is_scalar( $value[ $key ] ) ) {
-                    return trim( (string) $value[ $key ] );
-                }
-            }
-            return "";
-        }
-        return is_scalar( $value ) ? trim( (string) $value ) : "";
-    }
-
-    private function has_value( $value ): bool {
-        if ( null === $value || false === $value || "" === $value ) {
-            return false;
-        }
-        return ! ( is_array( $value ) && empty( $value ) );
-    }
 }

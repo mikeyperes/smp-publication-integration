@@ -1,7 +1,9 @@
 <?php
 namespace smp_publication_integration\Content;
 
+use smp_publication_integration\Authorship\AuthorFieldResolver;
 use smp_publication_integration\Support\Fields;
+use smp_publication_integration\Support\RuntimeContext;
 use smp_publication_integration\Support\Settings;
 
 if ( ! defined( "ABSPATH" ) ) {
@@ -33,21 +35,25 @@ final class MuckRackVerification {
     }
 
     public function print_styles(): void {
+        if ( ! RuntimeContext::is_public_dom_context() ) {
+            return;
+        }
         if ( ! Settings::bool( "muckrack_verified_enabled" ) && ! Settings::bool( "publication_muckrack_verified_enabled" ) ) {
             return;
         }
-        $icon_size = self::setting_int( "muckrack_icon_size", 18, 8, 64 );
+        $icon_size = self::setting_int( "muckrack_icon_size", 22, 8, 64 );
         $publication_font = self::setting_int( "publication_muckrack_font_size", 14, 8, 64 );
-        echo "<style id=smpi-muckrack-styles>.smpi-muckrack-icon{display:inline-flex;align-items:center;justify-content:center;width:1em;height:1em;min-width:1em;margin-left:.28em;vertical-align:middle;line-height:1;--smpi-muckrack-color:#2d5277;color:var(--smpi-muckrack-color,#2d5277);background:transparent;font-size:" . esc_attr( (string) $icon_size ) . "px}.smpi-muckrack-icon svg{display:block;width:1em;height:1em}.smpi-muckrack-icon-check svg{width:1em;height:1em}.smpi-muckrack-link{text-decoration:none;display:inline-flex;align-items:center}.smpi-muckrack-brand{color:var(--smpi-muckrack-color,#2d5277);font-weight:700}.smpi-muckrack-footer-note,.smpi-muckrack-js-below-author,.smpi-muckrack-js-bottom-article{margin:24px 0 0}.smpi-muckrack-author-note{display:inline-flex;align-items:center;gap:.28em;margin:.18em 0 .18em .38em;padding:.34em .55em;border-left:2px solid var(--smpi-muckrack-color,#2d5277);background:#f5f8fb;color:#64748b;font-size:.72em;line-height:1.28;vertical-align:middle}.smpi-muckrack-author-note .smpi-muckrack-brand{color:var(--smpi-muckrack-color,#2d5277)}.smpi-muckrack-author-note a{color:inherit}.smpi-muckrack-footer-note{padding:12px 14px;border-left:3px solid var(--smpi-muckrack-color,#2d5277);background:#f5f8fb;font-size:.95em}.smpi-muckrack-publication-text{--smpi-muckrack-color:#2d5277;font-size:" . esc_attr( (string) $publication_font ) . "px}.smpi-muckrack-publication-note{display:block;clear:both;margin:12px 0 0;line-height:1.35;color:#334155}.smpi-muckrack-publication-footer{font-size:" . esc_attr( (string) $publication_font ) . "px}.smpi-muckrack-publication-block{display:block;padding:10px 12px;border-left:3px solid var(--smpi-muckrack-color,#2d5277);background:#f5f8fb}.smpi-muckrack-publication-compact{display:inline-flex;align-items:center;gap:.35em;padding:.28em .7em;border:1px solid var(--smpi-muckrack-color,#2d5277);border-radius:999px;background:#fff}.smpi-muckrack-publication-minimalist{display:inline;color:inherit}.smpi-muckrack-publication-compact a,.smpi-muckrack-publication-minimalist a,.smpi-muckrack-publication-block a{color:inherit}</style>";
+        $publication_mini_font = max( 8, $publication_font - 2 );
+        echo "<style id=smpi-muckrack-styles>.smpi-muckrack-icon{display:inline-flex;align-items:center;justify-content:center;width:1em;height:1em;min-width:1em;margin-left:.28em;vertical-align:middle;line-height:1;--smpi-muckrack-color:#2d5277;color:var(--smpi-muckrack-color,#2d5277);background:transparent;font-size:" . esc_attr( (string) $icon_size ) . "px}.smpi-muckrack-icon svg{display:block;width:1em;height:1em}.smpi-muckrack-icon-check svg{width:1em;height:1em}.smpi-muckrack-link{text-decoration:none;display:inline-flex;align-items:center}.smpi-muckrack-brand{color:var(--smpi-muckrack-color,#2d5277);font-weight:700}.smpi-muckrack-footer-note,.smpi-muckrack-js-below-author,.smpi-muckrack-js-bottom-article{margin:24px 0 0}.smpi-muckrack-author-note{display:inline-flex;align-items:center;gap:.28em;margin:.18em 0 .18em .38em;padding:.34em .55em;border-left:2px solid var(--smpi-muckrack-color,#2d5277);background:#f5f8fb;color:#64748b;font-size:.72em;line-height:1.28;vertical-align:middle}.smpi-muckrack-author-note .smpi-muckrack-brand{color:var(--smpi-muckrack-color,#2d5277)}.smpi-muckrack-author-note a{color:inherit}.smpi-muckrack-footer-note{padding:12px 14px;border-left:3px solid var(--smpi-muckrack-color,#2d5277);background:#f5f8fb;font-size:.95em}.smpi-muckrack-publication-text{--smpi-muckrack-color:#2d5277;font-size:" . esc_attr( (string) $publication_font ) . "px}.smpi-muckrack-publication-note{display:block;clear:both;margin:12px 0 0;line-height:1.35;color:#334155}.smpi-muckrack-publication-footer{font-size:" . esc_attr( (string) $publication_font ) . "px}.smpi-muckrack-publication-block{display:block;padding:10px 12px;border-left:3px solid var(--smpi-muckrack-color,#2d5277);background:#f5f8fb}.smpi-muckrack-publication-mini_block{display:block;padding:7px 10px;border-left:2px solid var(--smpi-muckrack-color,#2d5277);background:#f6f8fb;color:#475569;line-height:1.3;letter-spacing:.005em;font-size:" . esc_attr( (string) $publication_mini_font ) . "px}.smpi-muckrack-publication-compact{display:inline-flex;align-items:center;gap:.35em;padding:.28em .7em;border:1px solid var(--smpi-muckrack-color,#2d5277);border-radius:999px;background:#fff}.smpi-muckrack-publication-minimalist{display:inline;color:inherit}.smpi-muckrack-publication-compact a,.smpi-muckrack-publication-minimalist a,.smpi-muckrack-publication-block a,.smpi-muckrack-publication-mini_block a{color:inherit}</style>";
     }
 
     public function render_author_field_shortcode( array $atts = [] ): string {
-        $atts = shortcode_atts( [ "field" => "", "user_id" => 0 ], $atts, "acf_author_field" );
+        $atts = shortcode_atts( [ "field" => "", "user_id" => 0, "post_id" => 0, "author_index" => 0 ], $atts, "acf_author_field" );
         $field = sanitize_key( (string) $atts["field"] );
         if ( "" === $field ) {
             return "";
         }
-        $author_id = $this->resolve_author_id( (int) $atts["user_id"] );
+        $author_id = $this->resolve_author_id( (int) $atts["user_id"], (int) $atts["post_id"], (int) $atts["author_index"] );
         if ( ! $author_id ) {
             return "";
         }
@@ -56,12 +62,16 @@ final class MuckRackVerification {
     }
 
     public function render_muckrack_shortcode( array $atts = [] ): string {
-        $atts = shortcode_atts( [ "type" => "icon", "user_id" => 0, "style" => "" ], $atts, "muckrack_verified" );
-        $author_id = $this->resolve_author_id( (int) $atts["user_id"] );
+        $atts = shortcode_atts( [ "type" => "icon", "user_id" => 0, "post_id" => 0, "author_index" => 0, "style" => "", "context" => "" ], $atts, "muckrack_verified" );
+        $author_id = $this->resolve_author_id( (int) $atts["user_id"], (int) $atts["post_id"], (int) $atts["author_index"] );
         if ( ! $author_id || ! self::author_verified( $author_id ) ) {
             return "";
         }
-        return "text" === sanitize_key( (string) $atts["type"] ) ? self::verification_text( $author_id ) : self::verification_icon( $author_id, sanitize_key( (string) $atts["style"] ) );
+        $context = sanitize_key( (string) $atts["context"] );
+        if ( "" === $context ) {
+            $context = $this->author_context();
+        }
+        return "text" === sanitize_key( (string) $atts["type"] ) ? self::verification_text( $author_id ) : self::verification_icon( $author_id, sanitize_key( (string) $atts["style"] ), $context );
     }
 
     public function render_publication_shortcode( array $atts = [] ): string {
@@ -78,7 +88,7 @@ final class MuckRackVerification {
     }
 
     public function print_elementor_injection_script(): void {
-        if ( is_admin() ) {
+        if ( ! RuntimeContext::is_public_dom_context() ) {
             return;
         }
 
@@ -95,15 +105,15 @@ final class MuckRackVerification {
                 $user = get_user_by( "id", $author_id );
                 $author_name = $user ? (string) $user->display_name : "";
                 if ( in_array( $this->author_context(), [ "single_author", "author", "home" ], true ) && in_array( $this->author_context(), $contexts, true ) ) {
-                    $author_header_badge = self::verification_icon( $author_id, $style );
+                    $author_header_badge = self::verification_icon( $author_id, $style, $this->author_context() );
                 }
                 if ( is_singular( "post" ) && in_array( "single_footer", $contexts, true ) ) {
-                    $author_footer_badge = self::verification_icon( $author_id, $style );
+                    $author_footer_badge = self::verification_icon( $author_id, $style, "single_footer" );
                 }
             }
 
-            if ( in_array( "loop_cards", $contexts, true ) || in_array( "home", $contexts, true ) || is_author() ) {
-                $author_map = self::author_badge_map( $style );
+            if ( RuntimeContext::has_article_loop_context() && ( in_array( "loop_cards", $contexts, true ) || in_array( "home", $contexts, true ) || is_author() ) ) {
+                $author_map = self::author_badge_map( $style, "loop_cards" );
             }
         }
 
@@ -147,31 +157,32 @@ function q(sel,root){return Array.prototype.slice.call((root||document).querySel
 function contentWidget(){var selectors=[".elementor-widget-theme-post-content",".elementor-widget-post-content","article .entry-content",".entry-content",".post-content"];for(var i=0;i<selectors.length;i++){var el=document.querySelector(selectors[i]);if(el&&visible(el))return el;}return null;}
 function contentTop(){var el=contentWidget();return el?y(el):null;}
 function isLoop(el){return !!(el&&el.closest(".e-loop-item,.elementor-loop-item,.elementor-post,.elementor-grid-item,.elementor-widget-loop-grid article,.elementor-posts-container article"));}
-function isAdminOrHidden(el){return !!(el&&el.closest("#wpadminbar,.elementor-editor-active,.elementor-location-popup,script,style,noscript"));}
+function isAdminOrHidden(el){return !!(el&&el.closest("#wpadminbar,.elementor-editor-active,.elementor-location-popup,.smpi-multi-author-item,script,style,noscript"));}
 var bySlug={},byName={};
 (data.authors||[]).forEach(function(a){if(!a||!a.badge)return;if(a.slug)bySlug[String(a.slug).toLowerCase()]=a;if(a.name)byName[norm(a.name)]=a;});
 function slugFromHref(href){var m=String(href||"").match(/\/author\/([^\/?#]+)/i);return m?decodeURIComponent(m[1]).toLowerCase():"";}
 function recordFor(el,fallbackName){if(!el)return null;var link=el.matches&&el.matches("a[href]")?el:el.closest&&el.closest("a[href]");var slug=link?slugFromHref(link.getAttribute("href")):"";if(slug&&bySlug[slug])return bySlug[slug];var txt=norm(fallbackName||clean(el.textContent));if(txt&&byName[txt])return byName[txt];return null;}
 function badgeFor(el,fallbackBadge,fallbackName){var rec=recordFor(el,fallbackName);return rec&&rec.badge?rec.badge:(fallbackBadge||"");}
 function authorRoot(el){return el.closest(".elementor-post-info__item,.elementor-widget-post-info,.elementor-widget-theme-post-author,.elementor-author-box,.elementor-widget-author-box,.elementor-widget-heading,.elementor-icon-list-item,.byline,.author,.e-loop-item,.elementor-post,.elementor-grid-item")||el.parentElement;}
-function hasBadge(root){return !!(root&&root.querySelector(".smpi-muckrack-icon,.smpi-muckrack-author-note"));}
+function hasBadge(root){return !!(root&&root.querySelector(".smpi-muckrack-link,.smpi-muckrack-icon,.smpi-muckrack-author-note"));}
 function insertAfter(el,html,root){if(!el||!html)return false;var scope=root||authorRoot(el);if(hasBadge(scope))return false;var node=htmlNode(html);if(!node)return false;var textHost=!el.matches("a[href]")&&!el.closest("a[href]")&&norm(el.textContent)===norm(data.authorName||el.textContent);if(textHost){el.appendChild(node);}else{el.insertAdjacentElement("afterend",node);}return true;}
 function exactTextTargets(root,name){var target=norm(name);if(!root||!target)return [];var out=[];q("a[href*=\"/author/\"],a[rel=\"author\"],.elementor-heading-title,.elementor-icon-list-text,.elementor-author-box__name,*",root).forEach(function(el){if(!visible(el)||isAdminOrHidden(el))return;var tx=norm(el.textContent);if(tx!==target)return;var childExact=Array.prototype.some.call(el.children||[],function(ch){return norm(ch.textContent)===target;});if(childExact)return;out.push(el);});return unique(out).sort(function(a,b){return a.getBoundingClientRect().height-b.getBoundingClientRect().height;});}
 function structuralAuthorLinks(root){var selectors=[".elementor-post-info__item--type-author a[href*=\"/author/\"]",".elementor-widget-post-info a[href*=\"/author/\"]",".elementor-widget-theme-post-author a[href*=\"/author/\"]",".elementor-author-box a[href*=\"/author/\"]",".elementor-widget-heading a[href*=\"/author/\"]",".elementor-icon-list-item a[href*=\"/author/\"]","a[rel=\"author\"]",".byline a[href*=\"/author/\"]","[class*=\"author\"] a[href*=\"/author/\"]"];var out=[];selectors.forEach(function(sel){q(sel,root).forEach(function(el){if(visible(el)&&!isAdminOrHidden(el))out.push(el);});});return unique(out);}
 function topAuthorTargets(){var ct=contentTop();return structuralAuthorLinks(document).filter(function(el){if(isLoop(el))return false;if(ct!==null&&y(el)>ct)return false;return true;}).sort(function(a,b){return y(a)-y(b);});}
 function authorCardContainers(){var ct=contentTop();var want=norm(data.authorName);var out=[];q(".elementor-author-box,.elementor-widget-theme-post-author,.elementor-widget-author-box").forEach(function(el){if(visible(el)&&!isLoop(el))out.push(el);});q(".e-con,.elementor-section,.elementor-container,.elementor-element").forEach(function(el){if(!visible(el)||isLoop(el)||isAdminOrHidden(el))return;if(ct!==null&&y(el)<ct)return;var tx=clean(el.textContent);var ntx=norm(tx);if(want&&ntx.indexOf(want)===-1)return;var lower=tx.toLowerCase();var hasAbout=lower.indexOf("about the author")!==-1;var hasSocial=/twitter\s*\/\s*x|linkedin|email/.test(lower);var hasImage=!!el.querySelector("img,.elementor-widget-image");var isReasonable=el.getBoundingClientRect().height<900&&el.getBoundingClientRect().width>120;if((hasAbout||hasSocial||hasImage)&&isReasonable)out.push(el);});return unique(out).sort(function(a,b){return a.getBoundingClientRect().height-b.getBoundingClientRect().height;});}
 function footerAuthorTargets(){var out=[];authorCardContainers().forEach(function(card){exactTextTargets(card,data.authorName).forEach(function(el){out.push({el:el,root:card});});});return out;}
-function loopCards(){return unique(q(".e-loop-item,.elementor-loop-item,.elementor-post,.elementor-grid-item,.elementor-widget-loop-grid article,.elementor-posts-container article").filter(visible));}
+function loopCards(){var ct=contentTop();var selectors=".e-loop-item,.elementor-loop-item,.elementor-widget-loop-grid article,.elementor-posts-container article,.elementor-posts .elementor-post,.elementor-widget-posts .elementor-post,.elementor-grid .elementor-grid-item";return unique(q(selectors).filter(function(card){if(!visible(card)||isAdminOrHidden(card))return false;if(ct!==null&&y(card)<=ct)return false;return true;}));}
 function injectTop(){if(!data.authorHeaderBadge)return;topAuthorTargets().forEach(function(el){insertAfter(el,badgeFor(el,data.authorHeaderBadge,data.authorName),authorRoot(el));});}
 function injectFooter(){if(!data.authorFooterBadge)return;footerAuthorTargets().forEach(function(pair){insertAfter(pair.el,data.authorFooterBadge,pair.root);});}
-function injectLoops(){if((data.contexts||[]).indexOf("loop_cards")<0)return;loopCards().forEach(function(card){var targets=structuralAuthorLinks(card);if(!targets.length){Object.keys(byName).forEach(function(key){exactTextTargets(card,byName[key].name).forEach(function(el){targets.push(el);});});targets=unique(targets);}targets.forEach(function(el){var badge=badgeFor(el,"",clean(el.textContent));if(badge)insertAfter(el,badge,authorRoot(el));});});}
-function contentPlacementRoot(){var cw=contentWidget();return cw||document.querySelector("article")||null;}
+function injectLoops(){if((data.contexts||[]).indexOf("loop_cards")<0)return;var ct=contentTop();loopCards().forEach(function(card){var targets=structuralAuthorLinks(card).filter(function(el){return ct===null||y(el)>ct;});if(!targets.length){Object.keys(byName).forEach(function(key){exactTextTargets(card,byName[key].name).forEach(function(el){if(ct===null||y(el)>ct)targets.push(el);});});targets=unique(targets);}targets.forEach(function(el){var badge=badgeFor(el,"",clean(el.textContent));if(badge)insertAfter(el,badge,authorRoot(el));});});}
+function normalizeTopBadges(){if(!data.authorHeaderBadge)return;var ct=contentTop();topAuthorTargets().forEach(function(el){if(ct!==null&&y(el)>ct)return;var root=authorRoot(el);q(".smpi-muckrack-link,.smpi-muckrack-icon,.smpi-muckrack-author-note",root).forEach(function(b){b.remove();});insertAfter(el,data.authorHeaderBadge,root);});}
+function contentPlacementRoot(){var faqs=q(".smpi-post-faqs").filter(visible).sort(function(a,b){return y(a)-y(b);});if(faqs.length)return faqs[faqs.length-1];var cw=contentWidget();return cw||document.querySelector("article")||null;}
 function footerAuthorPlacementRoot(){var cards=authorCardContainers();return cards.length?cards[0]:null;}
 function markerExists(cls){return !!document.querySelector("."+cls);}
 function insertBlockAfter(target,html,cls){if(!target||!html||markerExists(cls))return false;var wrap=document.createElement("div");wrap.className=cls;wrap.innerHTML=html;target.insertAdjacentElement("afterend",wrap);return true;}
 function injectPublicationBottom(){if(!data.publicationBottom)return;insertBlockAfter(contentPlacementRoot(),data.publicationBottom,"smpi-muckrack-js-bottom-article");}
 function injectPublicationBelowAuthor(){if(!data.publicationBelow)return;insertBlockAfter(footerAuthorPlacementRoot(),data.publicationBelow,"smpi-muckrack-js-below-author");}
-function run(){injectTop();injectFooter();injectLoops();injectPublicationBottom();injectPublicationBelowAuthor();}
+function run(){injectTop();injectFooter();injectLoops();normalizeTopBadges();injectPublicationBottom();injectPublicationBelowAuthor();}
 if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",run);}else{run();}
 setTimeout(run,500);setTimeout(run,1300);setTimeout(run,2600);
 })(
@@ -179,7 +190,7 @@ SMPI_JS;
         echo "<script id=\"smpi-muckrack-elementor-placement\">" . $script . $payload . ");</script>";
     }
 
-    private static function author_badge_map( string $style ): array {
+    private static function author_badge_map( string $style, string $context = "loop_cards" ): array {
         $users = get_users(
             [
                 "has_published_posts" => [ "post" ],
@@ -195,7 +206,7 @@ SMPI_JS;
             if ( ! self::author_verified( $author_id ) ) {
                 continue;
             }
-            $badge = self::verification_icon( $author_id, $style );
+            $badge = self::verification_icon( $author_id, $style, $context );
             if ( "" === $badge ) {
                 continue;
             }
@@ -222,25 +233,72 @@ SMPI_JS;
         return "";
     }
 
-    private function resolve_author_id( int $explicit_id = 0 ): int {
-        if ( $explicit_id > 0 ) {
-            return $explicit_id;
-        }
-        if ( is_author() ) {
-            return (int) get_queried_object_id();
-        }
-        $post = get_post();
-        return $post ? (int) $post->post_author : 0;
+    private function resolve_author_id( int $explicit_id = 0, int $explicit_post_id = 0, int $author_index = 0 ): int {
+        return MultiAuthors::resolve_author_id( $explicit_id, $explicit_post_id, max( 0, $author_index ) );
     }
 
     public static function author_field( int $author_id, string $field ) {
+        $field = sanitize_key( $field );
+        if ( "" === $field ) {
+            return "";
+        }
+
+        $resolver = new AuthorFieldResolver();
+        $canonical_field = self::canonical_author_field( $field );
+        if ( "" !== $canonical_field ) {
+            $value = $resolver->value( $author_id, $canonical_field );
+            if ( self::has_author_field_value( $value ) ) {
+                return $value;
+            }
+        }
+
+        $value = self::raw_author_field( $author_id, $field );
+        if ( self::has_author_field_value( $value ) ) {
+            return $value;
+        }
+
+        return "";
+    }
+
+    private static function canonical_author_field( string $field ): string {
+        $aliases = AuthorFieldResolver::aliases();
+        if ( isset( $aliases[ $field ] ) ) {
+            return $field;
+        }
+        foreach ( $aliases as $canonical => $field_aliases ) {
+            if ( in_array( $field, array_map( "sanitize_key", $field_aliases ), true ) ) {
+                return (string) $canonical;
+            }
+        }
+        return "";
+    }
+
+    private static function raw_author_field( int $author_id, string $field ) {
         if ( function_exists( "get_field" ) ) {
             $value = get_field( $field, "user_" . $author_id );
             if ( null !== $value && false !== $value && "" !== $value ) {
                 return $value;
             }
         }
-        return get_user_meta( $author_id, $field, true );
+        $meta = get_user_meta( $author_id, $field, true );
+        if ( null !== $meta && false !== $meta && "" !== $meta ) {
+            return $meta;
+        }
+        $user = get_userdata( $author_id );
+        if ( ! $user ) {
+            return "";
+        }
+        if ( in_array( $field, [ "name", "author_name" ], true ) ) {
+            return (string) $user->display_name;
+        }
+        if ( isset( $user->data->{$field} ) && is_scalar( $user->data->{$field} ) ) {
+            return (string) $user->data->{$field};
+        }
+        return "";
+    }
+
+    private static function has_author_field_value( $value ): bool {
+        return null !== $value && false !== $value && "" !== $value && [] !== $value;
     }
 
     public static function author_acf_verified( int $author_id ): bool {
@@ -252,7 +310,7 @@ SMPI_JS;
     }
 
 
-    public static function verification_icon( int $author_id, string $style = "tooltip" ): string {
+    public static function verification_icon( int $author_id, string $style = "tooltip", string $context = "" ): string {
         if ( ! self::author_verified( $author_id ) ) {
             return "";
         }
@@ -260,19 +318,22 @@ SMPI_JS;
             return self::verification_text( $author_id );
         }
         if ( "compact_block" === $style ) {
-            return self::verification_author_note( $author_id );
+            return self::verification_author_note( $author_id, $context );
         }
         $url = esc_url( (string) self::author_field( $author_id, self::FIELD_URL ) );
         $label = esc_attr( "Verified by MuckRack editorial team" );
-        $color = sanitize_hex_color( (string) Settings::get( "muckrack_icon_color", "#2d5277" ) ) ?: "#2d5277";
+        $color = self::author_context_color( $context );
         $style_key = (string) Settings::get( "muckrack_icon_style", "circle_check" );
         if ( ! in_array( $style_key, [ "circle_check", "circle_outline_check", "check" ], true ) ) {
             $style_key = "circle_check";
         }
         $icon_class = "check" === $style_key ? "smpi-muckrack-icon-check" : ( "circle_outline_check" === $style_key ? "smpi-muckrack-icon-outline" : "smpi-muckrack-icon-circle" );
         $quote = chr( 34 );
-        $size = self::setting_int( "muckrack_icon_size", 18, 8, 64 );
-        $icon = "<span class=" . $quote . "smpi-muckrack-icon " . esc_attr( $icon_class ) . $quote . " title=" . $quote . $label . $quote . " aria-label=" . $quote . $label . $quote . " style=" . $quote . "--smpi-muckrack-color:" . esc_attr( $color ) . ";color:" . esc_attr( $color ) . ";font-size:" . esc_attr( (string) $size ) . "px" . $quote . ">" . self::icon_svg_html( $style_key ) . "</span>";
+        $size = self::author_context_icon_size( $context );
+        $margin_left = self::author_context_margin( "left", $context );
+        $margin_top = self::author_context_margin( "top", $context );
+        $context_class = "" !== self::author_context_key( "smpi", $context ) ? " smpi-muckrack-context-" . sanitize_html_class( sanitize_key( $context ) ) : "";
+        $icon = "<span class=" . $quote . "smpi-muckrack-icon " . esc_attr( $icon_class . $context_class ) . $quote . " data-smpi-muckrack-context=" . $quote . esc_attr( sanitize_key( $context ) ) . $quote . " title=" . $quote . $label . $quote . " aria-label=" . $quote . $label . $quote . " style=" . $quote . "--smpi-muckrack-color:" . esc_attr( $color ) . ";--smpi-muckrack-margin-left:" . esc_attr( (string) $margin_left ) . "px;--smpi-muckrack-margin-top:" . esc_attr( (string) $margin_top ) . "px;color:" . esc_attr( $color ) . ";font-size:" . esc_attr( (string) $size ) . "px;margin-left:" . esc_attr( (string) $margin_left ) . "px;margin-top:" . esc_attr( (string) $margin_top ) . "px" . $quote . ">" . self::icon_svg_html( $style_key ) . "</span>";
         return $url ? "<a class=smpi-muckrack-link href=" . $quote . $url . $quote . " target=_blank rel=noopener>" . $icon . "</a>" : $icon;
     }
 
@@ -297,15 +358,56 @@ SMPI_JS;
         return esc_html( $description ) . " verified by <span class=\"smpi-muckrack-brand\">MuckRack</span> editorial team <a href=\"" . esc_url( $target ) . "\" target=\"_blank\" rel=\"noopener noreferrer\">(learn more)</a>";
     }
 
-    public static function verification_author_note( int $author_id ): string {
+    public static function verification_author_note( int $author_id, string $context = "" ): string {
         if ( ! self::author_verified( $author_id ) ) {
             return "";
         }
         $url = (string) self::author_field( $author_id, self::FIELD_URL );
         $target = "" !== $url ? $url : "https://muckrack.com/";
-        $color = sanitize_hex_color( (string) Settings::get( "muckrack_icon_color", "#2d5277" ) ) ?: "#2d5277";
-        $font_size = max( 10, self::setting_int( "muckrack_icon_size", 18, 8, 64 ) - 4 );
+        $color = self::author_context_color( $context );
+        $font_size = max( 10, self::author_context_icon_size( $context ) - 4 );
         return '<span class="smpi-muckrack-author-note" style="--smpi-muckrack-color:' . esc_attr( $color ) . ';font-size:' . esc_attr( (string) $font_size ) . 'px">Author verified by <span class="smpi-muckrack-brand">MuckRack</span> editorial team <a href="' . esc_url( $target ) . '" target="_blank" rel="noopener">(learn more)</a></span>';
+    }
+
+    private static function author_context_key( string $prefix, string $context ): string {
+        $context = sanitize_key( $context );
+        $allowed = [ "single_author", "single_footer", "loop_cards", "home", "author" ];
+        return in_array( $context, $allowed, true ) ? $prefix . "_" . $context : "";
+    }
+
+    private static function author_context_color( string $context = "" ): string {
+        $override_key = self::author_context_key( "muckrack_icon_color", $context );
+        if ( "" !== $override_key ) {
+            $override = sanitize_hex_color( (string) Settings::get( $override_key, "" ) );
+            if ( $override ) {
+                return $override;
+            }
+        }
+        return sanitize_hex_color( (string) Settings::get( "muckrack_icon_color", "#2d5277" ) ) ?: "#2d5277";
+    }
+
+    private static function author_context_icon_size( string $context = "" ): int {
+        $override_key = self::author_context_key( "muckrack_icon_size", $context );
+        if ( "" !== $override_key ) {
+            $override = absint( Settings::get( $override_key, 0 ) );
+            if ( $override > 0 ) {
+                return max( 8, min( 64, $override ) );
+            }
+        }
+        return self::setting_int( "muckrack_icon_size", 22, 8, 64 );
+    }
+
+    private static function author_context_margin( string $axis, string $context = "" ): int {
+        $axis = "top" === $axis ? "top" : "left";
+        $override_key = self::author_context_key( "muckrack_icon_margin_" . $axis, $context );
+        if ( "" !== $override_key ) {
+            $override = Settings::get( $override_key, "" );
+            if ( is_scalar( $override ) && "" !== trim( (string) $override ) ) {
+                $override = (int) $override;
+                return max( -32, min( 64, $override ) );
+            }
+        }
+        return self::setting_signed_int( "muckrack_icon_margin_" . $axis, "top" === $axis ? 0 : 2, -32, 64 );
     }
 
     public static function publication_verified(): bool {
@@ -330,11 +432,14 @@ SMPI_JS;
         $url = trim( (string) Fields::option( "publication_muckrack_url" ) );
         $target = "" !== $url ? $url : "https://muckrack.com/";
         $style = sanitize_key( "" !== $style_override ? $style_override : (string) Settings::get( "publication_muckrack_style", "block" ) );
-        if ( ! in_array( $style, [ "block", "compact", "minimalist" ], true ) ) {
+        if ( ! in_array( $style, [ "block", "mini_block", "compact", "minimalist" ], true ) ) {
             $style = "block";
         }
         $color = sanitize_hex_color( "" !== $color_override ? $color_override : (string) Settings::get( "publication_muckrack_color", "#2d5277" ) ) ?: "#2d5277";
         $font_size = self::setting_int( "publication_muckrack_font_size", 14, 8, 64 );
+        if ( "mini_block" === $style ) {
+            $font_size = max( 8, $font_size - 2 );
+        }
         $classes = trim( "smpi-muckrack-publication-text smpi-muckrack-publication-" . $style . " " . $class );
 
         return '<span class="' . esc_attr( $classes ) . '" style="--smpi-muckrack-color:' . esc_attr( $color ) . ';font-size:' . esc_attr( (string) $font_size ) . 'px">' . esc_html( $label ) . ' verified by <span class="smpi-muckrack-brand">MuckRack</span> editorial team <a href="' . esc_url( $target ) . '" target="_blank" rel="noopener noreferrer">(learn more)</a></span>';
@@ -381,6 +486,12 @@ SMPI_JS;
     private static function setting_int( string $key, int $default, int $min, int $max ): int {
         $value = absint( Settings::get( $key, $default ) );
         return max( $min, min( $max, $value ?: $default ) );
+    }
+
+    private static function setting_signed_int( string $key, int $default, int $min, int $max ): int {
+        $raw = Settings::get( $key, $default );
+        $value = is_scalar( $raw ) && "" !== trim( (string) $raw ) ? (int) $raw : $default;
+        return max( $min, min( $max, $value ) );
     }
 
     private static function truthy( $value ): bool {

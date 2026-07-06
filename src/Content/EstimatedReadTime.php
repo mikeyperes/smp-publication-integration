@@ -29,6 +29,9 @@ final class EstimatedReadTime {
                 "post_id" => 0,
                 "unit" => "minutes",
                 "wpm" => self::DEFAULT_WORDS_PER_MINUTE,
+                "format" => "friendly",
+                "output" => "",
+                "suffix" => "read",
             ],
             $atts,
             self::SHORTCODE
@@ -53,7 +56,14 @@ final class EstimatedReadTime {
             return "";
         }
 
-        return esc_html( (string) self::value_for_unit( $seconds, sanitize_key( (string) $atts["unit"] ) ) );
+        $unit = sanitize_key( (string) $atts["unit"] );
+        $format = sanitize_key( "" !== (string) $atts["output"] ? (string) $atts["output"] : (string) $atts["format"] );
+        $value = self::value_for_unit( $seconds, $unit );
+        if ( in_array( $format, [ "number", "numeric", "raw", "value" ], true ) ) {
+            return esc_html( (string) $value );
+        }
+
+        return esc_html( self::friendly_value( $value, $unit, (string) $atts["suffix"] ) );
     }
 
     public static function content_for_post( int $post_id ): string {
@@ -81,6 +91,17 @@ final class EstimatedReadTime {
         }
 
         return max( 1, (int) ceil( $seconds / MINUTE_IN_SECONDS ) );
+    }
+
+    public static function friendly_value( int $value, string $unit = "minutes", string $suffix = "read" ): string {
+        $unit = sanitize_key( $unit );
+        $suffix = trim( wp_strip_all_tags( $suffix ) );
+        if ( in_array( $unit, [ "second", "seconds", "sec", "secs" ], true ) ) {
+            $label = 1 === $value ? "sec" : "secs";
+        } else {
+            $label = "min";
+        }
+        return trim( $value . " " . $label . ( "" !== $suffix ? " " . $suffix : "" ) );
     }
 
     public static function word_count( string $content ): int {
@@ -117,6 +138,7 @@ final class EstimatedReadTime {
                 "words" => self::word_count( (string) $post->post_content ),
                 "seconds" => $seconds,
                 "minutes" => self::value_for_unit( $seconds, "minutes" ),
+                "friendly" => self::friendly_value( self::value_for_unit( $seconds, "minutes" ), "minutes" ),
             ];
         }
 

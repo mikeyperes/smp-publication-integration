@@ -1,6 +1,11 @@
 <?php
 namespace smp_publication_integration\Support;
 
+use Hexa\PluginCore\PluginProvisioning\PluginProvisioner;
+use Hexa\PluginCore\PluginUpdates\DirectPluginInstaller;
+use Hexa\PluginCore\PluginUpdates\GitHubVersionClient;
+use Hexa\PluginCore\PluginUpdates\UpdaterConfig;
+
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
@@ -33,15 +38,16 @@ final class PluginRegistry {
         $data = $installed[ $plugin_file ] ?? [];
         $config = $catalog[ $plugin_file ] ?? [ 'label' => $plugin_file, 'type' => 'external', 'repo' => '', 'starter' => basename( $plugin_file ) ];
         $response = is_object( $updates ) && isset( $updates->response[ $plugin_file ] ) ? $updates->response[ $plugin_file ] : null;
+        $core_status = PluginProvisioner::plugin_status_by_file( $plugin_file );
 
         return [
             'plugin_file' => $plugin_file,
             'label' => $config['label'],
             'type' => $config['type'],
             'github_repo' => $config['repo'],
-            'installed' => isset( $installed[ $plugin_file ] ),
-            'active' => Dependencies::plugin_active( $plugin_file ),
-            'version' => $data['Version'] ?? '',
+            'installed' => (bool) $core_status['installed'],
+            'active' => (bool) $core_status['active'],
+            'version' => $core_status['version'] ?? ( $data['Version'] ?? '' ),
             'name' => $data['Name'] ?? $config['label'],
             'author' => $data['Author'] ?? '',
             'update_available' => (bool) $response,
@@ -59,22 +65,60 @@ final class PluginRegistry {
     }
 
     public static function github_latest_version( string $repo, string $starter ): string {
-        $cache_key = 'smpi_github_version_' . md5( $repo . '|' . $starter );
+        $cache_key = self::github_version_cache_key( $repo, $starter );
         $cached = get_transient( $cache_key );
         if ( false !== $cached ) {
             return (string) $cached;
         }
-        $response = wp_remote_get( 'https://raw.githubusercontent.com/' . $repo . '/main/' . ltrim( $starter, '/' ), [ 'timeout' => 8 ] );
-        if ( is_wp_error( $response ) ) {
-            set_transient( $cache_key, '', 15 * MINUTE_IN_SECONDS );
-            return '';
-        }
-        $version = '';
-        if ( preg_match( '/^\s*\*?\s*Version:\s*([^\r\n]+)/mi', wp_remote_retrieve_body( $response ), $matches ) ) {
-            $version = trim( $matches[1] );
-        }
+
+        self::schedule_github_version_refresh( $repo, $starter );
+        return '';
+    }
+
+    public static function refresh_github_version( string $repo, string $starter ): void {
+        $cache_key = self::github_version_cache_key( $repo, $starter );
+        $version = self::fetch_github_latest_version( $repo, $starter );
         set_transient( $cache_key, $version, HOUR_IN_SECONDS );
-        return $version;
+        delete_transient( self::github_version_lock_key( $repo, $starter ) );
+    }
+
+    private static function fetch_github_latest_version( string $repo, string $starter ): string {
+        $slug = basename( UpdaterConfig::normalize_github_repo( $repo ) );
+        $updater_config = UpdaterConfig::from_slug_and_github_url(
+            $slug,
+            $repo,
+            [
+                'plugin_starter_file' => basename( $starter ),
+                'plugin_name'         => $slug,
+                'version'             => '0.0.0',
+                'github_branch'       => 'main',
+                'timeout'             => 5,
+            ]
+        );
+        $version = ( new GitHubVersionClient( $updater_config ) )->remote_version( true );
+
+        return is_string( $version ) ? $version : '';
+    }
+
+    private static function schedule_github_version_refresh( string $repo, string $starter ): void {
+        $lock_key = self::github_version_lock_key( $repo, $starter );
+        if ( false !== get_transient( $lock_key ) ) {
+            return;
+        }
+
+        if ( ! wp_next_scheduled( 'smpi_refresh_github_version', [ $repo, $starter ] ) ) {
+            wp_schedule_single_event( time() + MINUTE_IN_SECONDS, 'smpi_refresh_github_version', [ $repo, $starter ] );
+        }
+
+        set_transient( $lock_key, '1', 15 * MINUTE_IN_SECONDS );
+    }
+
+    private static function github_version_cache_key( string $repo, string $starter ): string {
+        return 'smpi_github_version_' . md5( $repo . '|' . $starter );
+    }
+
+    private static function github_version_lock_key( string $repo, string $starter ): string {
+        return 'smpi_github_version_refresh_' . md5( $repo . '|' . $starter );
     }
 
     public static function perform_action( string $plugin_file, string $operation ) {
@@ -87,7 +131,7 @@ final class PluginRegistry {
         }
         require_once ABSPATH . 'wp-admin/includes/plugin.php';
         if ( 'activate' === $operation ) {
-            return activate_plugin( $plugin_file );
+            return PluginProvisioner::activate_plugin_file( $plugin_file );
         }
         if ( 'deactivate' === $operation ) {
             deactivate_plugins( $plugin_file );
@@ -104,10 +148,38 @@ final class PluginRegistry {
             if ( ! $repo ) {
                 return new \WP_Error( 'smpi_no_repo', 'No GitHub repository is configured for this plugin.' );
             }
-            require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
-            $skin = new \Automatic_Upgrader_Skin();
-            $upgrader = new \Plugin_Upgrader( $skin );
-            return $upgrader->install( 'https://github.com/' . $repo . '/archive/refs/heads/main.zip', [ 'overwrite_package' => true ] );
+
+            $slug = dirname( $plugin_file );
+            if ( 'install' === $operation ) {
+                return PluginProvisioner::ensure_github_plugin_active(
+                    $slug,
+                    $repo,
+                    [
+                        'branch'      => 'main',
+                        'work_prefix' => 'smpi-github-plugin',
+                    ]
+                );
+            }
+
+            $installed = get_plugins();
+            $data = $installed[ $plugin_file ] ?? [];
+            $updater_config = UpdaterConfig::from_slug_and_github_url(
+                $slug,
+                $repo,
+                [
+                    'plugin_starter_file'       => $catalog[ $plugin_file ]['starter'],
+                    'plugin_basename'           => $plugin_file,
+                    'canonical_plugin_basename' => $plugin_file,
+                    'proper_folder_name'        => $slug,
+                    'runtime_folder_name'       => $slug,
+                    'plugin_name'               => $catalog[ $plugin_file ]['label'],
+                    'version'                   => $data['Version'] ?? '0.0.0',
+                    'github_branch'             => 'main',
+                    'progress_key'              => 'smpi_plugin_update_progress_' . md5( $plugin_file ),
+                ]
+            );
+
+            return ( new DirectPluginInstaller( $updater_config ) )->run();
         }
         return new \WP_Error( 'smpi_bad_action', 'Unsupported action.' );
     }
