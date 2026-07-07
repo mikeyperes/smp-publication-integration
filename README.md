@@ -7,7 +7,13 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.6.152`
+- Version: `0.6.153`
+
+## 0.6.153 Updates
+
+- Added an Article first-letter drop cap feature card to the Features tab.
+- Added front-end CSS injection for the first paragraph drop cap on single post content.
+- Added matching admin preview, color control, and size control.
 
 ## 0.6.152 Updates
 

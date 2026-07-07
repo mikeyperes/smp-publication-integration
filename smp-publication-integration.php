@@ -4,12 +4,12 @@
  * Description: Publication profile integration for Scale My Publication systems.
  * Author: Michael Peres
  * Plugin URI: https://github.com/mikeyperes/smp-publication-integration
- * Version: 0.6.152
+ * Version: 0.6.153
  * Text Domain: smp-publication-integration
  * Domain Path: /languages
  * Author URI: https://michaelperes.com
  * GitHub Plugin URI: https://github.com/mikeyperes/smp-publication-integration/
- * GitHub Branch: main
+ * GitHub Branch: block-editorial
  */
 
 namespace smp_publication_integration;
@@ -103,7 +103,7 @@ require_once __DIR__ . "/src/Admin/UiCleanup.php";
 require_once __DIR__ . "/src/Admin/Dashboard.php";
 
 final class Config {
-    public const VERSION = "0.6.152";
+    public const VERSION = "0.6.153";
 
     public static string $plugin_name        = 'SMP Publication Integration';
     public static string $plugin_slug        = 'smp-publication-integration';
@@ -116,7 +116,7 @@ final class Config {
     public static string $settings_page_display_title = 'SMP Publication Integration';
 
     public static string $github_repo   = 'mikeyperes/smp-publication-integration';
-    public static string $github_branch = 'main';
+    public static string $github_branch = 'block-editorial';
 
     public static function plugin_basename(): string {
         return plugin_basename( __FILE__ );
