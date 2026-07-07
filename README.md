@@ -7,7 +7,12 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.6.154`
+- Version: `0.6.155`
+
+## 0.6.155 Updates
+
+- Added SMP Quick Start feature checklist actions using the Mash Viral feature baseline.
+- Added per-feature target descriptions with colors, templates, contexts, font sizes, and enabled states.
 
 ## 0.6.154 Updates
 
