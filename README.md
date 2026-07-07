@@ -7,7 +7,11 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.6.153`
+- Version: `0.6.154`
+
+## 0.6.154 Updates
+
+- Fixed drop cap size rendering so the shared CSS helper honors the full 48-180px saved range.
 
 ## 0.6.153 Updates
 

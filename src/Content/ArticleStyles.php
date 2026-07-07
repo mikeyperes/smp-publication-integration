@@ -170,7 +170,7 @@ final class ArticleStyles {
     public static function article_drop_cap_var_values(): array {
         return [
             "color" => self::hex( Settings::get( "article_drop_cap_color", "#111111" ), "#111111" ),
-            "size"  => self::px( Settings::get( "article_drop_cap_font_size", 96 ), 96 ),
+            "size"  => self::px( Settings::get( "article_drop_cap_font_size", 96 ), 96, 48, 180 ),
         ];
     }
 
@@ -206,9 +206,9 @@ final class ArticleStyles {
         return $value ?: $fallback;
     }
 
-    private static function px( $value, int $fallback ): string {
+    private static function px( $value, int $fallback, int $min = 8, int $max = 96 ): string {
         $n = absint( $value );
-        return ( $n >= 8 && $n <= 96 ? $n : $fallback ) . "px";
+        return ( $n >= $min && $n <= $max ? $n : $fallback ) . "px";
     }
 
     private static function rgba( string $hex, float $alpha ): string {
