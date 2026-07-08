@@ -18,7 +18,7 @@ final class ChecklistReportBuilder {
             'summary' => $summary,
             'columns' => self::normalize_columns( $columns ),
             'items'   => array_values( array_filter( array_map( [ self::class, 'normalize_item' ], $items ) ) ),
-            'meta'    => is_array( $args['meta'] ?? null ) ? $args['meta'] : [],
+            'meta'    => self::normalize_meta( is_array( $args['meta'] ?? null ) ? $args['meta'] : [] ),
         ];
     }
 
@@ -42,6 +42,8 @@ final class ChecklistReportBuilder {
 
             $items[] = [
                 'file'       => self::string( $file['file'] ?? $file['name'] ?? ( '' !== $path ? basename( $path ) : '' ) ),
+                'before'     => self::string( $file['before'] ?? ( '' !== $size ? 'File existed before cleanup; size was ' . $size . '.' : 'File existed before cleanup.' ) ),
+                'after'      => self::string( $file['after'] ?? 'Deleted and verified removed after cleanup.' ),
                 'location'   => $path,
                 'size'       => $size,
                 'size_bytes' => null !== $size_bytes ? (string) $size_bytes : '',
@@ -56,12 +58,30 @@ final class ChecklistReportBuilder {
             $items,
             [
                 'file'     => 'File',
+                'before'   => 'Before Action',
+                'after'    => 'Verified After',
                 'location' => 'Location',
-                'size'     => 'Size',
+                'size'     => 'Deleted Size',
             ],
             [
                 'summary' => self::string( $args['summary'] ?? ( $count . ' file' . ( 1 === $count ? '' : 's' ) . ' deleted.' ) ),
-                'meta'    => [ 'deleted_count' => $count ],
+                'meta'    => array_merge(
+                    [
+                        'documentation' => self::string( $args['documentation'] ?? 'This report shows which files existed before cleanup, what the cleanup action did, and what was verified afterward.' ),
+                        'summary_items' => [
+                            [
+                                'label' => 'Before',
+                                'value' => $count > 0 ? $count . ' writable file' . ( 1 === $count ? '' : 's' ) . ' existed and matched cleanup rules.' : 'No writable matching files were available to delete.',
+                            ],
+                            [
+                                'label' => 'After',
+                                'value' => $count > 0 ? $count . ' file' . ( 1 === $count ? '' : 's' ) . ' deleted and reported below.' : 'No deletion was needed.',
+                            ],
+                        ],
+                        'deleted_count' => $count,
+                    ],
+                    is_array( $args['meta'] ?? null ) ? $args['meta'] : []
+                ),
             ]
         );
     }
@@ -82,6 +102,7 @@ final class ChecklistReportBuilder {
                 'before'  => self::string( $change['before'] ?? $change['old_value'] ?? $change['old'] ?? '' ),
                 'after'   => self::string( $change['after'] ?? $change['new_value'] ?? $change['new'] ?? '' ),
                 'actual'  => self::string( $change['actual'] ?? $change['actual_value'] ?? '' ),
+                'meaning' => self::string( $change['meaning'] ?? self::wp_config_change_meaning( $change ) ),
                 'file'    => self::string( $change['file'] ?? $change['path'] ?? 'wp-config.php' ),
             ];
         }
@@ -94,15 +115,43 @@ final class ChecklistReportBuilder {
             $items,
             [
                 'setting' => 'Setting',
-                'before'  => 'Before',
-                'after'   => 'Target Value',
-                'actual'  => 'Verified Value',
+                'before'  => 'Before Action',
+                'after'   => 'Requested Value',
+                'actual'  => 'Verified After',
+                'meaning' => 'What Changed',
                 'file'    => 'File',
             ],
             [
                 'summary' => self::string( $args['summary'] ?? ( $count . ' wp-config.php setting' . ( 1 === $count ? '' : 's' ) . ' reported.' ) ),
-                'meta'    => [ 'change_count' => $count ],
+                'meta'    => array_merge(
+                    [
+                        'documentation' => self::string( $args['documentation'] ?? 'Each row is read before the action, written to the requested value, then read again from wp-config.php to prove the verified after value.' ),
+                        'summary_items' => self::wp_config_summary_items( $items ),
+                        'change_count'  => $count,
+                    ],
+                    is_array( $args['meta'] ?? null ) ? $args['meta'] : []
+                ),
             ]
+        );
+    }
+
+    /**
+     * @param array<int,array<string,mixed>> $rows
+     * @return array<string,mixed>
+     */
+    public static function before_after( string $title, array $rows, array $args = [] ): array {
+        return self::table(
+            self::string( $args['type'] ?? 'before_after' ),
+            $title,
+            $rows,
+            [
+                'item'    => 'Item',
+                'before'  => 'Before Action',
+                'action'  => 'Action Taken',
+                'after'   => 'Verified After',
+                'meaning' => 'What Changed',
+            ],
+            $args
         );
     }
 
@@ -223,6 +272,82 @@ final class ChecklistReportBuilder {
         }
 
         return array_filter( $normalized, static fn( mixed $value ): bool => [] !== $value && '' !== $value );
+    }
+
+    /**
+     * @param array<string,mixed> $meta
+     * @return array<string,mixed>
+     */
+    private static function normalize_meta( array $meta ): array {
+        if ( isset( $meta['summary_items'] ) && is_array( $meta['summary_items'] ) ) {
+            $items = [];
+            foreach ( $meta['summary_items'] as $item ) {
+                if ( is_array( $item ) ) {
+                    $items[] = [
+                        'label' => self::string( $item['label'] ?? '' ),
+                        'value' => self::string( $item['value'] ?? '' ),
+                    ];
+                } else {
+                    $items[] = [ 'label' => '', 'value' => self::string( $item ) ];
+                }
+            }
+            $meta['summary_items'] = array_values(
+                array_filter(
+                    $items,
+                    static fn( array $item ): bool => '' !== $item['label'] || '' !== $item['value']
+                )
+            );
+        }
+
+        return $meta;
+    }
+
+    /**
+     * @param array<string,mixed> $change
+     */
+    private static function wp_config_change_meaning( array $change ): string {
+        $before = self::string( $change['before'] ?? $change['old_value'] ?? $change['old'] ?? '' );
+        $target = self::string( $change['after'] ?? $change['new_value'] ?? $change['new'] ?? '' );
+        $actual = self::string( $change['actual'] ?? $change['actual_value'] ?? '' );
+
+        if ( '' === $actual ) {
+            return 'Requested ' . $target . '; no verified value was reported.';
+        }
+
+        if ( strtolower( $before ) === strtolower( $actual ) ) {
+            return 'No effective change; the verified value already matched the requested state.';
+        }
+
+        if ( 'undefined' === strtolower( $before ) ) {
+            return 'Added the setting and verified it now reads ' . $actual . '.';
+        }
+
+        return 'Changed from ' . $before . ' to ' . $actual . '.';
+    }
+
+    /**
+     * @param array<int,array<string,string>> $items
+     * @return array<int,array<string,string>>
+     */
+    private static function wp_config_summary_items( array $items ): array {
+        $summary = [];
+        foreach ( $items as $item ) {
+            $setting = self::string( $item['setting'] ?? '' );
+            if ( '' === $setting ) {
+                continue;
+            }
+
+            $before = self::string( $item['before'] ?? '' );
+            $target = self::string( $item['after'] ?? '' );
+            $actual = self::string( $item['actual'] ?? '' );
+
+            $summary[] = [
+                'label' => $setting,
+                'value' => 'Before: ' . ( '' !== $before ? $before : 'not reported' ) . '; requested: ' . ( '' !== $target ? $target : 'not reported' ) . '; verified after: ' . ( '' !== $actual ? $actual : 'not reported' ) . '.',
+            ];
+        }
+
+        return $summary;
     }
 
     private static function key( string $value ): string {

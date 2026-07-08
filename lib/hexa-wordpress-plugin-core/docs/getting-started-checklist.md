@@ -93,7 +93,9 @@ ChecklistReportBuilder::table(
 );
 ```
 
-For wp-config reports, Core labels columns as `Before`, `Target Value`, and `Verified Value`. Host plugins must use the verified value when deciding whether a task actually passed.
+For wp-config reports, Core labels columns as `Before Action`, `Requested Value`, and `Verified After`. Host plugins must use the verified value when deciding whether a task actually passed.
+
+Version 0.19.33 supports plain-English report summaries through `meta.documentation` and `meta.summary_items`. Use these for every checklist item that mutates state so the operator can see what existed before, what action ran, and what was verified afterward without interpreting only raw table values.
 
 ## Destructive Confirmation Sample
 

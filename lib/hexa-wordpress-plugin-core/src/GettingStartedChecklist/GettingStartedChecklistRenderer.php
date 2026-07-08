@@ -293,6 +293,11 @@ final class GettingStartedChecklistRenderer {
             #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-report-head{border-bottom:1px solid #dce5ef;padding:9px 11px}
             #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-report-head strong{display:block;font-size:12px;margin:0 0 3px}
             #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-report-head span{color:var(--hpc-muted);display:block;font-size:11px;line-height:1.35}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-report-explain{background:#fff;border-bottom:1px solid #dce5ef;display:grid;gap:8px;padding:11px}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-report-doc{color:#334155;font-size:12px;line-height:1.45;margin:0}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-report-summary-list{display:grid;gap:7px;margin:0;padding:0}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-report-summary-list li{background:#f8fafc;border:1px solid #e4ebf3;border-radius:6px;color:#243044;display:grid;font-size:12px;gap:3px;line-height:1.4;list-style:none;margin:0;padding:8px 9px}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-report-summary-list strong{color:#111827;font-size:11px;font-weight:900;text-transform:uppercase}
             #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-preview-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));padding:11px}
             #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-preview-card{background:#fff;border:1px solid #dce5ef;border-radius:8px;color:#243044;display:grid;gap:8px;padding:10px;text-decoration:none}
             #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-preview-card:hover{border-color:var(--hpc-blue);box-shadow:0 6px 16px rgba(30,64,175,.10)}
@@ -428,7 +433,7 @@ final class GettingStartedChecklistRenderer {
             function reportColumns(report){
                 if (Array.isArray(report.columns) && report.columns.length) return report.columns.map(function(col){ return typeof col === 'string' ? {key:col,label:col} : col; }).filter(function(col){ return col && col.key; });
                 if (report.type === 'deleted_files') return [{key:'file',label:'File'},{key:'location',label:'Location'},{key:'size',label:'Size'}];
-                if (report.type === 'wp_config_changes') return [{key:'setting',label:'Setting'},{key:'before',label:'Before'},{key:'after',label:'Target Value'},{key:'actual',label:'Verified Value'},{key:'file',label:'File'}];
+                if (report.type === 'wp_config_changes') return [{key:'setting',label:'Setting'},{key:'before',label:'Before Action'},{key:'after',label:'Requested Value'},{key:'actual',label:'Verified After'},{key:'meaning',label:'What Changed'},{key:'file',label:'File'}];
                 if (report.type === 'deleted_posts') return [{key:'title',label:'Title'},{key:'id',label:'ID'},{key:'permalink',label:'Permalink'},{key:'media',label:'Deleted Media'}];
                 var first = Array.isArray(report.items) && report.items.length ? report.items[0] : {};
                 return Object.keys(first).map(function(key){ return {key:key,label:key.replace(/_/g,' ')}; });
@@ -439,6 +444,24 @@ final class GettingStartedChecklistRenderer {
                 value = text(value);
                 if ((/url|link|permalink/i.test(key || '') || /^https?:\/\//i.test(value)) && /^https?:\/\//i.test(value)) return '<a href="' + esc(value).replace(/"/g,'&quot;') + '" target="_blank" rel="noopener noreferrer">' + esc(value) + '</a>';
                 return esc(value);
+            }
+            function reportExplainHtml(report){
+                var meta = report && report.meta && typeof report.meta === 'object' ? report.meta : {};
+                var documentation = text(meta.documentation || meta.explanation || '').trim();
+                var items = Array.isArray(meta.summary_items) ? meta.summary_items : [];
+                items = items.filter(function(item){ return item && (text(item.label || '').trim() || text(item.value || '').trim()); });
+                if (!documentation && !items.length) return '';
+                var html = '<div class="hpc-gsc-report-explain">';
+                if (documentation) html += '<p class="hpc-gsc-report-doc">' + esc(documentation) + '</p>';
+                if (items.length) {
+                    html += '<ul class="hpc-gsc-report-summary-list">' + items.map(function(item){
+                        var label = text(item.label || '').trim();
+                        var value = text(item.value || '').trim();
+                        return '<li>' + (label ? '<strong>' + esc(label) + '</strong>' : '') + '<span>' + esc(value) + '</span></li>';
+                    }).join('') + '</ul>';
+                }
+                html += '</div>';
+                return html;
             }
             function reportPreviewHtml(report){
                 var meta = report && report.meta && typeof report.meta === 'object' ? report.meta : {};
@@ -464,6 +487,7 @@ final class GettingStartedChecklistRenderer {
             function reportHtml(report){
                 var columns = reportColumns(report), items = Array.isArray(report.items) ? report.items : [];
                 var html = '<div class="hpc-gsc-report-card"><div class="hpc-gsc-report-head"><strong>' + esc(report.title || 'Checklist Report') + '</strong>' + (report.summary ? '<span>' + esc(report.summary) + '</span>' : '') + '</div>';
+                html += reportExplainHtml(report);
                 html += reportPreviewHtml(report);
                 if (items.length && columns.length) {
                     html += '<div class="hpc-gsc-report-scroll"><table class="hpc-gsc-report-table"><thead><tr>' + columns.map(function(col){ return '<th>' + esc(col.label || col.key) + '</th>'; }).join('') + '</tr></thead><tbody>';
