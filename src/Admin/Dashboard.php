@@ -12,6 +12,7 @@ use Hexa\PluginCore\SnippetRegistry\SnippetRenderer;
 use Hexa\PluginCore\WpAdminTabs\HostTabsRenderer;
 use Hexa\PluginCore\WpAdminComponents\ColorControl;
 use Hexa\PluginCore\WpAdminComponents\CoreUi;
+use Hexa\PluginCore\WpAdminComponents\DynamicButton;
 use Hexa\PluginCore\SiteStructure\SiteStructureRenderer;
 use Hexa\PluginCore\SchemaDetection\SchemaPageScanner;
 use Hexa\PluginCore\SchemaDetection\SchemaScanRenderer;
@@ -74,6 +75,7 @@ final class Dashboard {
             <h1><?php echo esc_html( Config::$settings_page_display_title ); ?></h1>
             <?php $this->styles(); ?>
             <?php CoreUi::render_assets(); ?>
+            <?php DynamicButton::render_assets(); ?>
             <?php
             ( new HostTabsRenderer() )->render(
                 [

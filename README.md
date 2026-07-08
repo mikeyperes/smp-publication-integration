@@ -7,7 +7,11 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.6.159`
+- Version: `0.6.160`
+
+## 0.6.160 Updates
+
+- Quick Start preloads shared Hexa Core button assets outside the tab fragment so the tab panel contains only the checklist root.
 
 ## 0.6.159 Updates
 
