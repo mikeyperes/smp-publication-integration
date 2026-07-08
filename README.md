@@ -7,7 +7,13 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.6.161`
+- Version: `0.6.162`
+
+## 0.6.162 Updates
+
+- Added a Snippets toggle that hides regular posts without featured images from home/front-page post queries.
+- Added a Snippets toggle that requires featured images before regular posts can be published, scheduled, or submitted for review.
+- Added a red editor notice for missing featured images on regular post edit screens.
 
 ## 0.6.161 Updates
 

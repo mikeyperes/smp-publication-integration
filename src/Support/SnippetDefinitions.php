@@ -5,6 +5,7 @@ use Hexa\PluginCore\SnippetRegistry\SnippetDefinition;
 use Hexa\PluginCore\SnippetRegistry\SnippetRegistry;
 use smp_publication_integration\Content\AuthorSocialCleanup;
 use smp_publication_integration\Content\ElementorCssCacheBusting;
+use smp_publication_integration\Content\FeaturedImageRequirements;
 use smp_publication_integration\Content\PostListDefaults;
 use smp_publication_integration\Content\Visibility;
 use smp_publication_integration\Content\EstimatedReadTime;
@@ -131,6 +132,45 @@ final class SnippetDefinitions {
                     [ "id" => "runtime_class_loaded", "label" => "Runtime class is loaded", "description" => "Confirms the runtime class is available.", "type" => "callback", "callback" => static fn( ...$args ): bool => class_exists( PostListDefaults::class ), "required" => true ],
                 ],
                 "readme" => "Default post list view\n\nApplies preferred Posts list Screen Options for users who have not customized that screen.\n\nSetting: smpi_settings[post_list_defaults_enabled].",
+            ],
+            [
+                "id" => "hide_home_posts_without_featured_image",
+                "name" => "Hide home posts without featured images",
+                "category" => "query-visibility",
+                "option_key" => "hide_home_posts_without_featured_image",
+                "default_enabled" => true,
+                "description" => "Excludes regular posts without a featured image from home page post queries while leaving the single post URL accessible.",
+                "info" => "<p>Applies only to the regular <code>post</code> post type on the home/front page context. The SQL condition allows other post types through and checks for a populated <code>_thumbnail_id</code>.</p>",
+                "snippets" => [
+                    [ "label" => "Runtime class", "value" => FeaturedImageRequirements::class, "description" => "Adds the home/front-page query marker and posts_where thumbnail condition." ],
+                    [ "label" => "SQL guard", "value" => "_thumbnail_id EXISTS and not empty for post type post", "description" => "Prevents posts without featured images from appearing in home page lists." ],
+                ],
+                "test_rules" => [
+                    [ "id" => "smp_setting_enabled", "label" => "SMP feature setting is enabled", "description" => "Reads smpi_settings[hide_home_posts_without_featured_image].", "type" => "callback", "callback" => static fn( ...$args ): bool => Settings::bool( "hide_home_posts_without_featured_image" ), "required" => true ],
+                    [ "id" => "runtime_class_loaded", "label" => "Runtime class is loaded", "description" => "Confirms the runtime class is available.", "type" => "callback", "callback" => static fn( ...$args ): bool => class_exists( FeaturedImageRequirements::class ), "required" => true ],
+                    [ "id" => "home_filter_method_available", "label" => "Home query filter is available", "description" => "Confirms the home query filter method exists.", "type" => "callback", "callback" => static fn( ...$args ): bool => method_exists( FeaturedImageRequirements::class, "filter_home_queries" ), "required" => true ],
+                ],
+                "readme" => "Hide home posts without featured images\n\nExcludes regular posts missing a featured image from home/front-page post queries.\n\nSetting: smpi_settings[hide_home_posts_without_featured_image].",
+            ],
+            [
+                "id" => "post_featured_image_required",
+                "name" => "Featured image required for posts",
+                "category" => "editorial-controls",
+                "option_key" => "post_featured_image_required",
+                "default_enabled" => true,
+                "scope_admin_only" => true,
+                "description" => "Requires a featured image before regular posts can be published, scheduled, or submitted for review.",
+                "info" => "<p>Applies only to the regular <code>post</code> post type. The editor shows a red top notice when the featured image is missing, and server-side REST/classic save guards prevent publish states without one.</p>",
+                "snippets" => [
+                    [ "label" => "Runtime class", "value" => FeaturedImageRequirements::class, "description" => "Adds editor notices, classic editor status guard, and REST publish validation." ],
+                    [ "label" => "Publish states guarded", "value" => "publish, future, pending", "description" => "Draft saves are still allowed, but publish-like statuses require a featured image." ],
+                ],
+                "test_rules" => [
+                    [ "id" => "smp_setting_enabled", "label" => "SMP feature setting is enabled", "description" => "Reads smpi_settings[post_featured_image_required].", "type" => "callback", "callback" => static fn( ...$args ): bool => Settings::bool( "post_featured_image_required" ), "required" => true ],
+                    [ "id" => "runtime_class_loaded", "label" => "Runtime class is loaded", "description" => "Confirms the runtime class is available.", "type" => "callback", "callback" => static fn( ...$args ): bool => class_exists( FeaturedImageRequirements::class ), "required" => true ],
+                    [ "id" => "rest_guard_available", "label" => "REST publish guard is available", "description" => "Confirms REST validation exists for block editor saves.", "type" => "callback", "callback" => static fn( ...$args ): bool => method_exists( FeaturedImageRequirements::class, "validate_rest_featured_image" ), "required" => true ],
+                ],
+                "readme" => "Featured image required for posts\n\nShows a red editor notice and blocks publish-like statuses for regular posts without a featured image.\n\nSetting: smpi_settings[post_featured_image_required].",
             ],
             [
                 "id" => "shadow_posts",
