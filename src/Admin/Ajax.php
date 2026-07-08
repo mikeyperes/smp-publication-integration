@@ -84,6 +84,8 @@ final class Ajax {
             ]
         ) )->register();
 
+        QuickStartFeatures::register_checklist_ajax();
+
         add_filter( "hexa_plugin_core_smart_search_results", [ $this, "filter_smart_search_results" ], 10, 4 );
 
         add_action( 'admin_post_smpi_enable_verified_profile_snippet', [ $this, 'enable_verified_profile_snippet' ] );

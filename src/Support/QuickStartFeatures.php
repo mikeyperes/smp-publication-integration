@@ -1,11 +1,152 @@
 <?php
 namespace smp_publication_integration\Support;
 
+use Hexa\PluginCore\GettingStartedChecklist\ChecklistReportBuilder;
+use Hexa\PluginCore\GettingStartedChecklist\GettingStartedChecklistAjaxController;
+use Hexa\PluginCore\GettingStartedChecklist\GettingStartedChecklistConfig;
+
 if ( ! defined( "ABSPATH" ) ) {
     exit;
 }
 
 final class QuickStartFeatures {
+    private const NONCE_ACTION = 'smpi_admin';
+    private const NONCE_FIELD  = 'nonce';
+    private const RUN_ACTION   = 'smpi_quick_start_checklist_run_item';
+
+    public static function checklist_config(): GettingStartedChecklistConfig {
+        return new GettingStartedChecklistConfig(
+            [
+                'root_id'       => 'smpi-quick-start-checklist',
+                'title'         => 'Quick Start',
+                'description'   => 'Applies the SMP publication baseline through the reusable Hexa WP Core checklist. Each item reports what the SMP setting value was before, what was saved, and what was verified afterward.',
+                'capability'    => 'manage_options',
+                'nonce_action'  => self::NONCE_ACTION,
+                'nonce_field'   => self::NONCE_FIELD,
+                'run_action'    => self::RUN_ACTION,
+                'empty_message' => 'No SMP Quick Start checklist items are registered.',
+                'steps'         => self::checklist_steps(),
+            ]
+        );
+    }
+
+    public static function register_checklist_ajax(): void {
+        static $registered = false;
+
+        if ( $registered ) {
+            return;
+        }
+
+        ( new GettingStartedChecklistAjaxController( self::checklist_config() ) )->register();
+
+        $registered = true;
+    }
+
+    public static function run_checklist_item( array $payload ): array {
+        $context = is_array( $payload['context'] ?? null ) ? $payload['context'] : [];
+        $step    = is_array( $payload['step'] ?? null ) ? $payload['step'] : [];
+        $item_id = sanitize_key( (string) ( $context['quick_start_item'] ?? $step['id'] ?? '' ) );
+        $item    = self::item( $item_id );
+
+        if ( ! $item ) {
+            return self::checklist_result( false, 'Unknown SMP Quick Start item.', 'error', [], [ 'item_id' => $item_id ] );
+        }
+
+        $targets = is_array( $item['settings'] ?? null ) ? $item['settings'] : [];
+        if ( [] === $targets ) {
+            return self::checklist_result( false, 'SMP Quick Start item has no target settings.', 'error', [], [ 'item_id' => $item_id ] );
+        }
+
+        $before_settings = Settings::all();
+        $before_matches  = self::count_matching_settings( $targets, $before_settings );
+
+        Settings::update( $targets );
+
+        $after_settings = Settings::all();
+        $after_matches  = self::count_matching_settings( $targets, $after_settings );
+        $rows           = [];
+
+        foreach ( $targets as $key => $target ) {
+            $before = $before_settings[ $key ] ?? null;
+            $after  = $after_settings[ $key ] ?? null;
+            $matched_before = self::setting_matches( $target, $before );
+            $matched_after  = self::setting_matches( $target, $after );
+
+            $rows[] = [
+                'item'    => self::setting_label( (string) $key, $item ),
+                'before'  => self::format_value( $before ),
+                'action'  => 'Saved smpi_settings[' . (string) $key . '] as ' . self::format_value( $target ) . '.',
+                'after'   => self::format_value( $after ),
+                'meaning' => $matched_after
+                    ? ( $matched_before ? 'Already matched the baseline before this run; verified unchanged afterward.' : 'Updated to the baseline value and verified afterward.' )
+                    : 'The saved value did not verify against the baseline target.',
+            ];
+        }
+
+        $total   = count( $targets );
+        $success = $after_matches === $total;
+        $title   = (string) ( $item['title'] ?? $item_id );
+
+        $report = ChecklistReportBuilder::before_after(
+            $title . ' Settings',
+            $rows,
+            [
+                'type'    => 'smpi_quick_start_settings',
+                'summary' => $after_matches . ' of ' . $total . ' SMP setting' . ( 1 === $total ? '' : 's' ) . ' verified against the Quick Start baseline.',
+                'meta'    => [
+                    'documentation' => 'This report reads SMP settings before the action, writes the exact Quick Start baseline values, then reads the same settings again to prove the verified after state.',
+                    'summary_items' => [
+                        [
+                            'label' => 'Before',
+                            'value' => $before_matches . ' of ' . $total . ' target setting' . ( 1 === $total ? '' : 's' ) . ' already matched before applying.',
+                        ],
+                        [
+                            'label' => 'Action Taken',
+                            'value' => 'Saved the ' . $title . ' baseline into the smpi_settings option.',
+                        ],
+                        [
+                            'label' => 'Verified After',
+                            'value' => $after_matches . ' of ' . $total . ' target setting' . ( 1 === $total ? '' : 's' ) . ' matched after saving.',
+                        ],
+                    ],
+                ],
+            ]
+        );
+
+        return self::checklist_result(
+            $success,
+            $success ? $title . ' baseline applied and verified.' : $title . ' baseline was saved but did not fully verify.',
+            $success ? 'success' : 'warning',
+            [ $report ],
+            [
+                'item_id'        => $item_id,
+                'target_count'   => $total,
+                'before_matches' => $before_matches,
+                'after_matches'  => $after_matches,
+            ]
+        );
+    }
+
+    public static function checklist_steps(): array {
+        $steps = [];
+
+        foreach ( self::items() as $item_id => $item ) {
+            $steps[] = [
+                'id'           => (string) $item_id,
+                'label'        => (string) ( $item['title'] ?? $item_id ),
+                'type'         => 'feature_toggle',
+                'description'  => self::checklist_description( $item ),
+                'action_label' => 'Apply Settings',
+                'callback'     => [ self::class, 'run_checklist_item' ],
+                'context'      => [
+                    'quick_start_item' => (string) $item_id,
+                ],
+            ];
+        }
+
+        return $steps;
+    }
+
     public static function items(): array {
         return [
             "elementor_css_cache_busting" => [
@@ -345,5 +486,118 @@ final class QuickStartFeatures {
         }
 
         return true;
+    }
+
+    private static function checklist_description( array $item ): string {
+        $description = trim( (string) ( $item['description'] ?? '' ) );
+        $details     = [];
+
+        foreach ( (array) ( $item['details'] ?? [] ) as $detail ) {
+            if ( ! is_array( $detail ) ) {
+                continue;
+            }
+
+            $label = trim( (string) ( $detail['label'] ?? '' ) );
+            $value = trim( (string) ( $detail['value'] ?? '' ) );
+            if ( '' === $label && '' === $value ) {
+                continue;
+            }
+
+            $details[] = ( '' !== $label ? $label . ': ' : '' ) . $value;
+        }
+
+        if ( [] !== $details ) {
+            $description .= ( '' !== $description ? ' ' : '' ) . 'Targets: ' . implode( '; ', $details ) . '.';
+        }
+
+        return $description;
+    }
+
+    private static function setting_label( string $setting_key, array $item ): string {
+        foreach ( (array) ( $item['details'] ?? [] ) as $detail ) {
+            if ( ! is_array( $detail ) ) {
+                continue;
+            }
+
+            $label = trim( (string) ( $detail['label'] ?? '' ) );
+            $value = trim( (string) ( $detail['value'] ?? '' ) );
+            if ( '' !== $label && false !== stripos( str_replace( '_', ' ', $setting_key ), strtolower( str_replace( ' ', '_', $label ) ) ) ) {
+                return $label . ' (' . $setting_key . ')';
+            }
+            if ( '' !== $value && false !== stripos( $setting_key, sanitize_key( $label ) ) ) {
+                return $label . ' (' . $setting_key . ')';
+            }
+        }
+
+        return ucwords( str_replace( '_', ' ', $setting_key ) ) . ' (' . $setting_key . ')';
+    }
+
+    private static function count_matching_settings( array $targets, array $settings ): int {
+        $matches = 0;
+
+        foreach ( $targets as $key => $target ) {
+            if ( self::setting_matches( $target, $settings[ $key ] ?? null ) ) {
+                $matches++;
+            }
+        }
+
+        return $matches;
+    }
+
+    private static function setting_matches( mixed $target, mixed $actual ): bool {
+        if ( is_array( $target ) ) {
+            $target_values = array_values( array_map( 'strval', $target ) );
+            $actual_values = is_array( $actual ) ? array_values( array_map( 'strval', $actual ) ) : [];
+            sort( $target_values );
+            sort( $actual_values );
+            return $target_values === $actual_values;
+        }
+
+        if ( is_bool( $target ) ) {
+            return (bool) $actual === $target;
+        }
+
+        if ( is_int( $target ) ) {
+            return (int) $actual === $target;
+        }
+
+        return (string) $actual === (string) $target;
+    }
+
+    private static function format_value( mixed $value ): string {
+        if ( is_bool( $value ) ) {
+            return $value ? 'Enabled' : 'Disabled';
+        }
+
+        if ( is_array( $value ) ) {
+            $values = array_map( static fn( mixed $item ): string => is_scalar( $item ) || null === $item ? (string) $item : wp_json_encode( $item ), $value );
+            return [] === $values ? 'None' : implode( ', ', $values );
+        }
+
+        if ( null === $value || '' === $value ) {
+            return 'Empty';
+        }
+
+        return is_scalar( $value ) ? (string) $value : (string) wp_json_encode( $value );
+    }
+
+    private static function checklist_result( bool $success, string $message, string $level, array $reports = [], array $context = [] ): array {
+        $data = $context;
+        if ( [] !== $reports ) {
+            $data['reports'] = array_values( array_filter( $reports ) );
+        }
+
+        return [
+            'success' => $success,
+            'message' => $message,
+            'logs'    => [
+                [
+                    'level'   => $level,
+                    'message' => $message,
+                    'context' => $context,
+                ],
+            ],
+            'data'    => $data,
+        ];
     }
 }

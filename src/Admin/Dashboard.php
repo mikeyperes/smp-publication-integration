@@ -6,6 +6,7 @@ use Hexa\PluginCore\PluginChecks\PluginInventoryRenderer;
 use Hexa\PluginCore\ShortcodeRegistry\ShortcodeDisplayRenderer;
 use Hexa\PluginCore\SmartSearch\SmartSearchRenderer;
 use Hexa\PluginCore\FieldStructures\FieldStructureRenderer;
+use Hexa\PluginCore\GettingStartedChecklist\GettingStartedChecklistRenderer;
 use Hexa\PluginCore\SnippetRegistry\SnippetRegistry;
 use Hexa\PluginCore\SnippetRegistry\SnippetRenderer;
 use Hexa\PluginCore\WpAdminTabs\HostTabsRenderer;
@@ -115,6 +116,7 @@ final class Dashboard {
     private function tabs(): array {
         return apply_filters( 'smpi_dashboard_tabs', [
             'overview' => 'Overview',
+            'quick_run' => 'Quick Start',
             'publication_options' => 'Publication Options',
             'profiles' => 'Publication Profiles',
             'brand' => 'Brand',
@@ -132,7 +134,6 @@ final class Dashboard {
             'plugins' => 'Plugins',
             'verified_profiles' => 'Verified Profiles',
             'integrations' => 'Integrations',
-            'quick_run' => 'Quick Start',
         ] );
     }
 
@@ -1389,22 +1390,8 @@ final class Dashboard {
     }
 
     private function quick_run(): void {
-        $settings = Settings::all();
-        $items = QuickStartFeatures::items();
-        $complete = 0;
-        foreach ( array_keys( $items ) as $item_id ) {
-            if ( QuickStartFeatures::is_complete( $item_id, $settings ) ) {
-                $complete++;
-            }
-        }
-
-        echo "<div class=\"smpi-hero\"><p class=\"smpi-kicker\">Quick Start</p><h2>Mash Viral feature baseline for publication setup.</h2><p>Apply one feature at a time, or apply the complete Mash Viral feature baseline. Each checklist item shows the exact color, template, size, context, and enabled state it will save.</p></div>";
-        echo "<section class=\"smpi-panel smpi-quick-start-summary\"><div><h2>Feature setup checklist</h2><p><strong>" . esc_html( (string) $complete ) . " of " . esc_html( (string) count( $items ) ) . "</strong> feature items currently match the saved baseline.</p><p class=smpi-muted>Source: Mash Viral live SMP settings captured for this branch. The drop-cap item uses the current Block Editorial default because Mash Viral's installed source version does not include that new setting yet.</p></div><div class=smpi-quick-start-actions><button type=button class=\"button button-primary\" data-smpi-quick-start-apply=all>Apply all feature settings</button><span class=spinner></span><span class=\"smpi-save-state\" aria-live=\"polite\"></span></div></section>";
-        echo "<div class=smpi-quick-start-list>";
-        foreach ( $items as $item_id => $item ) {
-            echo $this->quick_start_item_html( $item_id, $item, QuickStartFeatures::is_complete( $item_id, $settings ) );
-        }
-        echo "</div>";
+        QuickStartFeatures::register_checklist_ajax();
+        ( new GettingStartedChecklistRenderer( QuickStartFeatures::checklist_config() ) )->render();
     }
 
     private function quick_start_item_html( string $item_id, array $item, bool $complete ): string {

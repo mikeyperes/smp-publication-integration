@@ -7,7 +7,13 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.6.158`
+- Version: `0.6.159`
+
+## 0.6.159 Updates
+
+- Quick Start now uses the Hexa WP Core Getting Started Checklist renderer and AJAX runner.
+- The Quick Start tab is second, directly after Overview, and renders only the checklist.
+- Each SMP Quick Start item now reports before/action/verified-after/what-changed rows when applied.
 
 ## 0.6.158 Updates
 
