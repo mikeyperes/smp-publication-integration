@@ -55,3 +55,4 @@ final class ShortcodesModule implements ModuleInterface {
 ```
 
 The shared core must never depend back on the host plugin.
+

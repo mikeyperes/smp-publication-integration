@@ -81,3 +81,4 @@ Hexa\PluginCore\ShortcodeRegistry\ShortcodeRegistry
 ```
 
 But the shared core must not reference the host adapter namespace.
+

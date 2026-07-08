@@ -4,7 +4,7 @@
  * Description: Publication profile integration for Scale My Publication systems.
  * Author: Michael Peres
  * Plugin URI: https://github.com/mikeyperes/smp-publication-integration
- * Version: 0.6.155
+ * Version: 0.6.156
  * Text Domain: smp-publication-integration
  * Domain Path: /languages
  * Author URI: https://michaelperes.com
@@ -63,6 +63,7 @@ function require_plugin_inventory_core(): void {
         'Hexa\\PluginCore\\PluginChecks\\PluginCheckService'           => __DIR__ . '/lib/hexa-wordpress-plugin-core/src/PluginChecks/PluginCheckService.php',
         'Hexa\\PluginCore\\PluginChecks\\PluginInventoryRenderer'      => __DIR__ . '/lib/hexa-wordpress-plugin-core/src/PluginChecks/PluginInventoryRenderer.php',
         'Hexa\\PluginCore\\PluginChecks\\PluginInventoryAjaxController'=> __DIR__ . '/lib/hexa-wordpress-plugin-core/src/PluginChecks/PluginInventoryAjaxController.php',
+        'Hexa\\PluginCore\\PluginChecks\\PluginRecommendationRegistry' => __DIR__ . '/lib/hexa-wordpress-plugin-core/src/PluginChecks/PluginRecommendationRegistry.php',
     ];
 
     foreach ( $files as $class_name => $file ) {
@@ -103,7 +104,7 @@ require_once __DIR__ . "/src/Admin/UiCleanup.php";
 require_once __DIR__ . "/src/Admin/Dashboard.php";
 
 final class Config {
-    public const VERSION = "0.6.153";
+    public const VERSION = "0.6.156";
 
     public static string $plugin_name        = 'SMP Publication Integration';
     public static string $plugin_slug        = 'smp-publication-integration';

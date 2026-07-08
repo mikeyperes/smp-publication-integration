@@ -7,3 +7,4 @@ interface PluginContextInterface {
 
     public function all(): array;
 }
+

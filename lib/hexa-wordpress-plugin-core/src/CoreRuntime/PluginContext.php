@@ -37,3 +37,4 @@ final class PluginContext implements PluginContextInterface {
         return $this->values;
     }
 }
+

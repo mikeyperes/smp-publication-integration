@@ -343,7 +343,7 @@ final class PluginInventoryRenderer {
                         'working_label' => 'Deactivating...',
                         'success_label' => 'Deactivated',
                         'error_label'   => 'Failed',
-                        'class'         => 'hpc-button secondary',
+                        'class'         => 'hpc-button hpc-plugin-inventory-subtle-action',
                         'attrs'         => [
                             'data-plugin-inventory-action' => 'deactivate',
                             'data-plugin-id'               => $definition->id,
@@ -352,16 +352,16 @@ final class PluginInventoryRenderer {
                 );
             }
             $actions[] = DynamicButton::render(
-                [
-                    'label'         => 'Delete',
-                    'working_label' => 'Deleting...',
-                    'success_label' => 'Deleted',
-                    'error_label'   => 'Failed',
-                    'class'         => 'hpc-button danger',
-                    'attrs'         => [
-                        'data-plugin-inventory-action'  => 'delete',
-                        'data-plugin-inventory-confirm' => 'Delete ' . $definition->name . '?',
-                        'data-plugin-id'                => $definition->id,
+                    [
+                        'label'         => 'Delete',
+                        'working_label' => 'Deleting...',
+                        'success_label' => 'Deleted',
+                        'error_label'   => 'Failed',
+                        'class'         => 'hpc-button hpc-plugin-inventory-subtle-action is-danger',
+                        'attrs'         => [
+                            'data-plugin-inventory-action'  => 'delete',
+                            'data-plugin-inventory-confirm' => 'Delete ' . $definition->name . '?',
+                            'data-plugin-id'                => $definition->id,
                     ],
                 ]
             );
@@ -393,8 +393,10 @@ final class PluginInventoryRenderer {
             return '<span class="hpc-plugin-inventory-muted">Manual install required</span>';
         }
 
+        $primary = '';
+
         if ( empty( $status['active'] ) && ! empty( $definition->checks['active'] ) ) {
-            return DynamicButton::render(
+            $primary = DynamicButton::render(
                 [
                     'label'         => 'Activate',
                     'working_label' => 'Activating...',
@@ -407,17 +409,17 @@ final class PluginInventoryRenderer {
                     ],
                 ]
             );
+        } elseif ( empty( $definition->checks['active'] ) ) {
+            $primary = '<span class="hpc-plugin-inventory-muted">No action required</span>';
+        } elseif ( ! empty( $status['update_available'] ) && function_exists( 'admin_url' ) ) {
+            $primary = CoreUi::external_link( admin_url( 'update-core.php' ), 'Open updates', 'hpc-button secondary' );
+        } else {
+            $primary = '<span class="hpc-plugin-inventory-ready">' . $this->icon( true, 'Ready' ) . ' Ready</span>';
         }
 
-        if ( empty( $definition->checks['active'] ) ) {
-            return '<span class="hpc-plugin-inventory-muted">No action required</span>';
-        }
-
-        if ( ! empty( $status['update_available'] ) && function_exists( 'admin_url' ) ) {
-            return CoreUi::external_link( admin_url( 'update-core.php' ), 'Open updates', 'hpc-button secondary' );
-        }
-
-        return '<span class="hpc-plugin-inventory-ready">' . $this->icon( true, 'Ready' ) . ' Ready</span>';
+        return '<div class="hpc-plugin-inventory-action-stack">'
+            . '<div class="hpc-plugin-inventory-primary-action">' . $primary . '</div>'
+            . '</div>';
     }
 
     /**
@@ -633,6 +635,8 @@ final class PluginInventoryRenderer {
 .hpc-plugin-inventory-table tr.is-missing td{background:#f8fafc;color:#546179}
 .hpc-plugin-inventory-table tr.is-required-missing td:first-child{box-shadow:inset 4px 0 0 var(--hpc-red)}
 .hpc-plugin-inventory-table tr.is-required-missing .hpc-plugin-inventory-title strong{color:#3f4d63}
+.hpc-plugin-inventory-table tr.is-unwanted-installed td{background:#fff7f8;border-bottom-color:#f4cfd6}
+.hpc-plugin-inventory-table tr.is-unwanted-installed td:first-child{box-shadow:inset 4px 0 0 #d63638}
 .hpc-plugin-inventory-plugin-cell{min-width:280px}
 .hpc-plugin-inventory-title{align-items:center;display:flex;gap:8px;margin:0 0 7px}
 .hpc-plugin-inventory-title strong{font-size:14px}
@@ -654,7 +658,13 @@ final class PluginInventoryRenderer {
 .hpc-plugin-inventory-source-text,.hpc-plugin-inventory-muted{color:var(--hpc-muted);font-size:12px}
 .hpc-plugin-inventory-update{color:var(--hpc-amber);font-size:12px;font-weight:800}
 .hpc-plugin-inventory-action-cell{min-width:150px}
-.hpc-plugin-inventory-action-stack{align-items:center;display:flex;flex-wrap:wrap;gap:8px}
+.hpc-plugin-inventory-action-stack{align-items:flex-start;display:flex;flex-direction:column;gap:7px}
+.hpc-plugin-inventory-primary-action{align-items:center;display:flex;min-height:28px}
+.hpc-plugin-inventory-secondary-actions{align-items:center;display:flex;flex-wrap:wrap;gap:7px}
+.hpc-button.hpc-plugin-inventory-subtle-action{background:#fff;border-color:#d7dfeb;color:#52627a;font-size:11px;font-weight:800;min-height:28px;padding:7px 9px}
+.hpc-button.hpc-plugin-inventory-subtle-action:hover{background:#f8fafc;border-color:#b9c5d6;color:#243246}
+.hpc-button.hpc-plugin-inventory-subtle-action.is-danger{background:#fff;border-color:#f3c2c9;color:#a32939}
+.hpc-button.hpc-plugin-inventory-subtle-action.is-danger:hover{background:#fff5f6;border-color:#e49ba7;color:#8f1d2b}
 .hpc-plugin-inventory-subcards{display:grid;gap:16px}
 .hpc-plugin-inventory-subcard{background:#fff;border:1px solid var(--hpc-line);border-radius:8px;padding:16px}
 .hpc-plugin-inventory-subcard-head{align-items:flex-start;display:flex;gap:16px;justify-content:space-between;margin:0 0 14px}

@@ -50,3 +50,4 @@ CoreInterface
 ```
 
 Name contracts after the behavior they guarantee.
+

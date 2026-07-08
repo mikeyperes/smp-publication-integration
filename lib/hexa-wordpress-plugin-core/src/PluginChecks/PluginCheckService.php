@@ -240,6 +240,14 @@ final class PluginCheckService {
             return new \WP_Error( 'hexa_plugin_check_deactivate_not_allowed', 'Deactivate is only available for plugins that should not be installed.' );
         }
 
+        if ( in_array( $definition->source, [ 'must_use', 'dropin' ], true ) ) {
+            return new \WP_Error( 'hexa_plugin_check_deactivate_unsupported', 'Must-use plugins and drop-ins cannot be deactivated from this inventory action.' );
+        }
+
+        if ( function_exists( 'current_user_can' ) && ! current_user_can( 'deactivate_plugins' ) ) {
+            return new \WP_Error( 'hexa_plugin_check_deactivate_forbidden', 'You do not have permission to deactivate plugins.' );
+        }
+
         $status = self::status( $definition );
         if ( empty( $status['installed'] ) || empty( $status['plugin_file'] ) ) {
             return new \WP_Error( 'hexa_plugin_check_not_installed', 'Plugin is not installed.' );
@@ -283,6 +291,10 @@ final class PluginCheckService {
 
         if ( in_array( $definition->source, [ 'must_use', 'dropin' ], true ) ) {
             return new \WP_Error( 'hexa_plugin_check_delete_unsupported', 'Must-use plugins and drop-ins cannot be deleted from this inventory action.' );
+        }
+
+        if ( function_exists( 'current_user_can' ) && ! current_user_can( 'delete_plugins' ) ) {
+            return new \WP_Error( 'hexa_plugin_check_delete_forbidden', 'You do not have permission to delete plugins.' );
         }
 
         if ( ! empty( $status['active'] ) ) {

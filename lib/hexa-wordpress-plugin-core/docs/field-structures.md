@@ -47,7 +47,7 @@ echo ( new FieldStructureRenderer() )->render(
     [
         [
             "id"           => "post_faqs",
-            "label"        => "Structured FAQ Editor Fields",
+            "label"        => "Post FAQ ACF",
             "type"         => "acf",
             "setting_key"  => "post_faqs_acf_enabled",
             "enabled"      => true,

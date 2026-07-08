@@ -29,6 +29,8 @@ src/ContentCleanup/     Hexa\PluginCore\ContentCleanup
 src/CredentialVault/    Hexa\PluginCore\CredentialVault
 src/FieldStructures/    Hexa\PluginCore\FieldStructures
 src/FaqSets/            Hexa\PluginCore\FaqSets
+src/GettingStartedChecklist/
+                        Hexa\PluginCore\GettingStartedChecklist
 src/LogFiles/           Hexa\PluginCore\LogFiles
 src/PluginChecks/       Hexa\PluginCore\PluginChecks
 src/PluginProvisioning/ Hexa\PluginCore\PluginProvisioning
@@ -54,6 +56,12 @@ Namespace:
 ```text
 Hexa\PluginCore\WpAdminComponents
 ```
+
+Use `CoreUi::collapsible()` for expandable cards. The shared component owns the native `<details>` structure, persistent open/closed state, and visible chevron SVG indicator, so users can tell the card expands.
+
+Use `CoreUi::toggle()` for checkbox-style toggles. Core clips the hidden checkbox input to a 1px focusable control so the input never creates horizontal page overflow.
+
+Use `CoreUi::detail_card()` for nested expandable/collapsible subcards inside a parent tool section. It is meant for descriptions, rule explanations, scan-location lists, and other supporting details that should not dominate the page on load.
 
 
 ## WP Admin UI Cleanup
@@ -93,13 +101,83 @@ Namespace:
 Hexa\PluginCore\ContentCleanup
 ```
 
-Use `ContentCleanupConfig` for host-specific action names, nonce settings, allowed post types, statuses, default age filters, fixed report mode, detection rules, limits, and protected IDs. Use `ContentCleanupAjaxController` to register scan/trash/delete actions. Use `ContentCleanupRenderer` for the filters or no-filter report UI, detected rows table, row flags, edit-new-tab links, red destructive buttons, and Hexa Core Log Type 1 live activity log.
+Use `ContentCleanupConfig` for host-specific action names, nonce settings, allowed post types, statuses, default age filters, fixed report mode, detection rules, limits, and protected IDs. Use `ContentCleanupAjaxController` to register scan/trash/delete actions. Use `ContentCleanupRenderer` for a separate collapsible service card with a collapsed description subcard, backend-only detection rules, filters or no-filter report UI, detected rows table, row flags, edit-new-tab links, red destructive buttons, and a closed-by-default Hexa Core Log Type 1 live activity log. Cleanup renderers must tolerate older already-loaded `CoreUi` classes because multiple plugins can vendor the core on the same site.
 
-Use `BackupCleanupConfig`, `BackupCleanupAjaxController`, and `BackupCleanupRenderer` when a plugin needs a reusable backup-file cleanup table. The host plugin supplies configured roots and allowed extensions; Core scans those locations, returns row IDs, and deletes only files that still match the configured roots/extensions.
+Cleanup services default to manual scan. Leave `auto_scan` unset or false when the page should open instantly. Set `auto_scan => true` only when a plugin intentionally wants the service to run its AJAX scan on page load.
 
-Use `ArticleMediaCleanupConfig`, `ArticleMediaCleanupAjaxController`, and `ArticleMediaCleanupRenderer` when a plugin needs reusable post cleanup. Core renders filters, "keep most recent X posts", select-all/row selection, row-by-row AJAX deletion, and optional associated media deletion. Media deletion is off by default and only runs when the visible checkbox is enabled. Associated media includes featured images plus inline/gallery attachment IDs detected from post content.
+Use `BackupCleanupConfig`, `BackupCleanupAjaxController`, and `BackupCleanupRenderer` when a plugin needs a reusable backup-file cleanup table. The host plugin supplies configured roots and allowed extensions; Core renders a collapsed description subcard, a visible scan-location subcard with configured paths/extensions/resolved directories, scans those locations, logs every configured location, returns row IDs, and deletes only files that still match the configured roots/extensions.
+
+Use `ArticleMediaCleanupConfig`, `ArticleMediaCleanupAjaxController`, and `ArticleMediaCleanupRenderer` when a plugin needs reusable post cleanup. Core renders the primary batch actions first: delete all matching posts, or delete matching posts except the latest X posts. Each primary batch action has its own associated-media toggle. Advanced filters, preview rows, select-all/row selection, row-by-row AJAX deletion, and filtered selected-row deletion remain available in a collapsed Advanced Filters & Preview card. Media deletion is off by default and only runs when the visible checkbox for that action is enabled. Associated media includes featured images plus inline/gallery attachment IDs detected from post content.
+
+Batch deletion is intentionally separate from the preview table. `limit` only controls the visible preview rows. The batch actions use `post_type`, `status`, `search`, and the selected mode across all matching posts. Use `batch_delete_action`, `default_batch_size`, and `max_batch_size` to configure the plugin-specific AJAX endpoint and per-request batch limits.
 
 Core automatically protects the WordPress front page, posts page, and privacy policy page.
+
+## Getting Started Checklist
+
+Namespace:
+
+```text
+Hexa\PluginCore\GettingStartedChecklist
+```
+
+Use `GettingStartedChecklistConfig` for host-owned action names, nonce settings, capability, labels, ordered steps, semantic request types, and request metadata. Use `GettingStartedChecklistAjaxController` to register the guarded AJAX runner. Use `GettingStartedChecklistRenderer` to render the reusable checklist UI with collapsible parent steps, nested subtasks, spinner/check/X states, request type badges, sequential AJAX execution, and a collapsed dark technical activity log.
+
+Required rules:
+
+- Keep plugin-specific callbacks in the host plugin.
+- Keep checklist UI, AJAX execution, status icons, subtask sequencing, and log rendering in Hexa Core.
+- A parent step with subtasks must stay in the running state until each subtask has finished.
+- Callback returns may be `true`, `false`, a string, `WP_Error`, or an array with `success`, `message`, `logs`, and optional `data`.
+- Step and subtask `type` values should be one of `callback`, `status_check`, `setup_action`, `feature_toggle`, `config_mutation`, `ajax_request`, or `custom`.
+- Use `request` for structured request metadata. Core passes raw request metadata to callbacks and redacts secret/token/password/nonce/key values in public output.
+- Use `required_inputs` or `inputs` for operator-supplied values that must be typed before a checklist item can run. Core renders the fields, validates them in the browser, sends them through AJAX as `inputs[field_id]`, validates/sanitizes them server-side, and passes them to callbacks as `$payload["inputs"]`.
+- Supported input types are `text`, `email`, `url`, `password`, `number`, `tel`, and `search`.
+- Do not hardcode site-specific SMTP sender emails, alert emails, API keys, or approval text in reusable Core code. Define the required input and feed the typed value into the existing host callback.
+
+Example:
+
+```php
+$config = new \Hexa\PluginCore\GettingStartedChecklist\GettingStartedChecklistConfig([
+    'root_id'      => 'my-plugin-getting-started',
+    'nonce_action' => 'my_plugin_getting_started',
+    'run_action'   => 'my_plugin_getting_started_run_item',
+    'steps'        => [
+        [
+            'id'          => 'environment',
+            'label'       => 'Verify Environment',
+            'type'        => 'status_check',
+            'subtasks'    => [
+                [
+                    'id'       => 'wordpress',
+                    'label'    => 'WordPress Runtime',
+                    'type'     => 'status_check',
+                    'callback' => 'my_plugin_check_wordpress_runtime',
+                ],
+            ],
+        ],
+        [
+            'id'          => 'smtp_setup',
+            'label'       => 'Apply SMTP Settings',
+            'type'        => 'config_mutation',
+            'callback'    => 'my_plugin_apply_smtp_settings',
+            'required_inputs' => [
+                [
+                    'id'          => 'from_email',
+                    'label'       => 'From email',
+                    'type'        => 'email',
+                    'required'    => true,
+                    'placeholder' => '',
+                    'description' => 'Passed to the callback as $payload["inputs"]["from_email"].',
+                ],
+            ],
+        ],
+    ],
+]);
+
+( new \Hexa\PluginCore\GettingStartedChecklist\GettingStartedChecklistAjaxController($config) )->register();
+( new \Hexa\PluginCore\GettingStartedChecklist\GettingStartedChecklistRenderer($config) )->render();
+```
 
 ## Plugin Checks And Plugin Inventory
 
@@ -109,7 +187,7 @@ Namespace:
 Hexa\PluginCore\PluginChecks
 ```
 
-Use `PluginCheckDefinition` arrays for host-owned plugin lists. Use `PluginCheckService` for installed/active/update/auto-update status. Use `PluginInventoryRenderer` when a plugin needs a reusable table UI for plugin status or a plugin library. Use `PluginInventoryAjaxController` for no-refresh refresh, install-and-activate, and activate actions.
+Use `PluginCheckDefinition` arrays for host-owned plugin lists. Use `PluginCheckService` for installed/active/update/auto-update status. Use `PluginInventoryRenderer` when a plugin needs a reusable table UI for plugin status or a plugin library. Use `PluginInventoryAjaxController` for no-refresh refresh, install-and-activate, activate, deactivate, and delete actions.
 
 Required rules:
 
@@ -123,6 +201,7 @@ Required rules:
 - Use `source => must_use` or `dropin` for MU plugins and WordPress drop-ins; Core treats installed/present as active and skips update/auto-update checks.
 - Do not render a separate Installed column. Show installed/missing state as a Font Awesome SVG green check or red X beside the plugin title, with hover text explaining the state.
 - The Status column prints the icon plus `Active` or `Inactive`.
+- Keep Deactivate and Delete as subtle secondary row controls. They are available for installed normal plugins, require confirmation where destructive, and remain blocked for must-use plugins and drop-ins.
 - Do not use emoji indicators in plugin inventory UIs.
 
 Example:
@@ -193,6 +272,7 @@ $config = new ContentCleanupConfig([
     'scan_action'            => 'example_cleanup_scan',
     'trash_action'           => 'example_cleanup_trash',
     'delete_action'          => 'example_cleanup_delete',
+    'auto_scan'              => false,
     'post_types'             => [ 'page' => 'Pages' ],
     'default_published_days' => 365,
     'show_filters'           => false,
@@ -225,6 +305,7 @@ $backup_config = new BackupCleanupConfig([
     'nonce_action'  => 'example_cleanup',
     'scan_action'   => 'example_backup_scan',
     'delete_action' => 'example_backup_delete',
+    'auto_scan'     => false,
     'locations'     => [
         'updraftplus' => [
             'name'       => 'UpdraftPlus',
@@ -246,11 +327,15 @@ use Hexa\PluginCore\ContentCleanup\ArticleMediaCleanupConfig;
 use Hexa\PluginCore\ContentCleanup\ArticleMediaCleanupRenderer;
 
 $article_config = new ArticleMediaCleanupConfig([
-    'root_id'       => 'example-article-cleanup',
-    'nonce_action'  => 'example_cleanup',
-    'scan_action'   => 'example_article_scan',
-    'delete_action' => 'example_article_delete',
-    'post_types'    => [ 'post' => 'Posts' ],
+    'root_id'             => 'example-article-cleanup',
+    'nonce_action'        => 'example_cleanup',
+    'scan_action'         => 'example_article_scan',
+    'delete_action'       => 'example_article_delete',
+    'batch_delete_action' => 'example_article_batch_delete',
+    'auto_scan'           => false,
+    'post_types'          => [ 'post' => 'Posts' ],
+    'default_batch_size'  => 50,
+    'max_batch_size'      => 100,
 ]);
 
 ( new ArticleMediaCleanupAjaxController( $article_config ) )->register();

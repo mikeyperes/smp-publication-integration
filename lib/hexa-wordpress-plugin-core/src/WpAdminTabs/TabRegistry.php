@@ -25,3 +25,4 @@ final class TabRegistry {
         return $this->tabs;
     }
 }
+

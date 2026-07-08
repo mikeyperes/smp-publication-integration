@@ -1,6 +1,8 @@
 <?php
 namespace smp_publication_integration\Support;
 
+use Hexa\PluginCore\PluginChecks\PluginRecommendationRegistry;
+
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
@@ -61,14 +63,33 @@ final class PluginInventory {
      */
     public static function forbidden_definitions(): array {
         self::load_plugin_functions();
+        self::register_recommendation_providers();
 
-        $recommended = array_fill_keys( self::recommended_plugin_files(), true );
         $forbidden_slugs = [
             'jet-engine' => true,
         ];
         $definitions = [
             self::forbidden( 'jet-engine/jet-engine.php', 'JetEngine', 'jet-engine' ),
         ];
+        $seen = [
+            'jet-engine/jet-engine.php' => true,
+        ];
+
+        if ( class_exists( PluginRecommendationRegistry::class ) ) {
+            foreach ( PluginRecommendationRegistry::get_installed_not_recommended_definitions( false ) as $definition ) {
+                $plugin_file = (string) ( $definition['plugin_file'] ?? '' );
+                if ( '' === $plugin_file || isset( $seen[ $plugin_file ] ) ) {
+                    continue;
+                }
+
+                $definitions[] = $definition;
+                $seen[ $plugin_file ] = true;
+            }
+
+            return $definitions;
+        }
+
+        $recommended = array_fill_keys( self::recommended_plugin_files(), true );
 
         foreach ( get_plugins() as $plugin_file => $plugin_data ) {
             $plugin_file = (string) $plugin_file;
@@ -87,6 +108,30 @@ final class PluginInventory {
         }
 
         return $definitions;
+    }
+
+    public static function register_recommendation_providers(): void {
+        static $registered = false;
+
+        if ( $registered || ! class_exists( PluginRecommendationRegistry::class ) ) {
+            return;
+        }
+
+        $registered = true;
+
+        if ( function_exists( '\\hws_base_tools\\hws_register_hexa_plugin_recommendation_providers' ) ) {
+            \hws_base_tools\hws_register_hexa_plugin_recommendation_providers();
+        }
+
+        PluginRecommendationRegistry::register_hexa_plugin(
+            [
+                'id'          => 'smp-publication-integration',
+                'name'        => 'SMP Publication Integration',
+                'plugin_file' => 'smp-publication-integration/smp-publication-integration.php',
+                'repo'        => 'mikeyperes/smp-publication-integration',
+                'callback'    => [ self::class, 'recommended_definitions' ],
+            ]
+        );
     }
 
     /**

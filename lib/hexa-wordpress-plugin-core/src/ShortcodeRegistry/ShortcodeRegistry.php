@@ -25,3 +25,4 @@ final class ShortcodeRegistry {
         return $this->definitions;
     }
 }
+

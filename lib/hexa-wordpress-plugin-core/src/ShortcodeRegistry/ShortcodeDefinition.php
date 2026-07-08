@@ -20,3 +20,4 @@ final class ShortcodeDefinition {
         return str_replace( '{input}', $value, $this->template );
     }
 }
+

@@ -50,3 +50,4 @@ Do not:
 - call module logic before `boot()`
 - hard-code host plugin constants in this namespace
 - make modules instantiate their own host context
+
