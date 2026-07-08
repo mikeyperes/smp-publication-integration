@@ -67,6 +67,34 @@ Supported field types are `text`, `email`, `url`, `password`, `number`, `tel`, `
 
 Do not hardcode site-specific values in Core or in host checklist definitions. For SMTP, alert emails, API keys, confirmation text, or destructive approval text, collect the value through `required_inputs` and feed `$payload["inputs"]` into the existing host implementation.
 
+## Result Reports
+
+Checklist callbacks can return reusable reports under `data.reports`. Table reports are built with `ChecklistReportBuilder::table()`. For generated assets, add image preview metadata so the UI shows a visible preview plus an open-in-new-tab link before the table:
+
+```php
+ChecklistReportBuilder::table(
+    'generated_assets',
+    'Generated Assets',
+    $rows,
+    ['asset' => 'Asset', 'url' => 'URL'],
+    [
+        'meta' => [
+            'preview_assets' => [
+                [
+                    'label'       => 'Generated PNG',
+                    'format'      => 'PNG',
+                    'url'         => $png_url,
+                    'preview_url' => add_query_arg('preview', time(), $png_url),
+                    'meta'        => 'Attachment ID: ' . $attachment_id,
+                ],
+            ],
+        ],
+    ]
+);
+```
+
+For wp-config reports, Core labels columns as `Before`, `Target Value`, and `Verified Value`. Host plugins must use the verified value when deciding whether a task actually passed.
+
 ## Destructive Confirmation Sample
 
 Use `DestructiveSampleRunner` when a plugin needs a visible example of a destructive task that cannot run until the operator types an exact confirmation phrase. The runner creates temporary draft posts and temporary featured media, deletes only the records it created, and returns reusable Core reports for:

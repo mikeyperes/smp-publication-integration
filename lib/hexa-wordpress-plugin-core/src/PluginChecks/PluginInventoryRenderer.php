@@ -350,18 +350,33 @@ final class PluginInventoryRenderer {
                         ],
                     ]
                 );
+            } else {
+                $actions[] = DynamicButton::render(
+                    [
+                        'label'         => 'Activate',
+                        'working_label' => 'Activating...',
+                        'success_label' => 'Activated',
+                        'error_label'   => 'Failed',
+                        'class'         => 'hpc-button hpc-plugin-inventory-subtle-action',
+                        'attrs'         => [
+                            'data-plugin-inventory-action'  => 'activate',
+                            'data-plugin-inventory-confirm' => 'Activate ' . $definition->name . '? This plugin is marked unwanted.',
+                            'data-plugin-id'                => $definition->id,
+                        ],
+                    ]
+                );
             }
             $actions[] = DynamicButton::render(
-                    [
-                        'label'         => 'Delete',
-                        'working_label' => 'Deleting...',
-                        'success_label' => 'Deleted',
-                        'error_label'   => 'Failed',
-                        'class'         => 'hpc-button hpc-plugin-inventory-subtle-action is-danger',
-                        'attrs'         => [
-                            'data-plugin-inventory-action'  => 'delete',
-                            'data-plugin-inventory-confirm' => 'Delete ' . $definition->name . '?',
-                            'data-plugin-id'                => $definition->id,
+                [
+                    'label'         => 'Delete',
+                    'working_label' => 'Deleting...',
+                    'success_label' => 'Deleted',
+                    'error_label'   => 'Failed',
+                    'class'         => 'hpc-button hpc-plugin-inventory-subtle-action is-danger',
+                    'attrs'         => [
+                        'data-plugin-inventory-action'  => 'delete',
+                        'data-plugin-inventory-confirm' => 'Delete ' . $definition->name . '?',
+                        'data-plugin-id'                => $definition->id,
                     ],
                 ]
             );

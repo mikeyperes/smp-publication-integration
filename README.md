@@ -7,7 +7,12 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.6.155`
+- Version: `0.6.157`
+
+## 0.6.157 Updates
+
+- Updated vendored Hexa WP Core to `0.19.32` so active SMP installs no longer load older checklist report labels before HWS Base Tools.
+- Restored shared checklist report previews for generated PNG/ICO assets and renamed wp-config report columns to `Target Value` and `Verified Value`.
 
 ## 0.6.155 Updates
 

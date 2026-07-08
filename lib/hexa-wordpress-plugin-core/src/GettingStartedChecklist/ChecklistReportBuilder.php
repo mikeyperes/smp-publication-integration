@@ -95,8 +95,8 @@ final class ChecklistReportBuilder {
             [
                 'setting' => 'Setting',
                 'before'  => 'Before',
-                'after'   => 'Requested After',
-                'actual'  => 'Current After',
+                'after'   => 'Target Value',
+                'actual'  => 'Verified Value',
                 'file'    => 'File',
             ],
             [

@@ -293,6 +293,13 @@ final class GettingStartedChecklistRenderer {
             #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-report-head{border-bottom:1px solid #dce5ef;padding:9px 11px}
             #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-report-head strong{display:block;font-size:12px;margin:0 0 3px}
             #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-report-head span{color:var(--hpc-muted);display:block;font-size:11px;line-height:1.35}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-preview-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));padding:11px}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-preview-card{background:#fff;border:1px solid #dce5ef;border-radius:8px;color:#243044;display:grid;gap:8px;padding:10px;text-decoration:none}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-preview-card:hover{border-color:var(--hpc-blue);box-shadow:0 6px 16px rgba(30,64,175,.10)}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-preview-frame{align-items:center;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:7px;display:flex;height:132px;justify-content:center;overflow:hidden}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-preview-frame img{display:block;height:auto;image-rendering:auto;max-height:112px;max-width:112px;object-fit:contain;width:auto}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-preview-label{color:#1f2937;font-size:12px;font-weight:900;line-height:1.25}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-preview-meta,#<?php echo esc_attr( $root_id ); ?> .hpc-gsc-preview-url{color:var(--hpc-muted);font-size:11px;line-height:1.35;overflow-wrap:anywhere}
             #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-report-scroll{max-width:100%;overflow:auto}
             #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-report-table{border-collapse:collapse;font-size:11px;min-width:100%;table-layout:auto;width:100%}
             #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-report-table th,#<?php echo esc_attr( $root_id ); ?> .hpc-gsc-report-table td{border-bottom:1px solid #e7eef6;padding:7px 9px;text-align:left;vertical-align:top}
@@ -421,7 +428,7 @@ final class GettingStartedChecklistRenderer {
             function reportColumns(report){
                 if (Array.isArray(report.columns) && report.columns.length) return report.columns.map(function(col){ return typeof col === 'string' ? {key:col,label:col} : col; }).filter(function(col){ return col && col.key; });
                 if (report.type === 'deleted_files') return [{key:'file',label:'File'},{key:'location',label:'Location'},{key:'size',label:'Size'}];
-                if (report.type === 'wp_config_changes') return [{key:'setting',label:'Setting'},{key:'before',label:'Before'},{key:'after',label:'Requested After'},{key:'actual',label:'Current After'},{key:'file',label:'File'}];
+                if (report.type === 'wp_config_changes') return [{key:'setting',label:'Setting'},{key:'before',label:'Before'},{key:'after',label:'Target Value'},{key:'actual',label:'Verified Value'},{key:'file',label:'File'}];
                 if (report.type === 'deleted_posts') return [{key:'title',label:'Title'},{key:'id',label:'ID'},{key:'permalink',label:'Permalink'},{key:'media',label:'Deleted Media'}];
                 var first = Array.isArray(report.items) && report.items.length ? report.items[0] : {};
                 return Object.keys(first).map(function(key){ return {key:key,label:key.replace(/_/g,' ')}; });
@@ -433,9 +440,31 @@ final class GettingStartedChecklistRenderer {
                 if ((/url|link|permalink/i.test(key || '') || /^https?:\/\//i.test(value)) && /^https?:\/\//i.test(value)) return '<a href="' + esc(value).replace(/"/g,'&quot;') + '" target="_blank" rel="noopener noreferrer">' + esc(value) + '</a>';
                 return esc(value);
             }
+            function reportPreviewHtml(report){
+                var meta = report && report.meta && typeof report.meta === 'object' ? report.meta : {};
+                var assets = Array.isArray(report.preview_assets) ? report.preview_assets : (Array.isArray(meta.preview_assets) ? meta.preview_assets : []);
+                assets = assets.filter(function(asset){ return asset && typeof asset === 'object' && text(asset.url || asset.link || '').trim(); });
+                if (!assets.length) return '';
+                return '<div class="hpc-gsc-preview-grid">' + assets.map(function(asset){
+                    var url = text(asset.url || asset.link || '').trim();
+                    var previewUrl = text(asset.preview_url || asset.preview || url).trim();
+                    var label = text(asset.label || asset.asset || 'Generated asset').trim();
+                    var metaText = text(asset.meta || asset.format || '').trim();
+                    var safeUrl = esc(url).replace(/"/g,'&quot;');
+                    var safePreview = esc(previewUrl).replace(/"/g,'&quot;');
+                    var safeLabel = esc(label).replace(/"/g,'&quot;');
+                    return '<a class="hpc-gsc-preview-card" href="' + safeUrl + '" target="_blank" rel="noopener noreferrer">'
+                        + '<span class="hpc-gsc-preview-frame"><img src="' + safePreview + '" alt="' + safeLabel + '" loading="lazy"></span>'
+                        + '<span class="hpc-gsc-preview-label">' + esc(label) + '</span>'
+                        + (metaText ? '<span class="hpc-gsc-preview-meta">' + esc(metaText) + '</span>' : '')
+                        + '<span class="hpc-gsc-preview-url">' + esc(url) + '</span>'
+                        + '</a>';
+                }).join('') + '</div>';
+            }
             function reportHtml(report){
                 var columns = reportColumns(report), items = Array.isArray(report.items) ? report.items : [];
                 var html = '<div class="hpc-gsc-report-card"><div class="hpc-gsc-report-head"><strong>' + esc(report.title || 'Checklist Report') + '</strong>' + (report.summary ? '<span>' + esc(report.summary) + '</span>' : '') + '</div>';
+                html += reportPreviewHtml(report);
                 if (items.length && columns.length) {
                     html += '<div class="hpc-gsc-report-scroll"><table class="hpc-gsc-report-table"><thead><tr>' + columns.map(function(col){ return '<th>' + esc(col.label || col.key) + '</th>'; }).join('') + '</tr></thead><tbody>';
                     html += items.map(function(item){ return '<tr>' + columns.map(function(col){ return '<td>' + valueHtml(item[col.key], col.key) + '</td>'; }).join('') + '</tr>'; }).join('');

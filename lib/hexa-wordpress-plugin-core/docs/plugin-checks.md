@@ -24,7 +24,7 @@ Host plugins pass a list of plugin definitions. Core checks whether each plugin 
 - `PluginCheckService`: resolves installed/active/update status and calls shared install/activate helpers.
 - `PluginChecksRenderer`: renders the admin UI, summary pills, plugin cards, dynamic buttons, and activity log.
 - `PluginChecksAjaxController`: registers AJAX actions for status refresh, update-cache refresh, install-and-activate, and activate.
-- `PluginInventoryRenderer`: renders reusable expanded-by-default collapsible inventory cards with Plugin, Status, Auto-Update, Version, Source, and Action columns.
+- `PluginInventoryRenderer`: renders reusable expanded-by-default collapsible inventory cards with Plugin, Status, Auto-Update, Version, Source, and Action columns. Forbidden rows expose Deactivate when active, Activate when inactive, and Delete when removable.
 - `PluginInventoryAjaxController`: registers AJAX actions for the inventory renderer and returns refreshed table HTML.
 
 ## Definition Shape
