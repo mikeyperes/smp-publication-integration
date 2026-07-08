@@ -61,6 +61,7 @@ final class QuickStartFeatures {
         $before_matches  = self::count_matching_settings( $targets, $before_settings );
 
         Settings::update( $targets );
+        self::purge_frontend_cache();
 
         $after_settings = Settings::all();
         $after_matches  = self::count_matching_settings( $targets, $after_settings );
@@ -418,74 +419,24 @@ final class QuickStartFeatures {
         return $items[ $id ] ?? null;
     }
 
-    public static function apply( string $id ): array {
-        $items = self::items();
-        if ( "all" === $id ) {
-            $changes = [];
-            foreach ( $items as $item ) {
-                $changes = array_merge( $changes, $item["settings"] );
-            }
-            Settings::update( $changes );
-            return [
-                "applied" => array_keys( $items ),
-                "settings" => $changes,
-            ];
+    private static function purge_frontend_cache(): void {
+        if ( function_exists( 'wp_cache_flush' ) ) {
+            wp_cache_flush();
         }
 
-        if ( ! isset( $items[ $id ] ) ) {
-            return [
-                "applied" => [],
-                "settings" => [],
-            ];
-        }
-
-        Settings::update( $items[ $id ]["settings"] );
-        return [
-            "applied" => [ $id ],
-            "settings" => $items[ $id ]["settings"],
-        ];
-    }
-
-    public static function is_complete( string $id, ?array $current = null ): bool {
-        $item = self::item( $id );
-        if ( ! $item ) {
-            return false;
-        }
-
-        $current = $current ?? Settings::all();
-        foreach ( $item["settings"] as $key => $target ) {
-            $actual = $current[ $key ] ?? null;
-            if ( is_array( $target ) ) {
-                $target_values = array_values( array_map( "strval", $target ) );
-                $actual_values = is_array( $actual ) ? array_values( array_map( "strval", $actual ) ) : [];
-                sort( $target_values );
-                sort( $actual_values );
-                if ( $target_values !== $actual_values ) {
-                    return false;
-                }
-                continue;
-            }
-
-            if ( is_bool( $target ) ) {
-                if ( (bool) $actual !== $target ) {
-                    return false;
-                }
-                continue;
-            }
-
-            if ( is_int( $target ) ) {
-                if ( (int) $actual !== $target ) {
-                    return false;
-                }
-                continue;
-            }
-
-            if ( (string) $actual !== (string) $target ) {
-                return false;
+        foreach ( [ 'litespeed_purge_all', 'litespeed_purge_all_object' ] as $action ) {
+            if ( has_action( $action ) ) {
+                do_action( $action );
             }
         }
 
-        return true;
+        if ( function_exists( 'rocket_clean_domain' ) ) {
+            rocket_clean_domain();
+        }
+
+        if ( function_exists( 'w3tc_flush_all' ) ) {
+            w3tc_flush_all();
+        }
     }
 
     private static function checklist_description( array $item ): string {

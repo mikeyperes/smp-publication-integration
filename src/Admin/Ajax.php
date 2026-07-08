@@ -47,7 +47,6 @@ final class Ajax {
                 'smpi_refresh_optimization'    => [ 'callback' => [ $this, 'refresh_optimization' ] ],
                 'smpi_snippet_toggle'          => [ 'callback' => [ $this, 'toggle_snippet' ] ],
                 'smpi_snippet_test'            => [ 'callback' => [ $this, 'test_snippet' ] ],
-                'smpi_quick_start_apply'       => [ 'callback' => [ $this, 'apply_quick_start' ] ],
             ]
         );
 
@@ -124,27 +123,6 @@ final class Ajax {
         $tab = $request->key( 'tab', 'overview', 'post' );
         $dashboard = new Dashboard();
         return $dashboard->tab_fragment( $tab );
-    }
-
-    public function apply_quick_start( AjaxRequest $request ): array {
-        $item = $request->key( "item", "", "post" );
-        if ( "" === $item ) {
-            throw AjaxFailure::bad_request( "Missing Quick Start item." );
-        }
-        if ( "all" !== $item && ! QuickStartFeatures::item( $item ) ) {
-            throw AjaxFailure::not_found( "Unknown Quick Start item." );
-        }
-
-        $result = QuickStartFeatures::apply( $item );
-        $this->purge_frontend_cache();
-        $dashboard = new Dashboard();
-
-        return [
-            "message" => "all" === $item ? "Applied all Quick Start feature settings." : "Applied " . (string) ( QuickStartFeatures::item( $item )["title"] ?? $item ) . ".",
-            "applied" => $result["applied"],
-            "settings" => $result["settings"],
-            "fragment" => $dashboard->tab_fragment( "quick_run" ),
-        ];
     }
 
     public function save_settings( AjaxRequest $request ): array {
