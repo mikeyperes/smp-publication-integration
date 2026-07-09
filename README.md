@@ -7,7 +7,12 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.6.163`
+- Version: `0.6.164`
+
+## 0.6.164 Updates
+
+- Simplified Quick Start row copy so descriptions are short, normal admin text without target dumps.
+- Removed bulky visible Quick Start setting reports after individual Apply actions; rows now show a compact applied state.
 
 ## 0.6.163 Updates
 
