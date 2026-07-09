@@ -24,6 +24,7 @@ final class QuickStartFeatures {
                 'nonce_field'   => self::NONCE_FIELD,
                 'run_action'    => self::RUN_ACTION,
                 'empty_message' => 'No SMP Quick Start checklist items are registered.',
+                'show_type_badges' => false,
                 'steps'         => self::checklist_steps(),
             ]
         );

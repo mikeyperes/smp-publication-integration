@@ -140,6 +140,7 @@ final class GettingStartedChecklistRenderer {
     private function step_html( GettingStartedChecklistStep $step ): string {
         $subtasks = $step->subtasks;
         $has_subtasks = [] !== $subtasks;
+        $show_type_badges = $this->config->show_type_badges();
 
         ob_start();
         ?>
@@ -150,7 +151,9 @@ final class GettingStartedChecklistRenderer {
                     <div class="hpc-gsc-main">
                         <div class="hpc-gsc-title-line">
                             <strong><?php echo esc_html( $step->label ); ?></strong>
-                            <span class="hpc-gsc-type"><?php echo esc_html( $this->type_label( $step->type ) ); ?></span>
+                            <?php if ( $show_type_badges ) : ?>
+                                <span class="hpc-gsc-type"><?php echo esc_html( $this->type_label( $step->type ) ); ?></span>
+                            <?php endif; ?>
                             <span class="hpc-gsc-state" data-gsc-state>Pending</span>
                         </div>
                         <?php if ( '' !== $step->description ) : ?>
@@ -171,7 +174,9 @@ final class GettingStartedChecklistRenderer {
                             <div class="hpc-gsc-main">
                                 <div class="hpc-gsc-title-line">
                                     <strong><?php echo esc_html( $subtask->label ); ?></strong>
-                                    <span class="hpc-gsc-type"><?php echo esc_html( $this->type_label( $subtask->type ) ); ?></span>
+                                    <?php if ( $show_type_badges ) : ?>
+                                        <span class="hpc-gsc-type"><?php echo esc_html( $this->type_label( $subtask->type ) ); ?></span>
+                                    <?php endif; ?>
                                     <span class="hpc-gsc-state" data-gsc-state>Pending</span>
                                 </div>
                                 <?php if ( '' !== $subtask->description ) : ?>
@@ -194,7 +199,9 @@ final class GettingStartedChecklistRenderer {
                     <div class="hpc-gsc-main">
                         <div class="hpc-gsc-title-line">
                             <strong><?php echo esc_html( $step->label ); ?></strong>
-                            <span class="hpc-gsc-type"><?php echo esc_html( $this->type_label( $step->type ) ); ?></span>
+                            <?php if ( $show_type_badges ) : ?>
+                                <span class="hpc-gsc-type"><?php echo esc_html( $this->type_label( $step->type ) ); ?></span>
+                            <?php endif; ?>
                             <span class="hpc-gsc-state" data-gsc-state>Pending</span>
                         </div>
                         <?php if ( '' !== $step->description ) : ?>

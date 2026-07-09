@@ -7,7 +7,12 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.6.164`
+- Version: `0.6.165`
+
+## 0.6.165 Updates
+
+- Hid non-interactive Quick Start request-type badges such as `Feature Toggle`.
+- Updated vendored Hexa WP Core to `0.19.35` for configurable checklist type badge rendering.
 
 ## 0.6.164 Updates
 

@@ -8,6 +8,8 @@ Hexa\PluginCore\GettingStartedChecklist
 
 Use this module when a plugin needs a reusable setup or onboarding process that runs plugin-owned callbacks in a predictable sequence.
 
+Set `show_type_badges` to `false` when the checklist is being used as a simple action list and the request type would read like non-clickable clutter.
+
 ## Core Classes
 
 - `GettingStartedChecklistConfig`: host-specific IDs, labels, action names, nonce settings, capability, and registered steps.

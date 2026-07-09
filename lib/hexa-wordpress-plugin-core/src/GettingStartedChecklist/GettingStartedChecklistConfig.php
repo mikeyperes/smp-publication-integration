@@ -37,6 +37,7 @@ final class GettingStartedChecklistConfig {
             'template_label'       => 'Checklist Template',
             'template_load_label'  => 'Load Template',
             'show_template_picker' => false,
+            'show_type_badges'     => true,
             'templates'            => [],
             'steps'                => [],
         ];
@@ -104,6 +105,10 @@ final class GettingStartedChecklistConfig {
 
     public function show_template_picker(): bool {
         return (bool) $this->get( 'show_template_picker', false ) || count( $this->templates ) > 1;
+    }
+
+    public function show_type_badges(): bool {
+        return (bool) $this->get( 'show_type_badges', true );
     }
 
     public function default_template_id(): string {

@@ -196,6 +196,8 @@ This panel compares the vendored `VERSION` in the host plugin with the public Gi
 
 ## Getting Started Checklist
 
+Version 0.19.35 adds `show_type_badges` to `GettingStartedChecklistConfig`. Host plugins can hide the non-interactive request-type pill when a checklist is used as a simple action list.
+
 Version 0.19.34 restores Getting Started Checklist rows to a single continuous list for simple actions. Only parent steps with actual subtasks render as expandable sections, so one-action checklist items keep their individual run button without a fake expand/collapse control.
 
 Version 0.19.33 adds human-readable before/action/verified-after report summaries to Getting Started Checklist reports, including clearer wp-config and deleted-file report wording.
