@@ -22,7 +22,7 @@ final class GettingStartedChecklistRenderer {
         $steps               = $this->config->template_steps( $default_template_id );
         $nonce               = function_exists( 'wp_create_nonce' ) ? wp_create_nonce( $this->config->nonce_action() ) : '';
         ?>
-        <div id="<?php echo esc_attr( $root_id ); ?>" class="hpc-ui hpc-gsc" data-hpc-getting-started-checklist data-ajax-url="<?php echo esc_url( admin_url( 'admin-ajax.php' ) ); ?>" data-run-action="<?php echo esc_attr( $this->config->run_action() ); ?>" data-nonce-field="<?php echo esc_attr( $this->config->nonce_field() ); ?>" data-nonce="<?php echo esc_attr( $nonce ); ?>" data-default-template-id="<?php echo esc_attr( $default_template_id ); ?>" data-current-template-id="<?php echo esc_attr( $default_template_id ); ?>">
+        <div id="<?php echo esc_attr( $root_id ); ?>" class="hpc-ui hpc-gsc" data-hpc-getting-started-checklist data-ajax-url="<?php echo esc_url( admin_url( 'admin-ajax.php' ) ); ?>" data-run-action="<?php echo esc_attr( $this->config->run_action() ); ?>" data-nonce-field="<?php echo esc_attr( $this->config->nonce_field() ); ?>" data-nonce="<?php echo esc_attr( $nonce ); ?>" data-default-template-id="<?php echo esc_attr( $default_template_id ); ?>" data-current-template-id="<?php echo esc_attr( $default_template_id ); ?>" data-quick-cleanup-step-id="<?php echo esc_attr( (string) $this->config->get( 'quick_cleanup_step_id', '' ) ); ?>" data-quick-cleanup-scan-action="<?php echo esc_attr( (string) $this->config->get( 'quick_cleanup_scan_action', '' ) ); ?>" data-quick-cleanup-batch-action="<?php echo esc_attr( (string) $this->config->get( 'quick_cleanup_batch_action', '' ) ); ?>">
             <?php echo $this->assets( $root_id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
             <?php
             ob_start();
@@ -261,6 +261,9 @@ final class GettingStartedChecklistRenderer {
                         placeholder="<?php echo esc_attr( (string) ( $input['placeholder'] ?? '' ) ); ?>"
                         <?php echo $required ? 'required' : ''; ?>
                         <?php echo '' !== (string) ( $input['pattern'] ?? '' ) ? 'pattern="' . esc_attr( (string) $input['pattern'] ) . '"' : ''; ?>
+                        <?php echo '' !== (string) ( $input['min'] ?? '' ) ? 'min="' . esc_attr( (string) $input['min'] ) . '"' : ''; ?>
+                        <?php echo '' !== (string) ( $input['max'] ?? '' ) ? 'max="' . esc_attr( (string) $input['max'] ) . '"' : ''; ?>
+                        <?php echo '' !== (string) ( $input['step'] ?? '' ) ? 'step="' . esc_attr( (string) $input['step'] ) . '"' : ''; ?>
                         <?php echo '' !== (string) ( $input['autocomplete'] ?? '' ) ? 'autocomplete="' . esc_attr( (string) $input['autocomplete'] ) . '"' : ''; ?>
                         data-gsc-input
                         data-input-id="<?php echo esc_attr( $id ); ?>"
@@ -342,6 +345,40 @@ final class GettingStartedChecklistRenderer {
             #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-report-table td{color:#243044;overflow-wrap:anywhere;word-break:break-word}
             #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-report-table tr:last-child td{border-bottom:0}
             #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-report-table a{color:var(--hpc-blue);font-weight:800;text-decoration:none}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-panel{background:#fff;border:1px solid #dce5ef;border-radius:8px;overflow:hidden}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-head{align-items:flex-start;background:#f8fafc;border-bottom:1px solid #dce5ef;display:flex;gap:12px;justify-content:space-between;padding:11px}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-head strong{display:block;font-size:12px;margin:0 0 3px}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-head span{color:var(--hpc-muted);display:block;font-size:11px;line-height:1.35}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-summary{align-items:center;display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-pill{background:#eef4fb;border:1px solid #d6e2ef;border-radius:999px;color:#334155;font-size:11px;font-weight:900;line-height:1;padding:5px 8px;white-space:nowrap}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-pill.danger{background:#fff0f2;border-color:#ffd0d8;color:var(--hpc-red)}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-pill.success{background:#eaf8ef;border-color:#ccefd7;color:var(--hpc-green)}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-list{display:grid;gap:0}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-post{border-top:1px solid #edf1f6;display:grid;gap:10px;padding:11px}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-post:first-child{border-top:0}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-post[data-cleanup-status="deleting"]{background:#fffdf5}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-post[data-cleanup-status="deleted"]{background:#f6fff8}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-post[data-cleanup-status="failed"]{background:#fff7f7}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-post-main{align-items:start;display:grid;gap:10px;grid-template-columns:minmax(0,1fr) auto}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-title{color:#111827;font-size:12px;font-weight:900;line-height:1.35;margin:0}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-meta{color:var(--hpc-muted);font-size:11px;line-height:1.4;margin-top:3px;overflow-wrap:anywhere}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-media{display:grid;gap:6px}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-media-row{align-items:start;background:#f8fafc;border:1px solid #e0e6ef;border-radius:6px;display:grid;gap:8px;grid-template-columns:auto minmax(0,1fr);padding:7px 8px}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-media-row[data-media-status="deleting"]{background:#fff8e8;border-color:#f4c46b}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-media-row[data-media-status="deleted"]{background:#e9f8ee;border-color:#bde8cb}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-media-row[data-media-status="failed"]{background:#fdecec;border-color:#f3b2b2}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-media-title{color:#1f2937;font-size:12px;font-weight:800;line-height:1.25}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-media-meta{color:var(--hpc-muted);font-size:11px;line-height:1.35;margin-top:2px}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-status{align-items:center;border:1px solid #d8e0ea;border-radius:999px;color:#475569;display:inline-flex;font-size:11px;font-weight:900;gap:6px;line-height:1;padding:5px 8px;white-space:nowrap}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-status .spinner{float:none;height:14px;margin:0;visibility:visible;width:14px}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-status-icon{align-items:center;background:#e9eef5;border-radius:999px;color:#64748b;display:inline-flex;font-size:10px;font-weight:900;height:16px;justify-content:center;width:16px}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-status.queued{background:#f8fafc}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-status.deleting{background:#fff8e8;border-color:#f4c46b;color:#8a5200}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-status.deleted{background:#e9f8ee;border-color:#bde8cb;color:#137333}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-status.deleted .hpc-gsc-cleanup-status-icon{background:#137333;color:#fff}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-status.failed{background:#fdecec;border-color:#f3b2b2;color:#b42318}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-status.failed .hpc-gsc-cleanup-status-icon{background:#b42318;color:#fff}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-status.preserved{background:#eef4ff;border-color:#c9d8ff;color:#294996}
             #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-inputs{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));margin-top:10px;max-width:760px}
             #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-input-field{display:grid;gap:5px}
             #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-input-field span{align-items:center;color:#243044;display:flex;font-size:12px;font-weight:800;gap:7px;line-height:1.2}
@@ -679,6 +716,255 @@ final class GettingStartedChecklistRenderer {
                     return payload.data || {};
                 });
             }
+            function postAction(action, payload){
+                var body = new URLSearchParams();
+                body.set('action', action || '');
+                body.set(root.dataset.nonceField || 'nonce', root.dataset.nonce || '');
+                Object.keys(payload || {}).forEach(function(key){
+                    var value = payload[key];
+                    if (Array.isArray(value)) {
+                        value.forEach(function(item){ body.append(key + '[]', item); });
+                    } else {
+                        body.set(key, value);
+                    }
+                });
+                return fetch(root.dataset.ajaxUrl || window.ajaxurl, {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'},
+                    body: body.toString()
+                }).then(function(response){ return response.json(); }).then(function(payload){
+                    if (!payload || !payload.success) {
+                        var message = payload && payload.data && (payload.data.message || payload.data.error) ? (payload.data.message || payload.data.error) : 'AJAX request failed.';
+                        throw new Error(message);
+                    }
+                    return payload.data || {};
+                });
+            }
+            function quickCleanupEnabled(){
+                return !!(text(root.dataset.quickCleanupStepId).trim() && text(root.dataset.quickCleanupScanAction).trim() && text(root.dataset.quickCleanupBatchAction).trim());
+            }
+            function isQuickCleanupStep(row){
+                return quickCleanupEnabled() && row && text(row.dataset.stepId) === text(root.dataset.quickCleanupStepId) && !text(row.dataset.subtaskId);
+            }
+            function quickCleanupInputs(row){
+                var inputs = collectRowInputs(row);
+                return {
+                    keep_recent: inputs.delete_old_posts_keep_recent || '10',
+                    confirmation: inputs.delete_old_posts_confirmation || ''
+                };
+            }
+            function quickSafeStatus(status){
+                status = text(status || 'queued').toLowerCase().replace(/[^a-z_-]/g, '');
+                return status || 'queued';
+            }
+            function quickStatusBadge(status, label){
+                status = quickSafeStatus(status);
+                label = label || ({queued:'Pending', deleting:'Deleting', deleted:'Deleted', failed:'Failed', preserved:'Kept', skipped:'Kept'}[status] || status);
+                var icon = '<span class="hpc-gsc-cleanup-status-icon">-</span>';
+                if (status === 'deleting') icon = '<span class="spinner is-active"></span>';
+                if (status === 'deleted') icon = '<span class="hpc-gsc-cleanup-status-icon">&#10003;</span>';
+                if (status === 'failed') icon = '<span class="hpc-gsc-cleanup-status-icon">X</span>';
+                return '<span class="hpc-gsc-cleanup-status ' + esc(status) + '">' + icon + '<span>' + esc(label) + '</span></span>';
+            }
+            function quickMediaHtml(row){
+                var media = Array.isArray(row.media) ? row.media : [];
+                var initialStatus = row.cleanup_status === 'preserved' ? 'preserved' : 'queued';
+                var initialLabel = initialStatus === 'preserved' ? 'Kept' : 'Pending';
+                if (!media.length) return '<div class="hpc-gsc-cleanup-media-meta">No featured or inline media detected.</div>';
+                return '<div class="hpc-gsc-cleanup-media">' + media.map(function(item){
+                    var id = text(item.id || '');
+                    return '<div class="hpc-gsc-cleanup-media-row" data-qc-media data-media-id="' + esc(id).replace(/"/g, '&quot;') + '" data-media-status="' + esc(initialStatus) + '">'
+                        + quickStatusBadge(initialStatus, initialLabel)
+                        + '<div><div class="hpc-gsc-cleanup-media-title">#' + esc(id) + ' ' + esc(item.title || 'Media') + '</div>'
+                        + '<div class="hpc-gsc-cleanup-media-meta">' + esc(item.source || 'media') + '</div></div>'
+                        + '</div>';
+                }).join('') + '</div>';
+            }
+            function quickCleanupRowHtml(row){
+                var status = row.cleanup_status === 'preserved' ? 'preserved' : 'queued';
+                var label = status === 'preserved' ? 'Kept' : 'Pending';
+                var postId = text(row.id || '');
+                return '<div class="hpc-gsc-cleanup-post" data-qc-post data-post-id="' + esc(postId).replace(/"/g, '&quot;') + '" data-cleanup-status="' + esc(status) + '">'
+                    + '<div class="hpc-gsc-cleanup-post-main">'
+                    + '<div><div class="hpc-gsc-cleanup-title">#' + esc(postId) + ' ' + esc(row.title || '(untitled)') + '</div>'
+                    + '<div class="hpc-gsc-cleanup-meta">' + esc(row.published_label || '') + ' | ' + esc(row.status || '') + ' | ' + esc(row.slug || '') + '</div>'
+                    + '<div class="hpc-gsc-cleanup-meta" data-qc-post-message>' + esc(row.cleanup_label || label) + '</div></div>'
+                    + '<div data-qc-post-status>' + quickStatusBadge(status, label) + '</div>'
+                    + '</div>'
+                    + quickMediaHtml(row)
+                    + '</div>';
+            }
+            function renderQuickCleanupPlan(row, plan){
+                var target = reportTarget(row);
+                if (!target) return;
+                var rows = Array.isArray(plan.rows) ? plan.rows : [];
+                var deleteCount = parseInt(plan.delete_count || 0, 10) || 0;
+                var keptCount = Array.isArray(plan.preserved_ids) ? plan.preserved_ids.length : 0;
+                var mediaCount = parseInt(plan.delete_media_count || plan.media_count || 0, 10) || 0;
+                var warning = plan.has_more ? '<span class="hpc-gsc-cleanup-pill danger">More rows exist than the visible plan limit</span>' : '';
+                target.innerHTML = '<div class="hpc-gsc-cleanup-panel" data-qc-panel>'
+                    + '<div class="hpc-gsc-cleanup-head"><div><strong>Article Cleanup Progress</strong><span>Newest posts are shown first. Older queued posts are deleted one at a time with their detected media.</span></div>'
+                    + '<div class="hpc-gsc-cleanup-summary"><span class="hpc-gsc-cleanup-pill danger">' + esc(deleteCount) + ' to delete</span><span class="hpc-gsc-cleanup-pill">' + esc(keptCount) + ' kept</span><span class="hpc-gsc-cleanup-pill">' + esc(mediaCount) + ' media found</span>' + warning + '</div></div>'
+                    + '<div class="hpc-gsc-cleanup-head"><div><strong data-qc-live-summary>Ready to delete queued posts.</strong><span data-qc-live-detail>Each post and media item will update as it is processed.</span></div></div>'
+                    + '<div class="hpc-gsc-cleanup-list" data-qc-list>' + (rows.length ? rows.map(quickCleanupRowHtml).join('') : '<div class="hpc-gsc-cleanup-post"><div class="hpc-gsc-cleanup-media-meta">No regular posts matched this cleanup action.</div></div>') + '</div>'
+                    + '</div>';
+                target.hidden = false;
+            }
+            function quickCleanupPanel(row){
+                var target = reportTarget(row);
+                return target ? target.querySelector('[data-qc-panel]') : null;
+            }
+            function quickCleanupPost(row, postId){
+                var panel = quickCleanupPanel(row);
+                return panel ? panel.querySelector('[data-qc-post][data-post-id="' + css(postId) + '"]') : null;
+            }
+            function quickCleanupNextQueued(row){
+                var panel = quickCleanupPanel(row);
+                return panel ? panel.querySelector('[data-qc-post][data-cleanup-status="queued"]') : null;
+            }
+            function quickCleanupSetSummary(row, summary, detail){
+                var panel = quickCleanupPanel(row);
+                if (!panel) return;
+                var summaryNode = panel.querySelector('[data-qc-live-summary]');
+                var detailNode = panel.querySelector('[data-qc-live-detail]');
+                if (summaryNode) summaryNode.textContent = summary || '';
+                if (detailNode) detailNode.textContent = detail || '';
+            }
+            function quickCleanupSetPostStatus(row, postId, status, label, message){
+                var post = quickCleanupPost(row, postId);
+                if (!post) return null;
+                status = quickSafeStatus(status);
+                post.dataset.cleanupStatus = status;
+                var badge = post.querySelector('[data-qc-post-status]');
+                if (badge) badge.innerHTML = quickStatusBadge(status, label);
+                var messageNode = post.querySelector('[data-qc-post-message]');
+                if (messageNode && message) messageNode.textContent = message;
+                return post;
+            }
+            function quickCleanupSetMediaState(post, status, label){
+                if (!post) return;
+                status = quickSafeStatus(status);
+                post.querySelectorAll('[data-qc-media]').forEach(function(media){
+                    media.dataset.mediaStatus = status;
+                    var badge = media.querySelector('.hpc-gsc-cleanup-status');
+                    if (badge) badge.outerHTML = quickStatusBadge(status, label);
+                });
+            }
+            function quickCleanupApplyMediaStatuses(row, postId, statuses){
+                var post = quickCleanupPost(row, postId);
+                if (!post) return;
+                (statuses || []).forEach(function(item){
+                    var media = post.querySelector('[data-qc-media][data-media-id="' + css(item.id || '') + '"]');
+                    if (!media) return;
+                    var status = quickSafeStatus(item.status || 'skipped');
+                    var label = status === 'deleted' ? 'Deleted' : (status === 'failed' ? 'Failed' : 'Kept');
+                    media.dataset.mediaStatus = status;
+                    var badge = media.querySelector('.hpc-gsc-cleanup-status');
+                    if (badge) badge.outerHTML = quickStatusBadge(status, label);
+                    var meta = media.querySelector('.hpc-gsc-cleanup-media-meta');
+                    if (meta) meta.textContent = text(item.source || 'media') + (item.message ? ' | ' + text(item.message) : '');
+                });
+            }
+            function quickCleanupApplyPreservedIds(row, ids){
+                (ids || []).forEach(function(id){
+                    var post = quickCleanupSetPostStatus(row, id, 'preserved', 'Kept', 'Protected as one of the newest posts.');
+                    quickCleanupSetMediaState(post, 'preserved', 'Kept');
+                });
+            }
+            function quickCleanupApplyPostResult(row, result){
+                result = result || {};
+                var postId = result.id || '';
+                var status = quickSafeStatus(result.status || 'deleted');
+                var label = status === 'failed' ? 'Failed' : 'Deleted';
+                var post = quickCleanupSetPostStatus(row, postId, status, label, result.message || label);
+                quickCleanupApplyMediaStatuses(row, postId, result.media_status || []);
+                if (post && status === 'failed') {
+                    quickCleanupSetMediaState(post, 'failed', 'Failed');
+                }
+            }
+            async function runQuickCleanup(row){
+                if (!validateRowInputs(row, true)) {
+                    setRowState(row, 'failed', 'Needs Input');
+                    addLog({level:'error', message:'Required cleanup input missing or invalid.', context:{step_id:row ? row.dataset.stepId || '' : ''}});
+                    refreshInputState();
+                    return false;
+                }
+                var inputs = quickCleanupInputs(row);
+                var totals = {deleted:0, failed:0, media:0, batches:0};
+                var exclude = [];
+                var plannedDeleteCount = 0;
+                setRowState(row, 'running', 'Scanning');
+                clearReport(row);
+                addLog({level:'warning', message:'Building Quick Start cleanup plan.', context:{keep_recent:inputs.keep_recent}});
+                try {
+                    var plan = await postAction(root.dataset.quickCleanupScanAction || '', inputs);
+                    addLogs(plan.log);
+                    renderQuickCleanupPlan(row, plan);
+                    plannedDeleteCount = parseInt(plan.delete_count || 0, 10) || 0;
+                    if (!plannedDeleteCount) {
+                        quickCleanupSetSummary(row, 'No posts need deletion.', 'The newest-post rule leaves no older regular posts to delete.');
+                        setRowState(row, 'success', 'No deletion needed');
+                        return true;
+                    }
+                    setRowState(row, 'running', 'Deleting');
+                    while (true) {
+                        var next = quickCleanupNextQueued(row);
+                        if (!next) {
+                            break;
+                        }
+                        var postId = next.dataset.postId || '';
+                        totals.batches++;
+                        quickCleanupSetPostStatus(row, postId, 'deleting', 'Deleting', 'Deleting post and detected media now.');
+                        quickCleanupSetMediaState(next, 'deleting', 'Deleting');
+                        quickCleanupSetSummary(row, 'Deleting post #' + postId + ' (' + totals.batches + ' of ' + plannedDeleteCount + ').', 'Featured image and inline media update under the post as they are deleted.');
+                        var result = await postAction(
+                            root.dataset.quickCleanupBatchAction || '',
+                            {
+                                keep_recent: inputs.keep_recent,
+                                confirmation: inputs.confirmation,
+                                exclude_ids: exclude
+                            }
+                        );
+                        addLogs(result.log);
+                        quickCleanupApplyPreservedIds(row, result.preserved_ids || []);
+                        (result.post_results || []).forEach(function(postResult){ quickCleanupApplyPostResult(row, postResult); });
+                        exclude = result.exclude_ids || exclude;
+                        totals.deleted += parseInt(result.deleted_count || 0, 10) || 0;
+                        totals.failed += parseInt(result.failed_count || 0, 10) || 0;
+                        totals.media += parseInt(result.deleted_media_count || 0, 10) || 0;
+                        if (!result.has_more && !quickCleanupNextQueued(row)) {
+                            break;
+                        }
+                        if (result.has_more && !quickCleanupNextQueued(row)) {
+                            quickCleanupSetSummary(row, 'More matching posts remain beyond the visible plan.', 'Reload the cleanup plan and run again to continue.');
+                            setRowState(row, 'failed', 'More posts remain');
+                            return false;
+                        }
+                    }
+                    if (totals.failed > 0) {
+                        quickCleanupSetSummary(row, 'Cleanup finished with failures.', totals.deleted + ' posts deleted, ' + totals.media + ' media items deleted, ' + totals.failed + ' posts failed.');
+                        setRowState(row, 'failed', 'Failed');
+                        return false;
+                    }
+                    quickCleanupSetSummary(row, 'Cleanup complete and verified.', totals.deleted + ' posts deleted and ' + totals.media + ' media items deleted.');
+                    setRowState(row, 'success', 'Deleted');
+                    addLog({level:'success', message:'Quick Start cleanup finished.', context:totals});
+                    return true;
+                } catch (error) {
+                    var active = quickCleanupPanel(row);
+                    if (active) {
+                        active.querySelectorAll('[data-qc-post][data-cleanup-status="deleting"]').forEach(function(post){
+                            quickCleanupSetPostStatus(row, post.dataset.postId || '', 'failed', 'Failed', error.message || 'Delete failed.');
+                            quickCleanupSetMediaState(post, 'failed', 'Failed');
+                        });
+                    }
+                    quickCleanupSetSummary(row, 'Cleanup failed.', error.message || 'AJAX request failed.');
+                    setRowState(row, 'failed', error.message || 'Failed');
+                    addLog({level:'error', message:error.message || 'Quick Start cleanup failed.', context:{step_id:row ? row.dataset.stepId || '' : ''}});
+                    return false;
+                }
+            }
             function runItem(row){
                 var stepId = row ? row.dataset.stepId : '';
                 var subtaskId = row ? row.dataset.subtaskId : '';
@@ -732,6 +1018,9 @@ final class GettingStartedChecklistRenderer {
                     addLog({level:'error', message:'Required input missing or invalid for this step.', context:{step_id:stepId}});
                     refreshInputState();
                     return false;
+                }
+                if (isQuickCleanupStep(stepRow)) {
+                    return runQuickCleanup(stepRow);
                 }
                 if (!subtasks.length) {
                     return runItem(stepRow);

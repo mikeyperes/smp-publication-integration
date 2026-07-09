@@ -1,9 +1,12 @@
 <?php
 namespace smp_publication_integration\Support;
 
+use Hexa\PluginCore\ContentCleanup\ArticleMediaCleanupScanner;
 use Hexa\PluginCore\GettingStartedChecklist\ChecklistReportBuilder;
 use Hexa\PluginCore\GettingStartedChecklist\GettingStartedChecklistAjaxController;
 use Hexa\PluginCore\GettingStartedChecklist\GettingStartedChecklistConfig;
+use Hexa\PluginCore\WpAdminAjax\AjaxActionRegistry;
+use Hexa\PluginCore\WpAdminAjax\AjaxRequest;
 
 if ( ! defined( "ABSPATH" ) ) {
     exit;
@@ -13,6 +16,10 @@ final class QuickStartFeatures {
     private const NONCE_ACTION = 'smpi_admin';
     private const NONCE_FIELD  = 'nonce';
     private const RUN_ACTION   = 'smpi_quick_start_checklist_run_item';
+    private const QUICK_CLEANUP_SCAN_ACTION = 'smpi_quick_start_article_cleanup_scan';
+    private const QUICK_CLEANUP_BATCH_ACTION = 'smpi_quick_start_article_cleanup_batch_delete';
+    private const QUICK_CLEANUP_STEP_ID = 'delete_old_posts_keep_latest_10';
+    private const DELETE_POSTS_AND_MEDIA_CONFIRMATION = 'DELETE POSTS AND MEDIA';
 
     public static function checklist_config(): GettingStartedChecklistConfig {
         return new GettingStartedChecklistConfig(
@@ -24,6 +31,9 @@ final class QuickStartFeatures {
                 'nonce_action'  => self::NONCE_ACTION,
                 'nonce_field'   => self::NONCE_FIELD,
                 'run_action'    => self::RUN_ACTION,
+                'quick_cleanup_step_id' => self::QUICK_CLEANUP_STEP_ID,
+                'quick_cleanup_scan_action' => self::QUICK_CLEANUP_SCAN_ACTION,
+                'quick_cleanup_batch_action' => self::QUICK_CLEANUP_BATCH_ACTION,
                 'empty_message' => 'No SMP Quick Start checklist items are registered.',
                 'show_type_badges' => false,
                 'steps'         => self::checklist_steps(),
@@ -39,6 +49,22 @@ final class QuickStartFeatures {
         }
 
         ( new GettingStartedChecklistAjaxController( self::checklist_config() ) )->register();
+        AjaxActionRegistry::create(
+            [
+                'capability'   => 'manage_options',
+                'nonce_action' => self::NONCE_ACTION,
+                'nonce_field'  => self::NONCE_FIELD,
+            ]
+        )->register(
+            [
+                self::QUICK_CLEANUP_SCAN_ACTION => [
+                    'callback' => [ self::class, 'quick_cleanup_scan' ],
+                ],
+                self::QUICK_CLEANUP_BATCH_ACTION => [
+                    'callback' => [ self::class, 'quick_cleanup_batch_delete' ],
+                ],
+            ]
+        );
 
         $registered = true;
     }
@@ -51,6 +77,10 @@ final class QuickStartFeatures {
 
         if ( ! $item ) {
             return self::checklist_result( false, 'Unknown SMP Quick Start item.', 'error', [], [ 'item_id' => $item_id ] );
+        }
+
+        if ( self::QUICK_CLEANUP_STEP_ID === $item_id ) {
+            return self::delete_old_posts_keep_latest_10( $payload );
         }
 
         $targets = is_array( $item['settings'] ?? null ) ? $item['settings'] : [];
@@ -119,12 +149,13 @@ final class QuickStartFeatures {
             $steps[] = [
                 'id'           => (string) $item_id,
                 'label'        => (string) ( $item['title'] ?? $item_id ),
-                'type'         => 'feature_toggle',
+                'type'         => (string) ( $item['type'] ?? 'feature_toggle' ),
                 'description'  => self::checklist_description( $item ),
                 'callback'     => [ self::class, 'run_checklist_item' ],
                 'context'      => [
                     'quick_start_item' => (string) $item_id,
                 ],
+                'required_inputs' => is_array( $item['required_inputs'] ?? null ) ? $item['required_inputs'] : [],
             ];
         }
 
@@ -133,6 +164,38 @@ final class QuickStartFeatures {
 
     public static function items(): array {
         return [
+            "delete_old_posts_keep_latest_10" => [
+                "title" => "Delete Old Posts, Keep Latest 10",
+                "description" => "Deletes regular posts and their associated media. Default keeps the newest 10 posts; set Posts to keep to 0 to delete all regular posts.",
+                "type" => "setup_action",
+                "required_inputs" => [
+                    [
+                        "id" => "delete_old_posts_keep_recent",
+                        "label" => "Posts to keep",
+                        "type" => "number",
+                        "required" => true,
+                        "value" => "10",
+                        "min" => 0,
+                        "max" => 5000,
+                        "step" => 1,
+                        "description" => "Default is 10. Use 0 only when deleting all regular posts. Associated featured, inline, and gallery media are deleted for every deleted post.",
+                    ],
+                    ChecklistReportBuilder::confirmation_input(
+                        "delete_old_posts_confirmation",
+                        self::DELETE_POSTS_AND_MEDIA_CONFIRMATION,
+                        "Delete posts and media confirmation",
+                        [
+                            "description" => "Type exactly: " . self::DELETE_POSTS_AND_MEDIA_CONFIRMATION . ". This permanently deletes matching regular posts and their associated featured, inline, and gallery media.",
+                        ]
+                    ),
+                ],
+                "details" => [
+                    [ "label" => "Post type", "value" => "post" ],
+                    [ "label" => "Default", "value" => "Keep newest 10 posts" ],
+                    [ "label" => "Delete all option", "value" => "Set Posts to keep to 0" ],
+                    [ "label" => "Deletes media", "value" => "Associated featured, inline, and gallery media" ],
+                ],
+            ],
             "elementor_css_cache_busting" => [
                 "title" => "Elementor CSS cache busting",
                 "description" => "Keeps Elementor upload CSS cache-safe on the frontend.",
@@ -426,6 +489,72 @@ final class QuickStartFeatures {
         return $items[ $id ] ?? null;
     }
 
+    public static function quick_cleanup_scan( AjaxRequest $request ): array|\WP_Error {
+        $keep_recent = self::quick_cleanup_keep_recent_from_request( $request );
+        if ( null === $keep_recent ) {
+            return new \WP_Error( 'smpi_quick_cleanup_invalid_keep_recent', 'Posts to keep must be a whole number from 0 to 5000.' );
+        }
+
+        $confirmation = trim( $request->text( 'confirmation' ) );
+        if ( ! hash_equals( self::DELETE_POSTS_AND_MEDIA_CONFIRMATION, $confirmation ) ) {
+            return new \WP_Error( 'smpi_quick_cleanup_invalid_confirmation', 'Delete posts and media confirmation is invalid.' );
+        }
+
+        $config  = ArticleCleanup::config();
+        $scanner = new ArticleMediaCleanupScanner( $config );
+
+        return $scanner->scan_deletion_plan(
+            self::quick_cleanup_criteria( $keep_recent, $config->max_limit() ),
+            $keep_recent,
+            $config->max_limit()
+        );
+    }
+
+    public static function quick_cleanup_batch_delete( AjaxRequest $request ): array|\WP_Error {
+        $keep_recent = self::quick_cleanup_keep_recent_from_request( $request );
+        if ( null === $keep_recent ) {
+            return new \WP_Error( 'smpi_quick_cleanup_invalid_keep_recent', 'Posts to keep must be a whole number from 0 to 5000.' );
+        }
+
+        $confirmation = trim( $request->text( 'confirmation' ) );
+        if ( ! hash_equals( self::DELETE_POSTS_AND_MEDIA_CONFIRMATION, $confirmation ) ) {
+            return new \WP_Error( 'smpi_quick_cleanup_invalid_confirmation', 'Delete posts and media confirmation is invalid.' );
+        }
+
+        if ( function_exists( 'current_user_can' ) && ! current_user_can( 'delete_posts' ) ) {
+            return new \WP_Error( 'smpi_quick_cleanup_delete_permission_denied', 'Current user cannot delete posts.' );
+        }
+
+        $config  = ArticleCleanup::config();
+        $scanner = new ArticleMediaCleanupScanner( $config );
+
+        return $scanner->delete_batch(
+            self::quick_cleanup_criteria( $keep_recent, $config->max_limit() ),
+            true,
+            'all_except_keep_recent',
+            1,
+            array_map( 'absint', $request->items( 'exclude_ids' ) )
+        );
+    }
+
+    private static function quick_cleanup_keep_recent_from_request( AjaxRequest $request ): ?int {
+        return self::delete_posts_keep_recent_from_inputs(
+            [
+                'delete_old_posts_keep_recent' => $request->text( 'keep_recent', '10' ),
+            ]
+        );
+    }
+
+    private static function quick_cleanup_criteria( int $keep_recent, int $limit ): array {
+        return [
+            'post_type'   => 'post',
+            'status'      => 'any',
+            'keep_recent' => $keep_recent,
+            'search'      => '',
+            'limit'       => $limit,
+        ];
+    }
+
     private static function purge_frontend_cache(): void {
         if ( function_exists( 'wp_cache_flush' ) ) {
             wp_cache_flush();
@@ -448,6 +577,159 @@ final class QuickStartFeatures {
 
     private static function checklist_description( array $item ): string {
         return trim( (string) ( $item['description'] ?? '' ) );
+    }
+
+    private static function delete_old_posts_keep_latest_10( array $payload ): array {
+        $inputs       = is_array( $payload['inputs'] ?? null ) ? $payload['inputs'] : [];
+        $confirmation = isset( $inputs['delete_old_posts_confirmation'] ) ? trim( (string) $inputs['delete_old_posts_confirmation'] ) : '';
+        $keep_recent  = self::delete_posts_keep_recent_from_inputs( $inputs );
+
+        if ( ! hash_equals( self::DELETE_POSTS_AND_MEDIA_CONFIRMATION, $confirmation ) ) {
+            return self::checklist_result( false, 'Delete posts and media confirmation is invalid.', 'error' );
+        }
+
+        if ( null === $keep_recent ) {
+            return self::checklist_result( false, 'Posts to keep must be a whole number from 0 to 5000.', 'error' );
+        }
+
+        if ( function_exists( 'current_user_can' ) && ! current_user_can( 'delete_posts' ) ) {
+            return self::checklist_result( false, 'Current user cannot delete posts.', 'error' );
+        }
+
+        $config   = ArticleCleanup::config();
+        $scanner  = new ArticleMediaCleanupScanner( $config );
+        $criteria = [
+            'post_type'   => 'post',
+            'status'      => 'any',
+            'keep_recent' => $keep_recent,
+            'search'      => '',
+            'limit'       => $config->max_limit(),
+        ];
+
+        $batch_size          = $config->max_batch_size();
+        $exclude_ids         = [];
+        $batches             = [];
+        $deleted_total       = 0;
+        $failed_total        = 0;
+        $deleted_media_total = 0;
+        $preserved_ids       = [];
+        $last_has_more       = false;
+
+        for ( $batch = 1; $batch <= 200; $batch++ ) {
+            $result = $scanner->delete_batch( $criteria, true, 'all_except_keep_recent', $batch_size, $exclude_ids );
+            if ( is_wp_error( $result ) ) {
+                return self::checklist_result(
+                    false,
+                    'Article cleanup failed: ' . $result->get_error_message(),
+                    'error',
+                    [],
+                    [
+                        'item_id'     => 'delete_old_posts_keep_latest_10',
+                        'post_type'   => 'post',
+                        'keep_recent' => $keep_recent,
+                        'batch'       => $batch,
+                    ]
+                );
+            }
+
+            $deleted_count       = (int) ( $result['deleted_count'] ?? 0 );
+            $failed_count        = (int) ( $result['failed_count'] ?? 0 );
+            $deleted_media_count = (int) ( $result['deleted_media_count'] ?? 0 );
+            $preserved_ids       = array_values( array_unique( array_merge( $preserved_ids, (array) ( $result['preserved_ids'] ?? [] ) ) ) );
+            $exclude_ids         = array_values( array_unique( (array) ( $result['exclude_ids'] ?? $exclude_ids ) ) );
+            $last_has_more       = ! empty( $result['has_more'] );
+
+            $deleted_total       += $deleted_count;
+            $failed_total        += $failed_count;
+            $deleted_media_total += $deleted_media_count;
+
+            $batches[] = [
+                'batch'         => $batch,
+                'post_type'     => 'post',
+                'deleted_posts' => $deleted_count,
+                'failed_posts'  => $failed_count,
+                'deleted_media' => $deleted_media_count,
+                'preserved_ids' => implode( ', ', array_map( 'strval', (array) ( $result['preserved_ids'] ?? [] ) ) ),
+                'failed_ids'    => implode( ', ', array_map( 'strval', (array) ( $result['failed_ids'] ?? [] ) ) ),
+            ];
+
+            if ( ! $last_has_more ) {
+                break;
+            }
+        }
+
+        $success = ! $last_has_more && 0 === $failed_total;
+        $preserved_label = $keep_recent > 0 ? 'preserved the newest ' . $keep_recent . ' posts' : 'no posts were preserved';
+        $message = $deleted_total > 0
+            ? sprintf( 'Deleted %d regular posts and %d associated media item(s); %s.', $deleted_total, $deleted_media_total, $preserved_label )
+            : ( $keep_recent > 0 ? 'No old posts needed deletion; the newest ' . $keep_recent . ' posts remain protected.' : 'No regular posts needed deletion.' );
+
+        if ( $last_has_more ) {
+            $message = 'Article cleanup stopped before all batches completed. Re-run the task to continue.';
+        } elseif ( $failed_total > 0 ) {
+            $message = sprintf( 'Article cleanup completed with %d failed post deletion(s).', $failed_total );
+        }
+
+        return self::checklist_result(
+            $success,
+            $message,
+            $success ? 'success' : 'warning',
+            [
+                ChecklistReportBuilder::table(
+                    'news_outlet_article_cleanup',
+                    'News Outlet Article Cleanup',
+                    $batches,
+                    [
+                        'batch'         => 'Batch',
+                        'post_type'     => 'Post Type',
+                        'deleted_posts' => 'Deleted Posts',
+                        'failed_posts'  => 'Failed Posts',
+                        'deleted_media' => 'Deleted Media',
+                        'preserved_ids' => 'Preserved IDs',
+                        'failed_ids'    => 'Failed IDs',
+                    ],
+                    [
+                        'summary' => $keep_recent > 0
+                            ? 'Post type post only. The newest ' . $keep_recent . ' matching posts were preserved; older matching posts were deleted with associated media.'
+                            : 'Post type post only. No posts were preserved; all matching regular posts were deleted with associated media.',
+                        'meta'    => [
+                            'documentation' => 'This destructive report scans only WordPress posts, uses the selected Posts to keep value, deletes matching posts in batches, and reports deleted posts, failed posts, deleted media, and preserved IDs.',
+                            'summary_items' => [
+                                [ 'label' => 'Before', 'value' => $keep_recent > 0 ? 'The scanner selected regular posts with any status and protected the newest ' . $keep_recent . '.' : 'The scanner selected regular posts with any status and did not preserve any posts.' ],
+                                [ 'label' => 'Action Taken', 'value' => $deleted_total . ' old post' . ( 1 === $deleted_total ? '' : 's' ) . ' and ' . $deleted_media_total . ' associated media item' . ( 1 === $deleted_media_total ? '' : 's' ) . ' were deleted across ' . count( $batches ) . ' batch' . ( 1 === count( $batches ) ? '' : 'es' ) . '.' ],
+                                [ 'label' => 'Verified After', 'value' => $failed_total . ' failed post deletion' . ( 1 === $failed_total ? '' : 's' ) . '; batch limit reached: ' . ( $last_has_more ? 'yes' : 'no' ) . '.' ],
+                            ],
+                        ],
+                    ]
+                ),
+            ],
+            [
+                'item_id'             => 'delete_old_posts_keep_latest_10',
+                'post_type'           => 'post',
+                'status'              => 'any',
+                'keep_recent'         => $keep_recent,
+                'deleted_posts'       => $deleted_total,
+                'failed_posts'        => $failed_total,
+                'deleted_media'       => $deleted_media_total,
+                'preserved_ids'       => $preserved_ids,
+                'batch_limit_reached' => $last_has_more,
+            ]
+        );
+    }
+
+    private static function delete_posts_keep_recent_from_inputs( array $inputs ): ?int {
+        $raw = isset( $inputs['delete_old_posts_keep_recent'] ) ? trim( (string) $inputs['delete_old_posts_keep_recent'] ) : '10';
+
+        if ( '' === $raw || ! preg_match( '/^\d+$/', $raw ) ) {
+            return null;
+        }
+
+        $keep_recent = (int) $raw;
+        if ( $keep_recent < 0 || $keep_recent > 5000 ) {
+            return null;
+        }
+
+        return $keep_recent;
     }
 
     private static function setting_label( string $setting_key, array $item ): string {

@@ -7,7 +7,55 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.6.167`
+- Version: `0.6.177`
+
+## 0.6.177 Updates
+
+- Fixed homepage ItemList schema so it uses the same frontend query filters as homepage post lists, keeping home-hidden posts out of structured data.
+
+## 0.6.176 Updates
+
+- Fixed Shadow Posts so home-only hidden posts are excluded from frontend home/front-page post queries, including homepage builder loops.
+- Updated Shadow Posts snippet copy to reflect the query marker and SQL guard behavior.
+
+## 0.6.175 Updates
+- Quick Start article cleanup now scans first, shows newest posts first, renders every queued post with detected featured/inline/gallery media, and deletes one post per AJAX request with live post/media statuses.
+- Article cleanup deletion now verifies deleted post and attachment records before reporting success.
+
+## 0.6.174 Updates
+
+- Preserved Quick Start required input min, max, and step metadata through checklist model normalization.
+- Added generic server-side numeric min/max validation for Quick Start required number inputs.
+
+## 0.6.173 Updates
+
+- Fixed Quick Start Posts to keep validation to allow whole numbers from 0 to 5000 instead of incorrectly capping at 250.
+- Added min, max, and step attributes to generic Quick Start required number inputs.
+
+## 0.6.172 Updates
+
+- Reworked Article Cleanup so the post table shows row-level cleanup state directly.
+- Added per-media status badges during deletion: pending, deleting, deleted, kept, or failed.
+- Auto-scans the cleanup tab so the table is visible when the page opens.
+
+## 0.6.171 Updates
+
+- Set the Article Cleanup tab default batch size to 1 so batch deletes show post/media progress one request at a time unless the user raises the batch size.
+
+## 0.6.170 Updates
+
+- Added an Article Cleanup tab that uses the original Hexa WP Core Article & Media Cleanup renderer and AJAX controller.
+- The full cleanup view supports live scans, associated media review, row deletes, selected deletes, batch deletes, and the Core activity log.
+
+## 0.6.169 Updates
+
+- Added a Posts to keep input to the guarded Quick Start cleanup action; the default is 10 and 0 is the explicit delete-all option.
+- Updated the confirmation copy to state that matching posts and their associated featured, inline, and gallery media are deleted.
+
+## 0.6.168 Updates
+
+- Restored the guarded Quick Start action for deleting old regular posts while preserving the newest 10.
+- The action uses typed confirmation and the existing Article & Media Cleanup scanner; it does not run unless `DELETE OLD POSTS` is entered.
 
 ## 0.6.167 Updates
 

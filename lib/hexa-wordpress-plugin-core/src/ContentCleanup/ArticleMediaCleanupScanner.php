@@ -51,6 +51,54 @@ final class ArticleMediaCleanupScanner {
         ];
     }
 
+    public function scan_deletion_plan( array $criteria, int $keep_recent, int $limit ): array {
+        $criteria                = $this->normalize_criteria( $criteria );
+        $criteria['keep_recent'] = 0;
+        $keep_recent             = max( 0, $keep_recent );
+        $limit                   = min( $this->config->max_limit(), max( 1, $limit ) );
+        $ids                     = $this->matching_ids( $criteria, $limit + 1, [] );
+        $has_more                = count( $ids ) > $limit;
+        $ids                     = array_slice( $ids, 0, $limit );
+        $posts_by_id             = $this->posts_by_id( $ids, $criteria );
+        $rows                    = [];
+        $preserved_ids           = [];
+        $delete_ids              = [];
+
+        foreach ( $ids as $index => $post_id ) {
+            if ( ! isset( $posts_by_id[ $post_id ] ) || ! $posts_by_id[ $post_id ] instanceof \WP_Post ) {
+                continue;
+            }
+
+            $row = $this->row_from_post( $posts_by_id[ $post_id ] );
+            if ( $index < $keep_recent ) {
+                $row['cleanup_status'] = 'preserved';
+                $row['cleanup_label']  = 'Kept';
+                $preserved_ids[]       = (int) $post_id;
+            } else {
+                $row['cleanup_status'] = 'queued';
+                $row['cleanup_label']  = 'Will delete';
+                $delete_ids[]          = (int) $post_id;
+            }
+
+            $rows[] = $row;
+        }
+
+        return [
+            'criteria'      => array_merge( $criteria, [ 'keep_recent' => $keep_recent ] ),
+            'rows'          => $rows,
+            'count'         => count( $rows ),
+            'preserved_ids' => $preserved_ids,
+            'delete_ids'    => $delete_ids,
+            'delete_count'  => count( $delete_ids ),
+            'media_count'   => array_sum( array_map( static fn( array $row ): int => (int) ( $row['media_count'] ?? 0 ), $rows ) ),
+            'delete_media_count' => array_sum( array_map( static fn( array $row ): int => 'queued' === (string) ( $row['cleanup_status'] ?? '' ) ? (int) ( $row['media_count'] ?? 0 ) : 0, $rows ) ),
+            'has_more'      => $has_more,
+            'log'           => [
+                $this->log( 'info', 'Loaded Quick Start article cleanup plan.', [ 'keep_recent' => $keep_recent, 'rows' => count( $rows ), 'delete_count' => count( $delete_ids ), 'has_more' => $has_more ? 'yes' : 'no' ] ),
+            ],
+        ];
+    }
+
     public function delete_post( int $post_id, bool $delete_media ): array|\WP_Error {
         $post = $this->editable_post_or_error( $post_id );
         if ( $post instanceof \WP_Error ) {
@@ -69,8 +117,13 @@ final class ArticleMediaCleanupScanner {
             return new \WP_Error( 'article_delete_failed', 'WordPress could not permanently delete this article.' );
         }
 
+        if ( function_exists( 'get_post' ) && get_post( $post_id ) instanceof \WP_Post ) {
+            return new \WP_Error( 'article_delete_not_verified', 'WordPress reported deletion, but the article still exists.' );
+        }
+
         $deleted_media = [];
         $media_errors  = [];
+        $media_status  = [];
 
         if ( $delete_media ) {
             foreach ( $media as $item ) {
@@ -81,29 +134,63 @@ final class ArticleMediaCleanupScanner {
 
                 if ( ! function_exists( 'wp_delete_attachment' ) ) {
                     $media_errors[] = 'wp_delete_attachment is unavailable.';
-                    break;
+                    $media_status[] = array_merge(
+                        $item,
+                        [
+                            'status'  => 'failed',
+                            'message' => 'wp_delete_attachment is unavailable.',
+                        ]
+                    );
+                    continue;
                 }
 
                 $deleted = wp_delete_attachment( $attachment_id, true );
-                if ( $deleted ) {
+                $verified = $deleted && ( ! function_exists( 'get_post' ) || ! ( get_post( $attachment_id ) instanceof \WP_Post ) );
+                if ( $verified ) {
                     $deleted_media[] = $item;
+                    $media_status[]  = array_merge(
+                        $item,
+                        [
+                            'status'  => 'deleted',
+                            'message' => 'Deleted and verified.',
+                        ]
+                    );
                     $log[] = $this->log( 'success', 'Deleted associated media.', [ 'attachment_id' => $attachment_id, 'title' => $item['title'], 'source' => $item['source'] ] );
                 } else {
-                    $media_errors[] = 'Failed to delete media ID ' . $attachment_id;
+                    $media_errors[] = $deleted ? 'Media ID ' . $attachment_id . ' still exists after deletion.' : 'Failed to delete media ID ' . $attachment_id;
+                    $media_status[] = array_merge(
+                        $item,
+                        [
+                            'status'  => 'failed',
+                            'message' => $deleted ? 'Delete was not verified.' : 'Failed to delete media.',
+                        ]
+                    );
                     $log[] = $this->log( 'error', 'Associated media delete failed.', [ 'attachment_id' => $attachment_id, 'title' => $item['title'] ] );
                 }
             }
         } else {
+            foreach ( $media as $item ) {
+                $media_status[] = array_merge(
+                    $item,
+                    [
+                        'status'  => 'skipped',
+                        'message' => 'Media cleanup was not enabled.',
+                    ]
+                );
+            }
             $log[] = $this->log( 'info', 'Associated media deletion was not enabled. Media was left untouched.', [ 'media_count' => count( $media ) ] );
         }
 
-        $log[] = $this->log( 'success', 'Permanently deleted article.', [ 'post_id' => $post_id, 'title' => $title ] );
+        $log[] = $this->log( 'success', 'Permanently deleted and verified article.', [ 'post_id' => $post_id, 'title' => $title ] );
 
         return [
             'id'            => $post_id,
-            'message'       => 'Deleted article: ' . $title,
+            'title'         => $title,
+            'status'        => 'deleted',
+            'message'       => 'Deleted and verified article: ' . $title,
             'media'         => $media,
             'deleted_media' => $deleted_media,
+            'media_status'  => $media_status,
             'media_errors'  => $media_errors,
             'log'           => $log,
         ];
@@ -174,6 +261,7 @@ final class ArticleMediaCleanupScanner {
                 'failed_ids'          => [],
                 'preserved_ids'       => $preserve_ids,
                 'exclude_ids'         => $exclude_ids,
+                'post_results'        => [],
                 'deleted_count'       => 0,
                 'failed_count'        => 0,
                 'deleted_media_count' => 0,
@@ -185,11 +273,19 @@ final class ArticleMediaCleanupScanner {
         $deleted_ids         = [];
         $failed_ids          = [];
         $deleted_media_count = 0;
+        $post_results        = [];
 
         foreach ( $candidate_ids as $post_id ) {
             $result = $this->delete_post( (int) $post_id, $delete_media );
             if ( $result instanceof \WP_Error ) {
                 $failed_ids[] = (int) $post_id;
+                $post_results[] = [
+                    'id'           => (int) $post_id,
+                    'title'        => function_exists( 'get_the_title' ) ? (string) get_the_title( (int) $post_id ) : '',
+                    'status'       => 'failed',
+                    'message'      => $result->get_error_message(),
+                    'media_status' => [],
+                ];
                 $log[]        = $this->log(
                     'error',
                     'Batch article deletion failed.',
@@ -203,6 +299,13 @@ final class ArticleMediaCleanupScanner {
 
             $deleted_ids[]         = (int) $post_id;
             $deleted_media_count  += count( (array) ( $result['deleted_media'] ?? [] ) );
+            $post_results[]        = [
+                'id'           => (int) $post_id,
+                'title'        => (string) ( $result['title'] ?? '' ),
+                'status'       => 'deleted',
+                'message'      => (string) ( $result['message'] ?? 'Deleted.' ),
+                'media_status' => (array) ( $result['media_status'] ?? [] ),
+            ];
             $log                   = array_merge( $log, (array) ( $result['log'] ?? [] ) );
         }
 
@@ -234,6 +337,7 @@ final class ArticleMediaCleanupScanner {
             'failed_ids'          => $failed_ids,
             'preserved_ids'       => $preserve_ids,
             'exclude_ids'         => $exclude_ids,
+            'post_results'        => $post_results,
             'deleted_count'       => count( $deleted_ids ),
             'failed_count'        => count( $failed_ids ),
             'deleted_media_count' => $deleted_media_count,
@@ -364,6 +468,39 @@ final class ArticleMediaCleanupScanner {
         }
 
         return $this->normalize_ids( get_posts( $args ) );
+    }
+
+    /**
+     * @param array<int,int> $ids
+     * @return array<int,\WP_Post>
+     */
+    private function posts_by_id( array $ids, array $criteria ): array {
+        if ( [] === $ids || ! function_exists( 'get_posts' ) ) {
+            return [];
+        }
+
+        $posts = get_posts(
+            [
+                'post_type'              => $criteria['post_type'],
+                'post_status'            => $this->query_statuses( $criteria['status'] ),
+                'posts_per_page'         => count( $ids ),
+                'post__in'               => $ids,
+                'orderby'                => 'post__in',
+                'ignore_sticky_posts'    => true,
+                'no_found_rows'          => true,
+                'update_post_meta_cache' => true,
+                'update_post_term_cache' => false,
+            ]
+        );
+
+        $by_id = [];
+        foreach ( $posts as $post ) {
+            if ( $post instanceof \WP_Post ) {
+                $by_id[ (int) $post->ID ] = $post;
+            }
+        }
+
+        return $by_id;
     }
 
     private function editable_post_or_error( int $post_id ): \WP_Post|\WP_Error {

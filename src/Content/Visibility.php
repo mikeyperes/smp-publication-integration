@@ -133,16 +133,17 @@ final class Visibility {
             return;
         }
         $context = $this->query_context( $query );
+        $shadow_context = $this->shadow_query_context( $query );
+        if ( Settings::bool( "shadow_posts_enabled" ) && $this->query_can_include_posts( $query ) ) {
+            if ( "home" === $shadow_context ) {
+                $query->set( "smpi_shadow_posts_home", true );
+            }
+            if ( "category_tag" === $shadow_context ) {
+                $query->set( "smpi_shadow_posts_archive", true );
+            }
+        }
         if ( "" === $context ) {
             return;
-        }
-        if ( Settings::bool( "shadow_posts_enabled" ) && $query->is_main_query() && "home" === $context ) {
-            $this->append_meta_exclusion( $query, self::COMPLETE_META );
-            $this->append_meta_exclusion( $query, self::HOME_META );
-        }
-        if ( Settings::bool( "shadow_posts_enabled" ) && $query->is_main_query() && "category_tag" === $context ) {
-            $this->append_meta_exclusion( $query, self::COMPLETE_META );
-            $this->append_meta_exclusion( $query, self::ARCHIVE_META );
         }
         if ( $this->should_include_press_releases( $context, $query ) ) {
             $this->ensure_press_release_post_type( $query );
@@ -157,6 +158,12 @@ final class Visibility {
 
     public function filter_press_release_where( string $where, \WP_Query $query ): string {
         global $wpdb;
+        if ( $query->get( "smpi_shadow_posts_home" ) ) {
+            $where .= $wpdb->prepare( " AND ( {$wpdb->posts}.post_type <> %s OR NOT EXISTS ( SELECT 1 FROM {$wpdb->postmeta} smpi_shadow_home WHERE smpi_shadow_home.post_id = {$wpdb->posts}.ID AND smpi_shadow_home.meta_key IN (%s, %s) AND smpi_shadow_home.meta_value = %s ) )", "post", self::COMPLETE_META, self::HOME_META, "1" );
+        }
+        if ( $query->get( "smpi_shadow_posts_archive" ) ) {
+            $where .= $wpdb->prepare( " AND ( {$wpdb->posts}.post_type <> %s OR NOT EXISTS ( SELECT 1 FROM {$wpdb->postmeta} smpi_shadow_archive WHERE smpi_shadow_archive.post_id = {$wpdb->posts}.ID AND smpi_shadow_archive.meta_key IN (%s, %s) AND smpi_shadow_archive.meta_value = %s ) )", "post", self::COMPLETE_META, self::ARCHIVE_META, "1" );
+        }
         if ( $query->get( "smpi_press_release_shadow" ) ) {
             $where .= $wpdb->prepare( " AND ( {$wpdb->posts}.post_type <> %s OR EXISTS ( SELECT 1 FROM {$wpdb->postmeta} smpi_pr_show WHERE smpi_pr_show.post_id = {$wpdb->posts}.ID AND smpi_pr_show.meta_key = %s AND smpi_pr_show.meta_value = %s ) )", "press-release", self::PR_OVERRIDE_META, "show" );
         }
@@ -183,6 +190,24 @@ final class Visibility {
             return "single_recent";
         }
         return "";
+    }
+
+    private function shadow_query_context( \WP_Query $query ): string {
+        if ( $query->is_home() || ( function_exists( "is_home" ) && is_home() ) || ( function_exists( "is_front_page" ) && is_front_page() ) ) {
+            return "home";
+        }
+        if ( $query->is_category() || $query->is_tag() || ( ! $query->is_main_query() && ! is_singular() && ( ( function_exists( "is_category" ) && is_category() ) || ( function_exists( "is_tag" ) && is_tag() ) ) ) ) {
+            return "category_tag";
+        }
+        return "";
+    }
+
+    private function query_can_include_posts( \WP_Query $query ): bool {
+        $post_type = $query->get( "post_type" );
+        if ( empty( $post_type ) || "post" === $post_type || "any" === $post_type ) {
+            return true;
+        }
+        return is_array( $post_type ) && ( in_array( "post", $post_type, true ) || in_array( "any", $post_type, true ) );
     }
 
     private function should_include_press_releases( string $context, \WP_Query $query ): bool {

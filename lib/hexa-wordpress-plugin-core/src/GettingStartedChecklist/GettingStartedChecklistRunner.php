@@ -271,6 +271,24 @@ final class GettingStartedChecklistRunner {
                 continue;
             }
 
+            if ( 'number' === $type ) {
+                if ( ! is_numeric( $value ) ) {
+                    $missing[] = (string) ( $definition['label'] ?? $id );
+                    continue;
+                }
+
+                $numeric = (float) $value;
+                if ( '' !== (string) ( $definition['min'] ?? '' ) && $numeric < (float) $definition['min'] ) {
+                    $missing[] = (string) ( $definition['label'] ?? $id );
+                    continue;
+                }
+
+                if ( '' !== (string) ( $definition['max'] ?? '' ) && $numeric > (float) $definition['max'] ) {
+                    $missing[] = (string) ( $definition['label'] ?? $id );
+                    continue;
+                }
+            }
+
             if ( 'confirmation' === $type ) {
                 $expected = (string) ( $definition['confirm_text'] ?? $definition['expected_value'] ?? $definition['expected'] ?? '' );
                 if ( '' !== $expected ) {

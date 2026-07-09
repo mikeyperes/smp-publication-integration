@@ -178,16 +178,16 @@ final class SnippetDefinitions {
                 "category" => "query-visibility",
                 "option_key" => "shadow_posts_enabled",
                 "default_enabled" => true,
-                "description" => "Adds post-editor visibility toggles. Completely shadowed posts stay link-accessible only and are excluded from home, category, and tag main queries; home-only shadowed posts are excluded from the home query.",
-                "info" => "<p>Registers the post meta controls <code>_smpi_shadow_complete</code> and <code>_smpi_shadow_home</code> and guards only the front-end main query. Single URLs remain accessible.</p>",
+                "description" => "Adds post-editor visibility toggles. Completely shadowed posts stay link-accessible only and are excluded from home, category, and tag post queries; home-only shadowed posts are excluded from home/front-page post queries.",
+                "info" => "<p>Registers the post meta controls <code>_smpi_shadow_complete</code> and <code>_smpi_shadow_home</code> and guards front-end post queries, including homepage builder loops. Single URLs remain accessible.</p>",
                 "snippets" => [
-                    [ "label" => "Runtime class", "value" => Visibility::class, "description" => "pre_get_posts main-query guard (priority 1000) plus add_meta_boxes / save_post for the visibility toggles." ],
+                    [ "label" => "Runtime class", "value" => Visibility::class, "description" => "pre_get_posts query marker (priority 1000), posts_where SQL guard, and add_meta_boxes / save_post for the visibility toggles." ],
                 ],
                 "test_rules" => [
                     [ "id" => "smp_setting_enabled", "label" => "SMP feature setting is enabled", "description" => "Reads smpi_settings[shadow_posts_enabled].", "type" => "callback", "callback" => static fn( ...$args ): bool => Settings::bool( "shadow_posts_enabled" ), "required" => true ],
                     [ "id" => "runtime_class_loaded", "label" => "Runtime class is loaded", "description" => "Confirms the runtime class is available.", "type" => "callback", "callback" => static fn( ...$args ): bool => class_exists( Visibility::class ), "required" => true ],
                 ],
-                "readme" => "Shadow posts\n\nExcludes flagged posts from front-end main queries while keeping single URLs accessible.\n\nSetting: smpi_settings[shadow_posts_enabled].",
+                "readme" => "Shadow posts\n\nExcludes flagged posts from front-end post queries, including homepage builder loops, while keeping single URLs accessible.\n\nSetting: smpi_settings[shadow_posts_enabled].",
             ],
             [
                 "id" => "estimated_read_time",

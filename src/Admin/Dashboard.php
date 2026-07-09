@@ -22,6 +22,7 @@ use smp_publication_integration\Content\MultiAuthors;
 use smp_publication_integration\Content\Schema;
 use smp_publication_integration\Content\Shortcodes;
 use smp_publication_integration\Support\Dependencies;
+use smp_publication_integration\Support\ArticleCleanup;
 use smp_publication_integration\Support\PageStructure;
 use smp_publication_integration\Support\PluginInventory;
 use smp_publication_integration\Support\PluginRegistry;
@@ -38,6 +39,7 @@ final class Dashboard {
     private const SCHEMA_DETECTION_REFRESH_LOCK_KEY = 'smpi_schema_detection_refresh_lock';
 
     public function register(): void {
+        ArticleCleanup::register_ajax();
         add_action( 'admin_menu', [ $this, 'add_settings_page' ] );
         add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_admin_assets' ] );
     }
@@ -119,6 +121,7 @@ final class Dashboard {
         return apply_filters( 'smpi_dashboard_tabs', [
             'overview' => 'Overview',
             'quick_run' => 'Quick Start',
+            'article_cleanup' => 'Article Cleanup',
             'publication_options' => 'Publication Options',
             'profiles' => 'Publication Profiles',
             'brand' => 'Brand',
@@ -161,6 +164,7 @@ final class Dashboard {
         if ( 'plugins' === $id ) { $this->plugins(); return; }
         if ( 'verified_profiles' === $id ) { $this->verified_profiles(); return; }
         if ( 'integrations' === $id ) { $this->integrations(); return; }
+        if ( 'article_cleanup' === $id ) { $this->article_cleanup(); return; }
         if ( 'quick_run' === $id ) { $this->quick_run(); return; }
         $this->overview();
     }
@@ -1394,6 +1398,10 @@ final class Dashboard {
     private function quick_run(): void {
         QuickStartFeatures::register_checklist_ajax();
         ( new GettingStartedChecklistRenderer( QuickStartFeatures::checklist_config() ) )->render();
+    }
+
+    private function article_cleanup(): void {
+        ArticleCleanup::render();
     }
 
     private function snippets(): void {

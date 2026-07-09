@@ -489,7 +489,7 @@ final class Schema {
         if ( post_type_exists( "press-release" ) ) {
             $post_types[] = "press-release";
         }
-        $posts = get_posts( [ "post_type" => $post_types, "post_status" => "publish", "posts_per_page" => 20, "ignore_sticky_posts" => true ] );
+        $posts = get_posts( [ "post_type" => $post_types, "post_status" => "publish", "posts_per_page" => 20, "ignore_sticky_posts" => true, "suppress_filters" => false ] );
         $items = [];
         $position = 1;
         foreach ( $posts as $post ) {
