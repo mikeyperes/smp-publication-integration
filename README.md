@@ -7,7 +7,13 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.6.165`
+- Version: `0.6.166`
+
+## 0.6.166 Updates
+
+- Restored HWS-style Quick Start reports for every item after Apply Settings runs.
+- Each Quick Start report now shows before state, action taken, verified after state, and what changed.
+- Kept the simplified Quick Start row copy and hidden request-type badges.
 
 ## 0.6.165 Updates
 
