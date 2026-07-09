@@ -7,7 +7,12 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.6.166`
+- Version: `0.6.167`
+
+## 0.6.167 Updates
+
+- Removed the SMP Quick Start button-label override so Core defaults render `Apply`.
+- Removed custom Quick Start report summary cards so Core renders the default report table without duplicate before/action/verified text.
 
 ## 0.6.166 Updates
 

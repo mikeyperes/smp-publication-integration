@@ -95,23 +95,6 @@ final class QuickStartFeatures {
             [
                 'type'    => 'smpi_quick_start_settings',
                 'summary' => $after_matches . ' of ' . $total . ' setting' . ( 1 === $total ? '' : 's' ) . ' verified.',
-                'meta'    => [
-                    'documentation' => 'This report reads the current settings, saves the Quick Start values, then reads the same settings again.',
-                    'summary_items' => [
-                        [
-                            'label' => 'Before',
-                            'value' => $before_matches . ' of ' . $total . ' setting' . ( 1 === $total ? '' : 's' ) . ' already matched.',
-                        ],
-                        [
-                            'label' => 'Action Taken',
-                            'value' => 'Saved the ' . $title . ' Quick Start values.',
-                        ],
-                        [
-                            'label' => 'Verified After',
-                            'value' => $after_matches . ' of ' . $total . ' setting' . ( 1 === $total ? '' : 's' ) . ' matched after saving.',
-                        ],
-                    ],
-                ],
             ]
         );
 
@@ -138,7 +121,6 @@ final class QuickStartFeatures {
                 'label'        => (string) ( $item['title'] ?? $item_id ),
                 'type'         => 'feature_toggle',
                 'description'  => self::checklist_description( $item ),
-                'action_label' => 'Apply Settings',
                 'callback'     => [ self::class, 'run_checklist_item' ],
                 'context'      => [
                     'quick_start_item' => (string) $item_id,
