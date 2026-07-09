@@ -377,6 +377,30 @@ final class QuickStartFeatures {
                     [ "label" => "Caption size/style", "value" => "10px italic" ],
                 ],
             ],
+            "hide_home_posts_without_featured_image" => [
+                "title" => "Hide home posts without featured images",
+                "description" => "Enable the homepage safeguard that keeps regular posts without a featured image out of home/front-page post lists.",
+                "settings" => [
+                    "hide_home_posts_without_featured_image" => true,
+                ],
+                "details" => [
+                    [ "label" => "Enabled", "value" => "Yes" ],
+                    [ "label" => "Post type", "value" => "post" ],
+                    [ "label" => "Scope", "value" => "Home/front-page post queries" ],
+                ],
+            ],
+            "post_featured_image_required" => [
+                "title" => "Featured image required for posts",
+                "description" => "Enable the editor safeguard that requires regular posts to have a featured image before publish, schedule, or pending review states.",
+                "settings" => [
+                    "post_featured_image_required" => true,
+                ],
+                "details" => [
+                    [ "label" => "Enabled", "value" => "Yes" ],
+                    [ "label" => "Post type", "value" => "post" ],
+                    [ "label" => "Guarded states", "value" => "publish, future, pending" ],
+                ],
+            ],
             "article_summary_faq_blocks" => [
                 "title" => "Article Summary & FAQ Blocks",
                 "description" => "Apply Mash Viral's editor-field enablement and frontend output styles for article summaries and FAQs.",

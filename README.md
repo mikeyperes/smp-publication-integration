@@ -7,7 +7,12 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.6.162`
+- Version: `0.6.163`
+
+## 0.6.163 Updates
+
+- Added Quick Start actions for hiding home posts without featured images and requiring featured images before regular posts can publish.
+- Updated vendored Hexa WP Core to `0.19.34` so Quick Start renders simple actions as one continuous list without fake row expand/collapse controls.
 
 ## 0.6.162 Updates
 

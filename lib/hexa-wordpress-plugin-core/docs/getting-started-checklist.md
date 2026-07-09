@@ -208,6 +208,8 @@ Callbacks may return:
 ## UI Behavior
 
 - `Run Checklist` executes top-level steps in order.
+- Simple steps render as one row in a continuous list with their own run button.
+- Only steps that actually contain subtasks render as expandable parent sections.
 - A step with subtasks shows the parent row as running while each subtask runs one after another.
 - A completed item shows a green check SVG.
 - A failed item shows a red X SVG.
