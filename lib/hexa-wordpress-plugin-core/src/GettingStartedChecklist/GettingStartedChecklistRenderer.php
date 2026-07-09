@@ -345,14 +345,32 @@ final class GettingStartedChecklistRenderer {
             #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-report-table td{color:#243044;overflow-wrap:anywhere;word-break:break-word}
             #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-report-table tr:last-child td{border-bottom:0}
             #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-report-table a{color:var(--hpc-blue);font-weight:800;text-decoration:none}
-            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-panel{background:#fff;border:1px solid #dce5ef;border-radius:8px;overflow:hidden}
-            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-head{align-items:flex-start;background:#f8fafc;border-bottom:1px solid #dce5ef;display:flex;gap:12px;justify-content:space-between;padding:11px}
-            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-head strong{display:block;font-size:12px;margin:0 0 3px}
-            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-head span{color:var(--hpc-muted);display:block;font-size:11px;line-height:1.35}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-panel{background:#fff;border:1px solid #dce5ef;border-radius:8px;display:grid;gap:0;overflow:hidden}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-overview{align-items:flex-start;background:#f8fafc;border-bottom:1px solid #dce5ef;display:flex;gap:12px;justify-content:space-between;padding:11px}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-overview strong,#<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-work-title strong,#<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-section-title strong{display:block;font-size:12px;margin:0 0 3px}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-overview span,#<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-work-title span,#<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-section-title span{color:var(--hpc-muted);display:block;font-size:11px;line-height:1.35}
             #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-summary{align-items:center;display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}
             #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-pill{background:#eef4fb;border:1px solid #d6e2ef;border-radius:999px;color:#334155;font-size:11px;font-weight:900;line-height:1;padding:5px 8px;white-space:nowrap}
             #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-pill.danger{background:#fff0f2;border-color:#ffd0d8;color:var(--hpc-red)}
             #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-pill.success{background:#eaf8ef;border-color:#ccefd7;color:var(--hpc-green)}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-work,#<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-kept{background:#fff;border:0;border-bottom:1px solid #dce5ef}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-kept:last-child{border-bottom:0}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-work summary,#<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-kept summary{cursor:pointer;list-style:none}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-work summary::-webkit-details-marker,#<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-kept summary::-webkit-details-marker{display:none}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-work-head,#<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-section-head{align-items:center;background:#fff;display:flex;gap:12px;justify-content:space-between;padding:11px}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-work-head{background:#fbfdff}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-work[open]>.hpc-gsc-cleanup-work-head,#<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-kept[open]>.hpc-gsc-cleanup-section-head{border-bottom:1px solid #edf1f6}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-chevron{align-items:center;background:#eef2ff;border:1px solid #dbe4ff;border-radius:999px;color:var(--hpc-blue);display:inline-flex;height:26px;justify-content:center;width:26px}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-chevron svg{display:block;fill:currentColor;height:11px;transform:rotate(0deg);transition:transform .18s;width:11px}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-work[open] .hpc-gsc-cleanup-chevron svg,#<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-kept[open] .hpc-gsc-cleanup-chevron svg{transform:rotate(180deg)}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-body{background:#fff;display:grid;gap:0}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-live{background:#f8fafc;border-bottom:1px solid #edf1f6;padding:11px}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-live strong{display:block;font-size:12px;margin:0 0 3px}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-live span{color:var(--hpc-muted);display:block;font-size:11px;line-height:1.35}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-section{display:grid;gap:0}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-section-label{align-items:center;background:#fff;border-bottom:1px solid #edf1f6;display:flex;gap:8px;justify-content:space-between;padding:9px 11px}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-section-label strong{color:#243044;font-size:11px;text-transform:uppercase}
+            #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-section-label span{color:var(--hpc-muted);font-size:11px}
             #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-list{display:grid;gap:0}
             #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-post{border-top:1px solid #edf1f6;display:grid;gap:10px;padding:11px}
             #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-post:first-child{border-top:0}
@@ -426,7 +444,7 @@ final class GettingStartedChecklistRenderer {
             #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-log-message{font-size:13px;font-weight:650;margin-bottom:4px}
             #<?php echo esc_attr( $root_id ); ?> .hpc-gsc-log-context{color:#9fb1c6;font-size:12px;overflow-wrap:anywhere;white-space:pre-wrap;word-break:break-word}
             @keyframes hpc-gsc-spin{to{transform:rotate(360deg)}}
-            @media(max-width:760px){#<?php echo esc_attr( $root_id ); ?> .hpc-gsc-row{grid-template-columns:34px minmax(0,1fr)}#<?php echo esc_attr( $root_id ); ?> .hpc-gsc-row-action{grid-column:2;justify-content:flex-start}#<?php echo esc_attr( $root_id ); ?> .hpc-gsc-subtask-row{margin-left:0}#<?php echo esc_attr( $root_id ); ?> .hpc-gsc-log-row{grid-template-columns:1fr}}
+            @media(max-width:760px){#<?php echo esc_attr( $root_id ); ?> .hpc-gsc-row{grid-template-columns:34px minmax(0,1fr)}#<?php echo esc_attr( $root_id ); ?> .hpc-gsc-row-action{grid-column:2;justify-content:flex-start}#<?php echo esc_attr( $root_id ); ?> .hpc-gsc-subtask-row{margin-left:0}#<?php echo esc_attr( $root_id ); ?> .hpc-gsc-log-row{grid-template-columns:1fr}#<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-overview,#<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-work-head,#<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-section-head{align-items:flex-start;display:grid}#<?php echo esc_attr( $root_id ); ?> .hpc-gsc-cleanup-summary{justify-content:flex-start}}
         </style>
         <script>
         (function(){
@@ -795,19 +813,31 @@ final class GettingStartedChecklistRenderer {
                     + quickMediaHtml(row)
                     + '</div>';
             }
+            function quickCleanupChevron(){
+                return '<span class="hpc-gsc-cleanup-chevron" aria-hidden="true"><svg viewBox="0 0 512 512" focusable="false"><path d="M233.4 406.6c12.5 12.5 32.8 12.5 45.3 0l192-192c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L256 338.7 86.6 169.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l192 192z"></path></svg></span>';
+            }
+            function quickCleanupListHtml(rows, emptyText){
+                rows = rows || [];
+                if (!rows.length) return '<div class="hpc-gsc-cleanup-post"><div class="hpc-gsc-cleanup-media-meta">' + esc(emptyText || 'No posts in this section.') + '</div></div>';
+                return rows.map(quickCleanupRowHtml).join('');
+            }
             function renderQuickCleanupPlan(row, plan){
                 var target = reportTarget(row);
                 if (!target) return;
                 var rows = Array.isArray(plan.rows) ? plan.rows : [];
+                var queuedRows = rows.filter(function(item){ return item && item.cleanup_status !== 'preserved'; });
+                var keptRows = rows.filter(function(item){ return item && item.cleanup_status === 'preserved'; });
                 var deleteCount = parseInt(plan.delete_count || 0, 10) || 0;
                 var keptCount = Array.isArray(plan.preserved_ids) ? plan.preserved_ids.length : 0;
                 var mediaCount = parseInt(plan.delete_media_count || plan.media_count || 0, 10) || 0;
                 var warning = plan.has_more ? '<span class="hpc-gsc-cleanup-pill danger">More rows exist than the visible plan limit</span>' : '';
                 target.innerHTML = '<div class="hpc-gsc-cleanup-panel" data-qc-panel>'
-                    + '<div class="hpc-gsc-cleanup-head"><div><strong>Article Cleanup Progress</strong><span>Newest posts are shown first. Older queued posts are deleted one at a time with their detected media.</span></div>'
+                    + '<div class="hpc-gsc-cleanup-overview"><div><strong>Article Cleanup Progress</strong><span>Newest posts are protected first. Older queued posts are processed one at a time with detected media.</span></div>'
                     + '<div class="hpc-gsc-cleanup-summary"><span class="hpc-gsc-cleanup-pill danger">' + esc(deleteCount) + ' to delete</span><span class="hpc-gsc-cleanup-pill">' + esc(keptCount) + ' kept</span><span class="hpc-gsc-cleanup-pill">' + esc(mediaCount) + ' media found</span>' + warning + '</div></div>'
-                    + '<div class="hpc-gsc-cleanup-head"><div><strong data-qc-live-summary>Ready to delete queued posts.</strong><span data-qc-live-detail>Each post and media item will update as it is processed.</span></div></div>'
-                    + '<div class="hpc-gsc-cleanup-list" data-qc-list>' + (rows.length ? rows.map(quickCleanupRowHtml).join('') : '<div class="hpc-gsc-cleanup-post"><div class="hpc-gsc-cleanup-media-meta">No regular posts matched this cleanup action.</div></div>') + '</div>'
+                    + '<details class="hpc-gsc-cleanup-work" data-qc-work-window open><summary class="hpc-gsc-cleanup-work-head"><div class="hpc-gsc-cleanup-work-title"><strong>Working Window</strong><span>Queued, deleting, deleted, and failed posts stay here while the cleanup runs.</span></div><div class="hpc-gsc-cleanup-summary"><span class="hpc-gsc-cleanup-pill danger">' + esc(deleteCount) + ' queued</span>' + quickCleanupChevron() + '</div></summary>'
+                    + '<div class="hpc-gsc-cleanup-body"><div class="hpc-gsc-cleanup-live"><strong data-qc-live-summary>Ready to delete queued posts.</strong><span data-qc-live-detail>Each post and media item will update as it is processed.</span></div>'
+                    + '<section class="hpc-gsc-cleanup-section"><div class="hpc-gsc-cleanup-section-label"><strong>Queued / Processed Posts</strong><span>' + esc(queuedRows.length) + ' rows</span></div><div class="hpc-gsc-cleanup-list" data-qc-list>' + quickCleanupListHtml(queuedRows, 'No regular posts are queued for deletion.') + '</div></section></div></details>'
+                    + '<details class="hpc-gsc-cleanup-kept"><summary class="hpc-gsc-cleanup-section-head"><div class="hpc-gsc-cleanup-section-title"><strong>Kept Posts</strong><span>Newest posts protected by the Posts to keep value.</span></div><div class="hpc-gsc-cleanup-summary"><span class="hpc-gsc-cleanup-pill">' + esc(keptRows.length) + ' kept</span>' + quickCleanupChevron() + '</div></summary><div class="hpc-gsc-cleanup-list">' + quickCleanupListHtml(keptRows, 'No posts were protected by the newest-post rule.') + '</div></details>'
                     + '</div>';
                 target.hidden = false;
             }

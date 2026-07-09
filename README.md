@@ -7,7 +7,11 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.6.177`
+- Version: `0.6.178`
+
+## 0.6.178 Updates
+
+- Sectionalized the Quick Start article cleanup progress panel into overview, collapsible working window, queued/processed rows, and kept posts.
 
 ## 0.6.177 Updates
 
