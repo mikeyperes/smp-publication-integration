@@ -9,7 +9,9 @@
 .smpi-dashboard .smpi-table-scroll{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
 .smpi-dashboard .smpi-table-scroll>table{margin:0;min-width:640px}
 @media(max-width:782px){
-    .smpi-dashboard .smpi-feature-grid,.smpi-dashboard .smpi-choice-grid,.smpi-dashboard .smpi-brand-color-tools .smpi-feature-grid{grid-template-columns:minmax(0,1fr)}
+    .smpi-dashboard .smpi-feature-grid,.smpi-dashboard .smpi-choice-grid,.smpi-dashboard .smpi-brand-color-tools .smpi-feature-grid,.smpi-dashboard .smpi-shortcode-row,.smpi-dashboard .smpi-context-override-row{grid-template-columns:minmax(0,1fr)!important}
     .smpi-dashboard .smpi-feature-head{display:grid}
     .smpi-dashboard .smpi-feature-report table{max-width:none}
+    .smpi-dashboard .smpi-shortcode-row small{grid-column:1}
+    .smpi-dashboard .smpi-shortcode-row>*,.smpi-dashboard .smpi-context-override-row>*{min-width:0}
 }
