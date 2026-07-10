@@ -7,7 +7,32 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.6.178`
+- Version: `0.6.179`
+
+## Architecture
+
+- `Bootstrap`: host lifecycle and Core module orchestration.
+- `Settings`: canonical `smpi_settings` persistence and sanitization.
+- `Admin/Navigation`: six-area navigation and legacy route resolution.
+- `Admin/Ajax`: guarded admin action implementation behind the stable `Admin\Ajax` facade.
+- `Admin/Dashboard`: dashboard implementation behind the stable `Admin\Dashboard` facade.
+- `StructuredData`: schema graph generation behind the stable `Content\Schema` facade.
+- `Authorship`: author assignment, query, lifecycle, and Elementor rendering services.
+- `Content`: compatibility-facing editorial modules and public shortcodes.
+- `Support`: integration adapters and stable legacy helpers.
+
+The bundled `Hexa\PluginCore` package is registered through the shared package resolver. One selected Core root owns the namespace when multiple Hexa plugins are active.
+
+## 0.6.179 Updates
+
+- Replaced competing Core autoloaders with the shared one-package runtime and synchronized canonical Core `0.19.39`.
+- Adopted `PluginContext` and `CoreBootstrap` for module lifecycle orchestration.
+- Moved settings, dashboard, AJAX, and schema implementations behind namespaced compatibility facades.
+- Replaced the large top-level tab list with Overview, Publication, Editorial, Structured Data, Operations, and Advanced areas while preserving legacy tab URLs.
+- Added one lazy Pages workspace instead of rendering a detail block and editor for every page.
+- Moved Quick Start cleanup-specific UI out of shared Core and into SMP admin assets.
+- Made Snippets a metadata/test catalog without duplicate feature toggles.
+- Fixed invalid color fallback handling in settings updates.
 
 ## 0.6.178 Updates
 

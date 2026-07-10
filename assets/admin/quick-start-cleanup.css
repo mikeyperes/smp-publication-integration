@@ -1,0 +1,52 @@
+#smpi-quick-start-checklist .smpi-qc-panel{background:#fff;border:1px solid #dce5ef;border-radius:8px;display:grid;overflow:hidden}
+#smpi-quick-start-checklist .smpi-qc-overview{align-items:flex-start;background:#f8fafc;border-bottom:1px solid #dce5ef;display:flex;gap:12px;justify-content:space-between;padding:11px}
+#smpi-quick-start-checklist .smpi-qc-overview strong,#smpi-quick-start-checklist .smpi-qc-window-title strong,#smpi-quick-start-checklist .smpi-qc-section-title strong{display:block;font-size:12px;margin:0 0 3px}
+#smpi-quick-start-checklist .smpi-qc-overview span,#smpi-quick-start-checklist .smpi-qc-window-title span,#smpi-quick-start-checklist .smpi-qc-section-title span{color:var(--hpc-muted);display:block;font-size:11px;line-height:1.35}
+#smpi-quick-start-checklist .smpi-qc-summary{align-items:center;display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}
+#smpi-quick-start-checklist .smpi-qc-pill{background:#eef4fb;border:1px solid #d6e2ef;border-radius:999px;color:#334155;font-size:11px;font-weight:900;line-height:1;padding:5px 8px;white-space:nowrap}
+#smpi-quick-start-checklist .smpi-qc-pill.danger{background:#fff0f2;border-color:#ffd0d8;color:var(--hpc-red)}
+#smpi-quick-start-checklist .smpi-qc-window,#smpi-quick-start-checklist .smpi-qc-kept{background:#fff;border:0;border-bottom:1px solid #dce5ef}
+#smpi-quick-start-checklist .smpi-qc-kept:last-child{border-bottom:0}
+#smpi-quick-start-checklist .smpi-qc-window summary,#smpi-quick-start-checklist .smpi-qc-kept summary{cursor:pointer;list-style:none}
+#smpi-quick-start-checklist .smpi-qc-window summary::-webkit-details-marker,#smpi-quick-start-checklist .smpi-qc-kept summary::-webkit-details-marker{display:none}
+#smpi-quick-start-checklist .smpi-qc-window-head,#smpi-quick-start-checklist .smpi-qc-section-head{align-items:center;background:#fff;display:flex;gap:12px;justify-content:space-between;padding:11px}
+#smpi-quick-start-checklist .smpi-qc-window-head{background:#fbfdff}
+#smpi-quick-start-checklist .smpi-qc-window[open]>.smpi-qc-window-head,#smpi-quick-start-checklist .smpi-qc-kept[open]>.smpi-qc-section-head{border-bottom:1px solid #edf1f6}
+#smpi-quick-start-checklist .smpi-qc-chevron{align-items:center;background:#eef2ff;border:1px solid #dbe4ff;border-radius:999px;color:var(--hpc-blue);display:inline-flex;height:26px;justify-content:center;width:26px}
+#smpi-quick-start-checklist .smpi-qc-chevron svg{display:block;fill:currentColor;height:11px;transform:rotate(0deg);transition:transform .18s;width:11px}
+#smpi-quick-start-checklist details[open]>.smpi-qc-window-head .smpi-qc-chevron svg,#smpi-quick-start-checklist details[open]>.smpi-qc-section-head .smpi-qc-chevron svg{transform:rotate(180deg)}
+#smpi-quick-start-checklist .smpi-qc-body{background:#fff;display:grid}
+#smpi-quick-start-checklist .smpi-qc-live{background:#f8fafc;border-bottom:1px solid #edf1f6;padding:11px}
+#smpi-quick-start-checklist .smpi-qc-live strong{display:block;font-size:12px;margin:0 0 3px}
+#smpi-quick-start-checklist .smpi-qc-live span{color:var(--hpc-muted);display:block;font-size:11px;line-height:1.35}
+#smpi-quick-start-checklist .smpi-qc-section{display:grid}
+#smpi-quick-start-checklist .smpi-qc-section-label{align-items:center;background:#fff;border-bottom:1px solid #edf1f6;display:flex;gap:8px;justify-content:space-between;padding:9px 11px}
+#smpi-quick-start-checklist .smpi-qc-section-label strong{color:#243044;font-size:11px;text-transform:uppercase}
+#smpi-quick-start-checklist .smpi-qc-section-label span{color:var(--hpc-muted);font-size:11px}
+#smpi-quick-start-checklist .smpi-qc-list{display:grid}
+#smpi-quick-start-checklist .smpi-qc-post{border-top:1px solid #edf1f6;display:grid;gap:10px;padding:11px}
+#smpi-quick-start-checklist .smpi-qc-post:first-child{border-top:0}
+#smpi-quick-start-checklist .smpi-qc-post[data-cleanup-status="deleting"]{background:#fffdf5}
+#smpi-quick-start-checklist .smpi-qc-post[data-cleanup-status="deleted"]{background:#f6fff8}
+#smpi-quick-start-checklist .smpi-qc-post[data-cleanup-status="failed"]{background:#fff7f7}
+#smpi-quick-start-checklist .smpi-qc-post-main{align-items:start;display:grid;gap:10px;grid-template-columns:minmax(0,1fr) auto}
+#smpi-quick-start-checklist .smpi-qc-title{color:#111827;font-size:12px;font-weight:900;line-height:1.35;margin:0}
+#smpi-quick-start-checklist .smpi-qc-meta{color:var(--hpc-muted);font-size:11px;line-height:1.4;margin-top:3px;overflow-wrap:anywhere}
+#smpi-quick-start-checklist .smpi-qc-media{display:grid;gap:6px}
+#smpi-quick-start-checklist .smpi-qc-media-row{align-items:start;background:#f8fafc;border:1px solid #e0e6ef;border-radius:6px;display:grid;gap:8px;grid-template-columns:auto minmax(0,1fr);padding:7px 8px}
+#smpi-quick-start-checklist .smpi-qc-media-row[data-media-status="deleting"]{background:#fff8e8;border-color:#f4c46b}
+#smpi-quick-start-checklist .smpi-qc-media-row[data-media-status="deleted"]{background:#e9f8ee;border-color:#bde8cb}
+#smpi-quick-start-checklist .smpi-qc-media-row[data-media-status="failed"]{background:#fdecec;border-color:#f3b2b2}
+#smpi-quick-start-checklist .smpi-qc-media-title{color:#1f2937;font-size:12px;font-weight:800;line-height:1.25}
+#smpi-quick-start-checklist .smpi-qc-media-meta{color:var(--hpc-muted);font-size:11px;line-height:1.35;margin-top:2px}
+#smpi-quick-start-checklist .smpi-qc-status{align-items:center;border:1px solid #d8e0ea;border-radius:999px;color:#475569;display:inline-flex;font-size:11px;font-weight:900;gap:6px;line-height:1;padding:5px 8px;white-space:nowrap}
+#smpi-quick-start-checklist .smpi-qc-status .spinner{float:none;height:14px;margin:0;visibility:visible;width:14px}
+#smpi-quick-start-checklist .smpi-qc-status-icon{align-items:center;background:#e9eef5;border-radius:999px;color:#64748b;display:inline-flex;font-size:10px;font-weight:900;height:16px;justify-content:center;width:16px}
+#smpi-quick-start-checklist .smpi-qc-status.queued{background:#f8fafc}
+#smpi-quick-start-checklist .smpi-qc-status.deleting{background:#fff8e8;border-color:#f4c46b;color:#8a5200}
+#smpi-quick-start-checklist .smpi-qc-status.deleted{background:#e9f8ee;border-color:#bde8cb;color:#137333}
+#smpi-quick-start-checklist .smpi-qc-status.deleted .smpi-qc-status-icon{background:#137333;color:#fff}
+#smpi-quick-start-checklist .smpi-qc-status.failed{background:#fdecec;border-color:#f3b2b2;color:#b42318}
+#smpi-quick-start-checklist .smpi-qc-status.failed .smpi-qc-status-icon{background:#b42318;color:#fff}
+#smpi-quick-start-checklist .smpi-qc-status.preserved,#smpi-quick-start-checklist .smpi-qc-status.skipped{background:#eef4ff;border-color:#c9d8ff;color:#294996}
+@media(max-width:760px){#smpi-quick-start-checklist .smpi-qc-overview,#smpi-quick-start-checklist .smpi-qc-window-head,#smpi-quick-start-checklist .smpi-qc-section-head{align-items:flex-start;display:grid}#smpi-quick-start-checklist .smpi-qc-summary{justify-content:flex-start}}

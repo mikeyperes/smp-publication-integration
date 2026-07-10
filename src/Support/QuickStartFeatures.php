@@ -31,14 +31,26 @@ final class QuickStartFeatures {
                 'nonce_action'  => self::NONCE_ACTION,
                 'nonce_field'   => self::NONCE_FIELD,
                 'run_action'    => self::RUN_ACTION,
-                'quick_cleanup_step_id' => self::QUICK_CLEANUP_STEP_ID,
-                'quick_cleanup_scan_action' => self::QUICK_CLEANUP_SCAN_ACTION,
-                'quick_cleanup_batch_action' => self::QUICK_CLEANUP_BATCH_ACTION,
                 'empty_message' => 'No SMP Quick Start checklist items are registered.',
                 'show_type_badges' => false,
                 'steps'         => self::checklist_steps(),
             ]
         );
+    }
+
+    /**
+     * @return array<string,string>
+     */
+    public static function cleanup_workflow_config(): array {
+        return [
+            'rootId'            => 'smpi-quick-start-checklist',
+            'stepId'            => self::QUICK_CLEANUP_STEP_ID,
+            'scanAction'        => self::QUICK_CLEANUP_SCAN_ACTION,
+            'batchAction'       => self::QUICK_CLEANUP_BATCH_ACTION,
+            'keepInput'         => 'delete_old_posts_keep_recent',
+            'confirmationInput' => 'delete_old_posts_confirmation',
+            'defaultKeep'       => '10',
+        ];
     }
 
     public static function register_checklist_ajax(): void {

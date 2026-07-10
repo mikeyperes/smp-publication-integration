@@ -19,9 +19,9 @@ Use this namespace when a host plugin needs to detect old WordPress content, rep
 - `BackupCleanupAjaxController`: registers backup scan/delete AJAX actions.
 - `BackupCleanupRenderer`: renders the backup table, row delete buttons, loaders, and live activity log.
 - `ArticleMediaCleanupConfig`: owns post cleanup post types, statuses, keep-recent defaults, limits, action names, and nonce settings.
-- `ArticleMediaCleanupScanner`: filters posts, detects featured/inline/gallery media attachments, and performs permanent post deletion with optional media deletion.
+- `ArticleMediaCleanupScanner`: filters posts, builds deletion plans, detects featured/inline/gallery media attachments, performs permanent deletion, and verifies each post and attachment no longer exists.
 - `ArticleMediaCleanupAjaxController`: registers article scan/delete AJAX actions.
-- `ArticleMediaCleanupRenderer`: renders filters, keep-most-recent, select-all, delete-selected, row delete buttons, media summaries, and live activity log.
+- `ArticleMediaCleanupRenderer`: renders filters, keep-most-recent, select-all, delete-selected, row delete buttons, per-post/per-media progress states, and a live activity log.
 
 ## Host Responsibilities
 
@@ -134,7 +134,7 @@ $backup_config = new BackupCleanupConfig([
 
 ## Article And Media Cleanup
 
-Article cleanup filters posts by post type, status, search term, limit, and "keep most recent X" offset. The UI supports select-all, selected row deletion, and individual row deletion. By default, article deletion does not delete media. If the visible media checkbox is enabled, Core deletes detected featured images plus inline/gallery attachment IDs after the article is deleted.
+Article cleanup filters posts by post type, status, search term, limit, and "keep most recent X" offset. The UI supports select-all, selected row deletion, and individual row deletion. Every visible post and detected media item moves through pending, deleting, deleted, kept, or failed states without removing the evidence row. By default, article deletion does not delete media. If the visible media checkbox is enabled, Core deletes detected featured images plus inline/gallery attachment IDs after the article is deleted and verifies each record is gone.
 
 ```php
 use Hexa\PluginCore\ContentCleanup\ArticleMediaCleanupAjaxController;

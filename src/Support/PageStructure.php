@@ -25,6 +25,7 @@ final class PageStructure {
             'save_template'            => 'smpi_site_save_template',
             'apply_template'           => 'smpi_site_apply_template',
             'page_details'             => 'smpi_site_page_details',
+            'page_workspace'           => 'smpi_site_page_workspace',
             'update_page_slug'         => 'smpi_site_update_page_slug',
         ];
     }

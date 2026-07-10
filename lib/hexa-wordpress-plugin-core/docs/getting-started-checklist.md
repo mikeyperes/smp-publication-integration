@@ -46,7 +46,7 @@ Each step may also define:
 
 Use `required_inputs` when a checklist item cannot run until an operator types a value. `inputs` is accepted as an alias for the same structure. Core owns the UI fields, client-side validation, AJAX payload, server-side validation, sanitization, and callback payload. The host plugin owns only the callback that consumes the typed value.
 
-Supported field types are `text`, `email`, `url`, `password`, `number`, `tel`, `search`, and `confirmation`. Required fields block item, step, and full-checklist execution until valid values are entered.
+Supported field types are `text`, `email`, `url`, `password`, `number`, `tel`, `search`, and `confirmation`. Number fields support `min`, `max`, and `step`; Core enforces the range in both the browser and the guarded server runner. Required fields block item, step, and full-checklist execution until valid values are entered.
 
 ```php
 [
@@ -129,6 +129,31 @@ function my_plugin_run_quick_start_task(array $payload): array {
 ```
 
 Do not use this runner to delete production posts. It is a reusable UI/proof sample for typed destructive confirmation and report rendering.
+
+## Workflow Extensions
+
+Use the browser workflow extension API when a host step needs a specialized live visualization that is not a general checklist report. Core still owns validation, state, AJAX helpers, logs, and the checklist lifecycle; the host owns only its domain-specific renderer and result mapping.
+
+Each rendered checklist root exposes `root.hexaChecklistApi` and dispatches:
+
+- `hexa:checklist:ready` when the API is available.
+- `hexa:checklist:run` before Core runs a step or item.
+
+The run event detail includes `api`, `row`, `scope`, `stepId`, `subtaskId`, `handled`, and `promise`. A host claims only its own step by setting `handled = true` and assigning a promise. The promise must resolve to `true` or `false`.
+
+```js
+const root = document.querySelector('[data-hpc-getting-started-checklist]');
+
+root.addEventListener('hexa:checklist:run', (event) => {
+    const detail = event.detail;
+    if (detail.scope !== 'step' || detail.stepId !== 'host-owned-workflow') return;
+
+    detail.handled = true;
+    detail.promise = runHostWorkflow(detail.api, detail.row);
+});
+```
+
+Do not add host step IDs, AJAX action names, field keys, or domain-specific CSS/JavaScript to `GettingStartedChecklistRenderer`.
 
 ## Basic Setup
 

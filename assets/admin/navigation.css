@@ -1,0 +1,7 @@
+.smpi-dashboard .smpi-section-tabs{align-items:center;background:#f6f7f7;border:1px solid #dcdcde;border-left:0;border-right:0;display:flex;gap:2px;margin:0 0 18px;max-width:100%;overflow-x:auto;padding:7px 8px}
+.smpi-dashboard .smpi-section-tab{border-bottom:2px solid transparent;color:#3c434a;font-size:13px;font-weight:600;padding:8px 10px;text-decoration:none;white-space:nowrap}
+.smpi-dashboard .smpi-section-tab:hover,.smpi-dashboard .smpi-section-tab:focus{background:#fff;color:#135e96;outline:0}
+.smpi-dashboard .smpi-section-tab.is-active{background:#fff;border-bottom-color:#2271b1;color:#1d2327}
+.smpi-dashboard .smpi-section-intro{border-bottom:1px solid #dcdcde;margin:0 0 16px;padding:2px 0 14px}
+.smpi-dashboard .smpi-section-intro h2{font-size:20px;margin:0 0 5px}
+.smpi-dashboard .smpi-section-intro p{color:#646970;margin:0}

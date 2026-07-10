@@ -94,7 +94,7 @@ final class ArticleMediaCleanupScanner {
             'delete_media_count' => array_sum( array_map( static fn( array $row ): int => 'queued' === (string) ( $row['cleanup_status'] ?? '' ) ? (int) ( $row['media_count'] ?? 0 ) : 0, $rows ) ),
             'has_more'      => $has_more,
             'log'           => [
-                $this->log( 'info', 'Loaded Quick Start article cleanup plan.', [ 'keep_recent' => $keep_recent, 'rows' => count( $rows ), 'delete_count' => count( $delete_ids ), 'has_more' => $has_more ? 'yes' : 'no' ] ),
+                $this->log( 'info', 'Loaded article cleanup deletion plan.', [ 'keep_recent' => $keep_recent, 'rows' => count( $rows ), 'delete_count' => count( $delete_ids ), 'has_more' => $has_more ? 'yes' : 'no' ] ),
             ],
         ];
     }

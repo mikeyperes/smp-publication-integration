@@ -27,11 +27,13 @@ src/CorePackageUpdates/ Hexa\PluginCore\CorePackageUpdates
 src/CoreRuntime/        Hexa\PluginCore\CoreRuntime
 src/ContentCleanup/     Hexa\PluginCore\ContentCleanup
 src/CredentialVault/    Hexa\PluginCore\CredentialVault
+src/DatabaseCleanup/    Hexa\PluginCore\DatabaseCleanup
 src/FieldStructures/    Hexa\PluginCore\FieldStructures
 src/FaqSets/            Hexa\PluginCore\FaqSets
 src/GettingStartedChecklist/
                         Hexa\PluginCore\GettingStartedChecklist
 src/LogFiles/           Hexa\PluginCore\LogFiles
+src/ObjectCache/        Hexa\PluginCore\ObjectCache
 src/PluginChecks/       Hexa\PluginCore\PluginChecks
 src/PluginProvisioning/ Hexa\PluginCore\PluginProvisioning
 src/PluginUpdates/      Hexa\PluginCore\PluginUpdates
@@ -504,7 +506,7 @@ Namespace:
 Hexa\PluginCore\SiteStructure
 ```
 
-Use `PageStructureManager` for critical page blueprints, callback-backed assigned page storage, starter/template content, page details, managed page create/delete protection, WordPress navigation menu creation, custom menu items, add-all-pages menu actions, menu blueprint attachment, and page-to-menu-item attachment. Use `SiteStructureAjaxController` to keep host-specific AJAX action names while sharing nonce, capability, and request handling. Use `SiteStructureRenderer` for the admin UI. The renderer accepts `show_pages` and `show_menus` so hosts can split page assignment and menu building into separate tabs without duplicating menu code.
+Use `PageStructureManager` for critical page blueprints, callback-backed assigned page storage, starter/template content, page details, managed page create/delete protection, WordPress navigation menu creation, custom menu items, add-all-pages menu actions, menu blueprint attachment, and page-to-menu-item attachment. Use `SiteStructureAjaxController` to keep host-specific AJAX action names while sharing nonce, capability, and request handling. Use `SiteStructureRenderer` for the admin UI. The renderer accepts `show_pages` and `show_menus` so hosts can split page assignment and menu building into separate tabs without duplicating menu code. For large page sets, `lazy_page_workspace` plus the `page_workspace` AJAX action renders one shared editor and loads only the selected page's detail/template payload.
 
 ```php
 use Hexa\PluginCore\SiteStructure\PageStructureManager;
@@ -770,13 +772,17 @@ $logger->add( new ActivityLogEntry( 'Update started.', [], 'admin', 'updater', n
 
 Every consuming plugin should:
 
-1. Load Composer or the vendored core autoloader.
-2. Create `Hexa\PluginCore\CoreRuntime\PluginContext`.
-3. Create `Hexa\PluginCore\CoreBootstrap\CoreBootstrap`.
-4. Add core modules and host adapter modules.
-5. Call `boot()` once.
+1. Require the vendored root `bootstrap.php` and register its candidate.
+2. Let the shared resolver select one package before referencing any Core class.
+3. Create `Hexa\PluginCore\CoreRuntime\PluginContext`.
+4. Create `Hexa\PluginCore\CoreBootstrap\CoreBootstrap`.
+5. Add core modules and host adapter modules, then call `boot()` once.
 
 ```php
+$core_root = __DIR__ . '/lib/hexa-wordpress-plugin-core';
+require_once $core_root . '/bootstrap.php';
+\hexa_plugin_core_register_package( 'example-plugin', $core_root );
+
 use Hexa\PluginCore\CoreBootstrap\CoreBootstrap;
 use Hexa\PluginCore\CoreRuntime\PluginContext;
 
@@ -1191,6 +1197,18 @@ public function register(): void;
 
 Do not execute feature behavior at include time.
 
+## Database Cleanup
+
+Namespace: `Hexa\PluginCore\DatabaseCleanup`
+
+Use `DatabaseCleanupService`, `DatabaseCleanupAjaxController`, and `DatabaseCleanupRenderer` for WP-Optimize-backed cleanup sessions. Core owns provider activation, task/table iteration, live reporting, and restoring the provider to its pre-run activation state. Hosts provide capability, nonce, AJAX names, labels, and the provider plugin file.
+
+## Object Cache
+
+Namespace: `Hexa\PluginCore\ObjectCache`
+
+Use `LiteSpeedRedisService` to distinguish configured Redis from a working object cache. A healthy `active` result requires LiteSpeed settings, a drop-in, direct Redis connectivity, and a successful WordPress cache round trip. Hosts own AJAX guards and placement, not duplicate connection logic.
+
 ## Support
 
 Namespace:
@@ -1202,10 +1220,19 @@ Hexa\PluginCore\CoreRuntime
 Core classes:
 
 ```text
+CorePackageRuntime
 PluginContext
 ```
 
 Use `PluginContext` for host plugin identity. Do not hard-code host plugin names inside shared core classes.
+
+`CorePackageRuntime::report()` exposes the single selected package root, every registered vendored candidate, package fingerprint mismatches, incompatible constraints, and Core classes loaded outside the selected root. Every host must use root `bootstrap.php`; competing plugin-specific autoloaders are forbidden.
+
+## Checklist Workflow Extensions
+
+`GettingStartedChecklistRenderer` exposes a host-neutral browser API on `root.hexaChecklistApi`. It dispatches `hexa:checklist:ready` and `hexa:checklist:run` events. A host with a specialized live workflow may claim only its own step by setting `event.detail.handled = true` and assigning `event.detail.promise`.
+
+The API provides input collection/validation, row state, reports, logs, and guarded arbitrary-action POST requests. Host-specific step IDs, input keys, AJAX actions, CSS, and result mapping stay in the host plugin. Number inputs support `min`, `max`, and `step` with browser and server enforcement.
 
 ## Agent Checklist
 
