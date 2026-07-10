@@ -64,7 +64,7 @@ class DashboardController {
         wp_enqueue_media();
         wp_enqueue_style(
             'smpi-admin-navigation',
-            plugins_url( 'assets/admin/navigation.css', dirname( __DIR__, 2 ) . '/smp-publication-integration.php' ),
+            plugins_url( 'assets/admin/dashboard.css', dirname( __DIR__, 3 ) . '/smp-publication-integration.php' ),
             [],
             Config::VERSION
         );
@@ -1044,7 +1044,7 @@ class DashboardController {
             <h2>Page and publication shortcodes</h2>
             <p>Use these in starter pages so publication names, URLs, policy links, and profile values stay dynamic.</p>
             <h3>Publication variables</h3>
-            <table class="widefat striped"><thead><tr><th>Use</th><th>Shortcode</th><th>Current value</th></tr></thead><tbody>
+            <div class="smpi-table-scroll"><table class="widefat striped"><thead><tr><th>Use</th><th>Shortcode</th><th>Current value</th></tr></thead><tbody>
             <?php foreach ( $variables as $row ) :
                 $value = self::shortcode_value_html( (string) $row[1] );
                 if ( false !== strpos( $value, "smpi-muted" ) && "" !== (string) $row[2] ) {
@@ -1053,9 +1053,9 @@ class DashboardController {
             ?>
                 <tr><td><?php echo esc_html( (string) $row[0] ); ?></td><td><code><?php echo esc_html( (string) $row[1] ); ?></code></td><td><?php echo $value; ?></td></tr>
             <?php endforeach; ?>
-            </tbody></table>
+            </tbody></table></div>
             <h3>Assigned page links</h3>
-            <table class="widefat striped"><thead><tr><th>Page requirement</th><th>URL shortcode</th><th>Link shortcode</th><th>Current page URL</th></tr></thead><tbody>
+            <div class="smpi-table-scroll"><table class="widefat striped"><thead><tr><th>Page requirement</th><th>URL shortcode</th><th>Link shortcode</th><th>Current page URL</th></tr></thead><tbody>
             <?php foreach ( Settings::page_types() as $type => $config ) :
                 $page_id = Settings::page_assignment_id( $type );
                 $url = $page_id ? Settings::page_slug_url( $page_id ) : "";
@@ -1064,7 +1064,7 @@ class DashboardController {
             ?>
                 <tr><td><?php echo esc_html( (string) $config["label"] ); ?></td><td><code><?php echo esc_html( $url_code ); ?></code></td><td><code><?php echo esc_html( $link_code ); ?></code></td><td><?php echo $url ? "<a href=\"" . esc_url( $url ) . "\" target=\"_blank\" rel=\"noopener noreferrer\">" . esc_html( $url ) . "</a>" : "<span class=\"smpi-muted\">Not assigned</span>"; ?></td></tr>
             <?php endforeach; ?>
-            </tbody></table>
+            </tbody></table></div>
         </div>
         <?php
         return (string) ob_get_clean();

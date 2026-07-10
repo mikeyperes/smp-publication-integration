@@ -7,7 +7,7 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.6.180`
+- Version: `0.6.181`
 
 ## Architecture
 
@@ -22,6 +22,11 @@ WordPress plugin for Scale My Publication publication profiles.
 - `Support`: integration adapters and stable legacy helpers.
 
 The bundled `Hexa\PluginCore` package is registered through the shared package resolver. One selected Core root owns the namespace when multiple Hexa plugins are active.
+
+## 0.6.181 Updates
+
+- Fixed the dashboard stylesheet URL and renamed the asset to match its broader admin-layout ownership.
+- Contained feature report tables and page shortcode tables so they scroll within their sections instead of widening mobile admin pages.
 
 ## 0.6.180 Updates
 

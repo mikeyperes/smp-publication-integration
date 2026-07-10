@@ -26,6 +26,17 @@ if ( ! is_string( $bootstrap ) || ! str_contains( $bootstrap, "'tab_id'        =
     exit( 1 );
 }
 
+if ( ! str_contains( $controller, "plugins_url( 'assets/admin/dashboard.css', dirname( __DIR__, 3 )" ) ) {
+    fwrite( STDERR, "FAIL: Dashboard stylesheet URL must resolve from the plugin root.\n" );
+    exit( 1 );
+}
+
+$dashboard_css = dirname( __DIR__ ) . '/assets/admin/dashboard.css';
+if ( ! is_readable( $dashboard_css ) || ! str_contains( (string) file_get_contents( $dashboard_css ), '.smpi-table-scroll' ) ) {
+    fwrite( STDERR, "FAIL: Responsive dashboard stylesheet is missing table containment rules.\n" );
+    exit( 1 );
+}
+
 foreach ( [ '_smpi_shadow_complete', '_smpi_pr_shadow_override' ] as $field_name ) {
     $expected = '\'get_field("' . $field_name . '", $post_id)\'';
     if ( ! str_contains( $controller, $expected ) ) {

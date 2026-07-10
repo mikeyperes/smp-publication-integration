@@ -5,3 +5,11 @@
 .smpi-dashboard .smpi-section-intro{border-bottom:1px solid #dcdcde;margin:0 0 16px;padding:2px 0 14px}
 .smpi-dashboard .smpi-section-intro h2{font-size:20px;margin:0 0 5px}
 .smpi-dashboard .smpi-section-intro p{color:#646970;margin:0}
+.smpi-dashboard .smpi-feature-card,.smpi-dashboard .smpi-feature-controls,.smpi-dashboard .smpi-feature-grid,.smpi-dashboard .smpi-feature-grid>*{max-width:100%;min-width:0}
+.smpi-dashboard .smpi-table-scroll{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.smpi-dashboard .smpi-table-scroll>table{margin:0;min-width:640px}
+@media(max-width:782px){
+    .smpi-dashboard .smpi-feature-grid,.smpi-dashboard .smpi-choice-grid,.smpi-dashboard .smpi-brand-color-tools .smpi-feature-grid{grid-template-columns:minmax(0,1fr)}
+    .smpi-dashboard .smpi-feature-head{display:grid}
+    .smpi-dashboard .smpi-feature-report table{max-width:none}
+}
