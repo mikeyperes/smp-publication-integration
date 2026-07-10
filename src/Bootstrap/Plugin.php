@@ -107,6 +107,8 @@ final class Plugin {
         return new CoreTabModule(
             new CoreTabConfig(
                 [
+                    'tab_id'        => 'hexa_core',
+                    'label'         => 'Hexa WP Core',
                     'tabs_filter'   => 'smpi_dashboard_tabs',
                     'render_filter' => 'smpi_render_dashboard_tab',
                     'capability'    => Config::$settings_page_capability,

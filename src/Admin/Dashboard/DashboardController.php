@@ -8,7 +8,7 @@ use Hexa\PluginCore\SmartSearch\SmartSearchRenderer;
 use Hexa\PluginCore\FieldStructures\FieldStructureRenderer;
 use Hexa\PluginCore\GettingStartedChecklist\GettingStartedChecklistRenderer;
 use Hexa\PluginCore\SnippetRegistry\SnippetRegistry;
-use Hexa\PluginCore\SnippetRegistry\SnippetRenderer;
+use Hexa\PluginCore\SnippetRegistry\SnippetsTableRenderer;
 use Hexa\PluginCore\WpAdminTabs\HostTabsRenderer;
 use Hexa\PluginCore\WpAdminComponents\ColorControl;
 use Hexa\PluginCore\WpAdminComponents\CoreUi;
@@ -1306,7 +1306,7 @@ class DashboardController {
                 "instructions" => "Enable this for editorial shadowing controls. The front end still allows direct single URLs.",
                 "fields" => [ "_smpi_shadow_complete", "_smpi_shadow_home" ],
                 "dependencies" => [ "ACF Pro", "pre_get_posts archive filters" ],
-                "code_example" => "get_field(\"_smpi_shadow_complete\", $post_id)",
+                "code_example" => 'get_field("_smpi_shadow_complete", $post_id)',
                 "test_report" => "Shadow posts setting is " . ( Settings::bool( "shadow_posts_enabled" ) ? "enabled" : "disabled" ) . ".",
             ],
             [
@@ -1323,7 +1323,7 @@ class DashboardController {
                 "instructions" => "Use this when press releases need force-show or force-hide control independent of global defaults.",
                 "fields" => [ "_smpi_pr_shadow_override" ],
                 "dependencies" => [ "ACF Pro", "press-release CPT" ],
-                "code_example" => "get_field(\"_smpi_pr_shadow_override\", $post_id)",
+                "code_example" => 'get_field("_smpi_pr_shadow_override", $post_id)',
                 "test_report" => "Press-release inclusion setting is " . ( Settings::bool( "press_release_include_enabled" ) ? "enabled" : "disabled" ) . ".",
             ],
             [

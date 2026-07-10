@@ -87,6 +87,14 @@ final class AdminNavigation {
         $section = sanitize_key( $section );
         $areas   = $this->areas();
 
+        if ( 'hexa-core' === $tab ) {
+            $tab = 'hexa_core';
+        }
+
+        if ( 'hexa-core' === $section ) {
+            $section = 'hexa_core';
+        }
+
         if ( isset( $areas[ $tab ] ) ) {
             $sections = $this->sections( $tab );
             if ( '' === $section || ! isset( $sections[ $section ] ) ) {

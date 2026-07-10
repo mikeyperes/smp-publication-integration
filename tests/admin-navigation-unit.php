@@ -39,6 +39,12 @@ if ( 'publication' !== $modern->area() || 'pages' !== $modern->section() ) {
     exit( 1 );
 }
 
+$legacy_core = $navigation->resolve( 'hexa-core' );
+if ( 'advanced' !== $legacy_core->area() || 'hexa_core' !== $legacy_core->section() ) {
+    fwrite( STDERR, "FAIL: Legacy Hexa Core route did not resolve to Advanced.\n" );
+    exit( 1 );
+}
+
 $extension = $navigation->resolve( 'extension_diagnostics' );
 if ( 'advanced' !== $extension->area() || 'extension_diagnostics' !== $extension->section() ) {
     fwrite( STDERR, "FAIL: Legacy extension tabs must remain reachable under Advanced.\n" );
