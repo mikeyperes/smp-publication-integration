@@ -54,7 +54,8 @@ final class Breadcrumbs {
         }
 
         if ( is_category() || is_tag() ) {
-            return ! Settings::bool( "breadcrumbs_hide_term_archives" );
+            $term = get_queried_object();
+            return $term instanceof \WP_Term && ! Settings::bool( "breadcrumbs_hide_term_archives" );
         }
 
         if ( ! is_singular() ) {
@@ -111,8 +112,15 @@ final class Breadcrumbs {
     }
 
     private static function rank_math_markup(): string {
+        if ( is_category() || is_tag() ) {
+            return "";
+        }
         if ( function_exists( "rank_math_get_breadcrumbs" ) ) {
-            return (string) rank_math_get_breadcrumbs();
+            try {
+                return (string) rank_math_get_breadcrumbs();
+            } catch ( \Throwable $exception ) {
+                return "";
+            }
         }
         if ( shortcode_exists( "rank_math_breadcrumb" ) ) {
             return (string) do_shortcode( "[rank_math_breadcrumb]" );
@@ -140,7 +148,8 @@ final class Breadcrumbs {
             if ( "post" === get_post_type( $post ) ) {
                 $categories = get_the_category( $post->ID );
                 if ( ! empty( $categories ) ) {
-                    $items[] = [ "url" => get_category_link( $categories[0] ), "label" => $categories[0]->name ];
+                    $category_link = get_category_link( $categories[0] );
+                    $items[] = [ "url" => is_wp_error( $category_link ) ? "" : $category_link, "label" => $categories[0]->name ];
                 }
             } else {
                 $object = get_post_type_object( get_post_type( $post ) );
