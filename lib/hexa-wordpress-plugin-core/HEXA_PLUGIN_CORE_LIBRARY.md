@@ -125,6 +125,8 @@ Hexa\PluginCore\GettingStartedChecklist
 
 Use `GettingStartedChecklistConfig` for host-owned action names, nonce settings, capability, labels, ordered steps, semantic request types, and request metadata. Use `GettingStartedChecklistAjaxController` to register the guarded AJAX runner. Use `GettingStartedChecklistRenderer` to render the reusable checklist UI with simple action rows, collapsible parent steps only when real subtasks exist, nested subtasks, spinner/check/X states, request type badges, sequential AJAX execution, optional image preview assets in reports, and a collapsed dark technical activity log.
 
+`GettingStartedChecklistRenderer` owns host-facing markup and delegates its scoped CSS/browser runtime to the internal `GettingStartedChecklistAssets` collaborator. Hosts continue to instantiate only the renderer.
+
 Set `show_type_badges` to `false` for checklist screens that are meant to read as simple action lists. Keep it enabled when request type labels help operators understand mixed setup, status-check, destructive, and configuration tasks.
 
 Checklist reports can include `meta.preview_assets` as an array of `label`, `url`, `preview_url`, `format`, and `meta`. Core renders those as visible image preview cards above the report table. Reports can also include `meta.documentation` and `meta.summary_items` to show plain-English before/action/verified-after proof above the raw table. For `wp_config_changes`, Core uses `Before Action`, `Requested Value`, and `Verified After`; host plugins must decide success from the verified value, not just the writer return.
@@ -507,6 +509,8 @@ Hexa\PluginCore\SiteStructure
 ```
 
 Use `PageStructureManager` for critical page blueprints, callback-backed assigned page storage, starter/template content, page details, managed page create/delete protection, WordPress navigation menu creation, custom menu items, add-all-pages menu actions, menu blueprint attachment, and page-to-menu-item attachment. Use `SiteStructureAjaxController` to keep host-specific AJAX action names while sharing nonce, capability, and request handling. Use `SiteStructureRenderer` for the admin UI. The renderer accepts `show_pages` and `show_menus` so hosts can split page assignment and menu building into separate tabs without duplicating menu code. For large page sets, `lazy_page_workspace` plus the `page_workspace` AJAX action renders one shared editor and loads only the selected page's detail/template payload.
+
+`PageStructureManager` remains the host-facing facade; internal `PageStructureMenuService` and `PageStructureTemplateService` collaborators isolate menu and template/workspace behavior without changing its public methods. `SiteStructureRenderer` similarly delegates browser behavior to internal `SiteStructureScriptRenderer`.
 
 ```php
 use Hexa\PluginCore\SiteStructure\PageStructureManager;

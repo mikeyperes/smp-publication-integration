@@ -127,7 +127,7 @@ final class LoopBylineRenderer {
     private function author_item_node( \DOMDocument $doc, \DOMElement $source_link, AuthorRecord $author, int $index, int $count, string $format ): \DOMElement {
         $data = $author->to_array();
         $item = $doc->createElement( "span" );
-        $item->setAttribute( "class", self::ITEM_CLASS );
+        $item->setAttribute( "class", self::ITEM_CLASS . " smpi-muckrack-inline-pair" );
         $item->setAttribute( "data-smpi-author-index", (string) $index );
         $item->setAttribute( "data-smpi-author-id", (string) $data["id"] );
         $item->setAttribute( "data-smpi-author-slug", (string) $data["slug"] );
@@ -146,7 +146,7 @@ final class LoopBylineRenderer {
 
         $badge = $this->badge_html( (int) $data["id"] );
         if ( "" !== $badge ) {
-            $badge_fragment = $this->fragment( $doc, "\xc2\xa0" . $badge );
+            $badge_fragment = $this->fragment( $doc, $badge );
             if ( $badge_fragment ) {
                 $item->appendChild( $badge_fragment );
             }

@@ -208,6 +208,8 @@ This panel compares the vendored `VERSION` in the host plugin with the public Gi
 
 ## Getting Started Checklist
 
+Version 0.19.40 decomposes the checklist and site-structure renderers into bounded asset collaborators and splits page menus and template workspaces behind the unchanged `PageStructureManager` facade. The package-local architecture test locks the public API and keeps every affected class below 700 lines.
+
 Version 0.19.35 adds `show_type_badges` to `GettingStartedChecklistConfig`. Host plugins can hide the non-interactive request-type pill when a checklist is used as a simple action list.
 
 Version 0.19.34 restores Getting Started Checklist rows to a single continuous list for simple actions. Only parent steps with actual subtasks render as expandable sections, so one-action checklist items keep their individual run button without a fake expand/collapse control.

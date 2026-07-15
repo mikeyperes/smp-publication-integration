@@ -287,12 +287,14 @@ namespace {
     $GLOBALS["test_muckrack_contexts"] = [ "loop_cards" ];
     $badge_byline = $loop->filter( '<span class="byline"><a href="https://example.test/author/beta-author/">Beta Author</a></span>' );
     $badge_byline_normalized = str_replace( "\xc2\xa0", " ", $badge_byline );
-    expect_same( 2, substr_count( $badge_byline, 'class="smpi-multi-author-item"' ), "Loop-card verification badges remain scoped inside each author item." );
+    expect_same( 2, substr_count( $badge_byline, 'class="smpi-multi-author-item smpi-muckrack-inline-pair"' ), "Loop-card verification badges remain scoped inside centered author-name pairs." );
     expect_same( 2, substr_count( $badge_byline, 'smpi-muckrack-link' ), "Loop-card verification badges render once for each verified author." );
-    expect_same( 1, preg_match( '/<span class="smpi-multi-author-item"[^>]*data-smpi-author-id="2"[^>]*>.*?Beta Author<\/a> <a class="smpi-muckrack-link"/s', $badge_byline_normalized ), "Loop-card primary badge stays attached to its author name." );
+    expect_same( 1, preg_match( '/<span class="smpi-multi-author-item smpi-muckrack-inline-pair"[^>]*data-smpi-author-id="2"[^>]*>.*?Beta Author<\/a><a class="smpi-muckrack-link"/s', $badge_byline_normalized ), "Loop-card primary badge stays attached to its author name in the same flex pair." );
     unset( $GLOBALS["test_muckrack_enabled"], $GLOBALS["test_muckrack_contexts"] );
 
     $GLOBALS["test_is_singular"] = true;
+    $GLOBALS["test_muckrack_enabled"] = true;
+    $GLOBALS["test_muckrack_contexts"] = [ "single_author" ];
     $renderer = new ElementorAuthorRenderer( $repository );
     $template = '<section><div class="elementor-element smpi-author-module"><a href="https://example.test/author/beta-author/">Beta Author</a><img src="https://example.test/avatar-2-300.jpg" alt="Beta Author"></div><div class="share">SHARE</div></section>';
     $rendered = $renderer->filter_content( $template );
@@ -300,12 +302,14 @@ namespace {
     expect_same( 1, substr_count( $rendered, '<div class="share">SHARE</div>' ), "Unrelated sibling markup is never duplicated." );
     expect_same( 1, substr_count( $rendered, "avatar-1-300.jpg" ), "Secondary avatar is rebound." );
     expect_same( 1, substr_count( $rendered, "alpha-author/" ), "Secondary author URL is rebound." );
+    expect_same( 2, substr_count( $rendered, "smpi-muckrack-inline-pair" ), "Cloned Elementor author units center each badge with its author name." );
 
     $primary_template = '<div class="elementor-element smp-author"><a href="https://example.test/author/beta-author/">Beta Author</a><span class="share">SHARE</span></div>';
     $primary_rendered = $renderer->filter_content( $primary_template );
     expect_same( 2, substr_count( $primary_rendered, "smpi-multi-author-item" ), "Primary smp-author contract repeats once per selected author." );
     expect_same( 1, substr_count( $primary_rendered, '<span class="share">SHARE</span>' ), "Non-author direct children inside a marked unit are preserved once." );
     expect_same( 1, substr_count( $primary_rendered, "alpha-author/" ), "Primary smp-author contract rebinds secondary author URLs." );
+    unset( $GLOBALS["test_muckrack_enabled"], $GLOBALS["test_muckrack_contexts"] );
 
     $GLOBALS["test_get_posts"] = [ 20 ];
     $GLOBALS["test_meta"][20]["_elementor_data"] = wp_json_encode(

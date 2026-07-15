@@ -18,6 +18,13 @@ Set `show_type_badges` to `false` when the checklist is being used as a simple a
 - `GettingStartedChecklistRunner`: executes one step or subtask and normalizes callback results.
 - `GettingStartedChecklistAjaxController`: registers the guarded AJAX endpoint through `WpAdminAjax\AjaxActionRegistry`.
 - `GettingStartedChecklistRenderer`: renders the checklist UI, sequential AJAX runner, spinner/check/X states, nested subtasks, and technical activity log.
+- `GettingStartedChecklistAssets`: internal scoped CSS and browser behavior used by the renderer.
+
+## Internal Rendering Boundary
+
+`GettingStartedChecklistRenderer` owns checklist markup and host configuration. `GettingStartedChecklistAssets` owns only the reusable scoped CSS and browser runtime. Host plugins continue to instantiate the renderer and must not call or replace the asset collaborator.
+
+Verify the boundary with `php -n tests/architecture-boundaries.php`; it checks class sizes and renders the extracted asset payload.
 
 ## Host Plugin Rule
 

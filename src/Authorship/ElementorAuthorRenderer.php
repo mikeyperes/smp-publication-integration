@@ -419,14 +419,32 @@ final class ElementorAuthorRenderer {
             if ( $has_exact_child ) {
                 continue;
             }
-            $fragment = $this->fragment( $doc, "\xc2\xa0" . $badge );
+            $fragment = $this->fragment( $doc, $badge );
             if ( ! $fragment ) {
                 return;
             }
+
+            $parent = $node->parentNode instanceof \DOMElement ? $node->parentNode : null;
+            if ( $parent && $this->element_has_class( $parent, "smpi-muckrack-inline-pair" ) ) {
+                $parent->appendChild( $fragment );
+                return;
+            }
+
+            $pair = $doc->createElement( "span" );
+            $pair->setAttribute( "class", "smpi-muckrack-inline-pair" );
             if ( "a" === strtolower( $node->tagName ) && $node->parentNode ) {
-                $node->parentNode->insertBefore( $fragment, $node->nextSibling );
+                $node->parentNode->insertBefore( $pair, $node );
+                $pair->appendChild( $node );
+                $pair->appendChild( $fragment );
             } else {
-                $node->appendChild( $fragment );
+                $label = $doc->createElement( "span" );
+                $label->setAttribute( "class", "smpi-muckrack-author-label" );
+                while ( $node->firstChild ) {
+                    $label->appendChild( $node->firstChild );
+                }
+                $pair->appendChild( $label );
+                $pair->appendChild( $fragment );
+                $node->appendChild( $pair );
             }
             return;
         }
@@ -691,6 +709,10 @@ final class ElementorAuthorRenderer {
             }
         }
         return false;
+    }
+
+    private function element_has_class( \DOMElement $element, string $class_name ): bool {
+        return (bool) preg_match( '/(^|\s)' . preg_quote( $class_name, "/" ) . '(\s|$)/', $element->getAttribute( "class" ) );
     }
 
     private function contains_marker_class( string $content ): bool {

@@ -21,6 +21,7 @@ final class CoreUi {
             .hpc-hero p{color:#d7e1ef;font-size:14px;line-height:1.6;margin:0}
             .hpc-grid{display:grid;gap:14px;grid-template-columns:repeat(3,minmax(0,1fr))}
             .hpc-grid.two{grid-template-columns:repeat(2,minmax(0,1fr))}
+            .hpc-stack{display:grid;gap:14px}
             .hpc-card,.hpc-subcard{background:var(--hpc-panel);border:1px solid var(--hpc-line);border-radius:8px;padding:16px}
             .hpc-card h3,.hpc-subcard h4{font-size:15px;margin:0 0 8px}
             .hpc-card p,.hpc-subcard p{color:#3f4d63;font-size:13px;line-height:1.55;margin:0 0 10px}

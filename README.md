@@ -7,7 +7,7 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.6.183`
+- Version: `0.6.184`
 
 ## Architecture
 
@@ -22,6 +22,12 @@ WordPress plugin for Scale My Publication publication profiles.
 - `Support`: integration adapters and stable legacy helpers.
 
 The bundled `Hexa\PluginCore` package is registered through the shared package resolver. One selected Core root owns the namespace when multiple Hexa plugins are active.
+
+## 0.6.184 Updates
+
+- Center author verification badges against the exact author-name row across Elementor headers, loop cards, and cloned multi-author units.
+- Render the Elementor CSS cache-busting feature through a Hexa WordPress Plugin Core collapsible that is closed by default.
+- Bundle Hexa WordPress Plugin Core `0.19.42`.
 
 ## 0.6.183 Updates
 
