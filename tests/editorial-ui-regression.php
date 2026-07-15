@@ -14,6 +14,9 @@ $checks = [
     'The cache-busting feature is closed by default.' => str_contains( $dashboard, '"open" => false' ),
     'Frontend injection creates an exact author and badge pair.' => str_contains( $muckrack, 'function pairBadge(el,node)' )
         && str_contains( $muckrack, '.smpi-muckrack-inline-pair{display:inline-flex;align-items:center' ),
+    'Frontend injection does not promote author text to a card-wide link.' => str_contains( $muckrack, 'norm(link.textContent)===norm(el.textContent)' )
+        && ! str_contains( $muckrack, 'el.closest("a[href]")||el' ),
+    'Repeated placement passes do not append a second badge to a pair.' => str_contains( $muckrack, 'if(existing){if(hasBadge(existing))return false;' ),
     'Elementor-cloned authors use the same pair contract.' => str_contains( $elementor, '$pair->setAttribute( "class", "smpi-muckrack-inline-pair" )' ),
     'Loop bylines use the same pair contract.' => str_contains( $loop, 'self::ITEM_CLASS . " smpi-muckrack-inline-pair"' ),
 ];
