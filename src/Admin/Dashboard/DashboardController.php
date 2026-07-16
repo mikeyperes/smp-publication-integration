@@ -2,6 +2,8 @@
 namespace smp_publication_integration\Admin\Dashboard;
 
 use Hexa\PluginCore\BrandColors\BrandColorProvider;
+use Hexa\PluginCore\ActivityLog\ActivityLogConfig;
+use Hexa\PluginCore\ActivityLog\ActivityLogRenderer;
 use Hexa\PluginCore\PluginChecks\PluginInventoryRenderer;
 use Hexa\PluginCore\ShortcodeRegistry\ShortcodeDisplayRenderer;
 use Hexa\PluginCore\SmartSearch\SmartSearchRenderer;
@@ -1363,6 +1365,17 @@ class DashboardController {
         echo $this->feature_brand_color_tools_html( $settings );
         echo "<div class=\"smpi-design-host\">";
         $this->feature_card_from_snippet( "elementor_css_cache_busting", $this->elementor_css_report_html() );
+        $elementor_category_controls = $this->inline_toggle_setting_html( "elementor_primary_category_exclude_default", "Exclude the configured WordPress default category" );
+        $this->feature_card(
+            "Elementor primary category",
+            "elementor_primary_category_enabled",
+            "No ACF changes. Registers one SMP-owned Elementor text dynamic tag.",
+            "Outputs at most one post category, honors Rank Math or Yoast primary-category metadata when available, and suppresses the configured WordPress default category.",
+            "Elementor dynamic tag: SMP Publication > Primary Category",
+            $this->simple_status_html( Settings::bool( "elementor_primary_category_enabled" ), "Primary Category dynamic tag is registered for Elementor text fields." ),
+            $this->activity_log_html(),
+            $elementor_category_controls
+        );
         $author_muckrack_controls = $this->author_muckrack_mode_help_html( $settings ) . $this->author_muckrack_shortcodes_html() . $this->context_select_html( "muckrack_verified_contexts", [ "single_author" => "single.php header author mention", "single_footer" => "single.php footer/about-author mention", "loop_cards" => "Loop card authors: show checkmark", "home" => "Home page author mention", "author" => "author.php author mention" ], $settings, "Placement contexts" ) . $this->select_setting_html( "muckrack_verified_style", [ "tooltip" => [ "label" => "Tooltip icon", "description" => "Small badge beside the author name. Hover or focus explains the verification without adding sentence-length text.", "preview" => $this->author_tooltip_preview_html( $settings ) ], "text" => [ "label" => "Inline text", "description" => "Writes the full verification sentence directly into the author area.", "preview" => $this->author_inline_preview_html( $settings ) ], "compact_block" => [ "label" => "Small editorial block", "description" => "Smaller author version of the editorial verification block with left accent and compact text.", "preview" => $this->author_compact_block_preview_html( $settings ) ] ], $settings, "Display style" ) . $this->icon_style_setting_html( $settings ) . $this->color_setting_html( "muckrack_icon_color", "Default icon color", $settings ) . $this->number_setting_html( "muckrack_icon_size", "Default checkmark size", $settings, 8, 64, "px" ) . $this->number_setting_html( "muckrack_icon_margin_left", "Default checkmark margin-left", $settings, -32, 64, "px" ) . $this->number_setting_html( "muckrack_icon_margin_top", "Default checkmark margin-top", $settings, -32, 64, "px" ) . $this->author_context_overrides_html( $settings ) . $this->inline_toggle_setting_html( "muckrack_author_always_show", "Always show for every author" );
         $this->feature_card( "MuckRack verified authors", "muckrack_verified_enabled", "Uses the author user fields owned by hws-base-tools: muckrack_verified and muckrack_url.", "Supports both automatic Elementor-aware author placement and manual shortcode placement. Auto placement detects supported byline and about-author structures; shortcodes are for exact Elementor shortcode widgets or templates. The override can force the effective author badge for every author even when the individual ACF checkbox is empty.", "[author_muckrack_verified]
 [author_muckrack_verified type=\"text\"]
@@ -1454,7 +1467,7 @@ class DashboardController {
         if ( "" !== $extra_controls ) {
             $html .= "<div class=smpi-feature-controls>" . $extra_controls . "</div>";
         }
-        $html .= "<div class=smpi-feature-grid><section><h3>Custom ACF adjustments</h3><p>" . wp_kses_post( $acf ) . "</p></section><section><h3>Description / use instructions</h3><p>" . esc_html( $description ) . "</p></section><section><h3>Code example</h3><pre class=smpi-code>" . esc_html( $code ) . "</pre></section><section class=smpi-feature-report><h3>Test report, active and proof working</h3>" . wp_kses_post( $test_report ) . "</section><section class=smpi-feature-activity><h3>Activity log</h3>" . wp_kses_post( $this->activity_log_html( $log_key ) ) . "</section></div></article>";
+        $html .= "<div class=smpi-feature-grid><section><h3>Custom ACF adjustments</h3><p>" . wp_kses_post( $acf ) . "</p></section><section><h3>Description / use instructions</h3><p>" . esc_html( $description ) . "</p></section><section><h3>Code example</h3><pre class=smpi-code>" . esc_html( $code ) . "</pre></section><section class=smpi-feature-report><h3>Test report, active and proof working</h3>" . wp_kses_post( $test_report ) . "</section><section class=smpi-feature-activity>" . $this->activity_log_html( $log_key ) . "</section></div></article>";
 
         if ( $collapsible ) {
             echo CoreUi::collapsible(
@@ -1924,7 +1937,7 @@ class DashboardController {
             $style = "circle_check";
         }
         $class = "check" === $style ? "smpi-muckrack-preview-check" : ( "circle_outline_check" === $style ? "smpi-muckrack-preview-outline" : "smpi-muckrack-preview-circle" );
-        $size = isset( $settings['muckrack_icon_size'] ) ? absint( $settings['muckrack_icon_size'] ) : 22;
+        $size = isset( $settings['muckrack_icon_size'] ) ? absint( $settings['muckrack_icon_size'] ) : 16;
         $size = max( 8, min( 64, $size ?: 22 ) );
         $margin_left = isset( $settings['muckrack_icon_margin_left'] ) ? (int) $settings['muckrack_icon_margin_left'] : 2;
         $margin_top = isset( $settings['muckrack_icon_margin_top'] ) ? (int) $settings['muckrack_icon_margin_top'] : 0;
@@ -2238,21 +2251,32 @@ class DashboardController {
     }
 
     private function activity_log_html( string $feature_key = "" ): string {
-        $log = Settings::activity_log();
+        $entries = Settings::activity_entries();
         if ( "" !== $feature_key ) {
             $needle = sanitize_key( $feature_key );
-            $log = array_values( array_filter( $log, static function ( array $item ) use ( $needle ): bool {
-                return false !== strpos( sanitize_key( (string) ( $item["message"] ?? "" ) ), $needle );
+            $entries = array_values( array_filter( $entries, static function ( object $entry ) use ( $needle ): bool {
+                $data = method_exists( $entry, 'to_array' ) ? $entry->to_array() : [];
+                return false !== strpos( sanitize_key( (string) ( $data["message"] ?? "" ) ), $needle );
             } ) );
         }
-        if ( empty( $log ) ) {
-            return "<p>No activity logged for this feature yet.</p>";
-        }
-        $html = "<ul>";
-        foreach ( array_slice( $log, 0, 5 ) as $item ) {
-            $html .= "<li><code>" . esc_html( (string) ( $item["time"] ?? "" ) ) . "</code> " . esc_html( (string) ( $item["message"] ?? "" ) ) . "</li>";
-        }
-        return $html . "</ul>";
+
+        $entries = array_slice( $entries, -5 );
+        $id      = 'smpi-activity-log-' . ( $feature_key ? sanitize_key( $feature_key ) : 'general' );
+        $config  = new ActivityLogConfig(
+            [
+                'id'          => $id,
+                'title'       => 'Activity Log',
+                'storage'     => ActivityLogConfig::STORAGE_PERMANENT,
+                'storage_key' => 'smpi_activity_log',
+                'max_entries' => 5,
+                'collapsed'   => true,
+                'dark'        => true,
+            ]
+        );
+
+        ob_start();
+        ( new ActivityLogRenderer( $config ) )->render( $entries );
+        return (string) ob_get_clean();
     }
 
     private function ui_cleanup(): void {

@@ -27,6 +27,8 @@ class SettingsRepository {
             'public_debug_enabled'  => false,
             'estimated_read_time_enabled' => true,
             'elementor_css_cache_busting' => true,
+            'elementor_primary_category_enabled' => true,
+            'elementor_primary_category_exclude_default' => true,
             'publication_social_cleanup' => true,
             'muckrack_verified_enabled' => true,
             'muckrack_author_always_show' => false,
@@ -34,7 +36,7 @@ class SettingsRepository {
             'muckrack_verified_style' => 'tooltip',
             'muckrack_icon_color' => $colors['muckrack_icon_color'],
             'muckrack_icon_style' => 'circle_check',
-            "muckrack_icon_size" => 22,
+            "muckrack_icon_size" => 16,
             "muckrack_icon_margin_left" => 2,
             "muckrack_icon_margin_top" => 0,
             "muckrack_icon_color_single_author" => "",
@@ -301,7 +303,7 @@ class SettingsRepository {
                     "featured_image_caption_font_size" => 16,
                     "post_faqs_text_font_size" => 16,
                 ];
-                $default = "muckrack_icon_size" === $key ? 22 : ( $font_size_defaults[ $key ] ?? 18 );
+                $default = "muckrack_icon_size" === $key ? 16 : ( $font_size_defaults[ $key ] ?? 18 );
                 $settings[ $key ] = max( 8, min( 64, $value ?: $default ) );
                 continue;
             }
@@ -346,7 +348,7 @@ class SettingsRepository {
                 continue;
             }
 
-            if ( in_array( $key, [ 'founders_enabled', 'shadow_posts_enabled', 'shadow_press_releases', 'post_list_defaults_enabled', 'hide_home_posts_without_featured_image', 'post_featured_image_required', 'author_social_cleanup', 'public_debug_enabled', 'estimated_read_time_enabled', 'elementor_css_cache_busting', 'publication_social_cleanup', 'muckrack_verified_enabled', 'muckrack_author_always_show', 'publication_muckrack_verified_enabled', 'multi_authors_enabled', 'multi_authors_disable_loop_cards', 'press_release_include_enabled', 'post_summary_acf_enabled', 'post_faqs_acf_enabled', 'article_types_enabled', 'breadcrumbs_enabled', 'breadcrumbs_hide_home', 'breadcrumbs_hide_term_archives', 'table_of_contents_enabled', 'table_of_contents_auto_single', 'table_of_contents_include_summary', 'article_drop_cap_enabled', 'rank_math_breadcrumb_check_enabled', 'hws_masked_admin_report_enabled', "content_generation_enabled", "post_hygiene_enabled", "post_hygiene_strip_inline_styles", "post_hygiene_unwrap_spans", "post_hygiene_remove_font_tags", "post_hygiene_strip_classes_ids", "post_hygiene_strip_empty_tags", "post_hygiene_clean_heading_children" ], true ) ) {
+            if ( in_array( $key, [ 'founders_enabled', 'shadow_posts_enabled', 'shadow_press_releases', 'post_list_defaults_enabled', 'hide_home_posts_without_featured_image', 'post_featured_image_required', 'author_social_cleanup', 'public_debug_enabled', 'estimated_read_time_enabled', 'elementor_css_cache_busting', 'elementor_primary_category_enabled', 'elementor_primary_category_exclude_default', 'publication_social_cleanup', 'muckrack_verified_enabled', 'muckrack_author_always_show', 'publication_muckrack_verified_enabled', 'multi_authors_enabled', 'multi_authors_disable_loop_cards', 'press_release_include_enabled', 'post_summary_acf_enabled', 'post_faqs_acf_enabled', 'article_types_enabled', 'breadcrumbs_enabled', 'breadcrumbs_hide_home', 'breadcrumbs_hide_term_archives', 'table_of_contents_enabled', 'table_of_contents_auto_single', 'table_of_contents_include_summary', 'article_drop_cap_enabled', 'rank_math_breadcrumb_check_enabled', 'hws_masked_admin_report_enabled', "content_generation_enabled", "post_hygiene_enabled", "post_hygiene_strip_inline_styles", "post_hygiene_unwrap_spans", "post_hygiene_remove_font_tags", "post_hygiene_strip_classes_ids", "post_hygiene_strip_empty_tags", "post_hygiene_clean_heading_children" ], true ) ) {
                 $settings[ $key ] = (bool) $value;
                 continue;
             }
@@ -493,6 +495,13 @@ class SettingsRepository {
         }
 
         return $log;
+    }
+
+    /**
+     * @return ActivityLogEntry[]
+     */
+    public static function activity_entries(): array {
+        return self::activity_logger()->all();
     }
 
     public static function log( string $message ): void {

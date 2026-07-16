@@ -754,6 +754,8 @@ transient  stored with set_transient
 permanent  stored with update_option
 ```
 
+Activity logs are collapsed by default. Hosts may opt into an initially open log by passing `collapsed => false`.
+
 Example:
 
 ```php

@@ -75,6 +75,7 @@ final class Plugin {
             new Content\PostTime(),
             new Content\EstimatedReadTime(),
             new Content\ElementorCssCacheBusting(),
+            new Content\ElementorPrimaryCategory(),
             new Content\MuckRackVerification(),
             new Content\AuthorSocialCleanup(),
             new Content\Breadcrumbs(),

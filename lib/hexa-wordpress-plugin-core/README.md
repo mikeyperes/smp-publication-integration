@@ -404,7 +404,7 @@ echo DetailedColorPicker::render([
 
 ## Activity Log Component
 
-Use the activity component for updater progress, imports, tests, maintenance tasks, and any admin workflow that benefits from a collapsible dark monitor.
+Use the activity component for updater progress, imports, tests, maintenance tasks, and any admin workflow that benefits from a collapsible dark monitor. Activity logs are collapsed by default; a host must explicitly pass `collapsed => false` when an open log is required.
 
 Storage modes:
 
@@ -426,7 +426,7 @@ $config = new ActivityLogConfig(
         'title'       => 'Example Activity Log',
         'storage'     => ActivityLogConfig::STORAGE_TRANSIENT,
         'storage_key' => 'example_activity_log',
-        'collapsed'   => false,
+        'collapsed'   => true,
     ]
 );
 
