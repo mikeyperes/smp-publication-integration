@@ -1435,7 +1435,7 @@ class DashboardController {
         $this->feature_card( "MuckRack verified publication", "publication_muckrack_verified_enabled", "Registers site option ACF fields on Publication Theme Options: smpi_publication_muckrack_verified and smpi_publication_muckrack_url.", "Displays publication-level MuckRack verification text separately from journalist verification. Use this for the site/news-outlet claim, not the author badge.", "[smp_publication_muckrack_verified]", $this->publication_muckrack_report_html(), $this->activity_log_html(), $publication_muckrack_controls );
         $this->feature_card( "Press-release inclusion controls", "press_release_include_enabled", "Uses existing press-release CPT and _smpi_pr_shadow_override meta. ACF/local fields are registered for force include or force exclude.", "Includes Hexa PR Wire press-release posts in selected blog-like loops: home, category/tag, author.php, and single.php recent article secondary queries. Force exclude is honored through the press-release visibility meta box.", "add_action(\"pre_get_posts\", function (WP_Query \$q) { /* SMP uses the same main-query guard pattern and selected contexts. */ });", $this->press_release_report_html(), $this->activity_log_html(), $this->context_select_html( "press_release_include_contexts", [ "home" => "Home page", "category_tag" => "Category and tag pages", "author" => "author.php", "single_recent" => "single.php recent article queries" ], $settings ) );
         $this->feature_card( "Article type schema selector", "", "Moved to the Custom Fields tab. Registers the <code>smpi_article_type</code> taxonomy only when enabled there.", "Adds one radio-only Article Type box to supported article editors. The field is hidden when disabled and only allows predefined schema-backed values.", "editorial-news => NewsArticle\nanalysis => AnalysisNewsArticle\nopinion => OpinionNewsArticle\nreportage => ReportageNewsArticle\npress-release => Article\nsponsored => AdvertiserContentArticle", $this->article_type_selector_report_html(), $this->activity_log_html(), "<p class=\"smpi-muted\">Registration toggle lives in Custom Fields.</p>" . $this->article_type_selector_options_html() );
-        $breadcrumb_controls = $this->inline_toggle_setting_html( "breadcrumbs_hide_home", "Hide on front page/home page" ) . $this->inline_toggle_setting_html( "breadcrumbs_hide_term_archives", "Hide on category and tag pages" ) . $this->select_setting_html( "breadcrumbs_style", $this->breadcrumb_style_options(), $settings, "Breadcrumb template" ) . $this->color_setting_html( "breadcrumbs_accent_color", "Breadcrumb primary color", $settings ) . $this->color_setting_html( "breadcrumbs_background_color", "Breadcrumb background color", $settings ) . $this->number_setting_html( "breadcrumbs_font_size", "Breadcrumb font size", $settings, 8, 64, "px" ) . $this->context_select_html( "breadcrumbs_disabled_post_types", $this->breadcrumb_post_type_options(), $settings, "Disable on custom post type single templates" );
+        $breadcrumb_controls = $this->breadcrumb_controls_html( $settings );
         $this->feature_card( "Breadcrumbs", "breadcrumbs_enabled", "Registers a Hexa core-generated ACF multi post selector on Publication Theme Options: <code>smpi_breadcrumb_disabled_objects</code>. No repeater.", "Injects a selected Rank Math-compatible breadcrumb design directly below the site header on singular post/page/CPT templates and category/tag archives. Uses Rank Math breadcrumb markup when Rank Math is available and falls back to SMP-generated breadcrumbs when it is not. It is hidden on the front page/home page by default. Category and tag archives show by default unless disabled here.", "[smp_breadcrumbs]\n[smp_breadcrumbs style=\"bc-b2\"]\nACF option: smpi_breadcrumb_disabled_objects\nRank Math source: rank-math-options-general", $this->breadcrumbs_report_html(), $this->activity_log_html(), $breadcrumb_controls );
         $toc_controls = $this->inline_toggle_setting_html( "table_of_contents_auto_single", "Automatically show above single.php content" ) . $this->inline_toggle_setting_html( "table_of_contents_include_summary", "Include What to Know summary at top" ) . $this->select_setting_html( "table_of_contents_style", $this->toc_style_options(), $settings, "Table of contents design" ) . $this->color_setting_html( "table_of_contents_accent_color", "Table of contents accent color", $settings ) . $this->font_style_setting_html( "table_of_contents_text_font_style", "Table of contents text font style", $settings ) . $this->number_setting_html( "table_of_contents_text_font_size", "Table of contents text font size", $settings, 8, 64, "px" ) . $this->color_setting_html( "table_of_contents_text_color", "Table of contents text color", $settings );
         $this->feature_card( "Table of contents", "table_of_contents_enabled", "No ACF changes. Parses post headings from post_content.", "Adds [smp_table_of_contents] and optional automatic display above single.php content. Select the single.php display treatment here or use style= on the shortcode.", "[smp_table_of_contents]\n[smp_table_of_contents style=\"toc02\"]\n[smp_table_of_contents post_id=\"123\" title=\"In this article\"]", $this->table_of_contents_report_html(), $this->activity_log_html(), $toc_controls );
@@ -1588,6 +1588,32 @@ class DashboardController {
     private function inline_toggle_setting_html( string $key, string $label ): string {
         $enabled = Settings::bool( $key );
         return "<div class=smpi-control-row><label class=smpi-switch><input class=smpi-setting type=checkbox data-key=" . esc_attr( $key ) . " value=1 " . checked( $enabled, true, false ) . "><span></span><strong>" . esc_html( $label ) . "</strong></label><span class=spinner></span><span class=smpi-save-state></span></div>";
+    }
+
+    private function breadcrumb_controls_html( array $settings ): string {
+        $template = $this->select_setting_html( "breadcrumbs_style", $this->breadcrumb_style_options(), $settings, "Breadcrumb template" );
+        $appearance = "<div class=\"smpi-breadcrumb-appearance-grid\">"
+            . $this->color_setting_html( "breadcrumbs_accent_color", "Primary color", $settings )
+            . $this->color_setting_html( "breadcrumbs_background_color", "Background color", $settings )
+            . $this->number_setting_html( "breadcrumbs_font_size", "Font size", $settings, 8, 64, "px" )
+            . "</div>";
+        $visibility = "<div class=\"smpi-breadcrumb-visibility-grid\">"
+            . $this->inline_toggle_setting_html( "breadcrumbs_hide_home", "Hide on front page and posts page" )
+            . $this->inline_toggle_setting_html( "breadcrumbs_hide_term_archives", "Hide on category and tag pages" )
+            . "</div>"
+            . $this->context_select_html( "breadcrumbs_disabled_post_types", $this->breadcrumb_post_type_options(), $settings, "Hide on custom post types" );
+
+        return "<div class=\"smpi-breadcrumb-flow\">"
+            . $this->breadcrumb_section_html( "template", "01", "Template", $template )
+            . $this->breadcrumb_section_html( "appearance", "02", "Appearance", $appearance )
+            . $this->breadcrumb_section_html( "visibility", "03", "Visibility", $visibility )
+            . "</div>";
+    }
+
+    private function breadcrumb_section_html( string $slug, string $step, string $title, string $body_html ): string {
+        $slug = sanitize_html_class( $slug );
+        $title_id = "smpi-breadcrumb-" . $slug . "-title";
+        return "<section class=\"smpi-breadcrumb-section smpi-breadcrumb-section--" . esc_attr( $slug ) . "\" aria-labelledby=\"" . esc_attr( $title_id ) . "\"><header class=smpi-breadcrumb-section-head><span class=smpi-breadcrumb-step aria-hidden=true>" . esc_html( $step ) . "</span><h3 id=\"" . esc_attr( $title_id ) . "\">" . esc_html( $title ) . "</h3></header>" . $body_html . "</section>";
     }
 
     private function context_select_html( string $key, array $options, array $settings, string $label = "Placement contexts" ): string {

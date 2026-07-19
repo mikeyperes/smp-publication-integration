@@ -5,6 +5,10 @@ declare(strict_types=1);
 $root       = dirname( __DIR__ );
 $dashboard  = (string) file_get_contents( $root . '/src/Admin/Dashboard/DashboardController.php' );
 $muckrack   = (string) file_get_contents( $root . '/src/Content/MuckRackVerification.php' );
+$dashboard_css = (string) file_get_contents( $root . '/assets/admin/dashboard.css' );
+$breadcrumb_start = strpos( $dashboard, 'private function breadcrumb_controls_html' );
+$breadcrumb_end = false !== $breadcrumb_start ? strpos( $dashboard, 'private function context_select_html', $breadcrumb_start ) : false;
+$breadcrumb_flow = false !== $breadcrumb_start && false !== $breadcrumb_end ? substr( $dashboard, $breadcrumb_start, $breadcrumb_end - $breadcrumb_start ) : '';
 $elementor  = (string) file_get_contents( $root . '/src/Authorship/ElementorAuthorRenderer.php' );
 $loop       = (string) file_get_contents( $root . '/src/Authorship/LoopBylineRenderer.php' );
 $article_styles = (string) file_get_contents( $root . '/src/Content/ArticleStyles.php' );
@@ -18,6 +22,18 @@ $checks = [
     'Breadcrumb background is saved and applied through one scoped CSS variable.' => str_contains( $dashboard, 'breadcrumbs_background_color' )
         && str_contains( $article_styles, '--smpi-bc-background' )
         && str_contains( $article_styles, 'background:var(--smpi-bc-background,#fff)' ),
+    'Breadcrumb controls render in Template, Appearance, Visibility order.' => str_contains( $dashboard, '$this->breadcrumb_controls_html( $settings )' )
+        && str_contains( $breadcrumb_flow, 'smpi-breadcrumb-flow' )
+        && strpos( $breadcrumb_flow, '"Template"' ) < strpos( $breadcrumb_flow, '"Appearance"' )
+        && strpos( $breadcrumb_flow, '"Appearance"' ) < strpos( $breadcrumb_flow, '"Visibility"' ),
+    'All breadcrumb visibility settings share the Visibility section.' => str_contains( $breadcrumb_flow, 'breadcrumbs_hide_home' )
+        && str_contains( $breadcrumb_flow, 'breadcrumbs_hide_term_archives' )
+        && str_contains( $breadcrumb_flow, 'breadcrumbs_disabled_post_types' )
+        && str_contains( $breadcrumb_flow, '$this->breadcrumb_section_html( "visibility", "03", "Visibility", $visibility )' ),
+    'Breadcrumb templates and exclusions use compact responsive grids.' => str_contains( $dashboard_css, '.smpi-breadcrumb-section--template' )
+        && str_contains( $dashboard_css, 'grid-template-columns:repeat(2,minmax(0,1fr))' )
+        && str_contains( $dashboard_css, '.smpi-breadcrumb-section--visibility .smpi-choice-list' )
+        && str_contains( $dashboard_css, '@media(max-width:782px)' ),
     'Frontend injection creates an exact author and badge pair.' => str_contains( $muckrack, 'function pairBadge(el,node)' )
         && str_contains( $muckrack, '.smpi-muckrack-inline-pair{display:inline-flex;align-items:center' ),
     'Frontend injection does not promote author text to a card-wide link.' => str_contains( $muckrack, 'norm(link.textContent)===norm(el.textContent)' )

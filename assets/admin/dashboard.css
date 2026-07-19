@@ -8,10 +8,34 @@
 .smpi-dashboard .smpi-feature-card,.smpi-dashboard .smpi-feature-controls,.smpi-dashboard .smpi-feature-grid,.smpi-dashboard .smpi-feature-grid>*{max-width:100%;min-width:0}
 .smpi-dashboard .smpi-table-scroll{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
 .smpi-dashboard .smpi-table-scroll>table{margin:0;min-width:640px}
+.smpi-dashboard .smpi-breadcrumb-flow{display:grid}
+.smpi-dashboard .smpi-breadcrumb-section{border-top:1px solid #dcdcde;padding:22px 0}
+.smpi-dashboard .smpi-breadcrumb-section:first-child{border-top:0;padding-top:2px}
+.smpi-dashboard .smpi-breadcrumb-section:last-child{padding-bottom:2px}
+.smpi-dashboard .smpi-breadcrumb-section-head{align-items:baseline;display:flex;gap:10px;margin:0 0 14px}
+.smpi-dashboard .smpi-breadcrumb-section-head h3{color:#1d2327;font-size:16px;letter-spacing:0;line-height:1.35;margin:0;text-transform:none}
+.smpi-dashboard .smpi-breadcrumb-step{color:#2271b1;font-size:12px;font-weight:700;line-height:1}
+.smpi-dashboard .smpi-breadcrumb-section--template .smpi-control-group:has(input[data-key="breadcrumbs_style"]) .smpi-choice-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.smpi-dashboard .smpi-breadcrumb-section--template .smpi-choice-card{border-radius:6px;box-sizing:border-box;height:100%;min-width:0}
+.smpi-dashboard .smpi-breadcrumb-section--template .smpi-choice-preview{box-sizing:border-box;max-width:none;overflow:hidden;width:100%}
+.smpi-dashboard .smpi-breadcrumb-appearance-grid{display:grid;gap:18px;grid-template-columns:repeat(3,minmax(0,1fr))}
+.smpi-dashboard .smpi-breadcrumb-appearance-grid>.smpi-control-group{min-width:0}
+.smpi-dashboard .smpi-breadcrumb-visibility-grid{display:grid;gap:10px;grid-template-columns:repeat(2,minmax(0,1fr));margin-bottom:18px}
+.smpi-dashboard .smpi-breadcrumb-visibility-grid .smpi-control-row{align-items:center;background:#fff;border:1px solid #d8dee8;border-radius:6px;box-sizing:border-box;display:flex;margin:0;min-height:52px;padding:12px 14px}
+.smpi-dashboard .smpi-breadcrumb-section--visibility .smpi-context-control{margin-top:0}
+.smpi-dashboard .smpi-breadcrumb-section--visibility .smpi-choice-list{grid-template-columns:repeat(2,minmax(0,1fr))}
+.smpi-dashboard .smpi-breadcrumb-section--visibility .smpi-choice-card{border-radius:6px;box-sizing:border-box;min-width:0}
+@media(max-width:1050px){
+    .smpi-dashboard .smpi-breadcrumb-appearance-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .smpi-dashboard .smpi-breadcrumb-appearance-grid>.smpi-control-group:last-child{grid-column:1/-1}
+}
 @media(max-width:782px){
     .smpi-dashboard .smpi-feature-grid,.smpi-dashboard .smpi-choice-grid,.smpi-dashboard .smpi-brand-color-tools .smpi-feature-grid,.smpi-dashboard .smpi-shortcode-row,.smpi-dashboard .smpi-context-override-row{grid-template-columns:minmax(0,1fr)!important}
     .smpi-dashboard .smpi-feature-head{display:grid}
     .smpi-dashboard .smpi-feature-report table{max-width:none}
     .smpi-dashboard .smpi-shortcode-row small{grid-column:1}
     .smpi-dashboard .smpi-shortcode-row>*,.smpi-dashboard .smpi-context-override-row>*{min-width:0}
+    .smpi-dashboard .smpi-breadcrumb-appearance-grid,.smpi-dashboard .smpi-breadcrumb-visibility-grid,.smpi-dashboard .smpi-breadcrumb-section--visibility .smpi-choice-list{grid-template-columns:minmax(0,1fr)}
+    .smpi-dashboard .smpi-breadcrumb-appearance-grid>.smpi-control-group:last-child{grid-column:auto}
+    .smpi-dashboard .smpi-breadcrumb-section{padding:18px 0}
 }
