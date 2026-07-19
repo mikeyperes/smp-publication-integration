@@ -31,7 +31,7 @@ $checks = [
         && str_contains( $breadcrumb_flow, 'breadcrumbs_disabled_post_types' )
         && str_contains( $breadcrumb_flow, '$this->breadcrumb_section_html( "visibility", "03", "Visibility", $visibility )' ),
     'Breadcrumb templates and exclusions use compact responsive grids.' => str_contains( $dashboard_css, '.smpi-breadcrumb-section--template' )
-        && str_contains( $dashboard_css, 'grid-template-columns:repeat(2,minmax(0,1fr))' )
+        && str_contains( $dashboard_css, '.smpi-breadcrumb-section--template .smpi-control-group:has(input[data-key="breadcrumbs_style"]) .smpi-choice-grid{grid-template-columns:minmax(0,1fr)}' )
         && str_contains( $dashboard_css, '.smpi-breadcrumb-section--visibility .smpi-choice-list' )
         && str_contains( $dashboard_css, '@media(max-width:782px)' ),
     'Frontend injection creates an exact author and badge pair.' => str_contains( $muckrack, 'function pairBadge(el,node)' )

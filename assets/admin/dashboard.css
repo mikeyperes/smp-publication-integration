@@ -15,7 +15,7 @@
 .smpi-dashboard .smpi-breadcrumb-section-head{align-items:baseline;display:flex;gap:10px;margin:0 0 14px}
 .smpi-dashboard .smpi-breadcrumb-section-head h3{color:#1d2327;font-size:16px;letter-spacing:0;line-height:1.35;margin:0;text-transform:none}
 .smpi-dashboard .smpi-breadcrumb-step{color:#2271b1;font-size:12px;font-weight:700;line-height:1}
-.smpi-dashboard .smpi-breadcrumb-section--template .smpi-control-group:has(input[data-key="breadcrumbs_style"]) .smpi-choice-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.smpi-dashboard .smpi-breadcrumb-section--template .smpi-control-group:has(input[data-key="breadcrumbs_style"]) .smpi-choice-grid{grid-template-columns:minmax(0,1fr)}
 .smpi-dashboard .smpi-breadcrumb-section--template .smpi-choice-card{border-radius:6px;box-sizing:border-box;height:100%;min-width:0}
 .smpi-dashboard .smpi-breadcrumb-section--template .smpi-choice-preview{box-sizing:border-box;max-width:none;overflow:hidden;width:100%}
 .smpi-dashboard .smpi-breadcrumb-appearance-grid{display:grid;gap:18px;grid-template-columns:repeat(3,minmax(0,1fr))}
