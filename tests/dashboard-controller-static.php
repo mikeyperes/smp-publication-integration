@@ -81,6 +81,8 @@ foreach (
         'function setActiveTab',
         'function loadTab(tab',
         'smpiAdmin.pageUrl',
+        'private function ico(',
+        '$this->ico(',
     ] as $legacy_shell_token
 ) {
     if ( str_contains( $controller, $legacy_shell_token ) ) {

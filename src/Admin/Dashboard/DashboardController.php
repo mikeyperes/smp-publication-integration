@@ -5,7 +5,6 @@ use Hexa\PluginCore\BrandColors\BrandColorProvider;
 use Hexa\PluginCore\ActivityLog\ActivityLogConfig;
 use Hexa\PluginCore\ActivityLog\ActivityLogRenderer;
 use Hexa\PluginCore\PluginChecks\PluginInventoryRenderer;
-use Hexa\PluginCore\ShortcodeRegistry\ShortcodeDisplayRenderer;
 use Hexa\PluginCore\SmartSearch\SmartSearchRenderer;
 use Hexa\PluginCore\FieldStructures\FieldStructureRenderer;
 use Hexa\PluginCore\GettingStartedChecklist\GettingStartedChecklistRenderer;
@@ -25,13 +24,10 @@ use smp_publication_integration\Admin\Ajax;
 use smp_publication_integration\Admin\QuickStartCleanupWorkflow;
 use smp_publication_integration\Admin\UiCleanup;
 use smp_publication_integration\Admin\Navigation\AdminNavigation;
-use smp_publication_integration\Admin\Navigation\AdminRoute;
 use smp_publication_integration\Config;
-use smp_publication_integration\Content\AuthorShortcodes;
 use smp_publication_integration\Content\Breadcrumbs;
 use smp_publication_integration\Content\MultiAuthors;
 use smp_publication_integration\Content\Schema;
-use smp_publication_integration\Content\Shortcodes;
 use smp_publication_integration\Support\Dependencies;
 use smp_publication_integration\Support\ArticleCleanup;
 use smp_publication_integration\Support\PageStructure;
@@ -267,7 +263,7 @@ class DashboardController {
         echo "<div class=\"smpi-author-binding-layout\">";
         echo "<div class=\"smpi-user-picker" . ( $locked ? " is-locked" : "" ) . "\" data-selected-user=\"" . esc_attr( (string) $user_id ) . "\">";
         echo "<input type=\"hidden\" class=\"smpi-setting smpi-publication-user-setting\" data-key=\"system_publication_user_id\" value=\"" . esc_attr( (string) $user_id ) . "\">";
-        echo "<div class=\"smpi-locked-view\"><div class=\"smpi-locked-bar\">" . $this->ico( true ) . "<span class=\"smpi-locked-label\">Main publication profile</span><span class=\"smpi-pill smpi-pill--saved\">Saved</span><button type=\"button\" class=\"button smpi-change-user\">Change profile</button></div>";
+        echo "<div class=\"smpi-locked-view\"><div class=\"smpi-locked-bar\">" . self::ico( true ) . "<span class=\"smpi-locked-label\">Main publication profile</span><span class=\"smpi-pill smpi-pill--saved\">Saved</span><button type=\"button\" class=\"button smpi-change-user\">Change profile</button></div>";
         echo "<div class=\"smpi-current-user-summary\">" . $this->publication_user_card_html( $user_id ) . "</div></div>";
         echo "<div class=\"smpi-edit-view\"><div class=\"smpi-author-search-card\">";
         echo "<label for=\"smpi-publication-user-search\"><strong>Search for a publication profile</strong></label><p class=\"smpi-muted\">Search by publication name, username, or email, then click a result to lock it in. It saves automatically.</p>";
@@ -285,7 +281,7 @@ class DashboardController {
 
         $readiness = Dependencies::verified_profiles_readiness();
         if ( empty( $readiness["plugin_active"] ) || empty( $readiness["profile_cpt"] ) || empty( $readiness["profile_acf"] ) ) {
-            echo "<div class=\"smpi-alert smpi-alert-warning\"><strong>Verified Profiles setup required.</strong><p>Founder selection unlocks once all three requirements below are met.</p><div class=\"smpi-status-rows\"><div class=\"smpi-status-row\">" . $this->ico( ! empty( $readiness["plugin_active"] ), true ) . "<span>Verified Profiles plugin active</span></div><div class=\"smpi-status-row\">" . $this->ico( ! empty( $readiness["profile_cpt"] ), true ) . "<span>Profile content type active</span></div><div class=\"smpi-status-row\">" . $this->ico( ! empty( $readiness["profile_acf"] ), true ) . "<span>Profile ACF fields enabled</span></div></div>" . $this->verified_profiles_setup_actions_html( $readiness ) . "</div></div>";
+            echo "<div class=\"smpi-alert smpi-alert-warning\"><strong>Verified Profiles setup required.</strong><p>Founder selection unlocks once all three requirements below are met.</p><div class=\"smpi-status-rows\"><div class=\"smpi-status-row\">" . self::ico( ! empty( $readiness["plugin_active"] ), true ) . "<span>Verified Profiles plugin active</span></div><div class=\"smpi-status-row\">" . self::ico( ! empty( $readiness["profile_cpt"] ), true ) . "<span>Profile content type active</span></div><div class=\"smpi-status-row\">" . self::ico( ! empty( $readiness["profile_acf"] ), true ) . "<span>Profile ACF fields enabled</span></div></div>" . $this->verified_profiles_setup_actions_html( $readiness ) . "</div></div>";
             return;
         }
 
@@ -385,10 +381,6 @@ class DashboardController {
         return "<div class=\"smpi-empty-state smpi-empty-founder-profiles\"><strong>No founder profiles selected.</strong><p>Use the search above to add founder records from Verified Profiles.</p></div>";
     }
 
-    private function selected_user_label( int $user_id ): string {
-        $user = $user_id ? get_user_by( "id", $user_id ) : false;
-        return $user ? $user->display_name : "";
-    }
 
     private function publication_user_card_html( int $user_id ): string {
         $user = $user_id ? get_user_by( "id", $user_id ) : false;
@@ -477,7 +469,7 @@ class DashboardController {
         $text = sanitize_hex_color( (string) get_option( "hws_brand_highlight_text_color", "#111827" ) ) ?: "#111827";
         $edit = admin_url( "options-general.php?page=hws-core-tools&tab=brand-assets" );
         echo "<div class=smpi-hero><p class=smpi-kicker>Brand</p><h2>HWS Brand Assets</h2><p>SMP reports shared HWS brand values here. Editing remains owned by HWS Base Tools.</p></div>";
-        echo "<div class=smpi-grid><div class=smpi-card><h3>Highlight override</h3><p>" . ( $enabled ? $this->ico( true ) . "Enabled" : $this->ico( false ) . "Disabled" ) . "</p></div><div class=smpi-card><h3>Highlight background</h3><p><span class=smpi-color-swatch style=background:" . esc_attr( $background ) . "></span> <code>" . esc_html( $background ) . "</code></p></div><div class=smpi-card><h3>Highlight text</h3><p><span class=smpi-color-swatch style=background:" . esc_attr( $text ) . "></span> <code>" . esc_html( $text ) . "</code></p></div></div>";
+        echo "<div class=smpi-grid><div class=smpi-card><h3>Highlight override</h3><p>" . ( $enabled ? self::ico( true ) . "Enabled" : self::ico( false ) . "Disabled" ) . "</p></div><div class=smpi-card><h3>Highlight background</h3><p><span class=smpi-color-swatch style=background:" . esc_attr( $background ) . "></span> <code>" . esc_html( $background ) . "</code></p></div><div class=smpi-card><h3>Highlight text</h3><p><span class=smpi-color-swatch style=background:" . esc_attr( $text ) . "></span> <code>" . esc_html( $text ) . "</code></p></div></div>";
         echo "<div class=smpi-panel><h2>Edit Source</h2><p>These settings come from HWS Base Tools Brand Assets.</p><p><a class=button target=_blank rel=noopener href=" . esc_url( $edit ) . ">Open HWS Brand Assets</a></p></div>";
     }
 
@@ -909,115 +901,7 @@ class DashboardController {
         return $out;
     }
 
-    private static function shortcode_row_display_item( array $row ): array {
-        $shortcode = (string) ( $row['shortcode'] ?? '' );
-        $tag = self::shortcode_tag_from_code( $shortcode );
-        $parameters = self::shortcode_parameters_from_code( $shortcode );
 
-        return [
-            'label'       => $tag ?: (string) ( $row['group'] ?? 'Shortcode' ),
-            'shortcode'   => $shortcode,
-            'description' => self::shortcode_description_from_row( $row, $tag ),
-            'provider'    => (string) ( $row['provider'] ?? '' ),
-            'source'      => (string) ( $row['source'] ?? '' ),
-            'output_html' => (string) ( $row['value'] ?? '' ),
-            'evaluate'    => false,
-            'examples'    => [
-                [
-                    'label'      => 'Current selected context',
-                    'shortcode'  => $shortcode,
-                    'parameters' => $parameters,
-                ],
-            ],
-        ];
-    }
-
-    private static function shortcode_description_from_row( array $row, string $tag ): string {
-        $group = (string) ( $row['group'] ?? '' );
-        if ( 'Publication/global' === $group ) {
-            return 'Renders publication-level data from SMP settings, publication options, assigned pages, or schema helpers.';
-        }
-        if ( 'Author/user.php' === $group ) {
-            return 'Renders user profile data for the selected WordPress author.';
-        }
-        if ( 'Compatibility' === $group ) {
-            return 'Legacy compatibility shortcode for existing MuckRack and ACF author-field templates.';
-        }
-        if ( 'External provider' === $group ) {
-            return 'External provider shortcode listed for reference; SMP does not execute this row in the debugger.';
-        }
-        return '' !== $tag ? 'Displays the live output for [' . $tag . '].' : 'Displays the live output for this shortcode.';
-    }
-
-    private static function shortcode_tag_from_code( string $shortcode ): string {
-        return preg_match( '/^\[([a-zA-Z0-9_\-]+)/', trim( $shortcode ), $matches ) ? (string) $matches[1] : '';
-    }
-
-    private static function shortcode_parameters_from_code( string $shortcode ): array {
-        $parameters = [];
-        if ( preg_match_all( '/([a-zA-Z0-9_\-]+)="([^"]*)"/', $shortcode, $matches, PREG_SET_ORDER ) ) {
-            foreach ( $matches as $match ) {
-                $parameters[ (string) $match[1] ] = (string) $match[2];
-            }
-        }
-        return $parameters;
-    }
-
-    private static function shortcode_user_rows( int $user_id ): array {
-        $rows = [];
-        foreach ( Shortcodes::shortcodes() as $tag => $callback ) {
-            if ( 0 === strpos( $tag, "smp_post_" ) ) { continue; }
-            $code = "[" . $tag . "]";
-            $rows[] = [ "group" => "Publication/global", "provider" => "SMP Publication Integration", "source" => self::publication_shortcode_source( (string) $tag ), "shortcode" => $code, "value" => self::shortcode_value_html( $code ) ];
-        }
-        $aliases = AuthorShortcodes::field_aliases();
-        foreach ( AuthorShortcodes::shortcodes() as $tag => $callback ) {
-            $code = "[" . $tag . " user_id=\"" . $user_id . "\"";
-            if ( "author_image" === $tag ) { $code .= " size=\"thumbnail\" output=\"url\""; }
-            if ( "author_muckrack_verified" === $tag ) { $code .= " type=\"icon\" context=\"single_author\""; }
-            $code .= "]";
-            $rows[] = [ "group" => "Author/user.php", "provider" => "SMP Publication Integration", "source" => self::author_shortcode_source( (string) $tag, $aliases ), "shortcode" => $code, "value" => self::shortcode_value_html( $code ) ];
-        }
-        $legacy = [ "[acf_author_field field=\"muckrack_url\" user_id=\"" . $user_id . "\"]", "[muckrack_verified user_id=\"" . $user_id . "\" type=\"icon\"]", "[muckrack_verified user_id=\"" . $user_id . "\" type=\"text\"]" ];
-        foreach ( $legacy as $code ) {
-            $rows[] = [ "group" => "Compatibility", "provider" => "SMP MuckRack compatibility", "source" => "ACF/user fields: muckrack_verified, muckrack_url, what_best_describe_you", "shortcode" => $code, "value" => self::shortcode_value_html( $code ) ];
-        }
-        return array_merge( $rows, self::external_shortcode_rows( $user_id ) );
-    }
-
-    private static function publication_shortcode_source( string $tag ): string {
-        $map = [ "smp_publication_field" => "Publication option ACF field parameter", "smp_publication_mission_statement" => "mission_statement publication option", "smp_publication_founders" => "smpi_founder_profiles option / profile CPT", "smp_publication_user" => "system_publication_user_id setting", "smp_publication_profile" => "publication options and mapped user", "smp_publication_validate_schema" => "schema integrity report", "smp_publication_page" => "page_assignments option", "smp_publication_debug_url" => "public debug endpoint setting" ];
-        return $map[ $tag ] ?? "SMP publication option";
-    }
-
-    private static function author_shortcode_source( string $tag, array $aliases ): string {
-        $key = str_replace( "author_", "", $tag );
-        if ( "muck_rack" === $key ) { $key = "muckrack"; }
-        if ( "muckrack_verified" === $key ) { return "ACF/user fields: muckrack_verified, muckrack_url, what_best_describe_you"; }
-        return isset( $aliases[ $key ] ) ? "ACF/user meta aliases: " . implode( ", ", $aliases[ $key ] ) : "WordPress user meta";
-    }
-
-    private static function external_shortcode_rows( int $user_id ): array {
-        $rows = [];
-        $external = [ [ "HWS Base Tools", "[founder id=\"url_facebook\"]", "External founder/company shortcode provider" ], [ "HWS Base Tools", "[company id=\"subtitle\"]", "External founder/company shortcode provider" ], [ "SMP Verified Profiles", "[get_profile_field field=\"title\"]", "External profile CPT shortcode provider" ] ];
-        foreach ( $external as $row ) {
-            $rows[] = [ "group" => "External provider", "provider" => $row[0], "source" => $row[2], "shortcode" => $row[1], "value" => "<span class=\"smpi-muted\">External provider shortcode. SMP lists it but does not execute it in this debugger.</span>" ];
-        }
-        $providers = [];
-        if ( function_exists( "smp_vp_discover_shortcodes" ) ) { $providers[] = smp_vp_discover_shortcodes(); }
-        $fn = "smp_verified_profiles\get_verified_profile_shortcodes";
-        if ( function_exists( $fn ) ) { $providers[] = $fn(); }
-        foreach ( $providers as $provider_rows ) {
-            if ( ! is_array( $provider_rows ) ) { continue; }
-            foreach ( $provider_rows as $key => $value ) {
-                $tag = is_string( $key ) ? $key : ( is_string( $value ) ? $value : "" );
-                if ( "" === $tag ) { continue; }
-                $code = 0 === strpos( $tag, "[" ) ? $tag : "[" . trim( $tag ) . "]";
-                $rows[] = [ "group" => "External provider", "provider" => "SMP Verified Profiles", "source" => "Discovered provider shortcode", "shortcode" => $code, "value" => "<span class=\"smpi-muted\">External provider shortcode. SMP lists it but does not execute it in this debugger.</span>" ];
-            }
-        }
-        return $rows;
-    }
 
     private static function shortcode_value_html( string $code ): string {
         $value = do_shortcode( $code );
@@ -1136,8 +1020,8 @@ class DashboardController {
             $html .= "<div class=\"smpi-alert smpi-alert-warning\"><strong>Editor fields not ready.</strong><p>" . esc_html( $field_label ) . " not ready yet. Open Custom Fields and enable the required editor fields before using these output styles.</p><p><a class=\"button button-secondary\" href=\"" . esc_url( $custom_fields_url ) . "\">Open Custom Fields</a></p></div>";
         }
 
-        $html .= "<div class=\"smpi-status-rows\"><div class=\"smpi-status-row\">" . $this->ico( $summary_ready, true ) . "<span>Article Summary editor field: " . esc_html( $summary_ready ? "Ready" : "Not ready" ) . "</span></div>";
-        $html .= "<div class=\"smpi-status-row\">" . $this->ico( $faqs_ready, true ) . "<span>Structured FAQ editor fields: " . esc_html( $faqs_ready ? "Ready" : "Not ready" ) . "</span></div></div>";
+        $html .= "<div class=\"smpi-status-rows\"><div class=\"smpi-status-row\">" . self::ico( $summary_ready, true ) . "<span>Article Summary editor field: " . esc_html( $summary_ready ? "Ready" : "Not ready" ) . "</span></div>";
+        $html .= "<div class=\"smpi-status-row\">" . self::ico( $faqs_ready, true ) . "<span>Structured FAQ editor fields: " . esc_html( $faqs_ready ? "Ready" : "Not ready" ) . "</span></div></div>";
         return $html . "</div>";
     }
 
@@ -1858,7 +1742,7 @@ HTML;
         $html .= "<ul class=smpi-status-rows>";
         foreach ( (array) ( $test["rules"] ?? [] ) as $rule ) {
             $passed = ! empty( $rule["passed"] );
-            $html .= "<li class=smpi-status-row>" . $this->ico( $passed ) . "<span>" . esc_html( (string) ( $rule["label"] ?? "Rule" ) ) . " - " . esc_html( (string) ( $rule["message"] ?? "" ) ) . "</span></li>";
+            $html .= "<li class=smpi-status-row>" . self::ico( $passed ) . "<span>" . esc_html( (string) ( $rule["label"] ?? "Rule" ) ) . " - " . esc_html( (string) ( $rule["message"] ?? "" ) ) . "</span></li>";
         }
         return $html . "</ul>";
     }
@@ -2268,17 +2152,7 @@ CSS;
         return "<section class=\"" . esc_attr( $classes ) . "\"><h2 class=\"smpi-template-title smpi-post-faqs-title\">" . $title . "</h2><div class=\"smpi-template-content smpi-post-faqs-content\">" . $content . "</div></section>";
     }
 
-    private function style_vars( array $vars ): string {
-        $parts = [];
-        foreach ( $vars as $key => $value ) {
-            $parts[] = "--" . sanitize_key( (string) $key ) . ":" . sanitize_text_field( (string) $value );
-        }
-        return implode( ";", $parts );
-    }
 
-    private function font_style_value( string $value ): string {
-        return "italic" === $value ? "italic" : "normal";
-    }
 
     private function icon_style_setting_html( array $settings ): string {
         return $this->select_setting_html( "muckrack_icon_style", [
@@ -2403,9 +2277,6 @@ CSS;
         return $html . "</div></div>";
     }
 
-    private function author_muckrack_examples_html( array $settings ): string {
-        return "<div class=\"smpi-control-group smpi-preview-group\"><h3>Visual examples</h3><div class=smpi-preview-stack><div class=smpi-preview-demo><strong>Tooltip / hover badge</strong><p>" . $this->author_tooltip_preview_html( $settings ) . "</p></div><div class=smpi-preview-demo><strong>Inline text</strong><p>" . $this->author_inline_preview_html( $settings ) . "</p></div><div class=smpi-preview-demo><strong>Small editorial block</strong><p>" . $this->author_compact_block_preview_html( $settings ) . "</p></div></div></div>";
-    }
 
     private function publication_preview_sample_html( string $style, array $settings ): string {
         $color = sanitize_hex_color( (string) ( $settings["publication_muckrack_color"] ?? "#2d5277" ) ) ?: "#2d5277";
@@ -2416,19 +2287,8 @@ CSS;
         return '<span class="' . esc_attr( $class ) . '" style="--smpi-muckrack-color:' . esc_attr( $color ) . ';font-size:' . esc_attr( (string) $font_size ) . 'px">' . esc_html( $label ) . ' verified by <strong class="smpi-publication-preview-brand">MuckRack</strong> editorial team <a href="#">(learn more)</a></span>';
     }
 
-    private function publication_muckrack_preview_html( array $settings ): string {
-        $html = "<div class=\"smpi-control-group smpi-preview-group\"><h3>Visual examples</h3><div class=smpi-publication-preview-list>";
-        $font_size = isset( $settings['publication_muckrack_font_size'] ) ? absint( $settings['publication_muckrack_font_size'] ) : 14;
-        $font_size = max( 8, min( 64, $font_size ?: 14 ) );
-        foreach ( [ "block" => "Editorial block", "mini_block" => "Mini editorial block", "compact" => "Compact pill", "minimalist" => "Minimalist text" ] as $style => $label ) {
-            $html .= "<div class=smpi-publication-preview-item><strong>" . esc_html( $label ) . "</strong><p>" . $this->publication_preview_sample_html( $style, $settings ) . "</p></div>";
-        $font_size = isset( $settings['publication_muckrack_font_size'] ) ? absint( $settings['publication_muckrack_font_size'] ) : 14;
-        $font_size = max( 8, min( 64, $font_size ?: 14 ) );
-        }
-        return $html . "</div></div>";
-    }
 
-    private function ico( bool $ok, bool $strict = false ): string {
+    private static function ico( bool $ok, bool $strict = false ): string {
         if ( $ok ) {
             return "<span class=\"smpi-ico smpi-ico--ok\" aria-hidden=\"true\">&#10003;</span>";
         }
@@ -2438,39 +2298,11 @@ CSS;
     }
 
     private function simple_status_html( bool $ok, string $message ): string {
-        return "<p class=\"smpi-status-line\">" . $this->ico( $ok ) . "<span>" . esc_html( $message ) . "</span></p>";
+        return "<p class=\"smpi-status-line\">" . self::ico( $ok ) . "<span>" . esc_html( $message ) . "</span></p>";
     }
 
 
-    private function post_list_defaults_report_html(): string {
-        $enabled = Settings::bool( "post_list_defaults_enabled" );
-        $hidden = \smp_publication_integration\Content\PostListDefaults::hidden_columns();
-        $user_id = get_current_user_id();
-        $user_hidden = $user_id > 0 ? get_user_option( "manageedit-postcolumnshidden", $user_id ) : false;
-        $per_page = $user_id > 0 ? get_user_option( "edit_post_per_page", $user_id ) : false;
-        $mode = function_exists( "get_user_setting" ) ? get_user_setting( "posts_list_mode", "" ) : "";
 
-        $html = $this->simple_status_html( $enabled, "Default post list view is " . ( $enabled ? "enabled" : "disabled" ) . ". New/default users get 20 items, compact view, and a cleaned column set." );
-        $html .= "<table class=\"widefat striped\"><tbody>";
-        $html .= "<tr><th>Hidden columns enforced for default users</th><td><code>" . esc_html( implode( "</code>, <code>", $hidden ) ) . "</code></td></tr>";
-        $html .= "<tr><th>Visible columns expected</th><td>Author, Tags, Article Types, Date, SEO Details</td></tr>";
-        $html .= "<tr><th>Items per page</th><td><code>20</code></td></tr>";
-        $html .= "<tr><th>View mode</th><td><code>compact/list</code></td></tr>";
-        $html .= "<tr><th>Current user hidden columns</th><td><code>" . esc_html( is_array( $user_hidden ) ? implode( ", ", array_filter( array_map( "strval", $user_hidden ) ) ) : "not customized" ) . "</code></td></tr>";
-        $html .= "<tr><th>Current user per page</th><td><code>" . esc_html( false === $per_page ? "not customized" : (string) $per_page ) . "</code></td></tr>";
-        $html .= "<tr><th>Current user mode</th><td><code>" . esc_html( "" !== $mode ? $mode : "not set" ) . "</code></td></tr>";
-        return $html . "</tbody></table>";
-    }
-
-    private function shadow_posts_report_html(): string {
-        global $wpdb;
-        $complete = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->postmeta} WHERE meta_key = %s AND meta_value = %s", "_smpi_shadow_complete", "1" ) );
-        $home = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->postmeta} WHERE meta_key = %s AND meta_value = %s", "_smpi_shadow_home", "1" ) );
-        $enabled = Settings::bool( "shadow_posts_enabled" );
-        $html = $this->simple_status_html( $enabled, "Feature toggle: " . ( $enabled ? "on" : "off" ) . ". Single URLs remain accessible; home/category/tag main queries are filtered only when enabled." );
-        $html .= "<table class=widefat><tbody><tr><th>Complete shadow posts</th><td>" . esc_html( (string) $complete ) . "</td></tr><tr><th>Home-only shadow posts</th><td>" . esc_html( (string) $home ) . "</td></tr><tr><th>Post editor controls</th><td><code>Completely shadow post</code> and <code>Shadow from home page only</code></td></tr></tbody></table>";
-        return $html;
-    }
 
     private function post_acf_addons_report_html(): string {
         $summary_enabled = Settings::bool( "post_summary_acf_enabled" );
@@ -2482,8 +2314,8 @@ CSS;
         $ok = $summary_ready && $faqs_ready;
         $html = $this->simple_status_html( $ok, "Article Summary field: " . ( $summary_ready ? "ready" : "not ready" ) . ". Structured FAQ fields: " . ( $faqs_ready ? "ready" : "not ready" ) . "." );
         $html .= "<table class=\"widefat striped\"><thead><tr><th>Editor field</th><th>Custom Fields setting</th><th>Editor field status</th><th>Content source</th><th>Locations</th></tr></thead><tbody>";
-        $html .= "<tr><td>Article Summary</td><td>" . ( $summary_enabled ? "Enabled" : "Disabled" ) . "</td><td>" . $this->ico( (bool) $summary_ready, true ) . "</td><td><code>post_summary</code></td><td><code>post</code>, <code>press-release</code>, <code>imported-news</code></td></tr>";
-        $html .= "<tr><td>Structured FAQs</td><td>" . ( $faqs_enabled ? "Enabled" : "Disabled" ) . "</td><td>" . $this->ico( (bool) $faqs_ready, true ) . "</td><td><code>post_faq_items</code></td><td><code>post</code>, <code>press-release</code>, <code>imported-news</code></td></tr>";
+        $html .= "<tr><td>Article Summary</td><td>" . ( $summary_enabled ? "Enabled" : "Disabled" ) . "</td><td>" . self::ico( (bool) $summary_ready, true ) . "</td><td><code>post_summary</code></td><td><code>post</code>, <code>press-release</code>, <code>imported-news</code></td></tr>";
+        $html .= "<tr><td>Structured FAQs</td><td>" . ( $faqs_enabled ? "Enabled" : "Disabled" ) . "</td><td>" . self::ico( (bool) $faqs_ready, true ) . "</td><td><code>post_faq_items</code></td><td><code>post</code>, <code>press-release</code>, <code>imported-news</code></td></tr>";
         return $html . "</tbody></table>";
     }
 
@@ -2505,7 +2337,7 @@ CSS;
         $html = $this->simple_status_html( ! empty( $report["enabled"] ), "Breadcrumb feature: " . ( ! empty( $report["enabled"] ) ? "enabled" : "disabled" ) . ". Rank Math renderer available: " . ( ! empty( $report["rank_math_active"] ) ? "yes" : "fallback renderer will be used" ) . "." );
         $html .= "<table class=\"widefat striped\"><tbody>";
         $html .= "<tr><th>Current template</th><td><code>" . esc_html( (string) $report["style"] ) . "</code></td></tr>";
-        $html .= "<tr><th>Rank Math source</th><td>" . $this->ico( $rank_on, true ) . esc_html( $rank_on ? "Rank Math breadcrumbs are enabled and available to SMP." : "Rank Math breadcrumbs are disabled or missing; SMP fallback breadcrumbs will be used." ) . "</td></tr>";
+        $html .= "<tr><th>Rank Math source</th><td>" . self::ico( $rank_on, true ) . esc_html( $rank_on ? "Rank Math breadcrumbs are enabled and available to SMP." : "Rank Math breadcrumbs are disabled or missing; SMP fallback breadcrumbs will be used." ) . "</td></tr>";
         $html .= "<tr><th>Disabled custom post types</th><td><code>" . esc_html( $disabled ) . "</code></td></tr>";
         $html .= "<tr><th>ACF disabled posts/pages selected</th><td><code>" . esc_html( (string) (int) $report["disabled_object_count"] ) . "</code></td></tr>";
         $html .= "<tr><th>Shortcode</th><td><code>" . esc_html( (string) $report["shortcode"] ) . "</code></td></tr>";
@@ -2520,22 +2352,13 @@ CSS;
         return $html;
     }
 
-    private function estimated_read_time_report_html(): string {
-        $report = \smp_publication_integration\Content\EstimatedReadTime::integrity_report( 5 );
-        $html = $this->simple_status_html( ! empty( $report["enabled"] ), "Shortcode active: " . (string) $report["shortcode"] . ". Default output is minutes; use unit=seconds for seconds." );
-        $html .= "<table class=\"widefat striped\"><thead><tr><th>Recent post</th><th>Words</th><th>Seconds</th><th>Minutes</th></tr></thead><tbody>";
-        foreach ( $report["posts"] as $row ) {
-            $html .= "<tr><td>" . esc_html( $row["title"] ) . " (#" . esc_html( (string) $row["post_id"] ) . ")</td><td>" . esc_html( (string) $row["words"] ) . "</td><td>" . esc_html( (string) $row["seconds"] ) . "</td><td>" . esc_html( (string) $row["minutes"] ) . "</td></tr>";
-        }
-        return $html . "</tbody></table>";
-    }
 
     private function elementor_css_report_html(): string {
         $report = \smp_publication_integration\Content\ElementorCssCacheBusting::test_report();
         $html = $this->simple_status_html( ! empty( $report["enabled"] ) && (int) $report["css_files"] > 0, "Elementor CSS files found: " . (int) $report["css_files"] );
         $html .= "<table class=\"widefat striped\"><thead><tr><th>File</th><th>Readable</th><th>Cache query</th></tr></thead><tbody>";
         foreach ( $report["sample_files"] as $file ) {
-            $html .= "<tr><td><code>" . esc_html( $file["file"] ) . "</code></td><td>" . $this->ico( (bool) $file["readable"], true ) . "</td><td><code>" . esc_html( $file["query"] ) . "</code></td></tr>";
+            $html .= "<tr><td><code>" . esc_html( $file["file"] ) . "</code></td><td>" . self::ico( (bool) $file["readable"], true ) . "</td><td><code>" . esc_html( $file["query"] ) . "</code></td></tr>";
         }
         return $html . "</tbody></table>";
     }
@@ -2546,7 +2369,7 @@ CSS;
         $html = $this->simple_status_html( Settings::bool( "muckrack_verified_enabled" ), "Top 10 authors by published posts checked for MuckRack ACF/user fields. Always-show override: " . ( $forced ? "on" : "off" ) . "." );
         $html .= "<table class=\"widefat striped\"><thead><tr><th>User</th><th>Posts</th><th>ACF verified</th><th>Effective</th><th>Forced</th><th>URL</th><th>Description</th></tr></thead><tbody>";
         foreach ( $rows as $row ) {
-            $html .= "<tr><td>" . esc_html( $row["display_name"] ) . " (#" . esc_html( (string) $row["user_id"] ) . ")</td><td>" . esc_html( (string) $row["posts"] ) . "</td><td>" . $this->ico( (bool) $row["acf_verified"] ) . "</td><td>" . $this->ico( (bool) $row["verified"] ) . "</td><td>" . ( $row["forced"] ? "YES" : "NO" ) . "</td><td>" . $this->ico( (bool) $row["has_url"] ) . "</td><td>" . $this->ico( (bool) $row["has_description"] ) . "</td></tr>";
+            $html .= "<tr><td>" . esc_html( $row["display_name"] ) . " (#" . esc_html( (string) $row["user_id"] ) . ")</td><td>" . esc_html( (string) $row["posts"] ) . "</td><td>" . self::ico( (bool) $row["acf_verified"] ) . "</td><td>" . self::ico( (bool) $row["verified"] ) . "</td><td>" . ( $row["forced"] ? "YES" : "NO" ) . "</td><td>" . self::ico( (bool) $row["has_url"] ) . "</td><td>" . self::ico( (bool) $row["has_description"] ) . "</td></tr>";
         }
         return $html . "</tbody></table>";
     }
@@ -2629,9 +2452,9 @@ CSS;
         $html .= "<tr><th>Display style</th><td><code>" . esc_html( (string) $report["style"] ) . "</code></td></tr>";
         $html .= "<tr><th>Accent color</th><td><span class=smpi-color-swatch style=\"background:" . esc_attr( (string) $report["color"] ) . "\"></span> <code>" . esc_html( (string) $report["color"] ) . "</code></td></tr>";
         $html .= "<tr><th>Placement</th><td>" . esc_html( $placements ) . "</td></tr>";
-        $html .= "<tr><th>MuckRack URL</th><td>" . ( "" !== $report["url"] ? esc_html( (string) $report["url"] ) : $this->ico( false ) . "Missing optional URL." ) . "</td></tr>";
+        $html .= "<tr><th>MuckRack URL</th><td>" . ( "" !== $report["url"] ? esc_html( (string) $report["url"] ) : self::ico( false ) . "Missing optional URL." ) . "</td></tr>";
         $html .= "<tr><th>Shortcode</th><td><code>" . esc_html( (string) $report["shortcode"] ) . "</code></td></tr>";
-        $html .= "<tr><th>Actual preview</th><td>" . ( "" !== $report["preview_html"] ? wp_kses_post( (string) $report["preview_html"] ) : $this->ico( false ) . "Enable feature and verify publication ACF to render the live shortcode preview. Visual examples are shown above." ) . "</td></tr>";
+        $html .= "<tr><th>Actual preview</th><td>" . ( "" !== $report["preview_html"] ? wp_kses_post( (string) $report["preview_html"] ) : self::ico( false ) . "Enable feature and verify publication ACF to render the live shortcode preview. Visual examples are shown above." ) . "</td></tr>";
         return $html . "</tbody></table>";
     }
 
@@ -2641,16 +2464,11 @@ CSS;
         $html = $this->simple_status_html( $hpr && Settings::bool( "press_release_include_enabled" ), "Hexa PR Wire active: " . ( $hpr ? "yes" : "no" ) . ". Press-release CPT exists: " . ( post_type_exists( "press-release" ) ? "yes" : "no" ) . "." );
         $html .= "<table class=\"widefat striped\"><thead><tr><th>Recent author</th><th>Posts</th><th>Press releases</th><th>Expected on author.php</th><th>Consistent</th></tr></thead><tbody>";
         foreach ( $rows as $row ) {
-            $html .= "<tr><td>" . esc_html( $row["display_name"] ) . " (#" . esc_html( (string) $row["user_id"] ) . ")</td><td>" . esc_html( (string) $row["posts"] ) . "</td><td>" . esc_html( (string) $row["press_releases"] ) . "</td><td>" . ( $row["expected"] ? "YES" : "NO" ) . "</td><td>" . $this->ico( (bool) $row["consistent"], true ) . "</td></tr>";
+            $html .= "<tr><td>" . esc_html( $row["display_name"] ) . " (#" . esc_html( (string) $row["user_id"] ) . ")</td><td>" . esc_html( (string) $row["posts"] ) . "</td><td>" . esc_html( (string) $row["press_releases"] ) . "</td><td>" . ( $row["expected"] ? "YES" : "NO" ) . "</td><td>" . self::ico( (bool) $row["consistent"], true ) . "</td></tr>";
         }
         return $html . "</tbody></table>";
     }
 
-    private function rank_math_breadcrumb_report_html(): string {
-        $rank = get_option( "rank-math-options-general", [] );
-        $on = is_array( $rank ) && ( $rank["breadcrumbs"] ?? "" ) === "on";
-        return $this->simple_status_html( $on, $on ? "Rank Math breadcrumbs are enabled." : "Rank Math breadcrumbs are disabled or missing." );
-    }
 
     private function hws_masked_login_status(): array {
         $opts = get_option( "hws_login_mask_options", [] );
@@ -2719,7 +2537,7 @@ CSS;
         ob_start();
         echo '<div class="smpi-grid">';
         foreach ( $checks as $check ) {
-            echo '<div class="smpi-card"><h3>' . esc_html( $check[0] ) . '</h3><p>' . $this->ico( (bool) $check[1] ) . wp_kses_post( $check[2] ) . '</p></div>';
+            echo '<div class="smpi-card"><h3>' . esc_html( $check[0] ) . '</h3><p>' . self::ico( (bool) $check[1] ) . wp_kses_post( $check[2] ) . '</p></div>';
         }
         echo '</div>';
         return (string) ob_get_clean();
@@ -3010,9 +2828,6 @@ CSS;
         echo '<div class="smpi-card"><h3>' . esc_html( $title ) . '</h3><p>' . wp_kses_post( $content ) . '</p></div>';
     }
 
-    private function status_card( string $title, bool $ok, string $message ): void {
-        $this->card( $title, $this->ico( $ok ) . esc_html( $message ) );
-    }
 
 
 

@@ -3,7 +3,6 @@ namespace smp_publication_integration\Content;
 
 use smp_publication_integration\Authorship\AuthorAssignmentRepository;
 use smp_publication_integration\Authorship\AuthorContext;
-use smp_publication_integration\Authorship\AuthorFieldResolver;
 use smp_publication_integration\Authorship\AuthorLifecycle;
 use smp_publication_integration\Authorship\AuthorQueryIntegration;
 use smp_publication_integration\Authorship\ElementorArchiveContext;

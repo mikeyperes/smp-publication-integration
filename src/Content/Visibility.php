@@ -233,13 +233,6 @@ final class Visibility {
     }
 
 
-    private function append_meta_exclusion( \WP_Query $query, string $meta_key ): void {
-        $current = $query->get( "meta_query" );
-        $meta_query = is_array( $current ) ? $current : [];
-        $meta_query[] = [ "relation" => "OR", [ "key" => $meta_key, "compare" => "NOT EXISTS" ], [ "key" => $meta_key, "value" => "1", "compare" => "!=" ] ];
-        $query->set( "meta_query", $meta_query );
-    }
-
     public static function author_report( int $limit = 10 ): array {
         global $wpdb;
         $rows = $wpdb->get_results( $wpdb->prepare( "SELECT u.ID, u.display_name, MAX(p.post_date) AS latest_post, SUM(CASE WHEN p.post_type = %s THEN 1 ELSE 0 END) AS press_releases, SUM(CASE WHEN p.post_type = %s THEN 1 ELSE 0 END) AS posts FROM {$wpdb->users} u LEFT JOIN {$wpdb->posts} p ON p.post_author = u.ID AND p.post_status = %s AND p.post_type IN (%s, %s) GROUP BY u.ID HAVING latest_post IS NOT NULL ORDER BY latest_post DESC LIMIT %d", "press-release", "post", "publish", "post", "press-release", $limit ) );
