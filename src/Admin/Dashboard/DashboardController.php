@@ -2486,13 +2486,7 @@ class DashboardController {
             [
                 [
                     'definitions' => PluginInventory::recommended_definitions(),
-                    'args'        => array_merge(
-                        PluginInventory::recommended_renderer_args(),
-                        [
-                            'title'       => 'Everything You Should Have',
-                            'description' => 'Required plugin stack audited from the active Mash Viral runtime. Missing items from this list are treated as required.',
-                        ]
-                    ),
+                    'args'        => PluginInventory::recommended_renderer_args(),
                 ],
                 [
                     'definitions' => PluginInventory::forbidden_definitions(),
@@ -2501,7 +2495,7 @@ class DashboardController {
             ],
             [
                 'title'       => 'Plugins',
-                'description' => 'Recommended and forbidden plugin detection for the Mash Viral SMP runtime.',
+                'description' => 'SMP plugin requirements and explicitly forbidden plugins.',
                 'persist_key' => 'smpi-plugin-inventory',
                 'open'        => true,
             ]

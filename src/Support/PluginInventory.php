@@ -24,6 +24,8 @@ final class PluginInventory {
      * @return array<int,array<string,mixed>>
      */
     public static function recommended_definitions(): array {
+        self::register_recommendation_providers();
+
         return [
             self::normal( 'advanced-custom-fields-pro/acf.php', 'Advanced Custom Fields PRO', 'pro', true ),
             self::wp_org( 'classic-editor/classic-editor.php', 'Classic Editor', 'classic-editor', true ),
@@ -39,7 +41,6 @@ final class PluginInventory {
             self::normal( 'media-cleaner-pro/media-cleaner-pro.php', 'Media Cleaner (Pro)', 'pro', true ),
             self::wp_org( 'seo-by-rank-math/rank-math.php', 'Rank Math SEO', 'seo-by-rank-math', true ),
             self::normal( 'seo-by-rank-math-pro/rank-math-pro.php', 'Rank Math SEO PRO', 'pro', true ),
-            self::wp_org( 'simple-local-avatars/simple-local-avatars.php', 'Simple Local Avatars', 'simple-local-avatars', false ),
             self::wp_org( 'google-site-kit/google-site-kit.php', 'Site Kit by Google', 'google-site-kit', true ),
             self::github( 'smp-publication-integration/smp-publication-integration.php', 'SMP Publication Integration', 'mikeyperes/smp-publication-integration', false ),
             self::normal( 'smp-wp-text-to-speech/smp-wp-text-to-speech.php', 'SMP WP Text To Speech', 'manual', false ),
@@ -62,52 +63,10 @@ final class PluginInventory {
      * @return array<int,array<string,mixed>>
      */
     public static function forbidden_definitions(): array {
-        self::load_plugin_functions();
-        self::register_recommendation_providers();
-
-        $forbidden_slugs = [
-            'jet-engine' => true,
-        ];
-        $definitions = [
+        return [
             self::forbidden( 'jet-engine/jet-engine.php', 'JetEngine', 'jet-engine' ),
+            self::forbidden( 'simple-local-avatars/simple-local-avatars.php', 'Simple Local Avatars', 'simple-local-avatars' ),
         ];
-        $seen = [
-            'jet-engine/jet-engine.php' => true,
-        ];
-
-        if ( class_exists( PluginRecommendationRegistry::class ) ) {
-            foreach ( PluginRecommendationRegistry::get_installed_not_recommended_definitions( false ) as $definition ) {
-                $plugin_file = (string) ( $definition['plugin_file'] ?? '' );
-                if ( '' === $plugin_file || isset( $seen[ $plugin_file ] ) ) {
-                    continue;
-                }
-
-                $definitions[] = $definition;
-                $seen[ $plugin_file ] = true;
-            }
-
-            return $definitions;
-        }
-
-        $recommended = array_fill_keys( self::recommended_plugin_files(), true );
-
-        foreach ( get_plugins() as $plugin_file => $plugin_data ) {
-            $plugin_file = (string) $plugin_file;
-            if ( isset( $recommended[ $plugin_file ] ) ) {
-                continue;
-            }
-            if ( isset( $forbidden_slugs[ dirname( $plugin_file ) ] ) ) {
-                continue;
-            }
-
-            $definitions[] = self::forbidden(
-                $plugin_file,
-                (string) ( $plugin_data['Name'] ?? $plugin_file ),
-                dirname( $plugin_file )
-            );
-        }
-
-        return $definitions;
     }
 
     public static function register_recommendation_providers(): void {
@@ -139,8 +98,8 @@ final class PluginInventory {
      */
     public static function recommended_renderer_args(): array {
         return [
-            'title'            => 'Recommended Plugin Stack',
-            'description'      => 'Required plugin stack audited from the active Mash Viral runtime. Missing items from this list are treated as required.',
+            'title'            => 'Required Plugins',
+            'description'      => 'Plugins required by SMP. A requirement is satisfied when its configured installation and activation checks pass.',
             'action_prefix'    => self::recommended_action_prefix(),
             'nonce'            => \smp_publication_integration\Admin\Ajax::nonce(),
             'nonce_field'      => 'nonce',
@@ -167,16 +126,16 @@ final class PluginInventory {
      */
     public static function forbidden_renderer_args(): array {
         return [
-            'title'            => "Everything That Shouldn't Be There",
-            'description'      => 'Plugins that should not be installed for this SMP runtime. Installed matches expose Core-managed Deactivate and Delete actions.',
+            'title'            => 'Forbidden Plugins',
+            'description'      => 'Only plugins explicitly listed by SMP policy are forbidden. Installed entries require attention; absent entries satisfy the policy.',
             'action_prefix'    => self::forbidden_action_prefix(),
             'nonce'            => \smp_publication_integration\Admin\Ajax::nonce(),
             'nonce_field'      => 'nonce',
             'persist_key'      => 'smpi-forbidden-plugin-stack',
             'open'             => true,
-            'empty_text'       => 'No forbidden or outside-recommended plugins are installed.',
+            'empty_text'       => 'No explicitly forbidden plugins are configured.',
             'show_install_all' => false,
-            'hide_compliant_forbidden' => true,
+            'hide_compliant_forbidden' => false,
             'show_unwanted'    => true,
             'columns'          => [
                 'auto_update' => true,
@@ -210,10 +169,6 @@ final class PluginInventory {
         return self::definition( $plugin_file, $name, 'github', '', $repo, true, true, true, $auto_update );
     }
 
-    private static function outside( string $plugin_file, string $name, string $source = 'manual' ): array {
-        return self::definition( $plugin_file, $name, $source, '', '', false, false, false, false );
-    }
-
     private static function forbidden( string $plugin_file, string $name, string $slug, string $source = 'manual' ): array {
         $definition = self::definition( $plugin_file, $name, $source, '', '', false, false, false, false );
         $definition['slug'] = $slug;
@@ -225,15 +180,21 @@ final class PluginInventory {
             'auto_update'   => false,
             'not_installed' => true,
         ];
-        $definition['notes'] = 'This plugin should not be installed in the recommended Mash Viral SMP stack.';
+        $definition['notes'] = 'Explicit SMP policy: this plugin must not be installed.';
 
         return $definition;
     }
 
     private static function definition( string $plugin_file, string $name, string $source, string $wp_org_slug, string $repo, bool $required, bool $recommended, bool $active_check, bool $auto_update ): array {
-        $notes = $recommended
-            ? 'Recommended Mash Viral plugin stack. Expected state: installed and active.'
-            : 'Installed on this site but not part of the recommended Mash Viral plugin stack.';
+        if ( $required ) {
+            $notes = $active_check
+                ? 'Required by SMP. Expected state: installed and active.'
+                : 'Required by SMP. Expected state: installed.';
+        } elseif ( $recommended ) {
+            $notes = 'Recommended by SMP.';
+        } else {
+            $notes = 'Listed by SMP without an installation requirement.';
+        }
 
         return [
             'id'                   => str_replace( [ '/', '.' ], '-', $plugin_file ),
@@ -269,11 +230,5 @@ final class PluginInventory {
         }
 
         return admin_url( 'plugin-install.php?tab=upload' );
-    }
-
-    private static function load_plugin_functions(): void {
-        if ( ! function_exists( 'get_plugins' ) ) {
-            require_once ABSPATH . 'wp-admin/includes/plugin.php';
-        }
     }
 }

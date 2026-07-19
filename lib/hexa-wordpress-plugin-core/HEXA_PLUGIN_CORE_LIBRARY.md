@@ -200,16 +200,17 @@ Use `PluginCheckDefinition` arrays for host-owned plugin lists. Use `PluginCheck
 
 Required rules:
 
-- Keep plugin-specific catalog data in the host plugin.
-- Keep table UI, collapsible cards, install/activate actions, and status rendering in Hexa Core.
-- The green check or red X beside the plugin title is based on actual installed/present status.
-- Use `required` to show the Required/Optional badge and to style missing required rows.
+- Keep plugin-specific catalog and policy data in the host plugin.
+- Keep table UI, collapsible cards, plugin actions, and status rendering in Hexa Core.
+- Use `required => true` for dependencies that must be installed and active.
+- Use `should_not_contain => true` only for plugins the host explicitly forbids. Never infer forbidden policy from an installed plugin being absent from a recommendation list.
+- Leave installed-but-unlisted plugins neutral. Core labels them `Not listed`; it does not flag or remove them.
+- Render Policy, Installation, and Status as separate columns. A satisfied required policy and an absent forbidden policy are green; an unsatisfied required policy or installed forbidden policy is red.
+- Keep compliant forbidden definitions visible unless the host deliberately sets `hide_compliant_forbidden => true`.
 - Use `source => wordpress_org` with `wp_org_slug` for WordPress.org installs.
 - Use `source => github` with `github_repo` for GitHub ZIP installs. Core normalizes extracted `repo-main` folders to the configured slug.
 - Use `source => pro` or `manual` when a plugin requires a manual upload/download.
 - Use `source => must_use` or `dropin` for MU plugins and WordPress drop-ins; Core treats installed/present as active and skips update/auto-update checks.
-- Do not render a separate Installed column. Show installed/missing state as a Font Awesome SVG green check or red X beside the plugin title, with hover text explaining the state.
-- The Status column prints the icon plus `Active` or `Inactive`.
 - Keep Deactivate and Delete as subtle secondary row controls. They are available for installed normal plugins, require confirmation where destructive, and remain blocked for must-use plugins and drop-ins.
 - Do not use emoji indicators in plugin inventory UIs.
 

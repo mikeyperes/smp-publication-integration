@@ -181,6 +181,8 @@ final class PluginInventoryRenderer {
                 <thead>
                     <tr>
                         <th>Plugin</th>
+                        <th>Policy</th>
+                        <th>Installation</th>
                         <th>Status</th>
                         <?php if ( ! empty( $args['columns']['auto_update'] ) ) : ?>
                             <th>Auto-Update</th>
@@ -251,20 +253,13 @@ final class PluginInventoryRenderer {
         $active    = ! empty( $status['active'] );
         $forbidden = $definition->should_not_contain();
         $required  = $forbidden ? false : $this->is_required( $definition, $status );
-        $installed_passed = $forbidden ? ! $installed : $installed;
-        $installed_label = $forbidden
-            ? ( $installed ? 'Plugin should not be installed' : 'Plugin absent' )
-            : ( $installed ? 'Plugin installed' : 'Plugin missing' );
-        $status_passed = $forbidden ? ! $installed : $active;
-        $status_label = $forbidden
-            ? ( $installed ? ( $active ? 'Active unwanted' : 'Inactive unwanted' ) : 'Absent' )
-            : ( $active ? 'Active' : 'Inactive' );
+        $compliant = ! empty( $status['ok'] );
         $row_class = trim(
             ( $installed ? 'is-installed' : 'is-missing' )
             . ' '
             . ( $required ? 'is-required' : 'is-optional' )
             . ' '
-            . ( ! $installed && $required ? 'is-required-missing' : '' )
+            . ( $required && ! $compliant ? 'is-required-attention' : '' )
             . ' '
             . ( $forbidden ? 'is-forbidden' : '' )
             . ' '
@@ -276,9 +271,7 @@ final class PluginInventoryRenderer {
         <tr class="<?php echo esc_attr( $row_class ); ?>" data-plugin-inventory-row data-plugin-id="<?php echo esc_attr( $definition->id ); ?>" data-plugin-installed="<?php echo $installed ? '1' : '0'; ?>" data-plugin-active="<?php echo $active ? '1' : '0'; ?>" data-plugin-required="<?php echo $required ? '1' : '0'; ?>">
             <td class="hpc-plugin-inventory-plugin-cell">
                 <div class="hpc-plugin-inventory-title">
-                    <?php echo $this->icon( $installed_passed, $installed_label ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
                     <strong><?php echo esc_html( $definition->name ); ?></strong>
-                    <?php echo $this->requirement_badge( $required, $forbidden ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
                 </div>
                 <div class="hpc-plugin-inventory-meta">
                     <code><?php echo esc_html( (string) $status['plugin_file'] ?: $definition->plugin_file ?: $definition->slug ); ?></code>
@@ -287,16 +280,18 @@ final class PluginInventoryRenderer {
                     <?php endif; ?>
                 </div>
             </td>
+            <td class="hpc-plugin-inventory-policy-cell">
+                <?php echo $this->policy_html( $definition, $status ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+            </td>
             <td>
-                <?php echo $this->status_text( $status_passed, $status_label ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                <?php echo $this->installation_html( $definition, $status ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+            </td>
+            <td>
+                <?php echo $this->runtime_status_html( $definition, $status ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
             </td>
             <?php if ( ! empty( $args['columns']['auto_update'] ) ) : ?>
                 <td>
-                    <?php if ( $installed ) : ?>
-                        <?php echo $this->status_text( ! empty( $status['auto_update'] ), ! empty( $status['auto_update'] ) ? 'Enabled' : 'Disabled' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-                    <?php else : ?>
-                        <span class="hpc-plugin-inventory-muted">Not installed</span>
-                    <?php endif; ?>
+                    <?php echo $this->auto_update_html( $definition, $status ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
                 </td>
             <?php endif; ?>
             <?php if ( ! empty( $args['columns']['version'] ) ) : ?>
@@ -489,13 +484,101 @@ final class PluginInventoryRenderer {
         return '<span class="hpc-plugin-inventory-fa ' . ( $passed ? 'hpc-plugin-inventory-fa-check' : 'hpc-plugin-inventory-fa-xmark' ) . '" aria-label="' . esc_attr( $label ) . '" title="' . esc_attr( $label ) . '" role="img"><svg class="hpc-plugin-inventory-fa-svg" viewBox="' . esc_attr( $viewbox ) . '" aria-hidden="true" focusable="false"><path d="' . esc_attr( $path ) . '"></path></svg></span>';
     }
 
-    private function requirement_badge( bool $required, bool $forbidden = false ): string {
-        if ( $forbidden ) {
-            return '<span class="hpc-plugin-inventory-requirement is-forbidden">Forbidden</span>';
+    private function policy_html( PluginCheckDefinition $definition, array $status ): string {
+        $installed = ! empty( $status['installed'] );
+        $active    = ! empty( $status['active'] );
+
+        if ( $definition->should_not_contain() ) {
+            return $this->policy_badge(
+                $installed ? 'Forbidden: installed' : 'Forbidden: absent',
+                $installed ? 'danger' : 'success'
+            );
         }
 
-        return '<span class="hpc-plugin-inventory-requirement ' . ( $required ? 'is-required' : 'is-optional' ) . '">' . ( $required ? 'Required' : 'Optional' ) . '</span>';
+        if ( $this->is_required( $definition, $status ) ) {
+            if ( ! $installed ) {
+                return $this->policy_badge( 'Required: missing', 'danger' );
+            }
+
+            if ( ! empty( $definition->checks['active'] ) && ! $active ) {
+                return $this->policy_badge( 'Required: inactive', 'danger' );
+            }
+
+            if ( empty( $status['ok'] ) ) {
+                return $this->policy_badge( 'Required: attention', 'warning' );
+            }
+
+            return $this->policy_badge( 'Required: satisfied', 'success' );
+        }
+
+        if ( $definition->recommended ) {
+            return $this->policy_badge( 'Recommended', 'info' );
+        }
+
+        return $this->policy_badge( 'Not listed', 'neutral' );
     }
+
+    private function policy_badge( string $label, string $tone ): string {
+        return '<span class="hpc-plugin-inventory-policy is-' . esc_attr( $tone ) . '">' . esc_html( $label ) . '</span>';
+    }
+
+    /**
+     * @param array<string,mixed> $status
+     */
+    private function installation_html( PluginCheckDefinition $definition, array $status ): string {
+        $installed = ! empty( $status['installed'] );
+
+        if ( $definition->should_not_contain() ) {
+            return $this->status_text( ! $installed, $installed ? 'Installed' : 'Not installed' );
+        }
+
+        if ( $this->is_required( $definition, $status ) ) {
+            return $this->status_text( $installed, $installed ? 'Installed' : 'Not installed' );
+        }
+
+        return '<span class="hpc-plugin-inventory-muted">' . ( $installed ? 'Installed' : 'Not installed' ) . '</span>';
+    }
+
+    /**
+     * @param array<string,mixed> $status
+     */
+    private function runtime_status_html( PluginCheckDefinition $definition, array $status ): string {
+        if ( empty( $status['installed'] ) ) {
+            return '<span class="hpc-plugin-inventory-muted">Not installed</span>';
+        }
+
+        $active = ! empty( $status['active'] );
+        if ( $definition->should_not_contain() ) {
+            return $active
+                ? $this->status_text( false, 'Active' )
+                : '<span class="hpc-plugin-inventory-muted">Inactive</span>';
+        }
+
+        if ( ! empty( $definition->checks['active'] ) ) {
+            return $this->status_text( $active, $active ? 'Active' : 'Inactive' );
+        }
+
+        return '<span class="hpc-plugin-inventory-muted">' . ( $active ? 'Active' : 'Inactive' ) . '</span>';
+    }
+
+    /**
+     * @param array<string,mixed> $status
+     */
+    private function auto_update_html( PluginCheckDefinition $definition, array $status ): string {
+        if ( empty( $status['installed'] ) ) {
+            return '<span class="hpc-plugin-inventory-muted">Not installed</span>';
+        }
+
+        $enabled = ! empty( $status['auto_update'] );
+        $label   = $enabled ? 'Enabled' : 'Disabled';
+
+        if ( ! empty( $definition->checks['auto_update'] ) ) {
+            return $this->status_text( $enabled === $definition->auto_update_expected, $label );
+        }
+
+        return '<span class="hpc-plugin-inventory-muted">' . esc_html( $label ) . '</span>';
+    }
+
 
     private function summary_item( string $label, int $count, string $tone ): string {
         return '<span class="hpc-plugin-inventory-summary-item is-' . esc_attr( $tone ) . '"><strong>' . $count . '</strong> ' . esc_html( $label ) . '</span>';
@@ -505,7 +588,7 @@ final class PluginInventoryRenderer {
      * @param array<string,mixed> $args
      */
     private function column_count( array $args ): int {
-        $count = 3; // Plugin, Status, Action.
+        $count = 5; // Plugin, Policy, Installation, Status, Action.
 
         if ( ! empty( $args['columns']['auto_update'] ) ) {
             $count++;
@@ -648,17 +731,20 @@ final class PluginInventoryRenderer {
 .hpc-plugin-inventory-table td{border-bottom:1px solid #edf1f6;padding:12px;vertical-align:middle}
 .hpc-plugin-inventory-table tr:last-child td{border-bottom:0}
 .hpc-plugin-inventory-table tr.is-missing td{background:#f8fafc;color:#546179}
-.hpc-plugin-inventory-table tr.is-required-missing td:first-child{box-shadow:inset 4px 0 0 var(--hpc-red)}
-.hpc-plugin-inventory-table tr.is-required-missing .hpc-plugin-inventory-title strong{color:#3f4d63}
+.hpc-plugin-inventory-table tr.is-required-attention td:first-child{box-shadow:inset 4px 0 0 var(--hpc-red)}
+.hpc-plugin-inventory-table tr.is-required-attention .hpc-plugin-inventory-title strong{color:#3f4d63}
 .hpc-plugin-inventory-table tr.is-unwanted-installed td{background:#fff7f8;border-bottom-color:#f4cfd6}
 .hpc-plugin-inventory-table tr.is-unwanted-installed td:first-child{box-shadow:inset 4px 0 0 #d63638}
 .hpc-plugin-inventory-plugin-cell{min-width:280px}
 .hpc-plugin-inventory-title{align-items:center;display:flex;gap:8px;margin:0 0 7px}
 .hpc-plugin-inventory-title strong{font-size:14px}
-.hpc-plugin-inventory-requirement{border-radius:999px;display:inline-flex;font-size:10px;font-weight:900;line-height:1;padding:5px 7px;text-transform:uppercase}
-.hpc-plugin-inventory-requirement.is-required{background:#fff0f2;border:1px solid #ffd0d8;color:var(--hpc-red)}
-.hpc-plugin-inventory-requirement.is-optional{background:#eef2ff;border:1px solid #dbe4ff;color:#2944ad}
-.hpc-plugin-inventory-requirement.is-forbidden{background:#fff0f2;border:1px solid #ffd0d8;color:var(--hpc-red)}
+.hpc-plugin-inventory-policy-cell{min-width:160px}
+.hpc-plugin-inventory-policy{border:1px solid transparent;border-radius:999px;display:inline-flex;font-size:11px;font-weight:900;line-height:1;padding:6px 8px;white-space:nowrap}
+.hpc-plugin-inventory-policy.is-success{background:#eaf8ef;border-color:#ccefd7;color:var(--hpc-green)}
+.hpc-plugin-inventory-policy.is-danger{background:#fff0f2;border-color:#ffd0d8;color:var(--hpc-red)}
+.hpc-plugin-inventory-policy.is-warning{background:#fff7e0;border-color:#f5df9c;color:var(--hpc-amber)}
+.hpc-plugin-inventory-policy.is-info{background:#eef2ff;border-color:#dbe4ff;color:#2944ad}
+.hpc-plugin-inventory-policy.is-neutral{background:#f4f6f8;border-color:#dfe4ea;color:#536171}
 .hpc-plugin-inventory-meta{display:grid;gap:5px}
 .hpc-plugin-inventory-meta code{background:#eef0f2;border-radius:5px;color:#2f3a4a;font-size:12px;padding:2px 5px;word-break:break-all}
 .hpc-plugin-inventory-meta span{color:var(--hpc-muted);font-size:12px;line-height:1.35}
