@@ -7,7 +7,7 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.6.191`
+- Version: `0.6.192`
 
 ## Architecture
 
@@ -23,11 +23,14 @@ WordPress plugin for Scale My Publication publication profiles.
 
 The bundled `Hexa\PluginCore` package is registered through the shared package resolver. One selected Core root owns the namespace when multiple Hexa plugins are active.
 
+## 0.6.192 Updates
+
+- Removed the misplaced single-author fallback. Existing Elementor author structures remain the sole source of single-post author layout.
+
 ## 0.6.191 Updates
 
 - Corrected the Quick Start H2/H3 preset so applying the heading feature enables its selected frontend style.
 - Added a one-time, signature-scoped repair for sites that received the defective disabled heading preset.
-- Restored canonical SMP author output when the existing single-post Verified Profiles slot is empty, without replacing real profile output or duplicating multi-author bylines.
 
 ## 0.6.190 Updates
 
