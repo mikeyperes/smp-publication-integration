@@ -168,7 +168,7 @@ class AjaxController {
                 $changes[ $key ] = $request->key( $key, '', 'post' );
             }
         }
-        foreach ( [ 'muckrack_icon_color', 'muckrack_icon_color_single_author', 'muckrack_icon_color_single_footer', 'muckrack_icon_color_loop_cards', 'muckrack_icon_color_home', 'muckrack_icon_color_author', 'breadcrumbs_accent_color', 'table_of_contents_accent_color', 'table_of_contents_text_color', 'article_heading_accent_color', 'article_drop_cap_color', 'inline_photo_accent_color', 'inline_photo_caption_text_color', 'featured_image_caption_accent_color', 'featured_image_caption_text_color', 'post_faqs_accent_color', 'post_faqs_text_color', 'publication_muckrack_color' ] as $color_key ) {
+        foreach ( [ 'muckrack_icon_color', 'muckrack_icon_color_single_author', 'muckrack_icon_color_single_footer', 'muckrack_icon_color_loop_cards', 'muckrack_icon_color_home', 'muckrack_icon_color_author', 'breadcrumbs_accent_color', 'breadcrumbs_background_color', 'table_of_contents_accent_color', 'table_of_contents_text_color', 'article_heading_accent_color', 'article_drop_cap_color', 'inline_photo_accent_color', 'inline_photo_caption_text_color', 'featured_image_caption_accent_color', 'featured_image_caption_text_color', 'post_faqs_accent_color', 'post_faqs_text_color', 'publication_muckrack_color' ] as $color_key ) {
             if ( $request->has( $color_key, 'post' ) ) {
                 $raw = trim( (string) $request->raw( $color_key, '', 'post' ) );
                 $changes[ $color_key ] = '' === $raw ? '' : sanitize_hex_color( $raw );

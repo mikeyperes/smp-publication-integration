@@ -44,6 +44,18 @@ if ( '#a1b2c3' !== $settings['article_heading_accent_color'] ) {
     exit( 1 );
 }
 
+$settings = Settings::update( [ 'breadcrumbs_background_color' => 'invalid' ] );
+if ( '#ffffff' !== $settings[ 'breadcrumbs_background_color' ] ) {
+    fwrite( STDERR, "FAIL: Invalid breadcrumb background did not fall back to white.\n" );
+    exit( 1 );
+}
+
+$settings = Settings::update( [ 'breadcrumbs_background_color' => '#0A0B0C' ] );
+if ( '#0a0b0c' !== $settings[ 'breadcrumbs_background_color' ] ) {
+    fwrite( STDERR, "FAIL: Valid breadcrumb background was not normalized and saved.\n" );
+    exit( 1 );
+}
+
 $GLOBALS['smpi_test_options']['smpi_settings'] = [
     'article_heading_styles_enabled'   => false,
     'article_heading_style'            => 'h2-tick',

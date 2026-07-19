@@ -87,7 +87,7 @@ final class Breadcrumbs {
 
         $vars = ArticleStyles::breadcrumb_var_values();
         $classes = "smpi-breadcrumbs smpi-" . $style;
-        $style_attr = "--smpi-bc-accent:" . $vars["accent"] . ";--smpi-bc-tint:" . $vars["tint"] . ";--smpi-bc-font-size:" . $vars["size"];
+        $style_attr = "--smpi-bc-accent:" . $vars["accent"] . ";--smpi-bc-tint:" . $vars["tint"] . ";--smpi-bc-background:" . $vars["background"] . ";--smpi-bc-font-size:" . $vars["size"];
         $title = self::current_title();
         $title_html = in_array( $style, [ "bc-b1", "bc-b5" ], true ) && "" !== $title ? "<div class=\"pt\">" . esc_html( $title ) . "</div>" : "";
         $content = "bc-b5" === $style ? $crumbs . $title_html : $title_html . $crumbs;

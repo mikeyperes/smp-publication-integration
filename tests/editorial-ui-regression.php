@@ -7,11 +7,17 @@ $dashboard  = (string) file_get_contents( $root . '/src/Admin/Dashboard/Dashboar
 $muckrack   = (string) file_get_contents( $root . '/src/Content/MuckRackVerification.php' );
 $elementor  = (string) file_get_contents( $root . '/src/Authorship/ElementorAuthorRenderer.php' );
 $loop       = (string) file_get_contents( $root . '/src/Authorship/LoopBylineRenderer.php' );
+$article_styles = (string) file_get_contents( $root . '/src/Content/ArticleStyles.php' );
 
 $checks = [
-    'Elementor CSS cache busting selects the Core collapsible renderer.' => str_contains( $dashboard, '"elementor_css_cache_busting" === $snippet_id' )
-        && str_contains( $dashboard, 'CoreUi::collapsible' ),
-    'The cache-busting feature is closed by default.' => str_contains( $dashboard, '"open" => false' ),
+    'Every Features card defaults to the Hexa Core collapsible renderer.' => str_contains( $dashboard, 'bool $collapsible = true' )
+        && str_contains( $dashboard, 'CoreUi::collapsible' )
+        && str_contains( $dashboard, 'feature_brand_color_tools_html( $settings )' ),
+    'Every Features card is closed by default.' => str_contains( $dashboard, '"open" => false' )
+        && ! str_contains( $dashboard, '"elementor_css_cache_busting" === $snippet_id' ),
+    'Breadcrumb background is saved and applied through one scoped CSS variable.' => str_contains( $dashboard, 'breadcrumbs_background_color' )
+        && str_contains( $article_styles, '--smpi-bc-background' )
+        && str_contains( $article_styles, 'background:var(--smpi-bc-background,#fff)' ),
     'Frontend injection creates an exact author and badge pair.' => str_contains( $muckrack, 'function pairBadge(el,node)' )
         && str_contains( $muckrack, '.smpi-muckrack-inline-pair{display:inline-flex;align-items:center' ),
     'Frontend injection does not promote author text to a card-wide link.' => str_contains( $muckrack, 'norm(link.textContent)===norm(el.textContent)' )
@@ -32,4 +38,4 @@ foreach ( $checks as $message => $passed ) {
     }
 }
 
-echo "PASS: Editorial badges and cache-busting UI use shared structural contracts.\n";
+echo "PASS: Feature cards, breadcrumb styling, and editorial badges use shared structural contracts.\n";

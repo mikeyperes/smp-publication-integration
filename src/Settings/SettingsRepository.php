@@ -76,6 +76,7 @@ class SettingsRepository {
             "breadcrumbs_enabled" => true,
             "breadcrumbs_style" => "bc-b2",
             "breadcrumbs_accent_color" => $colors["breadcrumbs_accent_color"],
+            "breadcrumbs_background_color" => $colors["breadcrumbs_background_color"],
             "breadcrumbs_font_size" => 13,
             "breadcrumbs_hide_home" => true,
             "breadcrumbs_hide_term_archives" => false,
@@ -208,6 +209,7 @@ class SettingsRepository {
             "muckrack_icon_color" => $brand,
             "publication_muckrack_color" => $brand,
             "breadcrumbs_accent_color" => $brand,
+            "breadcrumbs_background_color" => "#ffffff",
             "table_of_contents_accent_color" => $brand,
             "table_of_contents_text_color" => "#1f2937",
             "article_heading_accent_color" => $brand,
@@ -235,6 +237,7 @@ class SettingsRepository {
             "muckrack_icon_color_home",
             "muckrack_icon_color_author",
             "breadcrumbs_accent_color",
+            "breadcrumbs_background_color",
             "table_of_contents_accent_color",
             "table_of_contents_text_color",
             "article_heading_accent_color",
@@ -394,7 +397,7 @@ class SettingsRepository {
                 continue;
             }
 
-            if ( in_array( $key, [ "breadcrumbs_accent_color", "table_of_contents_accent_color", "table_of_contents_text_color", "article_heading_accent_color", "article_drop_cap_color", "inline_photo_accent_color", "inline_photo_caption_text_color", "featured_image_caption_accent_color", "featured_image_caption_text_color", "post_faqs_accent_color", "post_faqs_text_color" ], true ) ) {
+            if ( in_array( $key, [ "breadcrumbs_accent_color", "breadcrumbs_background_color", "table_of_contents_accent_color", "table_of_contents_text_color", "article_heading_accent_color", "article_drop_cap_color", "inline_photo_accent_color", "inline_photo_caption_text_color", "featured_image_caption_accent_color", "featured_image_caption_text_color", "post_faqs_accent_color", "post_faqs_text_color" ], true ) ) {
                 $color = sanitize_hex_color( (string) $value );
                 $settings[ $key ] = $color ?: self::color_default( $key );
                 continue;
