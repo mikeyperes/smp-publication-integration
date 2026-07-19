@@ -7,7 +7,7 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.6.189`
+- Version: `0.6.190`
 
 ## Architecture
 
@@ -22,6 +22,10 @@ WordPress plugin for Scale My Publication publication profiles.
 - `Support`: integration adapters and stable legacy helpers.
 
 The bundled `Hexa\PluginCore` package is registered through the shared package resolver. One selected Core root owns the namespace when multiple Hexa plugins are active.
+
+## 0.6.190 Updates
+
+- Added the Block Editorial missing single-post author fallback regression to the implementation queue. No author rendering behavior changed in this release.
 
 ## 0.6.189 Updates
 
@@ -527,6 +531,7 @@ The bundled `Hexa\PluginCore` package is registered through the shared package r
 
 ## Implementation Queue
 
+- Restore the visible single-post author byline on `https://blockeditorial.com/north-korean-hackers-deploy-ai-to-steal-crypto-at-scale-prompting-ecosystem-defense-overhaul/`. Post `27085` retains WordPress author `46` (`Block Editorial Staff`) and valid author schema, but the Elementor single template's Verified Profiles loop returns an empty-loop marker and hides its only author area. Implement the fallback in the owning author/profile integration so an empty Verified Profiles result renders the canonical WordPress or SMP multi-author source, while verified-profile output remains unchanged when present. Do not patch the post or one Elementor template manually. Prevent duplicate names, preserve MuckRack badge alignment, and verify this post plus posts with a linked verified profile and multiple authors.
 - Add a WordPress hex color control for the Breadcrumbs background so dark themes can set the complete breadcrumb surface. The saved value must update the admin preview and frontend from the same setting, apply to the outer injected breadcrumb wrapper and every template-owned background layer, and prevent hard-coded white, soft, or gradient backgrounds from showing through.
 - Add AJAX save/update behavior to the Publication Options tab at `Settings > SMP Publication Integration > Publication Options` so saving does not require a full page reload.
 - Remove fallback-only Publication Options ACF fields that duplicate imported publication data, including Mission Statement Fallback and Publication Summary Fallback.
