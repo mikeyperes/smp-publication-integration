@@ -7,6 +7,7 @@ $dashboard  = (string) file_get_contents( $root . '/src/Admin/Dashboard/Dashboar
 $muckrack   = (string) file_get_contents( $root . '/src/Content/MuckRackVerification.php' );
 $dashboard_css = (string) file_get_contents( $root . '/assets/admin/dashboard.css' );
 $core_scoped_css = (string) file_get_contents( $root . '/lib/hexa-wordpress-plugin-core/src/WpAdminComponents/ScopedCssOverride.php' );
+$core_ui_source = (string) file_get_contents( $root . "/lib/hexa-wordpress-plugin-core/src/WpAdminComponents/CoreUi.php" );
 $core_version = trim( (string) file_get_contents( $root . '/lib/hexa-wordpress-plugin-core/VERSION' ) );
 $breadcrumb_start = strpos( $dashboard, 'private function breadcrumb_controls_html' );
 $breadcrumb_end = false !== $breadcrumb_start ? strpos( $dashboard, 'private function context_select_html', $breadcrumb_start ) : false;
@@ -25,6 +26,15 @@ $checks = [
     'Every Features card defaults to the Hexa Core collapsible renderer.' => str_contains( $dashboard, 'bool $collapsible = true' )
         && str_contains( $dashboard, 'CoreUi::collapsible' )
         && str_contains( $dashboard, 'feature_brand_color_tools_html( $settings )' ),
+    "Features expose the reusable Core search and group filter." => version_compare( $core_version, "0.19.53", ">=" )
+        && str_contains( $dashboard, "CoreUi::collection_filter(" )
+        && str_contains( $dashboard, "\"target_id\" => \"smpi-feature-collection\"" )
+        && str_contains( $dashboard, "\"item_selector\" => \".smpi-feature-filter-item\"" )
+        && str_contains( $dashboard, "\"group_selector\" => \".smpi-feature-group\"" )
+        && 2 === substr_count( $dashboard, "\"class\" => \"smpi-feature-filter-item\"" )
+        && str_contains( $core_ui_source, "function initCollectionFilters(scope)" )
+        && str_contains( $core_ui_source, "DOMContentLoaded" )
+        && str_contains( $core_ui_source, "hexa-core-host-tab-loaded" ),
     'Every Features card is closed by default.' => str_contains( $dashboard, '"open" => false' )
         && ! str_contains( $dashboard, '"elementor_css_cache_busting" === $snippet_id' ),
     'Features are organized into four clear groups.' => str_contains( $dashboard, 'data-smpi-feature-group=' )

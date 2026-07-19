@@ -1309,12 +1309,27 @@ class DashboardController {
         echo "<div class=\"smpi-section-intro\"><h2>Features</h2><p>Enable publication features and configure their output.</p></div>";
         echo "<style id=smpi-design-preview-css>" . \smp_publication_integration\Content\ArticleStyles::preview_bundle_css() . "</style>";
         echo $this->feature_layout_styles_html();
-        echo CoreUi::collapsible( [ "title" => "HWS Base Tools primary color", "body_html" => $this->feature_brand_color_tools_html( $settings ), "open" => false, "meta_html" => CoreUi::pill( "Color source", "dark" ) ] );
+        echo CoreUi::collection_filter(
+            [
+                "id" => "smpi-feature-search",
+                "target_id" => "smpi-feature-collection",
+                "item_selector" => ".smpi-feature-filter-item",
+                "group_selector" => ".smpi-feature-group",
+                "label" => "Search features",
+                "placeholder" => "Search features...",
+                "item_label_singular" => "feature",
+                "item_label_plural" => "features",
+                "empty_message" => "No matching features.",
+            ]
+        );
+        echo "<div id=\"smpi-feature-collection\">";
+        echo CoreUi::collapsible( [ "title" => "HWS Base Tools primary color", "body_html" => $this->feature_brand_color_tools_html( $settings ), "open" => false, "meta_html" => CoreUi::pill( "Color source", "dark" ), "class" => "smpi-feature-filter-item" ] );
         echo "<div class=\"smpi-design-host smpi-feature-groups\">";
         $this->render_article_design_feature_group( $settings );
         $this->render_author_feature_group( $settings );
         $this->render_content_feature_group( $settings );
         $this->render_system_feature_group( $settings );
+        echo "</div>";
         echo "</div>";
     }
 
@@ -1712,6 +1727,7 @@ HTML;
                     "body_html" => $html,
                     "open" => false,
                     "meta_html" => $meta_html,
+                    "class" => "smpi-feature-filter-item",
                 ]
             );
             return;

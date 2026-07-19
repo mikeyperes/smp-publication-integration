@@ -122,6 +122,15 @@ if (
     exit( 1 );
 }
 
+if (
+    ! str_contains( $core_tabs_source, "<div class=\"hpc-host-rail-header\">" )
+    || ! str_contains( $core_ui_source, ".hpc-host-rail-tools{display:flex;justify-content:flex-end;padding:0;position:absolute;right:5px;top:7px}" )
+    || ! str_contains( $core_ui_source, ".is-sidebar-collapsed .hpc-host-rail-header{border-bottom:0;display:flex;justify-content:center;margin:0;padding:0}" )
+) {
+    fwrite( STDERR, "FAIL: Vendored Core sidebar toggle is not positioned inside the shared identity header.\n" );
+    exit( 1 );
+}
+
 $rail_rule = '';
 if ( preg_match( '/\.hpc-host-rail\{([^}]*)\}/', $core_ui_source, $matches ) ) {
     $rail_rule = (string) $matches[1];

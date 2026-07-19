@@ -59,15 +59,16 @@ final class CoreUi {
             .hpc-host-tabs-shell.is-sidebar{--hpc-host-sidebar-width:214px;align-items:start;display:grid;gap:16px;grid-template-columns:var(--hpc-host-sidebar-width) minmax(0,1fr)}
             .hpc-host-tabs-shell.is-sidebar.is-sidebar-collapsed{grid-template-columns:44px minmax(0,1fr)}
             .hpc-host-rail{align-self:start;background:#fff;border:1px solid var(--hpc-line);border-radius:var(--hpc-radius);max-height:none;max-width:100%;overflow:visible;padding:7px;position:sticky;top:42px}
-            .hpc-host-rail-identity{border-bottom:1px solid #eef1f6;margin:0 2px 6px;min-width:0;overflow-wrap:anywhere;padding:8px 9px 11px;width:calc(100% - 4px)}
-            .hpc-host-rail-plugin-name{color:var(--hpc-ink);display:block;font-size:14px;line-height:1.35;margin:0 0 4px}
+            .hpc-host-rail-header{border-bottom:1px solid #eef1f6;margin:0 2px 6px;min-width:0;padding:8px 9px 11px;position:relative}
+            .hpc-host-rail-identity{margin:0;min-width:0;overflow-wrap:anywhere;padding:0;width:auto}
+            .hpc-host-rail-plugin-name{color:var(--hpc-ink);display:block;font-size:14px;line-height:1.35;margin:0 0 4px;padding-right:38px}
             .hpc-host-rail-versions{align-items:baseline;color:var(--hpc-muted);display:flex;flex-wrap:wrap;font-size:11px;gap:0 2px;line-height:1.45;min-width:0}
             .hpc-host-rail-versions a,.hpc-host-rail-core{color:var(--hpc-blue);text-decoration:none}
             .hpc-host-rail-versions a:hover,.hpc-host-rail-core:hover{text-decoration:underline}
             .hpc-host-rail-version-separator{color:#9aa6b6}
             .hpc-host-rail-core{display:block;font-size:11px;line-height:1.45;margin-top:3px;overflow-wrap:anywhere}
             .hpc-host-tabs-shell.is-sidebar-collapsed .hpc-host-rail-identity{display:none}
-            .hpc-host-rail-tools{display:flex;justify-content:flex-end;padding:1px 1px 5px}
+            .hpc-host-rail-tools{display:flex;justify-content:flex-end;padding:0;position:absolute;right:5px;top:7px}
             .hpc-host-sidebar-toggle{align-items:center;background:#fff;border:1px solid #cfd8e3;border-radius:6px;color:#31405a;cursor:pointer;display:inline-flex;height:32px;justify-content:center;padding:0;transition:background .15s,border-color .15s,color .15s;width:32px}
             .hpc-host-sidebar-toggle:hover{background:#eef3fc;border-color:#aebbd0;color:var(--hpc-blue)}
             .hpc-host-sidebar-toggle:focus-visible{box-shadow:0 0 0 2px #fff,0 0 0 4px var(--hpc-blue);outline:0}
@@ -75,7 +76,8 @@ final class CoreUi {
             .hpc-host-rail-navigation{min-width:0}
             .hpc-host-rail-navigation[hidden]{display:none}
             .hpc-host-tabs-shell.is-sidebar-collapsed .hpc-host-rail{padding:5px}
-            .hpc-host-tabs-shell.is-sidebar-collapsed .hpc-host-rail-tools{justify-content:center;padding:0}
+            .hpc-host-tabs-shell.is-sidebar-collapsed .hpc-host-rail-header{border-bottom:0;display:flex;justify-content:center;margin:0;padding:0}
+            .hpc-host-tabs-shell.is-sidebar-collapsed .hpc-host-rail-tools{justify-content:center;padding:0;position:static}
             .hpc-host-rail-group{padding:4px 2px 8px}
             .hpc-host-rail-group+.hpc-host-rail-group{border-top:1px solid #eef1f6;margin-top:2px;padding-top:8px}
             .hpc-host-rail-title{color:#8492a6;font-size:10.5px;font-weight:800;letter-spacing:.07em;margin:0;padding:6px 10px 4px;text-transform:uppercase}
@@ -114,6 +116,19 @@ final class CoreUi {
             .hpc-credential-head{align-items:flex-start;display:flex;gap:12px;justify-content:space-between}
             .hpc-credential-head h4{font-size:15px;margin:0 0 6px}
             .hpc-credential-head p{color:var(--hpc-muted);font-size:13px;margin:0}
+            .hpc-collection-filter{align-items:center;background:#f8fafc;border:1px solid var(--hpc-line);border-radius:8px;display:grid;gap:8px 14px;grid-template-columns:minmax(240px,520px) auto;margin:18px 0;padding:12px 14px}
+            .hpc-collection-filter-field{min-width:0;position:relative}
+            .hpc-collection-filter-icon{color:#718096;font-size:18px;height:18px;left:11px;pointer-events:none;position:absolute;top:50%;transform:translateY(-50%);width:18px}
+            .hpc-collection-filter-input{background:#fff;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;height:40px;margin:0;padding:0 40px 0 37px;width:100%}
+            .hpc-collection-filter-input:focus{border-color:var(--hpc-blue);box-shadow:0 0 0 2px rgba(49,87,213,.14);outline:0}
+            .hpc-collection-filter-clear{align-items:center;background:transparent;border:0;border-radius:5px;color:#64748b;cursor:pointer;display:flex;height:30px;justify-content:center;padding:0;position:absolute;right:5px;top:50%;transform:translateY(-50%);width:30px}
+            .hpc-collection-filter-clear:hover{background:#eef2f7;color:#172033}
+            .hpc-collection-filter-clear:focus-visible{box-shadow:0 0 0 2px var(--hpc-blue);outline:0}
+            .hpc-collection-filter-clear[hidden]{display:none}
+            .hpc-collection-filter-status{color:var(--hpc-muted);font-size:12px;justify-self:end;white-space:nowrap}
+            .hpc-collection-filter-status strong{color:var(--hpc-ink)}
+            .hpc-collection-filter-empty{color:var(--hpc-muted);font-size:13px;grid-column:1/-1;margin:0;padding:3px 0}
+            @media(max-width:680px){.hpc-collection-filter{grid-template-columns:minmax(0,1fr)}.hpc-collection-filter-status{justify-self:start}}
             .hpc-smart-search{position:relative}
             .hpc-smart-search-status{color:var(--hpc-muted);font-size:12px;margin-top:6px}
             .hpc-smart-search-results{background:#fff;border:1px solid #d3dce8;border-radius:8px;box-shadow:0 12px 30px rgba(15,23,42,.12);left:0;margin-top:6px;max-height:260px;overflow:auto;position:absolute;right:0;z-index:30}
@@ -197,6 +212,78 @@ final class CoreUi {
                     trigger.textContent = 'Copied';
                     window.setTimeout(function(){ trigger.textContent = old; }, 1200);
                 });
+            });
+            function initCollectionFilters(scope) {
+                scope = scope || document;
+                var filters = [];
+                if (scope.matches && scope.matches('[data-hpc-collection-filter]')) filters.push(scope);
+                if (scope.querySelectorAll) filters = filters.concat(Array.prototype.slice.call(scope.querySelectorAll('[data-hpc-collection-filter]')));
+                filters.forEach(function(filter) {
+                    if (filter.dataset.hpcCollectionFilterReady === '1') return;
+                    var target = document.getElementById(filter.dataset.targetId || '');
+                    var input = filter.querySelector('[data-hpc-filter-input]');
+                    var clear = filter.querySelector('[data-hpc-filter-clear]');
+                    var status = filter.querySelector('[data-hpc-filter-status]');
+                    var empty = filter.querySelector('[data-hpc-filter-empty]');
+                    var itemSelector = filter.dataset.itemSelector || '[data-hpc-filter-item]';
+                    var groupSelector = filter.dataset.groupSelector || '';
+                    if (!target || !input || !status) return;
+                    filter.dataset.hpcCollectionFilterReady = '1';
+
+                    function selected(selector, root) {
+                        if (!selector || !root || !root.querySelectorAll) return [];
+                        try {
+                            return Array.prototype.slice.call(root.querySelectorAll(selector));
+                        } catch (e) {
+                            return [];
+                        }
+                    }
+                    function applyFilter() {
+                        var query = (input.value || '').trim().toLocaleLowerCase();
+                        var items = selected(itemSelector, target);
+                        var visible = 0;
+                        items.forEach(function(item) {
+                            var text = item.getAttribute('data-hpc-filter-text') || item.textContent || '';
+                            var matches = !query || text.toLocaleLowerCase().indexOf(query) !== -1;
+                            item.hidden = !matches;
+                            if (matches) visible++;
+                        });
+                        selected(groupSelector, target).forEach(function(group) {
+                            var groupItems = items.filter(function(item) { return group.contains(item); });
+                            group.hidden = !!query && groupItems.length > 0 && groupItems.every(function(item) { return item.hidden; });
+                        });
+                        var singular = filter.dataset.itemLabelSingular || 'item';
+                        var plural = filter.dataset.itemLabelPlural || 'items';
+                        status.textContent = visible + ' of ' + items.length + ' ' + (items.length === 1 ? singular : plural);
+                        if (clear) clear.hidden = !query;
+                        if (empty) empty.hidden = !query || visible !== 0;
+                    }
+
+                    input.addEventListener('input', applyFilter);
+                    input.addEventListener('keydown', function(event) {
+                        if (event.key !== 'Escape' || !input.value) return;
+                        event.preventDefault();
+                        input.value = '';
+                        applyFilter();
+                    });
+                    if (clear) {
+                        clear.addEventListener('click', function() {
+                            input.value = '';
+                            applyFilter();
+                            input.focus();
+                        });
+                    }
+                    applyFilter();
+                });
+            }
+            window.hexaPluginCoreInitCollectionFilters = initCollectionFilters;
+            if (document.readyState === "loading") {
+                document.addEventListener("DOMContentLoaded", function() { initCollectionFilters(document); });
+            } else {
+                initCollectionFilters(document);
+            }
+            document.addEventListener('hexa-core-host-tab-loaded', function(event) {
+                initCollectionFilters(event.detail && event.detail.panel ? event.detail.panel : document);
             });
         })();
         </script>
@@ -288,9 +375,44 @@ final class CoreUi {
         $meta        = isset( $args['meta_html'] ) ? (string) $args['meta_html'] : '';
         $persist_key = isset( $args['persist_key'] ) ? (string) $args['persist_key'] : '';
         $persist     = '' !== $persist_key ? ' data-hpc-persist-key="' . esc_attr( $persist_key ) . '"' : '';
-        $toggle      = '<span class="hpc-section-toggle" aria-hidden="true"><svg viewBox="0 0 512 512" focusable="false"><path d="M233.4 406.6c12.5 12.5 32.8 12.5 45.3 0l192-192c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L256 338.7 86.6 169.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l192 192z"></path></svg></span>';
+        $classes     = [ 'hpc-section' ];
+        foreach ( preg_split( '/\\s+/', (string) ( $args['class'] ?? '' ) ) ?: [] as $class_name ) {
+            $class_name = sanitize_html_class( $class_name );
+            if ( '' !== $class_name ) {
+                $classes[] = $class_name;
+            }
+        }
+        $toggle = '<span class="hpc-section-toggle" aria-hidden="true"><svg viewBox="0 0 512 512" focusable="false"><path d="M233.4 406.6c12.5 12.5 32.8 12.5 45.3 0l192-192c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L256 338.7 86.6 169.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l192 192z"></path></svg></span>';
 
-        return '<details class="hpc-section"' . $open . $persist . '><summary><span class="hpc-section-title">' . esc_html( $title ) . '</span><span class="hpc-section-summary-side">' . $meta . $toggle . '</span></summary><div class="hpc-section-body">' . $body . '</div></details>';
+        return '<details class="' . esc_attr( implode( ' ', array_unique( $classes ) ) ) . '"' . $open . $persist . '><summary><span class="hpc-section-title">' . esc_html( $title ) . '</span><span class="hpc-section-summary-side">' . $meta . $toggle . '</span></summary><div class="hpc-section-body">' . $body . '</div></details>';
+    }
+
+    public static function collection_filter( array $args ): string {
+        $target_id      = sanitize_html_class( (string) ( $args['target_id'] ?? '' ) );
+        $item_selector  = trim( (string) ( $args['item_selector'] ?? '[data-hpc-filter-item]' ) );
+        $group_selector = trim( (string) ( $args['group_selector'] ?? '' ) );
+
+        if ( '' === $target_id || '' === $item_selector ) {
+            return '';
+        }
+
+        $id            = sanitize_html_class( (string) ( $args['id'] ?? $target_id . '-filter' ) );
+        $label         = (string) ( $args['label'] ?? 'Search items' );
+        $placeholder   = (string) ( $args['placeholder'] ?? $label );
+        $singular      = (string) ( $args['item_label_singular'] ?? 'item' );
+        $plural        = (string) ( $args['item_label_plural'] ?? $singular . 's' );
+        $empty_message = (string) ( $args['empty_message'] ?? 'No matching items.' );
+
+        return '<div class="hpc-collection-filter" data-hpc-collection-filter data-target-id="' . esc_attr( $target_id ) . '" data-item-selector="' . esc_attr( $item_selector ) . '" data-group-selector="' . esc_attr( $group_selector ) . '" data-item-label-singular="' . esc_attr( $singular ) . '" data-item-label-plural="' . esc_attr( $plural ) . '">'
+            . '<label class="screen-reader-text" for="' . esc_attr( $id ) . '">' . esc_html( $label ) . '</label>'
+            . '<div class="hpc-collection-filter-field">'
+            . '<span class="dashicons dashicons-search hpc-collection-filter-icon" aria-hidden="true"></span>'
+            . '<input id="' . esc_attr( $id ) . '" class="hpc-collection-filter-input" type="search" autocomplete="off" placeholder="' . esc_attr( $placeholder ) . '" aria-controls="' . esc_attr( $target_id ) . '" data-hpc-filter-input>'
+            . '<button type="button" class="hpc-collection-filter-clear" aria-label="' . esc_attr( 'Clear ' . strtolower( $label ) ) . '" title="' . esc_attr( 'Clear ' . strtolower( $label ) ) . '" data-hpc-filter-clear hidden><span class="dashicons dashicons-no-alt" aria-hidden="true"></span></button>'
+            . '</div>'
+            . '<span class="hpc-collection-filter-status" role="status" aria-live="polite" data-hpc-filter-status></span>'
+            . '<p class="hpc-collection-filter-empty" data-hpc-filter-empty hidden>' . esc_html( $empty_message ) . '</p>'
+            . '</div>';
     }
 
     public static function copy_button( string $value, string $label = 'Copy' ): string {

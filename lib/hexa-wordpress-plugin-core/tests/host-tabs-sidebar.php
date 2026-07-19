@@ -99,6 +99,13 @@ $checks = [
         && str_contains( $html, 'aria-expanded="true"' )
         && str_contains( $html, 'aria-label="Collapse navigation"' )
         && str_contains( $html, 'dashicons-arrow-left-alt2' ),
+    'Places identity and toggle together in the rail header.' => str_contains( $html, '<div class="hpc-host-rail-header">' )
+        && strpos( $html, 'hpc-host-rail-header' ) < strpos( $html, 'hpc-host-rail-identity' )
+        && strpos( $html, 'hpc-host-rail-identity' ) < strpos( $html, 'hpc-host-rail-tools' )
+        && strpos( $html, 'hpc-host-rail-tools' ) < strpos( $html, 'hpc-host-rail-navigation' ),
+    'Positions the expanded toggle at the header top-right.' => str_contains( $core_ui_source, '.hpc-host-rail-tools{display:flex;justify-content:flex-end;padding:0;position:absolute;right:5px;top:7px}' ),
+    'Centers the toggle and removes the identity row when collapsed.' => str_contains( $core_ui_source, '.is-sidebar-collapsed .hpc-host-rail-header{border-bottom:0;display:flex;justify-content:center;margin:0;padding:0}' )
+        && str_contains( $core_ui_source, '.is-sidebar-collapsed .hpc-host-rail-tools{justify-content:center;padding:0;position:static}' ),
     'Renders a valid collapsed initial state.' => str_contains( $collapsed_html, 'is-sidebar-collapsed' )
         && str_contains( $collapsed_html, 'aria-expanded="false"' )
         && str_contains( $collapsed_html, 'aria-label="Expand navigation"' )

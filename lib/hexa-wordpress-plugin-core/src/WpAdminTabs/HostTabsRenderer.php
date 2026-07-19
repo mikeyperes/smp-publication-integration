@@ -63,16 +63,21 @@ final class HostTabsRenderer {
         $active_tab_id = "" !== $active ? $this->tab_dom_id( $root_id, $active ) : "";
         $toggle_label  = $sidebar_collapsed ? "Expand navigation" : "Collapse navigation";
         $toggle_icon   = $sidebar_collapsed ? "dashicons-arrow-right-alt2" : "dashicons-arrow-left-alt2";
+        $sidebar_identity_html = $sidebar ? $this->sidebar_identity_html( $sidebar_identity ) : "";
         ?>
         <div id="<?php echo esc_attr( $root_id ); ?>" class="<?php echo esc_attr( $shell_class ); ?>" data-hpc-tab-root data-ajax-url="<?php echo esc_url( $ajax_url ); ?>" data-ajax-action="<?php echo esc_attr( $action ); ?>" data-nonce-field="<?php echo esc_attr( $nonce_key ); ?>" data-nonce="<?php echo esc_attr( $nonce ); ?>" data-page-url="<?php echo esc_url( $page_url ); ?>" data-panel-id="<?php echo esc_attr( $panel_id ); ?>" data-active-tab="<?php echo esc_attr( $active ); ?>" data-sidebar-collapsible="<?php echo $sidebar_collapsible ? "1" : "0"; ?>" data-sidebar-collapsed="<?php echo $sidebar_collapsed ? "1" : "0"; ?>" data-sidebar-persist="<?php echo $sidebar_persist ? "1" : "0"; ?>" data-sidebar-storage-key="<?php echo esc_attr( $sidebar_storage_key ); ?>">
             <?php if ( $sidebar ) : ?>
                 <aside id="<?php echo esc_attr( $rail_id ); ?>" class="hpc-host-rail" aria-label="<?php echo esc_attr( $label ); ?>">
-                    <?php echo $this->sidebar_identity_html( $sidebar_identity ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-                    <?php if ( $sidebar_collapsible ) : ?>
-                        <div class="hpc-host-rail-tools">
-                            <button type="button" class="hpc-host-sidebar-toggle" data-hpc-sidebar-toggle aria-controls="<?php echo esc_attr( $rail_navigation_id ); ?>" aria-expanded="<?php echo $sidebar_collapsed ? "false" : "true"; ?>" aria-label="<?php echo esc_attr( $toggle_label ); ?>" title="<?php echo esc_attr( $toggle_label ); ?>">
-                                <span class="dashicons <?php echo esc_attr( $toggle_icon ); ?>" aria-hidden="true"></span>
-                            </button>
+                    <?php if ( "" !== $sidebar_identity_html || $sidebar_collapsible ) : ?>
+                        <div class="hpc-host-rail-header">
+                            <?php echo $sidebar_identity_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                            <?php if ( $sidebar_collapsible ) : ?>
+                                <div class="hpc-host-rail-tools">
+                                    <button type="button" class="hpc-host-sidebar-toggle" data-hpc-sidebar-toggle aria-controls="<?php echo esc_attr( $rail_navigation_id ); ?>" aria-expanded="<?php echo $sidebar_collapsed ? "false" : "true"; ?>" aria-label="<?php echo esc_attr( $toggle_label ); ?>" title="<?php echo esc_attr( $toggle_label ); ?>">
+                                        <span class="dashicons <?php echo esc_attr( $toggle_icon ); ?>" aria-hidden="true"></span>
+                                    </button>
+                                </div>
+                            <?php endif; ?>
                         </div>
                     <?php endif; ?>
                     <div id="<?php echo esc_attr( $rail_navigation_id ); ?>" class="hpc-host-rail-navigation" data-hpc-sidebar-navigation<?php echo $sidebar_collapsed ? " hidden" : ""; ?>>
