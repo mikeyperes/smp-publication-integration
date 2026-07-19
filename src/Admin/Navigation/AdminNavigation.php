@@ -3,6 +3,32 @@
 namespace smp_publication_integration\Admin\Navigation;
 
 final class AdminNavigation {
+    private const FLAT_TABS = [
+        'overview' => 'Dashboard',
+        'quick_run' => 'Quick Start',
+        'publication_options' => 'Publication Settings',
+        'profiles' => 'Publication Fields',
+        'brand' => 'Brand Settings',
+        'pages' => 'Pages',
+        'menu' => 'Menus',
+        'features' => 'Article Design',
+        'custom_fields' => 'Post Fields',
+        'multiple_authors' => 'Authors',
+        'content_generation' => 'Content Generation',
+        'snippets' => 'Publishing Rules',
+        'post_hygiene' => 'Post HTML Cleanup',
+        'schema' => 'Schema Settings',
+        'reports' => 'Schema Tests',
+        'verified_profiles' => 'Verified Profiles',
+        'article_cleanup' => 'Article & Media Cleanup',
+        'optimization' => 'Database Optimization',
+        'plugins' => 'Plugins',
+        'integrations' => 'Integrations',
+        'ui_cleanup' => 'WordPress Admin',
+        'shortcodes' => 'Shortcodes',
+        'hexa_core' => 'Hexa WP Core',
+    ];
+
     private const AREAS = [
         'overview'        => 'Overview',
         'publication'     => 'Publication',
@@ -53,6 +79,19 @@ final class AdminNavigation {
     /**
      * @return array<string,string>
      */
+    public function tabs(): array {
+        $tabs = self::FLAT_TABS;
+
+        foreach ( $this->legacy_tab_labels() as $id => $label ) {
+            $id = sanitize_key( (string) $id );
+            if ( '' !== $id && ! isset( $tabs[ $id ] ) && ! $this->known_section( $id ) ) {
+                $tabs[ $id ] = (string) $label;
+            }
+        }
+
+        return apply_filters( 'smpi_dashboard_flat_tabs', $tabs );
+    }
+
     public function areas(): array {
         return apply_filters( 'smpi_dashboard_areas', self::AREAS );
     }

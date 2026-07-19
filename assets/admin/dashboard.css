@@ -8,6 +8,8 @@
 .smpi-dashboard .smpi-feature-card,.smpi-dashboard .smpi-feature-controls,.smpi-dashboard .smpi-feature-grid,.smpi-dashboard .smpi-feature-grid>*{max-width:100%;min-width:0}
 .smpi-dashboard .smpi-table-scroll{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
 .smpi-dashboard .smpi-table-scroll>table{margin:0;min-width:640px}
+#smpi-core-tabs .hpc-host-tabs{align-items:stretch;flex-wrap:nowrap;max-width:100%;overflow-x:auto;padding-bottom:1px}
+#smpi-core-tabs .hpc-host-tab{flex:0 0 auto;white-space:nowrap}
 @media(max-width:782px){
     .smpi-dashboard .smpi-feature-grid,.smpi-dashboard .smpi-choice-grid,.smpi-dashboard .smpi-brand-color-tools .smpi-feature-grid,.smpi-dashboard .smpi-shortcode-row,.smpi-dashboard .smpi-context-override-row{grid-template-columns:minmax(0,1fr)!important}
     .smpi-dashboard .smpi-feature-head{display:grid}

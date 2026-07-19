@@ -23,7 +23,6 @@ use smp_publication_integration\Admin\QuickStartCleanupWorkflow;
 use smp_publication_integration\Admin\UiCleanup;
 use smp_publication_integration\Admin\Navigation\AdminNavigation;
 use smp_publication_integration\Admin\Navigation\AdminRoute;
-use smp_publication_integration\Admin\Navigation\SectionNavigation;
 use smp_publication_integration\Config;
 use smp_publication_integration\Content\AuthorShortcodes;
 use smp_publication_integration\Content\MultiAuthors;
@@ -81,11 +80,11 @@ class DashboardController {
             wp_die( esc_html__( 'You do not have permission to access this page.', 'smp-publication-integration' ) );
         }
         $navigation = $this->navigation();
-        $tabs       = $navigation->areas();
+        $tabs       = $navigation->tabs();
         $requested  = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'overview';
         $section    = isset( $_GET['section'] ) ? sanitize_key( wp_unslash( $_GET['section'] ) ) : '';
         $route      = $navigation->resolve( $requested, $section );
-        $active     = $route->area();
+        $active     = $route->section();
         if ( Dependencies::acf_active() && function_exists( "acf_form_head" ) ) {
             acf_form_head();
         }
@@ -107,9 +106,8 @@ class DashboardController {
                     "root_id"         => "smpi-core-tabs",
                     "panel_id"        => "smpi-tab-panel",
                     "label"           => "SMP Publication Integration sections",
-                    "render_callback" => function( string $area ) use ( $route ): void {
-                        $section = $area === $route->area() ? $route->section() : '';
-                        $this->area( $area, $section );
+                    "render_callback" => function( string $tab ): void {
+                        $this->tab( $tab );
                     },
                 ]
             );
@@ -121,40 +119,25 @@ class DashboardController {
 
     public function tab_fragment( string $id ): array {
         $navigation = $this->navigation();
-        $tabs       = $navigation->areas();
+        $tabs       = $navigation->tabs();
         $route      = $navigation->resolve( $id );
 
         ob_start();
         if ( "publication_options" === $route->section() && Dependencies::acf_active() && function_exists( "acf_form_head" ) ) {
             acf_form_head();
         }
-        $this->area( $route->area(), $route->section() );
+        $this->tab( $route->section() );
         $html = ob_get_clean();
 
         return [
-            "tab" => $route->area(),
-            "label" => $tabs[ $route->area() ],
+            "tab" => $route->section(),
+            "label" => $tabs[ $route->section() ] ?? $route->section(),
             "html" => is_string( $html ) ? $html : "",
         ];
     }
 
-    private function tabs(): array {
-        return $this->navigation()->areas();
-    }
-
     private function navigation(): AdminNavigation {
         return new AdminNavigation();
-    }
-
-    private function area( string $area, string $section = '' ): void {
-        $navigation = $this->navigation();
-        $route      = $navigation->resolve( $area, $section );
-
-        ( new SectionNavigation( $navigation ) )->render(
-            $route,
-            admin_url( 'options-general.php?page=' . Config::$settings_page_slug )
-        );
-        $this->tab( $route->section() );
     }
 
     private function tab( string $id ): void {
@@ -2609,7 +2592,9 @@ class DashboardController {
 
 
     private function scripts(): void {
-        $active = isset( $_GET["tab"] ) ? sanitize_key( wp_unslash( $_GET["tab"] ) ) : "overview";
+        $requested = isset( $_GET["tab"] ) ? sanitize_key( wp_unslash( $_GET["tab"] ) ) : "overview";
+        $section   = isset( $_GET["section"] ) ? sanitize_key( wp_unslash( $_GET["section"] ) ) : "";
+        $active    = $this->navigation()->resolve( $requested, $section )->section();
         ?>
         <script>
         window.smpiAdmin={ajaxUrl:ajaxurl,nonce:<?php echo wp_json_encode( Ajax::nonce() ); ?>,pageUrl:<?php echo wp_json_encode( admin_url( "options-general.php?page=" . Config::$settings_page_slug ) ); ?>,activeTab:<?php echo wp_json_encode( $active ); ?>};

@@ -7,13 +7,13 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.6.192`
+- Version: `0.6.193`
 
 ## Architecture
 
 - `Bootstrap`: host lifecycle and Core module orchestration.
 - `Settings`: canonical `smpi_settings` persistence and sanitization.
-- `Admin/Navigation`: six-area navigation and legacy route resolution.
+- `Admin/Navigation`: flat tab registry and legacy route resolution.
 - `Admin/Ajax`: guarded admin action implementation behind the stable `Admin\Ajax` facade.
 - `Admin/Dashboard`: dashboard implementation behind the stable `Admin\Dashboard` facade.
 - `StructuredData`: schema graph generation behind the stable `Content\Schema` facade.
@@ -22,6 +22,10 @@ WordPress plugin for Scale My Publication publication profiles.
 - `Support`: integration adapters and stable legacy helpers.
 
 The bundled `Hexa\PluginCore` package is registered through the shared package resolver. One selected Core root owns the namespace when multiple Hexa plugins are active.
+
+## 0.6.193 Updates
+
+- Replaced grouped admin areas and secondary navigation with one ordered, horizontally scrollable tab row while preserving legacy admin URLs.
 
 ## 0.6.192 Updates
 
