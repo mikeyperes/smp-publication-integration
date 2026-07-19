@@ -212,6 +212,7 @@ Required rules:
 - Use `source => pro` or `manual` when a plugin requires a manual upload/download.
 - Use `source => must_use` or `dropin` for MU plugins and WordPress drop-ins; Core treats installed/present as active and skips update/auto-update checks.
 - Keep shared Core and DynamicButton assets in the full renderer. AJAX content fragments must suppress automatic asset emission so style and script tags never land inside plugin rows.
+- When a host disables the Source column, Core renders source beneath the plugin path, uses a fixed seven-column desktop layout without horizontal scrolling, and stacks labeled cells below 900px.
 - Keep Deactivate and Delete as subtle secondary row controls. They are available for installed normal plugins, require confirmation where destructive, and remain blocked for must-use plugins and drop-ins.
 - Do not use emoji indicators in plugin inventory UIs.
 

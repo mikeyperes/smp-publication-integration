@@ -176,7 +176,7 @@ final class PluginInventoryRenderer {
             <?php echo $this->summary_item( 'Configured', (int) $summary['total'], 'neutral' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
         </div>
 
-        <div class="hpc-plugin-inventory-table-wrap">
+        <div class="hpc-plugin-inventory-table-wrap<?php echo empty( $args['columns']['source'] ) ? ' has-inline-source' : ''; ?>">
             <table class="hpc-plugin-inventory-table">
                 <thead>
                     <tr>
@@ -269,33 +269,36 @@ final class PluginInventoryRenderer {
         ob_start();
         ?>
         <tr class="<?php echo esc_attr( $row_class ); ?>" data-plugin-inventory-row data-plugin-id="<?php echo esc_attr( $definition->id ); ?>" data-plugin-installed="<?php echo $installed ? '1' : '0'; ?>" data-plugin-active="<?php echo $active ? '1' : '0'; ?>" data-plugin-required="<?php echo $required ? '1' : '0'; ?>">
-            <td class="hpc-plugin-inventory-plugin-cell">
+            <td class="hpc-plugin-inventory-plugin-cell" data-label="Plugin">
                 <div class="hpc-plugin-inventory-title">
                     <strong><?php echo esc_html( $definition->name ); ?></strong>
                 </div>
                 <div class="hpc-plugin-inventory-meta">
                     <code><?php echo esc_html( (string) $status['plugin_file'] ?: $definition->plugin_file ?: $definition->slug ); ?></code>
+                    <?php if ( empty( $args['columns']['source'] ) ) : ?>
+                        <div class="hpc-plugin-inventory-inline-source"><span>Source:</span> <?php echo $this->source_html( $definition, $status ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></div>
+                    <?php endif; ?>
                     <?php if ( '' !== $definition->notes ) : ?>
                         <span><?php echo esc_html( wp_strip_all_tags( $definition->notes ) ); ?></span>
                     <?php endif; ?>
                 </div>
             </td>
-            <td class="hpc-plugin-inventory-policy-cell">
+            <td class="hpc-plugin-inventory-policy-cell" data-label="Policy">
                 <?php echo $this->policy_html( $definition, $status ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
             </td>
-            <td>
+            <td data-label="Installation">
                 <?php echo $this->installation_html( $definition, $status ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
             </td>
-            <td>
+            <td data-label="Status">
                 <?php echo $this->runtime_status_html( $definition, $status ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
             </td>
             <?php if ( ! empty( $args['columns']['auto_update'] ) ) : ?>
-                <td>
+                <td data-label="Auto-Update">
                     <?php echo $this->auto_update_html( $definition, $status ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
                 </td>
             <?php endif; ?>
             <?php if ( ! empty( $args['columns']['version'] ) ) : ?>
-                <td>
+                <td data-label="Version">
                     <?php if ( ! empty( $status['version'] ) ) : ?>
                         <strong><?php echo esc_html( (string) $status['version'] ); ?></strong>
                         <?php if ( ! empty( $status['update_available'] ) ) : ?>
@@ -307,9 +310,9 @@ final class PluginInventoryRenderer {
                 </td>
             <?php endif; ?>
             <?php if ( ! empty( $args['columns']['source'] ) ) : ?>
-                <td><?php echo $this->source_html( $definition, $status ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></td>
+                <td data-label="Source"><?php echo $this->source_html( $definition, $status ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></td>
             <?php endif; ?>
-            <td class="hpc-plugin-inventory-action-cell">
+            <td class="hpc-plugin-inventory-action-cell" data-label="Action">
                 <?php echo $this->actions_html( $definition, $status ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
             </td>
         </tr>
@@ -735,7 +738,19 @@ final class PluginInventoryRenderer {
 .hpc-plugin-inventory-summary-item.is-warning{background:#fff7e0;border-color:#f5df9c;color:var(--hpc-amber)}
 .hpc-plugin-inventory-summary-item.is-danger{background:#fff0f2;border-color:#ffd0d8;color:var(--hpc-red)}
 .hpc-plugin-inventory-table-wrap{border:1px solid var(--hpc-line);border-radius:8px;overflow:auto}
+.hpc-plugin-inventory-table-wrap.has-inline-source{overflow:hidden}
 .hpc-plugin-inventory-table{border-collapse:collapse;width:100%}
+.hpc-plugin-inventory-table-wrap.has-inline-source .hpc-plugin-inventory-table{table-layout:fixed}
+.hpc-plugin-inventory-table-wrap.has-inline-source .hpc-plugin-inventory-table th,.hpc-plugin-inventory-table-wrap.has-inline-source .hpc-plugin-inventory-table td{box-sizing:border-box;min-width:0}
+.hpc-plugin-inventory-table-wrap.has-inline-source .hpc-plugin-inventory-table th:nth-child(1),.hpc-plugin-inventory-table-wrap.has-inline-source .hpc-plugin-inventory-table td:nth-child(1){width:32%}
+.hpc-plugin-inventory-table-wrap.has-inline-source .hpc-plugin-inventory-table th:nth-child(2),.hpc-plugin-inventory-table-wrap.has-inline-source .hpc-plugin-inventory-table td:nth-child(2){width:15%}
+.hpc-plugin-inventory-table-wrap.has-inline-source .hpc-plugin-inventory-table th:nth-child(3),.hpc-plugin-inventory-table-wrap.has-inline-source .hpc-plugin-inventory-table td:nth-child(3){width:11%}
+.hpc-plugin-inventory-table-wrap.has-inline-source .hpc-plugin-inventory-table th:nth-child(4),.hpc-plugin-inventory-table-wrap.has-inline-source .hpc-plugin-inventory-table td:nth-child(4){width:9%}
+.hpc-plugin-inventory-table-wrap.has-inline-source .hpc-plugin-inventory-table th:nth-child(5),.hpc-plugin-inventory-table-wrap.has-inline-source .hpc-plugin-inventory-table td:nth-child(5){width:11%}
+.hpc-plugin-inventory-table-wrap.has-inline-source .hpc-plugin-inventory-table th:nth-child(6),.hpc-plugin-inventory-table-wrap.has-inline-source .hpc-plugin-inventory-table td:nth-child(6){width:8%}
+.hpc-plugin-inventory-table-wrap.has-inline-source .hpc-plugin-inventory-table th:nth-child(7),.hpc-plugin-inventory-table-wrap.has-inline-source .hpc-plugin-inventory-table td:nth-child(7){width:14%}
+.hpc-plugin-inventory-table-wrap.has-inline-source .hpc-plugin-inventory-plugin-cell,.hpc-plugin-inventory-table-wrap.has-inline-source .hpc-plugin-inventory-policy-cell,.hpc-plugin-inventory-table-wrap.has-inline-source .hpc-plugin-inventory-action-cell{min-width:0}
+.hpc-plugin-inventory-table-wrap.has-inline-source .hpc-plugin-inventory-policy{line-height:1.25;text-align:center;white-space:normal}
 .hpc-plugin-inventory-table th{background:#f8fafc;border-bottom:1px solid var(--hpc-line);color:#253650;font-size:12px;font-weight:900;letter-spacing:.02em;padding:11px 12px;text-align:left;text-transform:uppercase;white-space:nowrap}
 .hpc-plugin-inventory-table td{border-bottom:1px solid #edf1f6;padding:12px;vertical-align:middle}
 .hpc-plugin-inventory-table tr:last-child td{border-bottom:0}
@@ -754,8 +769,11 @@ final class PluginInventoryRenderer {
 .hpc-plugin-inventory-policy.is-warning{background:#fff7e0;border-color:#f5df9c;color:var(--hpc-amber)}
 .hpc-plugin-inventory-policy.is-info{background:#eef2ff;border-color:#dbe4ff;color:#2944ad}
 .hpc-plugin-inventory-policy.is-neutral{background:#f4f6f8;border-color:#dfe4ea;color:#536171}
-.hpc-plugin-inventory-meta{display:grid;gap:5px}
-.hpc-plugin-inventory-meta code{background:#eef0f2;border-radius:5px;color:#2f3a4a;font-size:12px;padding:2px 5px;word-break:break-all}
+.hpc-plugin-inventory-meta{display:grid;gap:5px;min-width:0}
+.hpc-plugin-inventory-meta code{background:#eef0f2;border-radius:5px;color:#2f3a4a;font-size:12px;max-width:100%;overflow-wrap:anywhere;padding:2px 5px;white-space:normal;word-break:break-word}
+.hpc-plugin-inventory-inline-source{align-items:baseline;display:flex;flex-wrap:wrap;gap:4px;min-width:0}
+.hpc-plugin-inventory-inline-source>span:first-child{font-weight:700}
+.hpc-plugin-inventory-table-wrap.has-inline-source .hpc-plugin-inventory-source-link,.hpc-plugin-inventory-table-wrap.has-inline-source .hpc-plugin-inventory-source-text{overflow-wrap:anywhere;white-space:normal}
 .hpc-plugin-inventory-meta span{color:var(--hpc-muted);font-size:12px;line-height:1.35}
 .hpc-plugin-inventory-status{align-items:center;display:inline-flex;font-size:13px;font-weight:900;gap:5px;white-space:nowrap}
 .hpc-plugin-inventory-status.is-pass{color:var(--hpc-green)}
@@ -787,7 +805,18 @@ final class PluginInventoryRenderer {
 .hpc-plugin-inventory-log-head strong{color:#fff}
 .hpc-plugin-inventory-log-head .hpc-button{padding:7px 10px}
 .hpc-plugin-inventory-log pre{background:transparent;color:#dbe7f3;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace;margin:0;max-height:240px;overflow:auto;padding:12px;white-space:pre-wrap}
-@media(max-width:900px){.hpc-plugin-inventory-table th,.hpc-plugin-inventory-table td{padding:10px}.hpc-plugin-inventory-action-cell{min-width:130px}}
+@media(max-width:900px){
+.hpc-plugin-inventory-table-wrap.has-inline-source{border:0;overflow:visible}
+.hpc-plugin-inventory-table-wrap.has-inline-source .hpc-plugin-inventory-table,.hpc-plugin-inventory-table-wrap.has-inline-source .hpc-plugin-inventory-table tbody{display:block;width:100%}
+.hpc-plugin-inventory-table-wrap.has-inline-source .hpc-plugin-inventory-table thead{display:none}
+.hpc-plugin-inventory-table-wrap.has-inline-source .hpc-plugin-inventory-table tbody{display:grid;gap:12px}
+.hpc-plugin-inventory-table-wrap.has-inline-source .hpc-plugin-inventory-table tr{border:1px solid var(--hpc-line);border-radius:8px;display:block;overflow:hidden}
+.hpc-plugin-inventory-table-wrap.has-inline-source .hpc-plugin-inventory-table td{border-bottom:1px solid #edf1f6;display:block;padding:10px 12px;width:100%!important}
+.hpc-plugin-inventory-table-wrap.has-inline-source .hpc-plugin-inventory-table td:last-child{border-bottom:0}
+.hpc-plugin-inventory-table-wrap.has-inline-source .hpc-plugin-inventory-table td::before{color:#536171;content:attr(data-label);display:block;font-size:10px;font-weight:900;margin:0 0 6px;text-transform:uppercase}
+.hpc-plugin-inventory-table-wrap.has-inline-source .hpc-plugin-inventory-plugin-cell{background:#f8fafc}
+.hpc-plugin-inventory-table-wrap.has-inline-source .hpc-plugin-inventory-action-cell{min-width:0}
+}
 </style>
 <script>
 (function(){

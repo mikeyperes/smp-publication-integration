@@ -208,6 +208,8 @@ This panel compares the vendored `VERSION` in the host plugin with the public Gi
 
 ## Plugin Inventory Policy
 
+Version 0.19.46 supports compact inventories without a separate Source column. Core places source beneath the plugin path, uses a fixed seven-column desktop layout without horizontal scrolling, and stacks labeled cells below 900px.
+
 Version 0.19.45 keeps plugin inventory and plugin-check AJAX fragments free of duplicate Core/DynamicButton asset tags, so refreshed row markup contains only fragment content.
 
 Version 0.19.44 makes plugin inventory policy explicit: satisfied required plugins render green, only host-configured entries are forbidden, absent forbidden entries can remain visible as compliant, and installed plugins outside registered policy remain neutral.

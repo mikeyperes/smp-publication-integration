@@ -75,9 +75,11 @@ namespace {
 
     $required_args = PluginInventory::recommended_renderer_args();
     assert_true( 'Required Plugins' === $required_args['title'], 'Required section title is incorrect.' );
+    assert_true( false === $required_args['columns']['source'], 'Required plugins must render source beneath the plugin path.' );
 
     $forbidden_args = PluginInventory::forbidden_renderer_args();
     assert_true( 'Forbidden Plugins' === $forbidden_args['title'], 'Forbidden section title is incorrect.' );
+    assert_true( false === $forbidden_args['columns']['source'], 'Forbidden plugins must render source beneath the plugin path.' );
     assert_true( false === $forbidden_args['hide_compliant_forbidden'], 'Absent forbidden plugins must remain visible.' );
     assert_true(
         str_contains( $forbidden_args['description'], 'explicitly listed by SMP policy' ),

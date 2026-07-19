@@ -171,6 +171,11 @@ assert_true( ! str_contains( $renderer_source, 'requirement_badge' ), 'Legacy co
 assert_true( str_contains( $renderer_source, '<th>Policy</th>' ), 'Policy column is missing.' );
 assert_true( str_contains( $renderer_source, '<th>Installation</th>' ), 'Installation column is missing.' );
 assert_true( 1 === substr_count( $renderer_source, 'DynamicButton::render(' ), 'Inventory fragments still render DynamicButton assets inside rows.' );
+assert_true( str_contains( $renderer_source, 'data-label="Plugin"' ), 'Responsive plugin cell label is missing.' );
+assert_true( str_contains( $renderer_source, 'hpc-plugin-inventory-inline-source' ), 'Inline source output is missing.' );
+assert_true( str_contains( $renderer_source, '.hpc-plugin-inventory-table-wrap.has-inline-source{overflow:hidden}' ), 'Compact inventory must not scroll horizontally.' );
+assert_true( str_contains( $renderer_source, 'table-layout:fixed' ), 'Compact inventory must use a stable fixed table layout.' );
+assert_true( str_contains( $renderer_source, 'content:attr(data-label)' ), 'Compact inventory rows must expose labels when stacked.' );
 
 $checks_renderer_source = (string) file_get_contents( $root . '/src/PluginChecks/PluginChecksRenderer.php' );
 assert_true( 1 === substr_count( $checks_renderer_source, 'DynamicButton::render(' ), 'Plugin-check fragments still render DynamicButton assets inside rows.' );

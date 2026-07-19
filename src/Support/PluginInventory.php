@@ -109,7 +109,7 @@ final class PluginInventory {
             'columns'          => [
                 'auto_update' => true,
                 'version'     => true,
-                'source'      => true,
+                'source'      => false,
             ],
         ];
     }
@@ -140,7 +140,7 @@ final class PluginInventory {
             'columns'          => [
                 'auto_update' => true,
                 'version'     => true,
-                'source'      => true,
+                'source'      => false,
             ],
         ];
     }
