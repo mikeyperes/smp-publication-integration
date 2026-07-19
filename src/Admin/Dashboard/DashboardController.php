@@ -16,6 +16,7 @@ use Hexa\PluginCore\WpAdminTabs\TabDefinition;
 use Hexa\PluginCore\WpAdminTabs\TabRegistry;
 use Hexa\PluginCore\WpAdminComponents\ColorControl;
 use Hexa\PluginCore\WpAdminComponents\CoreUi;
+use Hexa\PluginCore\WpAdminComponents\ScopedCssOverride;
 use Hexa\PluginCore\WpAdminComponents\DynamicButton;
 use Hexa\PluginCore\SiteStructure\SiteStructureRenderer;
 use Hexa\PluginCore\SchemaDetection\SchemaPageScanner;
@@ -1436,7 +1437,18 @@ class DashboardController {
         $this->feature_card( "Press-release inclusion controls", "press_release_include_enabled", "Uses existing press-release CPT and _smpi_pr_shadow_override meta. ACF/local fields are registered for force include or force exclude.", "Includes Hexa PR Wire press-release posts in selected blog-like loops: home, category/tag, author.php, and single.php recent article secondary queries. Force exclude is honored through the press-release visibility meta box.", "add_action(\"pre_get_posts\", function (WP_Query \$q) { /* SMP uses the same main-query guard pattern and selected contexts. */ });", $this->press_release_report_html(), $this->activity_log_html(), $this->context_select_html( "press_release_include_contexts", [ "home" => "Home page", "category_tag" => "Category and tag pages", "author" => "author.php", "single_recent" => "single.php recent article queries" ], $settings ) );
         $this->feature_card( "Article type schema selector", "", "Moved to the Custom Fields tab. Registers the <code>smpi_article_type</code> taxonomy only when enabled there.", "Adds one radio-only Article Type box to supported article editors. The field is hidden when disabled and only allows predefined schema-backed values.", "editorial-news => NewsArticle\nanalysis => AnalysisNewsArticle\nopinion => OpinionNewsArticle\nreportage => ReportageNewsArticle\npress-release => Article\nsponsored => AdvertiserContentArticle", $this->article_type_selector_report_html(), $this->activity_log_html(), "<p class=\"smpi-muted\">Registration toggle lives in Custom Fields.</p>" . $this->article_type_selector_options_html() );
         $breadcrumb_controls = $this->breadcrumb_controls_html( $settings );
-        $this->feature_card( "Breadcrumbs", "breadcrumbs_enabled", "Registers a Hexa core-generated ACF multi post selector on Publication Theme Options: <code>smpi_breadcrumb_disabled_objects</code>. No repeater.", "Injects a selected Rank Math-compatible breadcrumb design directly below the site header on singular post/page/CPT templates and category/tag archives. Uses Rank Math breadcrumb markup when Rank Math is available and falls back to SMP-generated breadcrumbs when it is not. It is hidden on the front page/home page by default. Category and tag archives show by default unless disabled here.", "[smp_breadcrumbs]\n[smp_breadcrumbs style=\"bc-b2\"]\nACF option: smpi_breadcrumb_disabled_objects\nRank Math source: rank-math-options-general", $this->breadcrumbs_report_html(), $this->activity_log_html(), $breadcrumb_controls );
+        $this->feature_card(
+            "Breadcrumbs",
+            "breadcrumbs_enabled",
+            "Registers a Hexa core-generated ACF multi post selector on Publication Theme Options: <code>smpi_breadcrumb_disabled_objects</code>. No repeater.",
+            "Injects a selected Rank Math-compatible breadcrumb design directly below the site header on singular post/page/CPT templates and category/tag archives. Uses Rank Math breadcrumb markup when Rank Math is available and falls back to SMP-generated breadcrumbs when it is not. It is hidden on the front page/home page by default. Category and tag archives show by default unless disabled here.",
+            "[smp_breadcrumbs]\n[smp_breadcrumbs style=\"bc-b2\"]\nACF option: smpi_breadcrumb_disabled_objects\nRank Math source: rank-math-options-general",
+            $this->breadcrumbs_report_html(),
+            $this->activity_log_html(),
+            $breadcrumb_controls,
+            true,
+            $this->breadcrumb_css_override_html()
+        );
         $toc_controls = $this->inline_toggle_setting_html( "table_of_contents_auto_single", "Automatically show above single.php content" ) . $this->inline_toggle_setting_html( "table_of_contents_include_summary", "Include What to Know summary at top" ) . $this->select_setting_html( "table_of_contents_style", $this->toc_style_options(), $settings, "Table of contents design" ) . $this->color_setting_html( "table_of_contents_accent_color", "Table of contents accent color", $settings ) . $this->font_style_setting_html( "table_of_contents_text_font_style", "Table of contents text font style", $settings ) . $this->number_setting_html( "table_of_contents_text_font_size", "Table of contents text font size", $settings, 8, 64, "px" ) . $this->color_setting_html( "table_of_contents_text_color", "Table of contents text color", $settings );
         $this->feature_card( "Table of contents", "table_of_contents_enabled", "No ACF changes. Parses post headings from post_content.", "Adds [smp_table_of_contents] and optional automatic display above single.php content. Select the single.php display treatment here or use style= on the shortcode.", "[smp_table_of_contents]\n[smp_table_of_contents style=\"toc02\"]\n[smp_table_of_contents post_id=\"123\" title=\"In this article\"]", $this->table_of_contents_report_html(), $this->activity_log_html(), $toc_controls );
         $article_heading_controls = $this->select_setting_html( "article_heading_style", $this->article_heading_style_options(), $settings, "Article H2/H3 template" ) . $this->color_setting_html( "article_heading_accent_color", "Heading accent color", $settings ) . $this->number_setting_html( "article_heading_h2_font_size", "H2 font size", $settings, 8, 64, "px" ) . $this->number_setting_html( "article_heading_h3_font_size", "H3 font size", $settings, 8, 64, "px" );
@@ -1490,7 +1502,7 @@ class DashboardController {
     }
 
 
-    private function feature_card( string $title, string $toggle_key, string $acf, string $description, string $code, string $test_report, string $activity_log, string $extra_controls = "", bool $collapsible = true ): void {
+    private function feature_card( string $title, string $toggle_key, string $acf, string $description, string $code, string $test_report, string $activity_log, string $extra_controls = "", bool $collapsible = true, string $before_activity_html = "" ): void {
         $log_key = $toggle_key ?: sanitize_key( $title );
         $toggle_html = $toggle_key ? $this->inline_toggle_html( $toggle_key ) : "<span class=smpi-warn>Report only</span>";
         $head_html = $collapsible
@@ -1500,7 +1512,11 @@ class DashboardController {
         if ( "" !== $extra_controls ) {
             $html .= "<div class=smpi-feature-controls>" . $extra_controls . "</div>";
         }
-        $html .= "<div class=smpi-feature-grid><section><h3>Custom ACF adjustments</h3><p>" . wp_kses_post( $acf ) . "</p></section><section><h3>Description / use instructions</h3><p>" . esc_html( $description ) . "</p></section><section><h3>Code example</h3><pre class=smpi-code>" . esc_html( $code ) . "</pre></section><section class=smpi-feature-report><h3>Test report, active and proof working</h3>" . wp_kses_post( $test_report ) . "</section><section class=smpi-feature-activity>" . $this->activity_log_html( $log_key ) . "</section></div></article>";
+        $html .= "<div class=smpi-feature-grid><section><h3>Custom ACF adjustments</h3><p>" . wp_kses_post( $acf ) . "</p></section><section><h3>Description / use instructions</h3><p>" . esc_html( $description ) . "</p></section><section><h3>Code example</h3><pre class=smpi-code>" . esc_html( $code ) . "</pre></section><section class=smpi-feature-report><h3>Test report, active and proof working</h3>" . wp_kses_post( $test_report ) . "</section>";
+        if ( "" !== $before_activity_html ) {
+            $html .= "<div class=smpi-feature-before-activity>" . $before_activity_html . "</div>";
+        }
+        $html .= "<section class=smpi-feature-activity>" . $this->activity_log_html( $log_key ) . "</section></div></article>";
 
         if ( $collapsible ) {
             echo CoreUi::collapsible(
@@ -1608,6 +1624,53 @@ class DashboardController {
             . $this->breadcrumb_section_html( "appearance", "02", "Appearance", $appearance )
             . $this->breadcrumb_section_html( "visibility", "03", "Visibility", $visibility )
             . "</div>";
+    }
+
+    private function breadcrumb_css_override_html(): string {
+        $selector = 'body .smpi-breadcrumbs[class*="smpi-bc-"]';
+        $html_example = <<<'HTML'
+<div class="smpi-breadcrumbs smpi-bc-b6">
+  <nav class="rank-math-breadcrumb" aria-label="Breadcrumbs">
+    <p>
+      <a href="/">Home</a>
+      <span class="separator"> / </span>
+      <span class="last">Current page</span>
+    </p>
+  </nav>
+</div>
+HTML;
+        $css_example = <<<'CSS'
+body .smpi-breadcrumbs[class*="smpi-bc-"] {
+  --smpi-bc-background: #111827;
+  --smpi-bc-accent: #60a5fa;
+  background: var(--smpi-bc-background);
+  color: #f8fafc;
+}
+
+body .smpi-breadcrumbs[class*="smpi-bc-"] .rank-math-breadcrumb a,
+body .smpi-breadcrumbs[class*="smpi-bc-"] .rank-math-breadcrumb .last {
+  color: inherit;
+}
+
+body.page-id-123 .smpi-breadcrumbs[class*="smpi-bc-"] {
+  --smpi-bc-background: #ffffff;
+}
+CSS;
+
+        return ScopedCssOverride::render(
+            [
+                "title"        => "Breadcrumb CSS override",
+                "selector"     => $selector,
+                "instructions" => [
+                    "Copy the selector and keep it at the start of every rule.",
+                    "For one page only, replace body with body.page-id-123.",
+                    "Paste the CSS into your theme or page builder custom CSS.",
+                ],
+                "html_example" => $html_example,
+                "css_example"  => $css_example,
+                "open"         => false,
+            ]
+        );
     }
 
     private function breadcrumb_section_html( string $slug, string $step, string $title, string $body_html ): string {

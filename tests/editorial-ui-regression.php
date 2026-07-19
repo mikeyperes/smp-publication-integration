@@ -6,9 +6,14 @@ $root       = dirname( __DIR__ );
 $dashboard  = (string) file_get_contents( $root . '/src/Admin/Dashboard/DashboardController.php' );
 $muckrack   = (string) file_get_contents( $root . '/src/Content/MuckRackVerification.php' );
 $dashboard_css = (string) file_get_contents( $root . '/assets/admin/dashboard.css' );
+$core_scoped_css = (string) file_get_contents( $root . '/lib/hexa-wordpress-plugin-core/src/WpAdminComponents/ScopedCssOverride.php' );
+$core_version = trim( (string) file_get_contents( $root . '/lib/hexa-wordpress-plugin-core/VERSION' ) );
 $breadcrumb_start = strpos( $dashboard, 'private function breadcrumb_controls_html' );
 $breadcrumb_end = false !== $breadcrumb_start ? strpos( $dashboard, 'private function context_select_html', $breadcrumb_start ) : false;
 $breadcrumb_flow = false !== $breadcrumb_start && false !== $breadcrumb_end ? substr( $dashboard, $breadcrumb_start, $breadcrumb_end - $breadcrumb_start ) : '';
+$feature_card_start = strpos( $dashboard, 'private function feature_card(' );
+$feature_card_end = false !== $feature_card_start ? strpos( $dashboard, 'private function feature_card_from_snippet', $feature_card_start ) : false;
+$feature_card_source = false !== $feature_card_start && false !== $feature_card_end ? substr( $dashboard, $feature_card_start, $feature_card_end - $feature_card_start ) : '';
 $elementor  = (string) file_get_contents( $root . '/src/Authorship/ElementorAuthorRenderer.php' );
 $loop       = (string) file_get_contents( $root . '/src/Authorship/LoopBylineRenderer.php' );
 $article_styles = (string) file_get_contents( $root . '/src/Content/ArticleStyles.php' );
@@ -34,6 +39,19 @@ $checks = [
         && str_contains( $dashboard_css, '.smpi-breadcrumb-section--template .smpi-control-group:has(input[data-key="breadcrumbs_style"]) .smpi-choice-grid{grid-template-columns:minmax(0,1fr)}' )
         && str_contains( $dashboard_css, '.smpi-breadcrumb-section--visibility .smpi-choice-list' )
         && str_contains( $dashboard_css, '@media(max-width:782px)' ),
+    'Breadcrumb CSS override imports the generic Hexa Core component.' => '0.19.47' === $core_version
+        && str_contains( $dashboard, 'use Hexa\PluginCore\WpAdminComponents\ScopedCssOverride;' )
+        && str_contains( $dashboard, 'return ScopedCssOverride::render(' )
+        && str_contains( $core_scoped_css, 'final class ScopedCssOverride' )
+        && str_contains( $core_scoped_css, "CoreUi::detail_card(" ),
+    'Breadcrumb CSS override is scoped, formatted, and closed by default.' => str_contains( $dashboard, 'body .smpi-breadcrumbs[class*="smpi-bc-"]' )
+        && str_contains( $dashboard, '"html_example" => $html_example' )
+        && str_contains( $dashboard, '"css_example"  => $css_example' )
+        && str_contains( $dashboard, '"open"         => false' ),
+    'Breadcrumb CSS override renders immediately before Activity Log.' => str_contains( $feature_card_source, '$before_activity_html' )
+        && str_contains( $feature_card_source, 'smpi-feature-before-activity' )
+        && strpos( $feature_card_source, 'smpi-feature-before-activity' ) < strpos( $feature_card_source, 'smpi-feature-activity' )
+        && str_contains( $dashboard_css, '.smpi-feature-before-activity{grid-column:1/-1;min-width:0}' ),
     'Frontend injection creates an exact author and badge pair.' => str_contains( $muckrack, 'function pairBadge(el,node)' )
         && str_contains( $muckrack, '.smpi-muckrack-inline-pair{display:inline-flex;align-items:center' ),
     'Frontend injection does not promote author text to a card-wide link.' => str_contains( $muckrack, 'norm(link.textContent)===norm(el.textContent)' )

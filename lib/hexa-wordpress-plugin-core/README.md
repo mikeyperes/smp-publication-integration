@@ -93,7 +93,7 @@ Do not create `HWS\BaseTools\PluginCore`, `HexaWordPressPluginCore`, `Hexa\Core`
 - `SmartSearch`: smart search/X-Search AJAX endpoint and reusable typeahead renderer.
 - `SystemEnvironment`: safe constants, INI, shell wrappers, size parsing, CPU/memory detection, and byte formatting.
 - `WpAdminUiCleanup`: shared admin UI cleanup definitions, AJAX toggles, target-screen CSS/JS, postbox hide/collapse behavior, and footer filters.
-- `WpAdminComponents`: shared visual primitives such as cards, subcards, buttons, pills, tooltips, and collapsible sections with visible chevron indicators.
+- `WpAdminComponents`: shared visual primitives such as cards, subcards, buttons, pills, tooltips, collapsible sections, and scoped CSS override references.
 - `WpAdminAjax`: WordPress admin-AJAX nonce, capability, request parsing, action registration, and handler guards.
 - `WpAdminTabs`: admin tab definitions, registry, host hook integration, and the automatic Hexa core documentation tab.
 - `WpConfigFile`: safe `wp-config.php` constant and `ini_set()` reads/writes with validation and rollback backup handling.
@@ -205,6 +205,12 @@ $core_config = CorePackageConfig::from_core_root(
 ```
 
 This panel compares the vendored `VERSION` in the host plugin with the public GitHub repository `VERSION`. The host plugin updater and the vendored core updater both render as default-open persistent collapse cards. Each card reports the Git repo, Git URL, Git branch, Git version, current version, current-vs-Git comparison, green/red status flag, check-for-updates action, normalized ZIP download, and live update activity log.
+
+## Scoped CSS Override References
+
+Version 0.19.47 adds `Hexa\PluginCore\WpAdminComponents\ScopedCssOverride`. Host plugins provide a scope selector, short instructions, a formatted HTML structure example, and a formatted CSS example. Core renders a copyable `CoreUi::detail_card()` that is closed by default and prevents each host plugin from rebuilding this reference UI.
+
+The component is display-only. Host plugins remain responsible for choosing selectors that isolate their own frontend markup.
 
 ## Plugin Inventory Policy
 
@@ -486,6 +492,23 @@ echo CoreUi::collapsible(
     [
         'title'     => 'Advanced details',
         'body_html' => '<p>Hidden until expanded.</p>',
+    ]
+);
+```
+
+For a formatted, closed-by-default scoped CSS reference:
+
+```php
+use Hexa\PluginCore\WpAdminComponents\ScopedCssOverride;
+
+echo ScopedCssOverride::render(
+    [
+        'title'        => 'Component CSS override',
+        'selector'     => 'body .example-component',
+        'instructions' => [ 'Keep every rule inside this selector.' ],
+        'html_example' => '<div class="example-component">...</div>',
+        'css_example'  => "body .example-component {\n  color: #111827;\n}",
+        'open'         => false,
     ]
 );
 ```

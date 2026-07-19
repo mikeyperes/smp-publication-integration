@@ -65,6 +65,24 @@ Use `CoreUi::toggle()` for checkbox-style toggles. Core clips the hidden checkbo
 
 Use `CoreUi::detail_card()` for nested expandable/collapsible subcards inside a parent tool section. It is meant for descriptions, rule explanations, scan-location lists, and other supporting details that should not dominate the page on load.
 
+Use `ScopedCssOverride::render()` for a closed-by-default CSS reference panel. The host supplies its scope selector, concise instructions, formatted HTML structure, and formatted CSS example. Core owns the details card, code blocks, and copy actions.
+
+```php
+use Hexa\PluginCore\WpAdminComponents\ScopedCssOverride;
+
+echo ScopedCssOverride::render(
+    [
+        'title'        => 'Component CSS override',
+        'selector'     => 'body .example-component',
+        'instructions' => [
+            'Keep every rule inside this selector.',
+            'Add a WordPress body class before it to target one page.',
+        ],
+        'html_example' => '<div class="example-component">...</div>',
+        'css_example'  => "body .example-component {\n  color: #111827;\n}",
+    ]
+);
+```
 
 ## WP Admin UI Cleanup
 
