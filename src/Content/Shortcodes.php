@@ -141,9 +141,10 @@ final class Shortcodes {
     }
 
     private function render_post_faq_items( array $items ): string {
-        $html = "<ul class=\"smpi-post-faq-list\">";
+        $html = "<ul class=\"smpi-template-list smpi-post-faq-list\">";
         foreach ( $items as $item ) {
-            $html .= "<li class=\"smpi-post-faq-item\"><h3 class=\"smpi-post-faq-question\">" . esc_html( (string) $item["question"] ) . "</h3><div class=\"smpi-post-faq-answer\">" . $item["answer"] . "</div></li>";
+            $answer = TemplateMarkup::decorate_rich_text( (string) $item["answer"], "post-faq" );
+            $html .= "<li class=\"smpi-template-item smpi-post-faq-item\"><h3 class=\"smpi-template-title smpi-post-faq-question\">" . esc_html( (string) $item["question"] ) . "</h3><div class=\"smpi-template-content smpi-post-faq-answer\">" . $answer . "</div></li>";
         }
         return $html . "</ul>";
     }

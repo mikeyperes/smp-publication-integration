@@ -61,7 +61,7 @@ $checks = [
         && str_contains( $dashboard_css, '.smpi-breadcrumb-section--template .smpi-control-group:has(input[data-key="breadcrumbs_style"]) .smpi-choice-grid{grid-template-columns:minmax(0,1fr)}' )
         && str_contains( $dashboard_css, '.smpi-breadcrumb-section--visibility .smpi-choice-list' )
         && str_contains( $dashboard_css, '@media(max-width:782px)' ),
-    'Breadcrumb CSS override imports the generic Hexa Core component.' => '0.19.48' === $core_version
+    'Breadcrumb CSS override imports the generic Hexa Core component.' => version_compare( $core_version, '0.19.48', '>=' )
         && str_contains( $dashboard, 'use Hexa\PluginCore\WpAdminComponents\ScopedCssOverride;' )
         && str_contains( $dashboard, 'return ScopedCssOverride::render(' )
         && str_contains( $core_scoped_css, 'final class ScopedCssOverride' )

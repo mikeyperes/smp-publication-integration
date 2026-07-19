@@ -88,11 +88,12 @@ final class Breadcrumbs {
             return "";
         }
 
+        $crumbs = TemplateMarkup::decorate_breadcrumbs( $crumbs );
         $vars = ArticleStyles::breadcrumb_var_values();
-        $classes = "smpi-breadcrumbs smpi-" . $style;
+        $classes = TemplateMarkup::root_classes( "breadcrumbs", [ "smpi-breadcrumbs", "smpi-" . $style ] );
         $style_attr = "--smpi-bc-accent:" . $vars["accent"] . ";--smpi-bc-tint:" . $vars["tint"] . ";--smpi-bc-background:" . $vars["background"] . ";--smpi-bc-font-size:" . $vars["size"];
         $title = self::current_title();
-        $title_html = in_array( $style, [ "bc-b1", "bc-b5" ], true ) && "" !== $title ? "<div class=\"pt\">" . esc_html( $title ) . "</div>" : "";
+        $title_html = in_array( $style, [ "bc-b1", "bc-b5" ], true ) && "" !== $title ? "<div class=\"smpi-template-title smpi-breadcrumb-title\">" . esc_html( $title ) . "</div>" : "";
         $content = "bc-b5" === $style ? $crumbs . $title_html : $title_html . $crumbs;
 
         return "<div class=\"" . esc_attr( $classes ) . "\" style=\"" . esc_attr( $style_attr ) . "\" data-smpi-breadcrumbs data-smpi-breadcrumbs-style=\"" . esc_attr( $style ) . "\">" . self::safe_markup( $content ) . "</div>";
@@ -215,15 +216,15 @@ final class Breadcrumbs {
         if ( count( $items ) < 2 ) {
             return "";
         }
-        $html = "<nav aria-label=\"breadcrumbs\" class=\"rank-math-breadcrumb\"><p>";
+        $html = "<nav aria-label=\"breadcrumbs\" class=\"rank-math-breadcrumb smpi-template-content smpi-breadcrumb-nav\"><p class=\"smpi-template-list smpi-breadcrumb-list\">";
         foreach ( $items as $index => $item ) {
             if ( $index > 0 ) {
-                $html .= "<span class=\"separator\"> - </span>";
+                $html .= "<span class=\"separator smpi-breadcrumb-separator\"> - </span>";
             }
             if ( $index === count( $items ) - 1 || "" === $item["url"] ) {
-                $html .= "<span class=\"last\">" . esc_html( $item["label"] ) . "</span>";
+                $html .= "<span class=\"last smpi-template-item smpi-breadcrumb-item smpi-breadcrumb-current\">" . esc_html( $item["label"] ) . "</span>";
             } else {
-                $html .= "<a href=\"" . esc_url( $item["url"] ) . "\">" . esc_html( $item["label"] ) . "</a>";
+                $html .= "<a class=\"smpi-template-item smpi-template-link smpi-breadcrumb-item smpi-breadcrumb-link\" href=\"" . esc_url( $item["url"] ) . "\">" . esc_html( $item["label"] ) . "</a>";
             }
         }
         return $html . "</p></nav>";

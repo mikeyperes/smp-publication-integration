@@ -31,7 +31,10 @@ final class FeaturedImageCaptions {
         if ( "none" === $style ) {
             return $html;
         }
-        return "<figure class=\"smpi-featured-image-caption smpi-featured-image-caption--" . esc_attr( $style ) . "\" data-smpi-featured-image-caption=\"server\">" . $html . "<figcaption class=\"smpi-featured-image-caption-text\">" . wp_kses_post( $caption ) . "</figcaption></figure>";
+        $classes = TemplateMarkup::root_classes( "featured-image-caption", [ "smpi-featured-image-caption", "smpi-featured-image-caption--" . $style ] );
+        $media = TemplateMarkup::decorate_featured_media( $html );
+        $caption = TemplateMarkup::decorate_rich_text( wp_kses_post( $caption ), "featured-image-caption" );
+        return "<figure class=\"" . esc_attr( $classes ) . "\" data-smpi-featured-image-caption=\"server\">" . $media . "<figcaption class=\"smpi-template-caption smpi-featured-image-caption-text\">" . $caption . "</figcaption></figure>";
     }
 
     public function print_fallback_script(): void {
@@ -54,7 +57,7 @@ final class FeaturedImageCaptions {
         $payload = [ "caption" => wp_strip_all_tags( $caption ), "style" => $style ];
         ?>
         <script id="smpi-featured-image-caption-fallback">
-        (function(){var cfg=<?php echo wp_json_encode( $payload ); ?>;if(!cfg||!cfg.caption){return;}function ready(fn){if(document.readyState!=="loading"){fn();return;}document.addEventListener("DOMContentLoaded",fn,{once:true});}ready(function(){if(document.querySelector(".smpi-featured-image-caption")){return;}var roots=[].slice.call(document.querySelectorAll(".elementor-widget-theme-post-featured-image,.post-thumbnail,.wp-post-image"));for(var i=0;i<roots.length;i++){var img=roots[i].matches&&roots[i].matches("img")?roots[i]:roots[i].querySelector("img");if(!img||img.closest(".elementor-widget-theme-post-content,.entry-content,.smpi-featured-image-caption")){continue;}var host=img.closest(".elementor-widget-theme-post-featured-image")||img.closest("figure")||img.parentElement;if(!host||host.querySelector("figcaption,.smpi-featured-image-caption-text")){continue;}host.classList.add("smpi-featured-image-caption","smpi-featured-image-caption--"+cfg.style);host.setAttribute("data-smpi-featured-image-caption","fallback");var cap=document.createElement(host.tagName&&host.tagName.toLowerCase()==="figure"?"figcaption":"div");cap.className="smpi-featured-image-caption-text";cap.textContent=cfg.caption;host.appendChild(cap);break;}});})();
+        (function(){var cfg=<?php echo wp_json_encode( $payload ); ?>;if(!cfg||!cfg.caption){return;}function ready(fn){if(document.readyState!=="loading"){fn();return;}document.addEventListener("DOMContentLoaded",fn,{once:true});}ready(function(){if(document.querySelector(".smpi-featured-image-caption")){return;}var roots=[].slice.call(document.querySelectorAll(".elementor-widget-theme-post-featured-image,.post-thumbnail,.wp-post-image"));for(var i=0;i<roots.length;i++){var img=roots[i].matches&&roots[i].matches("img")?roots[i]:roots[i].querySelector("img");if(!img||img.closest(".elementor-widget-theme-post-content,.entry-content,.smpi-featured-image-caption")){continue;}var host=img.closest(".elementor-widget-theme-post-featured-image")||img.closest("figure")||img.parentElement;if(!host||host.querySelector("figcaption,.smpi-featured-image-caption-text")){continue;}host.classList.add("smpi-template","smpi-template--featured-image-caption","smpi-featured-image-caption","smpi-featured-image-caption--"+cfg.style);host.setAttribute("data-smpi-featured-image-caption","fallback");img.classList.add("smpi-template-image","smpi-featured-image-caption-image");var link=img.closest("a");if(link){link.classList.add("smpi-template-link","smpi-featured-image-caption-link");}var cap=document.createElement(host.tagName&&host.tagName.toLowerCase()==="figure"?"figcaption":"div");cap.className="smpi-template-caption smpi-featured-image-caption-text";cap.textContent=cfg.caption;host.appendChild(cap);break;}});})();
         </script>
         <?php
     }

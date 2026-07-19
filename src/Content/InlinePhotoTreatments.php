@@ -23,7 +23,8 @@ final class InlinePhotoTreatments {
         if ( "none" === $style ) {
             return $html;
         }
-        return self::normalize_legacy_caption_markup( $html, $style );
+        $html = self::normalize_legacy_caption_markup( $html, $style );
+        return TemplateMarkup::decorate_inline_photos( $html, $style );
     }
 
     public static function normalize_legacy_caption_markup( string $html, string $style ): string {
@@ -51,7 +52,9 @@ final class InlinePhotoTreatments {
                     if ( "" === $image || "" === $caption ) {
                         return $matches[0];
                     }
-                    return "<figure class=\"smpi-inline-photo smpi-inline-photo--" . esc_attr( $style ) . "\" data-smpi-inline-photo=\"legacy-caption\">" . $image . "<figcaption>" . esc_html( $caption ) . "</figcaption></figure>";
+                    $classes = TemplateMarkup::root_classes( "inline-photo", [ "smpi-inline-photo", "smpi-inline-photo--" . $style ] );
+                    $figure = "<figure class=\"" . esc_attr( $classes ) . "\" data-smpi-inline-photo=\"legacy-caption\">" . $image . "<figcaption class=\"smpi-template-caption smpi-inline-photo-caption\">" . esc_html( $caption ) . "</figcaption></figure>";
+                    return TemplateMarkup::decorate_inline_photos( $figure, $style );
                 },
                 $html
             );
