@@ -1395,54 +1395,27 @@ class DashboardController {
 
     private function features(): void {
         $settings = Settings::all();
-        echo "<div class=\"smpi-section-intro\"><h2>Features</h2><p>Enable publication capabilities and configure their display settings.</p></div>";
+        echo "<div class=\"smpi-section-intro\"><h2>Features</h2><p>Enable publication features and configure their output.</p></div>";
         echo "<style id=smpi-design-preview-css>" . \smp_publication_integration\Content\ArticleStyles::preview_bundle_css() . "</style>";
+        echo $this->feature_layout_styles_html();
         echo CoreUi::collapsible( [ "title" => "HWS Base Tools primary color", "body_html" => $this->feature_brand_color_tools_html( $settings ), "open" => false, "meta_html" => CoreUi::pill( "Color source", "dark" ) ] );
-        echo "<div class=\"smpi-design-host\">";
-        $this->feature_card_from_snippet( "elementor_css_cache_busting", $this->elementor_css_report_html() );
-        $elementor_category_controls = $this->inline_toggle_setting_html( "elementor_primary_category_exclude_default", "Exclude the configured WordPress default category" );
-        $this->feature_card(
-            "Elementor primary category",
-            "elementor_primary_category_enabled",
-            "No ACF changes. Registers one SMP-owned Elementor text dynamic tag.",
-            "Outputs at most one post category, honors Rank Math or Yoast primary-category metadata when available, and suppresses the configured WordPress default category.",
-            "Elementor dynamic tag: SMP Publication > Primary Category",
-            $this->simple_status_html( Settings::bool( "elementor_primary_category_enabled" ), "Primary Category dynamic tag is registered for Elementor text fields." ),
-            $this->activity_log_html(),
-            $elementor_category_controls
-        );
-        $author_muckrack_controls = $this->author_muckrack_mode_help_html( $settings ) . $this->author_muckrack_shortcodes_html() . $this->context_select_html( "muckrack_verified_contexts", [ "single_author" => "single.php header author mention", "single_footer" => "single.php footer/about-author mention", "loop_cards" => "Loop card authors: show checkmark", "home" => "Home page author mention", "author" => "author.php author mention" ], $settings, "Placement contexts" ) . $this->select_setting_html( "muckrack_verified_style", [ "tooltip" => [ "label" => "Tooltip icon", "description" => "Small badge beside the author name. Hover or focus explains the verification without adding sentence-length text.", "preview" => $this->author_tooltip_preview_html( $settings ) ], "text" => [ "label" => "Inline text", "description" => "Writes the full verification sentence directly into the author area.", "preview" => $this->author_inline_preview_html( $settings ) ], "compact_block" => [ "label" => "Small editorial block", "description" => "Smaller author version of the editorial verification block with left accent and compact text.", "preview" => $this->author_compact_block_preview_html( $settings ) ] ], $settings, "Display style" ) . $this->icon_style_setting_html( $settings ) . $this->color_setting_html( "muckrack_icon_color", "Default icon color", $settings ) . $this->number_setting_html( "muckrack_icon_size", "Default checkmark size", $settings, 8, 64, "px" ) . $this->number_setting_html( "muckrack_icon_margin_left", "Default checkmark margin-left", $settings, -32, 64, "px" ) . $this->number_setting_html( "muckrack_icon_margin_top", "Default checkmark margin-top", $settings, -32, 64, "px" ) . $this->author_context_overrides_html( $settings ) . $this->inline_toggle_setting_html( "muckrack_author_always_show", "Always show for every author" );
-        $this->feature_card( "MuckRack verified authors", "muckrack_verified_enabled", "Uses the author user fields owned by hws-base-tools: muckrack_verified and muckrack_url.", "Supports both automatic Elementor-aware author placement and manual shortcode placement. Auto placement detects supported byline and about-author structures; shortcodes are for exact Elementor shortcode widgets or templates. The override can force the effective author badge for every author even when the individual ACF checkbox is empty.", "[author_muckrack_verified]
-[author_muckrack_verified type=\"text\"]
-[author_muckrack_verified style=\"compact_block\"]
-[author_muckrack]
-[muckrack_verified type=\"icon\" user_id=\"54\"]", $this->muckrack_report_html(), $this->activity_log_html(), $author_muckrack_controls );
-        $multi_author_controls = $this->multi_author_controls_html( $settings );
-        $this->feature_card( "Multiple post authors", "multi_authors_enabled", "Registers one ACF multi-user field on supported article editors: <code>" . esc_html( MultiAuthors::FIELD_NAME ) . "</code>. It is not a repeater.", "Lets posts and press releases store more than one WordPress author. Existing author shortcodes keep using the primary author by default and can target additional authors with author_index.", "[author_name]
-[author_name author_index=\"1\"]
-[acf_author_field field=\"job_title\"]
-[acf_author_field field=\"job_title\" author_index=\"1\"]
-[author_bio author_index=\"1\"]
-[author_image author_index=\"1\" output=\"url\"]
-[author_muckrack_verified author_index=\"1\"]
-[smp_post_author_ids]
-[smp_post_authors]
-[smp_post_authors format=\"lines\"]
-[smp_post_authors format=\"list\"]
-[smp_post_authors format=\"links\"]
-[smp_post_authors context=\"card\"]
-[smp_post_authors context=\"card\" format=\"plain\"]
-[smp_post_authors context=\"card\" format=\"lines\"]", $this->multi_authors_report_html(), $this->activity_log_html(), $multi_author_controls );
-        $publication_muckrack_controls = $this->select_setting_html( "publication_muckrack_text_mode", [ "news_outlet" => [ "label" => "News outlet verified by MuckRack editorial team", "description" => "Generic wording when you do not want the site name in the sentence." ], "publication_name" => [ "label" => get_bloginfo( "name" ) . " verified by MuckRack editorial team", "description" => "Uses the current publication name in the verification sentence." ] ], $settings, "Text option" ) . $this->select_setting_html( "publication_muckrack_style", [ "block" => [ "label" => "Editorial block", "description" => "Small article footer block with a left accent bar.", "preview" => $this->publication_preview_sample_html( "block", $settings ) ], "mini_block" => [ "label" => "Mini editorial block", "description" => "Same left-accent editorial concept with smaller text and a quieter footprint.", "preview" => $this->publication_preview_sample_html( "mini_block", $settings ) ], "compact" => [ "label" => "Compact pill", "description" => "Small inline badge for tight author or header layouts.", "preview" => $this->publication_preview_sample_html( "compact", $settings ) ], "minimalist" => [ "label" => "Minimalist text", "description" => "Plain text treatment that blends into existing article copy.", "preview" => $this->publication_preview_sample_html( "minimalist", $settings ) ] ], $settings, "Display style" ) . $this->color_setting_html( "publication_muckrack_color", "Accent color", $settings ) . $this->number_setting_html( "publication_muckrack_font_size", "Verification text size", $settings, 8, 64, "px" ) . $this->context_select_html( "publication_muckrack_placements", [ "below_author" => "Below author", "bottom_article" => "Bottom of article" ], $settings );
-        $this->feature_card( "MuckRack verified publication", "publication_muckrack_verified_enabled", "Registers site option ACF fields on Publication Theme Options: smpi_publication_muckrack_verified and smpi_publication_muckrack_url.", "Displays publication-level MuckRack verification text separately from journalist verification. Use this for the site/news-outlet claim, not the author badge.", "[smp_publication_muckrack_verified]", $this->publication_muckrack_report_html(), $this->activity_log_html(), $publication_muckrack_controls );
-        $this->feature_card( "Press-release inclusion controls", "press_release_include_enabled", "Uses existing press-release CPT and _smpi_pr_shadow_override meta. ACF/local fields are registered for force include or force exclude.", "Includes Hexa PR Wire press-release posts in selected blog-like loops: home, category/tag, author.php, and single.php recent article secondary queries. Force exclude is honored through the press-release visibility meta box.", "add_action(\"pre_get_posts\", function (WP_Query \$q) { /* SMP uses the same main-query guard pattern and selected contexts. */ });", $this->press_release_report_html(), $this->activity_log_html(), $this->context_select_html( "press_release_include_contexts", [ "home" => "Home page", "category_tag" => "Category and tag pages", "author" => "author.php", "single_recent" => "single.php recent article queries" ], $settings ) );
-        $this->feature_card( "Article type schema selector", "", "Moved to the Custom Fields tab. Registers the <code>smpi_article_type</code> taxonomy only when enabled there.", "Adds one radio-only Article Type box to supported article editors. The field is hidden when disabled and only allows predefined schema-backed values.", "editorial-news => NewsArticle\nanalysis => AnalysisNewsArticle\nopinion => OpinionNewsArticle\nreportage => ReportageNewsArticle\npress-release => Article\nsponsored => AdvertiserContentArticle", $this->article_type_selector_report_html(), $this->activity_log_html(), "<p class=\"smpi-muted\">Registration toggle lives in Custom Fields.</p>" . $this->article_type_selector_options_html() );
+        echo "<div class=\"smpi-design-host smpi-feature-groups\">";
+        $this->render_article_design_feature_group( $settings );
+        $this->render_author_feature_group( $settings );
+        $this->render_content_feature_group( $settings );
+        $this->render_system_feature_group( $settings );
+        echo "</div>";
+    }
+
+    private function render_article_design_feature_group( array $settings ): void {
+        $this->feature_group_open( "article-design", "Article design", "Article navigation, headings, images, and structured content blocks." );
+
         $breadcrumb_controls = $this->breadcrumb_controls_html( $settings );
         $this->feature_card(
             "Breadcrumbs",
             "breadcrumbs_enabled",
             "Registers a Hexa core-generated ACF multi post selector on Publication Theme Options: <code>smpi_breadcrumb_disabled_objects</code>. No repeater.",
-            "Injects a selected Rank Math-compatible breadcrumb design directly below the site header on singular post/page/CPT templates and category/tag archives. Uses Rank Math breadcrumb markup when Rank Math is available and falls back to SMP-generated breadcrumbs when it is not. It is hidden on the front page/home page by default. Category and tag archives show by default unless disabled here.",
+            "Adds breadcrumbs below the site header on posts, pages, custom post types, and category or tag archives. Rank Math markup is used when available; SMP provides the fallback.",
             "[smp_breadcrumbs]\n[smp_breadcrumbs style=\"bc-b2\"]\nACF option: smpi_breadcrumb_disabled_objects\nRank Math source: rank-math-options-general",
             $this->breadcrumbs_report_html(),
             $this->activity_log_html(),
@@ -1450,23 +1423,294 @@ class DashboardController {
             true,
             $this->breadcrumb_css_override_html()
         );
-        $toc_controls = $this->inline_toggle_setting_html( "table_of_contents_auto_single", "Automatically show above single.php content" ) . $this->inline_toggle_setting_html( "table_of_contents_include_summary", "Include What to Know summary at top" ) . $this->select_setting_html( "table_of_contents_style", $this->toc_style_options(), $settings, "Table of contents design" ) . $this->color_setting_html( "table_of_contents_accent_color", "Table of contents accent color", $settings ) . $this->font_style_setting_html( "table_of_contents_text_font_style", "Table of contents text font style", $settings ) . $this->number_setting_html( "table_of_contents_text_font_size", "Table of contents text font size", $settings, 8, 64, "px" ) . $this->color_setting_html( "table_of_contents_text_color", "Table of contents text color", $settings );
-        $this->feature_card( "Table of contents", "table_of_contents_enabled", "No ACF changes. Parses post headings from post_content.", "Adds [smp_table_of_contents] and optional automatic display above single.php content. Select the single.php display treatment here or use style= on the shortcode.", "[smp_table_of_contents]\n[smp_table_of_contents style=\"toc02\"]\n[smp_table_of_contents post_id=\"123\" title=\"In this article\"]", $this->table_of_contents_report_html(), $this->activity_log_html(), $toc_controls );
-        $article_heading_controls = $this->select_setting_html( "article_heading_style", $this->article_heading_style_options(), $settings, "Article H2/H3 template" ) . $this->color_setting_html( "article_heading_accent_color", "Heading accent color", $settings ) . $this->number_setting_html( "article_heading_h2_font_size", "H2 font size", $settings, 8, 64, "px" ) . $this->number_setting_html( "article_heading_h3_font_size", "H3 font size", $settings, 8, 64, "px" );
-        $this->feature_card( "Article H2/H3 styles", "article_heading_styles_enabled", "No ACF changes. Applies selected CSS to H2 and H3 tags inside single post content only.", "Injects the selected HerForward article-heading treatment into single post content. The admin previews and frontend CSS are generated from the same ArticleStyles template registry, with one accent color and separate H2/H3 font sizes.", "No shortcode needed. Enable the feature, choose a heading template, then tune accent color and H2/H3 sizes.", $this->article_heading_report_html(), $this->activity_log_html(), $article_heading_controls );
-        $drop_cap_controls = $this->article_drop_cap_preview_html() . $this->color_setting_html( "article_drop_cap_color", "Drop cap color", $settings ) . $this->number_setting_html( "article_drop_cap_font_size", "Drop cap size", $settings, 48, 180, "px" );
-        $this->feature_card( "Article first-letter drop cap", "article_drop_cap_enabled", "No ACF changes. Applies CSS to the first letter of the first paragraph inside single post content.", "Adds a large editorial first-letter treatment to article bodies, matching the supplied screenshot: bold black initial floated at the start of the first paragraph with surrounding copy wrapping to the right. The admin preview and frontend CSS are generated from the same ArticleStyles rules.", "No shortcode needed. Enable the feature, then tune color and size.", $this->article_drop_cap_report_html(), $this->activity_log_html(), $drop_cap_controls );
-        $inline_photo_controls = $this->select_setting_html( "inline_photo_treatment", $this->inline_photo_treatment_options(), $settings, "Inline photo treatment" ) . $this->color_setting_html( "inline_photo_accent_color", "Inline photo accent color", $settings ) . $this->font_style_setting_html( "inline_photo_caption_font_style", "Caption text font style", $settings ) . $this->number_setting_html( "inline_photo_caption_font_size", "Caption text font size", $settings, 8, 64, "px" ) . $this->color_setting_html( "inline_photo_caption_text_color", "Caption text color", $settings );
-        $this->feature_card( "Inline photo treatments", "inline_photo_treatments_enabled", "No ACF changes. Applies selected treatment to inline figures in posts and press-release articles.", "Prestyles inline photos and captions in single.php without editing each article. Treatments 1, 2, 4, and 5 are imported from the HerForward inline redesign page.", "No shortcode needed. Enable the feature and select a treatment.", $this->simple_status_html( Settings::bool( "inline_photo_treatments_enabled" ), "Current treatment: " . (string) Settings::get( "inline_photo_treatment", "none" ) . "." ), $this->activity_log_html(), $inline_photo_controls );
-        $featured_image_caption_controls = $this->select_setting_html( "featured_image_caption_template", $this->featured_image_caption_template_options(), $settings, "Featured image caption template" ) . $this->color_setting_html( "featured_image_caption_accent_color", "Featured caption accent color", $settings ) . $this->font_style_setting_html( "featured_image_caption_font_style", "Featured caption font style", $settings ) . $this->number_setting_html( "featured_image_caption_font_size", "Featured caption font size", $settings, 8, 64, "px" ) . $this->color_setting_html( "featured_image_caption_text_color", "Featured caption text color", $settings );
-        $this->feature_card( "Featured image caption templates", "featured_image_caption_templates_enabled", "No ACF changes. Reads the caption from the media attachment used as the post featured image.", "Auto-detects the single post or press-release featured image and applies a selected caption template. The designs intentionally duplicate the inline image treatments but use separate settings, selectors, and rendering code.", "No shortcode needed. Add a media caption to the featured image, enable this feature, and select a template.", $this->featured_image_caption_report_html(), $this->activity_log_html(), $featured_image_caption_controls );
-        $post_content_blocks_controls = $this->post_content_blocks_required_fields_html() . $this->select_setting_html( "post_summary_style", $this->post_summary_style_options(), $settings, "Summary output style" ) . $this->select_setting_html( "post_faqs_style", $this->post_faq_style_options(), $settings, "FAQ output style" ) . $this->color_setting_html( "post_faqs_accent_color", "FAQ accent color", $settings ) . $this->font_style_setting_html( "post_faqs_text_font_style", "FAQ text font style", $settings ) . $this->number_setting_html( "post_faqs_text_font_size", "FAQ text font size", $settings, 8, 64, "px" ) . $this->color_setting_html( "post_faqs_text_color", "FAQ text color", $settings ) . $this->post_content_blocks_shortcode_reference_html();
-        $this->feature_card( "Article Summary & FAQ Blocks", "", "Editor fields live in the Custom Fields tab. This card controls display styles and shortcode reference for article summary and structured FAQ output.", "Styles and documents the article summary and structured FAQ blocks rendered by SMP shortcodes. Turn on the corresponding editor fields from Custom Fields before using these outputs.", "[smp_post_summary style=\"sum00\"]\n[smp_post_faqs style=\"faq02\"]\n[smp_post_acf field=\"post_summary\"]", $this->post_acf_addons_report_html(), $this->activity_log_html(), $post_content_blocks_controls );
-        $this->feature_card_from_snippet( "publication_social_link_cleanup", $this->simple_status_html( Settings::bool( "publication_social_cleanup" ), "Publication social link cleanup script active on frontend pages." ) );
-        $this->feature_card( "HWS masked admin URL", "hws_masked_admin_report_enabled", "HWS Base Tools owns this feature. SMP only reports status and links to it.", "Confirms whether HWS Base Tools masked login is enabled and exposes the masked URL in the Overview and Features tabs.", "HWS option: hws_login_mask_options with slug hexa-admin.", $this->hws_masked_login_report_html(), $this->activity_log_html() );
-        echo "</div>";
+
+        $toc_controls = $this->inline_toggle_setting_html( "table_of_contents_auto_single", "Automatically show above single.php content" )
+            . $this->inline_toggle_setting_html( "table_of_contents_include_summary", "Include What to Know summary at top" )
+            . $this->select_setting_html( "table_of_contents_style", $this->toc_style_options(), $settings, "Table of contents design" )
+            . $this->color_setting_html( "table_of_contents_accent_color", "Table of contents accent color", $settings )
+            . $this->font_style_setting_html( "table_of_contents_text_font_style", "Table of contents text font style", $settings )
+            . $this->number_setting_html( "table_of_contents_text_font_size", "Table of contents text font size", $settings, 8, 64, "px" )
+            . $this->color_setting_html( "table_of_contents_text_color", "Table of contents text color", $settings );
+        $this->feature_card(
+            "Table of contents",
+            "table_of_contents_enabled",
+            "No ACF changes. Parses post headings from post_content.",
+            "Builds a table of contents from post headings. Place it by shortcode or automatically above single-post content.",
+            "[smp_table_of_contents]\n[smp_table_of_contents style=\"toc02\"]\n[smp_table_of_contents post_id=\"123\" title=\"In this article\"]",
+            $this->table_of_contents_report_html(),
+            $this->activity_log_html(),
+            $toc_controls
+        );
+
+        $article_heading_controls = $this->select_setting_html( "article_heading_style", $this->article_heading_style_options(), $settings, "Article H2/H3 template" )
+            . $this->color_setting_html( "article_heading_accent_color", "Heading accent color", $settings )
+            . $this->number_setting_html( "article_heading_h2_font_size", "H2 font size", $settings, 8, 64, "px" )
+            . $this->number_setting_html( "article_heading_h3_font_size", "H3 font size", $settings, 8, 64, "px" );
+        $this->feature_card(
+            "Article H2/H3 styles",
+            "article_heading_styles_enabled",
+            "No ACF changes. Applies selected CSS to H2 and H3 tags inside single post content only.",
+            "Styles H2 and H3 headings inside single-post content with one template, one accent color, and separate font sizes.",
+            "No shortcode needed. Enable the feature, choose a heading template, then tune accent color and H2/H3 sizes.",
+            $this->article_heading_report_html(),
+            $this->activity_log_html(),
+            $article_heading_controls
+        );
+
+        $drop_cap_controls = $this->article_drop_cap_preview_html()
+            . $this->color_setting_html( "article_drop_cap_color", "Drop cap color", $settings )
+            . $this->number_setting_html( "article_drop_cap_font_size", "Drop cap size", $settings, 48, 180, "px" );
+        $this->feature_card(
+            "Article first-letter drop cap",
+            "article_drop_cap_enabled",
+            "No ACF changes. Applies CSS to the first letter of the first paragraph inside single post content.",
+            "Styles the first letter of the first paragraph in single-post content.",
+            "No shortcode needed. Enable the feature, then tune color and size.",
+            $this->article_drop_cap_report_html(),
+            $this->activity_log_html(),
+            $drop_cap_controls
+        );
+
+        $inline_photo_controls = $this->select_setting_html( "inline_photo_treatment", $this->inline_photo_treatment_options(), $settings, "Inline photo treatment" )
+            . $this->color_setting_html( "inline_photo_accent_color", "Inline photo accent color", $settings )
+            . $this->font_style_setting_html( "inline_photo_caption_font_style", "Caption text font style", $settings )
+            . $this->number_setting_html( "inline_photo_caption_font_size", "Caption text font size", $settings, 8, 64, "px" )
+            . $this->color_setting_html( "inline_photo_caption_text_color", "Caption text color", $settings );
+        $this->feature_card(
+            "Inline photo treatments",
+            "inline_photo_treatments_enabled",
+            "No ACF changes. Applies selected treatment to inline figures in posts and press-release articles.",
+            "Styles inline figures and captions in posts and press releases.",
+            "No shortcode needed. Enable the feature and select a treatment.",
+            $this->simple_status_html( Settings::bool( "inline_photo_treatments_enabled" ), "Current treatment: " . (string) Settings::get( "inline_photo_treatment", "none" ) . "." ),
+            $this->activity_log_html(),
+            $inline_photo_controls
+        );
+
+        $featured_image_caption_controls = $this->select_setting_html( "featured_image_caption_template", $this->featured_image_caption_template_options(), $settings, "Featured image caption template" )
+            . $this->color_setting_html( "featured_image_caption_accent_color", "Featured caption accent color", $settings )
+            . $this->font_style_setting_html( "featured_image_caption_font_style", "Featured caption font style", $settings )
+            . $this->number_setting_html( "featured_image_caption_font_size", "Featured caption font size", $settings, 8, 64, "px" )
+            . $this->color_setting_html( "featured_image_caption_text_color", "Featured caption text color", $settings );
+        $this->feature_card(
+            "Featured image caption templates",
+            "featured_image_caption_templates_enabled",
+            "No ACF changes. Reads the caption from the media attachment used as the post featured image.",
+            "Styles captions attached to featured images on posts and press releases.",
+            "No shortcode needed. Add a media caption to the featured image, enable this feature, and select a template.",
+            $this->featured_image_caption_report_html(),
+            $this->activity_log_html(),
+            $featured_image_caption_controls
+        );
+
+        $post_content_blocks_controls = $this->post_content_blocks_required_fields_html()
+            . $this->select_setting_html( "post_summary_style", $this->post_summary_style_options(), $settings, "Summary output style" )
+            . $this->select_setting_html( "post_faqs_style", $this->post_faq_style_options(), $settings, "FAQ output style" )
+            . $this->color_setting_html( "post_faqs_accent_color", "FAQ accent color", $settings )
+            . $this->font_style_setting_html( "post_faqs_text_font_style", "FAQ text font style", $settings )
+            . $this->number_setting_html( "post_faqs_text_font_size", "FAQ text font size", $settings, 8, 64, "px" )
+            . $this->color_setting_html( "post_faqs_text_color", "FAQ text color", $settings );
+        $this->feature_card(
+            "Article Summary & FAQ Blocks",
+            "",
+            "Editor fields live in the Custom Fields tab. This card controls display styles and shortcode reference for article summary and structured FAQ output.",
+            "Styles summary and FAQ shortcode output. The matching editor fields are enabled in Custom Fields.",
+            "[smp_post_summary style=\"sum00\"]\n[smp_post_faqs style=\"faq02\"]\n[smp_post_acf field=\"post_summary\"]",
+            $this->post_acf_addons_report_html(),
+            $this->activity_log_html(),
+            $post_content_blocks_controls,
+            true,
+            "",
+            $this->post_content_blocks_shortcode_reference_html()
+        );
+
+        $this->feature_group_close();
     }
 
+    private function render_author_feature_group( array $settings ): void {
+        $this->feature_group_open( "authors-verification", "Authors and verification", "Author assignment and MuckRack verification output." );
+
+        $author_muckrack_controls = $this->inline_toggle_setting_html( "muckrack_author_always_show", "Always show for every author" )
+            . $this->context_select_html( "muckrack_verified_contexts", [ "single_author" => "single.php header author mention", "single_footer" => "single.php footer/about-author mention", "loop_cards" => "Loop card authors: show checkmark", "home" => "Home page author mention", "author" => "author.php author mention" ], $settings, "Placement contexts" )
+            . $this->select_setting_html( "muckrack_verified_style", [ "tooltip" => [ "label" => "Tooltip icon", "description" => "Small badge beside the author name. Hover or focus explains the verification without adding sentence-length text.", "preview" => $this->author_tooltip_preview_html( $settings ) ], "text" => [ "label" => "Inline text", "description" => "Writes the full verification sentence directly into the author area.", "preview" => $this->author_inline_preview_html( $settings ) ], "compact_block" => [ "label" => "Small editorial block", "description" => "Smaller author version of the editorial verification block with left accent and compact text.", "preview" => $this->author_compact_block_preview_html( $settings ) ] ], $settings, "Display style" )
+            . $this->icon_style_setting_html( $settings )
+            . $this->color_setting_html( "muckrack_icon_color", "Default icon color", $settings )
+            . $this->number_setting_html( "muckrack_icon_size", "Default checkmark size", $settings, 8, 64, "px" )
+            . $this->number_setting_html( "muckrack_icon_margin_left", "Default checkmark margin-left", $settings, -32, 64, "px" )
+            . $this->number_setting_html( "muckrack_icon_margin_top", "Default checkmark margin-top", $settings, -32, 64, "px" )
+            . $this->author_context_overrides_html( $settings );
+        $author_reference = $this->author_muckrack_mode_help_html( $settings ) . $this->author_muckrack_shortcodes_html();
+        $this->feature_card(
+            "MuckRack verified authors",
+            "muckrack_verified_enabled",
+            "Uses the author user fields owned by hws-base-tools: muckrack_verified and muckrack_url.",
+            "Shows author-level MuckRack verification automatically or by shortcode. Placement, style, color, and context overrides are configured here.",
+            "[author_muckrack_verified]\n[author_muckrack_verified type=\"text\"]\n[author_muckrack_verified style=\"compact_block\"]\n[author_muckrack]\n[muckrack_verified type=\"icon\" user_id=\"54\"]",
+            $this->muckrack_report_html(),
+            $this->activity_log_html(),
+            $author_muckrack_controls,
+            true,
+            "",
+            $author_reference
+        );
+
+        $this->feature_card(
+            "Multiple post authors",
+            "multi_authors_enabled",
+            "Registers one ACF multi-user field on supported article editors: <code>" . esc_html( MultiAuthors::FIELD_NAME ) . "</code>. It is not a repeater.",
+            "Stores multiple WordPress authors on supported posts and keeps Elementor, archive, schema, and shortcode output aligned.",
+            "[author_name]\n[author_name author_index=\"1\"]\n[acf_author_field field=\"job_title\"]\n[acf_author_field field=\"job_title\" author_index=\"1\"]\n[author_bio author_index=\"1\"]\n[author_image author_index=\"1\" output=\"url\"]\n[author_muckrack_verified author_index=\"1\"]\n[smp_post_author_ids]\n[smp_post_authors]\n[smp_post_authors format=\"lines\"]\n[smp_post_authors format=\"list\"]\n[smp_post_authors format=\"links\"]\n[smp_post_authors context=\"card\"]\n[smp_post_authors context=\"card\" format=\"plain\"]\n[smp_post_authors context=\"card\" format=\"lines\"]",
+            $this->multi_authors_report_html(),
+            $this->activity_log_html(),
+            $this->multi_author_settings_html( $settings ),
+            true,
+            "",
+            $this->multi_author_reference_html()
+        );
+
+        $publication_muckrack_controls = $this->select_setting_html( "publication_muckrack_text_mode", [ "news_outlet" => [ "label" => "News outlet verified by MuckRack editorial team", "description" => "Generic wording when you do not want the site name in the sentence." ], "publication_name" => [ "label" => get_bloginfo( "name" ) . " verified by MuckRack editorial team", "description" => "Uses the current publication name in the verification sentence." ] ], $settings, "Text option" )
+            . $this->context_select_html( "publication_muckrack_placements", [ "below_author" => "Below author", "bottom_article" => "Bottom of article" ], $settings )
+            . $this->select_setting_html( "publication_muckrack_style", [ "block" => [ "label" => "Editorial block", "description" => "Small article footer block with a left accent bar.", "preview" => $this->publication_preview_sample_html( "block", $settings ) ], "mini_block" => [ "label" => "Mini editorial block", "description" => "Same left-accent editorial concept with smaller text and a quieter footprint.", "preview" => $this->publication_preview_sample_html( "mini_block", $settings ) ], "compact" => [ "label" => "Compact pill", "description" => "Small inline badge for tight author or header layouts.", "preview" => $this->publication_preview_sample_html( "compact", $settings ) ], "minimalist" => [ "label" => "Minimalist text", "description" => "Plain text treatment that blends into existing article copy.", "preview" => $this->publication_preview_sample_html( "minimalist", $settings ) ] ], $settings, "Display style" )
+            . $this->color_setting_html( "publication_muckrack_color", "Accent color", $settings )
+            . $this->number_setting_html( "publication_muckrack_font_size", "Verification text size", $settings, 8, 64, "px" );
+        $this->feature_card(
+            "MuckRack verified publication",
+            "publication_muckrack_verified_enabled",
+            "Registers site option ACF fields on Publication Theme Options: smpi_publication_muckrack_verified and smpi_publication_muckrack_url.",
+            "Shows publication-level MuckRack verification separately from author verification.",
+            "[smp_publication_muckrack_verified]",
+            $this->publication_muckrack_report_html(),
+            $this->activity_log_html(),
+            $publication_muckrack_controls
+        );
+
+        $this->feature_group_close();
+    }
+
+    private function render_content_feature_group( array $settings ): void {
+        $this->feature_group_open( "content-distribution", "Content and distribution", "Category output, press releases, schema types, and social-link cleanup." );
+
+        $elementor_category_controls = $this->inline_toggle_setting_html( "elementor_primary_category_exclude_default", "Exclude the configured WordPress default category" );
+        $this->feature_card(
+            "Elementor primary category",
+            "elementor_primary_category_enabled",
+            "No ACF changes. Registers one SMP-owned Elementor text dynamic tag.",
+            "Outputs one category in Elementor, honors Rank Math or Yoast primary-category metadata, and can exclude the WordPress default category.",
+            "Elementor dynamic tag: SMP Publication > Primary Category",
+            $this->simple_status_html( Settings::bool( "elementor_primary_category_enabled" ), "Primary Category dynamic tag is registered for Elementor text fields." ),
+            $this->activity_log_html(),
+            $elementor_category_controls
+        );
+
+        $this->feature_card(
+            "Press-release inclusion controls",
+            "press_release_include_enabled",
+            "Uses the press-release CPT and <code>_smpi_pr_shadow_override</code> meta. The editor provides force-include and force-exclude choices.",
+            "Includes press releases in selected post loops. Per-item show or hide overrides remain available in the press release editor.",
+            "add_action(\"pre_get_posts\", function (WP_Query \$q) { /* SMP uses the same main-query guard pattern and selected contexts. */ });",
+            $this->press_release_report_html(),
+            $this->activity_log_html(),
+            $this->context_select_html( "press_release_include_contexts", [ "home" => "Home page", "category_tag" => "Category and tag pages", "author" => "author.php", "single_recent" => "single.php recent article queries" ], $settings )
+        );
+
+        $article_type_reference = "<p class=\"smpi-muted\">The registration toggle is in Custom Fields.</p>" . $this->article_type_selector_options_html();
+        $this->feature_card(
+            "Article type schema selector",
+            "",
+            "Registers the <code>smpi_article_type</code> taxonomy only when the Custom Fields setting is enabled.",
+            "The editor field and toggle live in Custom Fields. This reference shows the allowed values and schema mappings.",
+            "editorial-news => NewsArticle\nanalysis => AnalysisNewsArticle\nopinion => OpinionNewsArticle\nreportage => ReportageNewsArticle\npress-release => Article\nsponsored => AdvertiserContentArticle",
+            $this->article_type_selector_report_html(),
+            $this->activity_log_html(),
+            "",
+            true,
+            "",
+            $article_type_reference
+        );
+
+        $this->feature_card_from_snippet( "publication_social_link_cleanup", $this->simple_status_html( Settings::bool( "publication_social_cleanup" ), "Publication social link cleanup script active on frontend pages." ) );
+
+        $this->feature_group_close();
+    }
+
+    private function render_system_feature_group( array $settings ): void {
+        $this->feature_group_open( "system-integrations", "System integrations", "Elementor asset behavior and HWS admin access reporting." );
+
+        $this->feature_card_from_snippet( "elementor_css_cache_busting", $this->elementor_css_report_html() );
+        $this->feature_card(
+            "HWS masked admin URL",
+            "hws_masked_admin_report_enabled",
+            "HWS Base Tools owns this feature. SMP only reports its status and URL.",
+            "Reports the masked admin URL managed by HWS Base Tools.",
+            "HWS option: hws_login_mask_options with slug hexa-admin.",
+            $this->hws_masked_login_report_html(),
+            $this->activity_log_html()
+        );
+
+        $this->feature_group_close();
+    }
+
+    private function feature_group_open( string $slug, string $title, string $description ): void {
+        $slug = sanitize_html_class( $slug );
+        $title_id = "smpi-feature-group-" . $slug;
+        echo "<section class=\"smpi-feature-group smpi-feature-group--" . esc_attr( $slug ) . "\" data-smpi-feature-group=\"" . esc_attr( $slug ) . "\" aria-labelledby=\"" . esc_attr( $title_id ) . "\"><header class=smpi-feature-group-head><h2 id=\"" . esc_attr( $title_id ) . "\">" . esc_html( $title ) . "</h2><p>" . esc_html( $description ) . "</p></header><div class=smpi-feature-group-list>";
+    }
+
+    private function feature_group_close(): void {
+        echo "</div></section>";
+    }
+
+    private function feature_layout_styles_html(): string {
+        return <<<'HTML'
+<style id="smpi-feature-layout-css">
+.smpi-feature-groups{display:grid;gap:32px;margin-top:28px;min-width:0}
+.smpi-feature-group{display:grid;gap:12px;min-width:0}
+.smpi-feature-group-head{border-bottom:1px solid #cfd6df;padding:0 0 10px}
+.smpi-feature-group-head h2{font-size:18px;letter-spacing:0;line-height:1.3;margin:0}
+.smpi-feature-group-head p{color:#596579;font-size:13px;line-height:1.45;margin:4px 0 0}
+.smpi-feature-group-list{display:grid;gap:10px;min-width:0}
+.smpi-feature-group-list>.hpc-section{margin:0;min-width:0}
+.smpi-feature-card.smpi-feature-card--core-collapsible{display:grid;gap:16px;min-width:0}
+.smpi-feature-card .smpi-feature-save-banner{margin:0}
+.smpi-feature-overview{align-items:start;border-bottom:1px solid #e1e6ed;display:grid;gap:18px;grid-template-columns:minmax(0,1fr) auto;padding:0 0 16px}
+.smpi-feature-overview h3,.smpi-feature-settings-head h3,.smpi-feature-reference-grid h4{color:#1d2735;font-size:14px;letter-spacing:0;line-height:1.35;margin:0;text-transform:none}
+.smpi-feature-overview p,.smpi-feature-settings-head p{color:#536176;line-height:1.55;margin:5px 0 0;max-width:78ch}
+.smpi-feature-overview-side{align-items:center;display:flex;justify-content:flex-end;min-width:180px}
+.smpi-feature-managed{color:#596579;font-size:12px;font-weight:700}
+.smpi-feature-settings{display:grid;gap:4px;min-width:0}
+.smpi-feature-settings-head{padding-bottom:4px}
+.smpi-feature-settings-body{display:grid;min-width:0}
+.smpi-feature-settings-body>.smpi-control-group,.smpi-feature-settings-body>.smpi-control-row,.smpi-feature-settings-body>.smpi-breadcrumb-flow,.smpi-feature-settings-body>.smpi-drop-cap-preview{border-top:1px solid #e6eaf0;margin:0;padding:16px 0}
+.smpi-feature-settings-body>:first-child{border-top:0;padding-top:8px}
+.smpi-feature-card .smpi-control-group h3,.smpi-feature-card .smpi-breadcrumb-section-head h3{letter-spacing:0;text-transform:none}
+.smpi-feature-card .smpi-choice-card{border-radius:8px}
+.smpi-feature-card .smpi-selected-pill{letter-spacing:0}
+.smpi-feature-card>.hpc-detail-card,.smpi-feature-before-activity>.hpc-detail-card{margin:0;min-width:0}
+.smpi-feature-reference-grid{display:grid;gap:20px;grid-template-columns:minmax(0,1fr) minmax(0,1fr);min-width:0}
+.smpi-feature-reference-grid section{min-width:0}
+.smpi-feature-reference-grid p{line-height:1.55;margin:6px 0 0}
+.smpi-feature-reference-grid .smpi-code{border-radius:6px;margin:6px 0 0;max-width:100%;min-height:72px}
+.smpi-feature-reference-extra{border-top:1px solid #e1e6ed;margin-top:18px;padding-top:4px}
+.smpi-feature-reference-extra>.smpi-control-group{border-top:1px solid #e6eaf0;margin:0;padding:16px 0}
+.smpi-feature-reference-extra>.smpi-control-group:first-child{border-top:0}
+.smpi-feature-reference-extra .smpi-mode-grid>div,.smpi-feature-reference-extra .smpi-shortcode-row{background:transparent;border:0;border-radius:0}
+.smpi-feature-reference-extra .smpi-shortcode-row{border-top:1px solid #e6eaf0;padding:12px 0}
+.smpi-feature-before-activity,.smpi-feature-activity{min-width:0}
+.smpi-feature-diagnostics .widefat{max-width:100%}
+.smpi-feature-card pre,.smpi-feature-card code{max-width:100%}
+@media(max-width:782px){
+.smpi-feature-groups{gap:26px;margin-top:22px}
+.smpi-feature-group-head h2{font-size:17px}
+.smpi-feature-overview{grid-template-columns:minmax(0,1fr)}
+.smpi-feature-overview-side{justify-content:flex-start;min-width:0}
+.smpi-feature-reference-grid{grid-template-columns:minmax(0,1fr)}
+.smpi-feature-card .smpi-shortcode-row{grid-template-columns:minmax(0,1fr)}
+.smpi-feature-card .smpi-shortcode-row small{grid-column:1}
+.smpi-feature-card .hpc-detail-card-title{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+}
+</style>
+HTML;
+    }
     private function quick_run(): void {
         QuickStartFeatures::register_checklist_ajax();
         ( new GettingStartedChecklistRenderer( QuickStartFeatures::checklist_config() ) )->render();
@@ -1503,21 +1747,52 @@ class DashboardController {
     }
 
 
-    private function feature_card( string $title, string $toggle_key, string $acf, string $description, string $code, string $test_report, string $activity_log, string $extra_controls = "", bool $collapsible = true, string $before_activity_html = "" ): void {
+    private function feature_card( string $title, string $toggle_key, string $acf, string $description, string $code, string $test_report, string $activity_log, string $extra_controls = "", bool $collapsible = true, string $before_activity_html = "", string $reference_extra_html = "" ): void {
         $log_key = $toggle_key ?: sanitize_key( $title );
-        $toggle_html = $toggle_key ? $this->inline_toggle_html( $toggle_key ) : "<span class=smpi-warn>Report only</span>";
-        $head_html = $collapsible
-            ? "<div class=smpi-feature-head><div><p class=smpi-kicker>Feature settings</p></div><div class=smpi-feature-toggle>" . $toggle_html . "</div></div>"
-            : "<div class=smpi-feature-head><div><p class=smpi-kicker>Feature</p><h2>" . esc_html( $title ) . "</h2></div><div class=smpi-feature-toggle>" . $toggle_html . "</div></div>";
-        $html = "<article class=\"smpi-feature-card" . ( $collapsible ? " smpi-feature-card--core-collapsible" : "" ) . "\">" . $head_html . "<div class=\"smpi-feature-save-banner\" aria-live=\"polite\"></div>";
+        $toggle_html = $toggle_key ? $this->inline_toggle_html( $toggle_key ) : "<span class=smpi-feature-managed>Managed in Custom Fields</span>";
+        $meta_html = "" !== $toggle_key
+            ? ( Settings::bool( $toggle_key ) ? CoreUi::pill( "Enabled", "success" ) : CoreUi::pill( "Disabled", "warning" ) )
+            : CoreUi::pill( "Linked settings", "dark" );
+
+        $overview_html = "<section class=smpi-feature-overview><div><h3>What it does</h3><p>" . esc_html( $description ) . "</p></div><div class=smpi-feature-overview-side>" . $toggle_html . "</div></section>";
+        $settings_html = "";
         if ( "" !== $extra_controls ) {
-            $html .= "<div class=smpi-feature-controls>" . $extra_controls . "</div>";
+            $settings_html = "<section class=smpi-feature-settings><header class=smpi-feature-settings-head><h3>Settings</h3></header><div class=smpi-feature-settings-body>" . $extra_controls . "</div></section>";
         }
-        $html .= "<div class=smpi-feature-grid><section><h3>Custom ACF adjustments</h3><p>" . wp_kses_post( $acf ) . "</p></section><section><h3>Description / use instructions</h3><p>" . esc_html( $description ) . "</p></section><section><h3>Code example</h3><pre class=smpi-code>" . esc_html( $code ) . "</pre></section><section class=smpi-feature-report><h3>Test report, active and proof working</h3>" . wp_kses_post( $test_report ) . "</section>";
+
+        $reference_body = "<div class=smpi-feature-reference-grid><section><h4>Data and dependencies</h4><p>" . wp_kses_post( $acf ) . "</p></section><section><h4>Implementation</h4><pre class=smpi-code>" . esc_html( $code ) . "</pre></section></div>";
+        if ( "" !== $reference_extra_html ) {
+            $reference_body .= "<div class=smpi-feature-reference-extra>" . $reference_extra_html . "</div>";
+        }
+        $reference_html = CoreUi::detail_card(
+            [
+                "title" => "Implementation reference",
+                "body_html" => $reference_body,
+                "meta_html" => CoreUi::pill( "Reference", "dark" ),
+                "class" => "smpi-feature-reference-panel",
+                "open" => false,
+            ]
+        );
+        $diagnostics_html = CoreUi::detail_card(
+            [
+                "title" => "Status and diagnostics",
+                "body_html" => "<div class=smpi-feature-diagnostics>" . $test_report . "</div>",
+                "meta_html" => CoreUi::pill( "Live status", "dark" ),
+                "class" => "smpi-feature-diagnostics-panel",
+                "open" => false,
+            ]
+        );
+        $activity_log = $this->activity_log_html( $log_key );
+
+        $html = "<article class=\"smpi-feature-card" . ( $collapsible ? " smpi-feature-card--core-collapsible" : "" ) . "\"><div class=\"smpi-feature-save-banner\" aria-live=\"polite\"></div>"
+            . $overview_html
+            . $settings_html
+            . $reference_html
+            . $diagnostics_html;
         if ( "" !== $before_activity_html ) {
             $html .= "<div class=smpi-feature-before-activity>" . $before_activity_html . "</div>";
         }
-        $html .= "<section class=smpi-feature-activity>" . $this->activity_log_html( $log_key ) . "</section></div></article>";
+        $html .= "<div class=smpi-feature-activity>" . $activity_log . "</div></article>";
 
         if ( $collapsible ) {
             echo CoreUi::collapsible(
@@ -1525,11 +1800,7 @@ class DashboardController {
                     "title" => $title,
                     "body_html" => $html,
                     "open" => false,
-                    "meta_html" => "" !== $toggle_key
-                        ? ( Settings::bool( $toggle_key )
-                            ? CoreUi::pill( "Enabled", "success" )
-                            : CoreUi::pill( "Disabled", "warning" ) )
-                        : CoreUi::pill( "Reference", "dark" ),
+                    "meta_html" => $meta_html,
                 ]
             );
             return;
@@ -1537,7 +1808,6 @@ class DashboardController {
 
         echo $html;
     }
-
     private function feature_card_from_snippet( string $snippet_id, string $extra_report_html = "" ): void {
         $definition = SnippetDefinitions::definition( $snippet_id );
         if ( ! $definition ) {
@@ -2298,13 +2568,18 @@ CSS;
     }
 
     private function multi_author_controls_html( array $settings ): string {
-        $loop_controls = $this->multi_author_loop_output_controls_html( $settings );
-        return $this->inline_toggle_setting_html( "multi_authors_disable_loop_cards", "Force primary author only on loop/cards" )
-            . $loop_controls
-            . $this->multi_author_examples_html()
-            . "<div class=\"smpi-control-group\"><h3>Elementor protocol</h3><p>Add <code>smp-author</code> to the exact author identity unit that should repeat for every selected author. Do not put it on a row that also contains Share, read-time, ads, or unrelated controls. Legacy <code>smpi-author-module</code> is still supported for older templates, and the loop-card fallback can rewrite author-name links when no class exists.</p></div>";
+        return $this->multi_author_settings_html( $settings ) . $this->multi_author_reference_html();
     }
 
+    private function multi_author_settings_html( array $settings ): string {
+        return $this->inline_toggle_setting_html( "multi_authors_disable_loop_cards", "Force primary author only on loop/cards" )
+            . $this->multi_author_loop_output_controls_html( $settings );
+    }
+
+    private function multi_author_reference_html(): string {
+        return $this->multi_author_examples_html()
+            . "<div class=\"smpi-control-group\"><h3>Elementor protocol</h3><p>Add <code>smp-author</code> to the exact author identity unit that should repeat for every selected author. Do not put it on a row that also contains Share, read-time, ads, or unrelated controls. Legacy <code>smpi-author-module</code> is still supported for older templates, and the loop-card fallback can rewrite author-name links when no class exists.</p></div>";
+    }
     private function multi_author_debug_module_html(): string {
         return "<div class=\"smpi-panel smpi-control-group smpi-multi-author-debug-panel smpi-multi-author-test\"><h2>Frontend hook and class detection test</h2><p>Enter a post ID or URL, or leave blank to test the most recent published article. The test reports assigned authors, schema authors, visible frontend authors, detected <code>smp-author</code> units, legacy fallback units, loop-card mode, author links, and whether share/read-time content is being captured by the author boundary.</p><div class=\"smpi-inline-test-row\"><input type=\"text\" class=\"regular-text\" data-smpi-multi-author-test-target placeholder=\"Post ID or URL\"><button type=\"button\" class=\"button button-primary\" data-smpi-test-multi-authors>Run frontend author test</button><span class=\"spinner\"></span><span class=\"smpi-save-state\" aria-live=\"polite\"></span></div><div class=\"smpi-multi-author-test-result\" data-smpi-multi-author-test-result aria-live=\"polite\"></div></div>";
     }

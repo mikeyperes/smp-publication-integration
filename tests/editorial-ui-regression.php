@@ -27,7 +27,26 @@ $checks = [
         && str_contains( $dashboard, 'feature_brand_color_tools_html( $settings )' ),
     'Every Features card is closed by default.' => str_contains( $dashboard, '"open" => false' )
         && ! str_contains( $dashboard, '"elementor_css_cache_busting" === $snippet_id' ),
-    'Breadcrumb background is saved and applied through one scoped CSS variable.' => str_contains( $dashboard, 'breadcrumbs_background_color' )
+    'Features are organized into four clear groups.' => str_contains( $dashboard, 'data-smpi-feature-group=' )
+        && str_contains( $dashboard, '"Article design"' )
+        && str_contains( $dashboard, '"Authors and verification"' )
+        && str_contains( $dashboard, '"Content and distribution"' )
+        && str_contains( $dashboard, '"System integrations"' )
+        && strpos( $dashboard, 'render_article_design_feature_group' ) < strpos( $dashboard, 'render_author_feature_group' )
+        && strpos( $dashboard, 'render_author_feature_group' ) < strpos( $dashboard, 'render_content_feature_group' )
+        && strpos( $dashboard, 'render_content_feature_group' ) < strpos( $dashboard, 'render_system_feature_group' ),
+    'Expanded feature cards put settings before collapsed reference and diagnostics.' => str_contains( $feature_card_source, 'smpi-feature-overview' )
+        && str_contains( $feature_card_source, 'smpi-feature-settings' )
+        && str_contains( $feature_card_source, 'CoreUi::detail_card(' )
+        && str_contains( $feature_card_source, '"Implementation reference"' )
+        && str_contains( $feature_card_source, '"Status and diagnostics"' )
+        && strpos( $feature_card_source, '$overview_html' ) < strpos( $feature_card_source, '$settings_html' )
+        && strpos( $feature_card_source, '$settings_html' ) < strpos( $feature_card_source, '$reference_html' )
+        && strpos( $feature_card_source, '$reference_html' ) < strpos( $feature_card_source, '$diagnostics_html' ),
+    'Complex feature guidance is retained outside primary settings.' => str_contains( $dashboard, 'multi_author_settings_html( $settings )' )
+        && str_contains( $dashboard, 'multi_author_reference_html()' )
+        && str_contains( $dashboard, '$this->author_muckrack_mode_help_html( $settings ) . $this->author_muckrack_shortcodes_html()' )
+        && str_contains( $dashboard, '$this->post_content_blocks_shortcode_reference_html()' ),    'Breadcrumb background is saved and applied through one scoped CSS variable.' => str_contains( $dashboard, 'breadcrumbs_background_color' )
         && str_contains( $article_styles, '--smpi-bc-background' )
         && str_contains( $article_styles, 'background:var(--smpi-bc-background,#fff)' ),
     'Breadcrumb controls render in Template, Appearance, Visibility order.' => str_contains( $dashboard, '$this->breadcrumb_controls_html( $settings )' )
