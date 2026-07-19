@@ -48,12 +48,13 @@ if (
 }
 
 $dashboard_css_source = (string) file_get_contents( $dashboard_css );
+$core_ui_source = (string) file_get_contents( dirname( __DIR__ ) . '/lib/hexa-wordpress-plugin-core/src/WpAdminComponents/CoreUi.php' );
 if (
-    ! str_contains( $dashboard_css_source, '#smpi-core-tabs .hpc-host-tabs{align-items:flex-end;flex-wrap:wrap;overflow:visible}' )
-    || str_contains( $dashboard_css_source, '#smpi-core-tabs .hpc-host-tabs{align-items:stretch;flex-wrap:nowrap' )
-    || str_contains( $dashboard_css_source, '#smpi-core-tabs .hpc-host-tabs{align-items:stretch;flex-wrap:nowrap;max-width:100%;overflow-x:auto' )
+    str_contains( $dashboard_css_source, '#smpi-core-tabs .hpc-host-tab' )
+    || ! str_contains( $core_ui_source, '.hpc-host-tabs{' )
+    || ! str_contains( $core_ui_source, 'display:flex;flex-wrap:wrap' )
 ) {
-    fwrite( STDERR, "FAIL: SMP host tabs must use the wrapped Core layout without horizontal scrolling.\n" );
+    fwrite( STDERR, "FAIL: SMP must leave host-tab layout to Hexa WP Core's wrapped tab component.\n" );
     exit( 1 );
 }
 
