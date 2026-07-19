@@ -12,6 +12,8 @@ use Hexa\PluginCore\GettingStartedChecklist\GettingStartedChecklistRenderer;
 use Hexa\PluginCore\SnippetRegistry\SnippetRegistry;
 use Hexa\PluginCore\SnippetRegistry\SnippetsTableRenderer;
 use Hexa\PluginCore\WpAdminTabs\HostTabsRenderer;
+use Hexa\PluginCore\WpAdminTabs\TabDefinition;
+use Hexa\PluginCore\WpAdminTabs\TabRegistry;
 use Hexa\PluginCore\WpAdminComponents\ColorControl;
 use Hexa\PluginCore\WpAdminComponents\CoreUi;
 use Hexa\PluginCore\WpAdminComponents\DynamicButton;
@@ -80,7 +82,8 @@ class DashboardController {
             wp_die( esc_html__( 'You do not have permission to access this page.', 'smp-publication-integration' ) );
         }
         $navigation = $this->navigation();
-        $tabs       = $navigation->tabs();
+        $registry   = $this->tab_registry( $navigation );
+        $tabs       = $registry->all();
         $requested  = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'overview';
         $section    = isset( $_GET['section'] ) ? sanitize_key( wp_unslash( $_GET['section'] ) ) : '';
         $route      = $navigation->resolve( $requested, $section );
@@ -106,8 +109,8 @@ class DashboardController {
                     "root_id"         => "smpi-core-tabs",
                     "panel_id"        => "smpi-tab-panel",
                     "label"           => "SMP Publication Integration sections",
-                    "render_callback" => function( string $tab ): void {
-                        $this->tab( $tab );
+                    "render_callback" => function( string $tab ) use ( $registry ): void {
+                        $this->render_registered_tab( $registry, $tab );
                     },
                 ]
             );
@@ -119,25 +122,72 @@ class DashboardController {
 
     public function tab_fragment( string $id ): array {
         $navigation = $this->navigation();
-        $tabs       = $navigation->tabs();
+        $registry   = $this->tab_registry( $navigation );
         $route      = $navigation->resolve( $id );
+        $tab_id     = $route->section();
+        $definition = $registry->get( $tab_id ) ?? $registry->get( 'overview' );
+
+        if ( ! $definition instanceof TabDefinition ) {
+            return [
+                'tab'   => 'overview',
+                'label' => 'Dashboard',
+                'html'  => '',
+            ];
+        }
+
+        $tab_id = $definition->id;
 
         ob_start();
-        if ( "publication_options" === $route->section() && Dependencies::acf_active() && function_exists( "acf_form_head" ) ) {
+        if ( 'publication_options' === $tab_id && Dependencies::acf_active() && function_exists( 'acf_form_head' ) ) {
             acf_form_head();
         }
-        $this->tab( $route->section() );
+        $this->render_registered_tab( $registry, $tab_id );
         $html = ob_get_clean();
 
         return [
-            "tab" => $route->section(),
-            "label" => $tabs[ $route->section() ] ?? $route->section(),
-            "html" => is_string( $html ) ? $html : "",
+            'tab'   => $tab_id,
+            'label' => $this->tab_label( $definition ),
+            'html'  => is_string( $html ) ? $html : '',
         ];
     }
 
     private function navigation(): AdminNavigation {
         return new AdminNavigation();
+    }
+
+    private function tab_registry( ?AdminNavigation $navigation = null ): TabRegistry {
+        $navigation = $navigation ?? $this->navigation();
+
+        return $navigation->registry(
+            function ( string $id ): void {
+                $this->tab( $id );
+            },
+            Config::$settings_page_capability
+        );
+    }
+
+    private function render_registered_tab( TabRegistry $registry, string $id ): void {
+        $definition = $registry->get( $id ) ?? $registry->get( 'overview' );
+        if ( ! $definition instanceof TabDefinition ) {
+            return;
+        }
+
+        if (
+            null !== $definition->capability
+            && '' !== $definition->capability
+            && ! current_user_can( $definition->capability )
+        ) {
+            echo '<div class="notice notice-error"><p>You do not have permission to view this section.</p></div>';
+            return;
+        }
+
+        if ( is_callable( $definition->renderer ) ) {
+            call_user_func( $definition->renderer );
+        }
+    }
+
+    private function tab_label( TabDefinition $definition ): string {
+        return $definition->label . ( $definition->deprecated ? ' (Deprecated)' : '' );
     }
 
     private function tab( string $id ): void {

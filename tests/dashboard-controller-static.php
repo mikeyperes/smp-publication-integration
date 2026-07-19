@@ -37,6 +37,26 @@ if ( ! is_readable( $dashboard_css ) || ! str_contains( (string) file_get_conten
     exit( 1 );
 }
 
+if (
+    ! str_contains( $controller, 'use Hexa\\PluginCore\\WpAdminTabs\\TabDefinition;' )
+    || ! str_contains( $controller, 'use Hexa\\PluginCore\\WpAdminTabs\\TabRegistry;' )
+    || ! str_contains( $controller, '$tabs       = $registry->all();' )
+    || ! str_contains( $controller, 'render_registered_tab( $registry, $tab )' )
+) {
+    fwrite( STDERR, "FAIL: Dashboard tabs must render through Hexa WP Core tab definitions and registry.\n" );
+    exit( 1 );
+}
+
+$dashboard_css_source = (string) file_get_contents( $dashboard_css );
+if (
+    ! str_contains( $dashboard_css_source, '#smpi-core-tabs .hpc-host-tabs{align-items:flex-end;flex-wrap:wrap;overflow:visible}' )
+    || str_contains( $dashboard_css_source, '#smpi-core-tabs .hpc-host-tabs{align-items:stretch;flex-wrap:nowrap' )
+    || str_contains( $dashboard_css_source, '#smpi-core-tabs .hpc-host-tabs{align-items:stretch;flex-wrap:nowrap;max-width:100%;overflow-x:auto' )
+) {
+    fwrite( STDERR, "FAIL: SMP host tabs must use the wrapped Core layout without horizontal scrolling.\n" );
+    exit( 1 );
+}
+
 foreach ( [ '_smpi_shadow_complete', '_smpi_pr_shadow_override' ] as $field_name ) {
     $expected = '\'get_field("' . $field_name . '", $post_id)\'';
     if ( ! str_contains( $controller, $expected ) ) {

@@ -2,31 +2,34 @@
 
 namespace smp_publication_integration\Admin\Navigation;
 
+use Hexa\PluginCore\WpAdminTabs\TabDefinition;
+use Hexa\PluginCore\WpAdminTabs\TabRegistry;
+
 final class AdminNavigation {
     private const FLAT_TABS = [
-        'overview' => 'Dashboard',
-        'quick_run' => 'Quick Start',
+        'overview'            => 'Dashboard',
+        'quick_run'           => 'Quick Start',
         'publication_options' => 'Publication Settings',
-        'profiles' => 'Publication Fields',
-        'brand' => 'Brand Settings',
-        'pages' => 'Pages',
-        'menu' => 'Menus',
-        'features' => 'Article Design',
-        'custom_fields' => 'Post Fields',
-        'multiple_authors' => 'Authors',
-        'content_generation' => 'Content Generation',
-        'snippets' => 'Publishing Rules',
-        'post_hygiene' => 'Post HTML Cleanup',
-        'schema' => 'Schema Settings',
-        'reports' => 'Schema Tests',
-        'verified_profiles' => 'Verified Profiles',
-        'article_cleanup' => 'Article & Media Cleanup',
-        'optimization' => 'Database Optimization',
-        'plugins' => 'Plugins',
-        'integrations' => 'Integrations',
-        'ui_cleanup' => 'WordPress Admin',
-        'shortcodes' => 'Shortcodes',
-        'hexa_core' => 'Hexa WP Core',
+        'profiles'            => 'Publication Fields',
+        'brand'               => 'Brand Settings',
+        'pages'               => 'Pages',
+        'menu'                => 'Menus',
+        'features'            => 'Article Design',
+        'custom_fields'       => 'Post Fields',
+        'multiple_authors'    => 'Authors',
+        'content_generation'  => 'Content Generation',
+        'snippets'            => 'Publishing Rules',
+        'post_hygiene'        => 'Post HTML Cleanup',
+        'schema'              => 'Schema Settings',
+        'reports'             => 'Schema Tests',
+        'verified_profiles'   => 'Verified Profiles',
+        'article_cleanup'     => 'Article & Media Cleanup',
+        'optimization'        => 'Database Optimization',
+        'plugins'             => 'Plugins',
+        'integrations'        => 'Integrations',
+        'ui_cleanup'          => 'WordPress Admin',
+        'shortcodes'          => 'Shortcodes',
+        'hexa_core'           => 'Hexa WP Core',
     ];
 
     private const AREAS = [
@@ -92,6 +95,30 @@ final class AdminNavigation {
         return apply_filters( 'smpi_dashboard_flat_tabs', $tabs );
     }
 
+    public function registry( callable $renderer, ?string $capability = null ): TabRegistry {
+        $registry = new TabRegistry();
+
+        foreach ( $this->tabs() as $id => $label ) {
+            $id = sanitize_key( (string) $id );
+            if ( '' === $id ) {
+                continue;
+            }
+
+            $registry->add(
+                new TabDefinition(
+                    $id,
+                    (string) $label,
+                    static function () use ( $renderer, $id ): void {
+                        $renderer( $id );
+                    },
+                    $capability
+                )
+            );
+        }
+
+        return $registry;
+    }
+
     public function areas(): array {
         return apply_filters( 'smpi_dashboard_areas', self::AREAS );
     }
@@ -147,6 +174,10 @@ final class AdminNavigation {
             if ( isset( $this->sections( $area )[ $tab ] ) ) {
                 return new AdminRoute( $area, $tab );
             }
+        }
+
+        if ( isset( $this->tabs()[ $tab ] ) ) {
+            return new AdminRoute( 'advanced', $tab );
         }
 
         return new AdminRoute( 'overview', 'overview' );

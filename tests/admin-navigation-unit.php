@@ -14,9 +14,13 @@ function apply_filters( string $hook, mixed $value, ...$arguments ): mixed {
     return $value;
 }
 
+require dirname( __DIR__ ) . '/lib/hexa-wordpress-plugin-core/src/WpAdminTabs/TabDefinition.php';
+require dirname( __DIR__ ) . '/lib/hexa-wordpress-plugin-core/src/WpAdminTabs/TabRegistry.php';
 require dirname( __DIR__ ) . '/src/Admin/Navigation/AdminRoute.php';
 require dirname( __DIR__ ) . '/src/Admin/Navigation/AdminNavigation.php';
 
+use Hexa\PluginCore\WpAdminTabs\TabDefinition;
+use Hexa\PluginCore\WpAdminTabs\TabRegistry;
 use smp_publication_integration\Admin\Navigation\AdminNavigation;
 
 $navigation = new AdminNavigation();
@@ -63,6 +67,40 @@ if (
     exit( 1 );
 }
 
+$rendered = [];
+$registry = $navigation->registry(
+    static function ( string $id ) use ( &$rendered ): void {
+        $rendered[] = $id;
+    },
+    'manage_options'
+);
+$definitions = $registry->all();
+
+if ( ! $registry instanceof TabRegistry || array_keys( $tabs ) !== array_keys( $definitions ) ) {
+    fwrite( STDERR, "FAIL: Every navigation tab must be registered in the Hexa WP Core TabRegistry.\n" );
+    exit( 1 );
+}
+
+foreach ( $tabs as $id => $label ) {
+    $definition = $definitions[ $id ] ?? null;
+    if (
+        ! $definition instanceof TabDefinition
+        || $definition->id !== $id
+        || $definition->label !== $label
+        || 'manage_options' !== $definition->capability
+        || ! is_callable( $definition->renderer )
+    ) {
+        fwrite( STDERR, "FAIL: {$id} is not a complete Hexa WP Core TabDefinition.\n" );
+        exit( 1 );
+    }
+}
+
+call_user_func( $definitions['features']->renderer );
+if ( [ 'features' ] !== $rendered ) {
+    fwrite( STDERR, "FAIL: Core tab definitions must invoke their registered SMP renderer.\n" );
+    exit( 1 );
+}
+
 $legacy_areas = [
     'overview'            => 'overview',
     'quick_run'           => 'operations',
@@ -81,7 +119,7 @@ $legacy_areas = [
     'reports'             => 'structured_data',
     'verified_profiles'   => 'structured_data',
     'article_cleanup'     => 'operations',
-    'optimization'       => 'operations',
+    'optimization'        => 'operations',
     'plugins'             => 'operations',
     'integrations'        => 'operations',
     'ui_cleanup'          => 'advanced',
@@ -116,4 +154,4 @@ if ( 'advanced' !== $extension->area() || 'extension_diagnostics' !== $extension
     exit( 1 );
 }
 
-echo "PASS: Flat navigation exposes 23 ordered tabs and preserves legacy routes.\n";
+echo "PASS: 23 ordered tabs use the Core registry and preserve legacy routes.\n";
