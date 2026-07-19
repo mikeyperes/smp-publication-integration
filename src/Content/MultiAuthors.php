@@ -9,6 +9,7 @@ use smp_publication_integration\Authorship\AuthorQueryIntegration;
 use smp_publication_integration\Authorship\ElementorArchiveContext;
 use smp_publication_integration\Authorship\ElementorAuthorRenderer;
 use smp_publication_integration\Authorship\LoopBylineRenderer;
+use smp_publication_integration\Authorship\SingleAuthorFallbackRenderer;
 use smp_publication_integration\Support\Settings;
 
 if ( ! defined( "ABSPATH" ) ) {
@@ -26,10 +27,12 @@ final class MultiAuthors {
         $repository = self::repository();
         $loop_renderer = new LoopBylineRenderer( $repository );
         $elementor_renderer = new ElementorAuthorRenderer( $repository );
+        $single_author_fallback = new SingleAuthorFallbackRenderer( $repository );
         self::$archive_context = new ElementorArchiveContext();
 
         ( new AuthorLifecycle( $repository ) )->register();
         ( new AuthorQueryIntegration( $repository ) )->register();
+        $single_author_fallback->register();
 
         add_shortcode( "smp_post_author_ids", [ $this, "render_author_ids_shortcode" ] );
         add_shortcode( "smp_post_authors", [ $this, "render_authors_shortcode" ] );

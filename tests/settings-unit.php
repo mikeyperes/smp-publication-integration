@@ -20,8 +20,10 @@ require dirname( __DIR__ ) . '/lib/hexa-wordpress-plugin-core/src/ActivityLog/Ac
 require dirname( __DIR__ ) . '/lib/hexa-wordpress-plugin-core/src/ActivityLog/ActivityLogEntry.php';
 require dirname( __DIR__ ) . '/lib/hexa-wordpress-plugin-core/src/ActivityLog/ActivityLogger.php';
 require dirname( __DIR__ ) . '/src/Settings/SettingsRepository.php';
+require dirname( __DIR__ ) . '/src/Settings/SettingsMigrations.php';
 require dirname( __DIR__ ) . '/src/Support/Settings.php';
 
+use smp_publication_integration\Settings\SettingsMigrations;
 use smp_publication_integration\Support\Settings;
 
 set_error_handler(
@@ -42,5 +44,31 @@ if ( '#a1b2c3' !== $settings['article_heading_accent_color'] ) {
     exit( 1 );
 }
 
+$GLOBALS['smpi_test_options']['smpi_settings'] = [
+    'article_heading_styles_enabled'   => false,
+    'article_heading_style'            => 'h2-tick',
+    'article_heading_accent_color'     => '#000033',
+    'article_heading_h2_font_size'     => 23,
+    'article_heading_h3_font_size'     => 20,
+    'table_of_contents_enabled'        => true,
+    'table_of_contents_style'          => 'toc03',
+    'inline_photo_treatments_enabled'  => true,
+    'inline_photo_treatment'           => 'fig2',
+];
+( new SettingsMigrations() )->repair_defective_heading_quick_start_preset();
+if ( true !== $GLOBALS['smpi_test_options']['smpi_settings']['article_heading_styles_enabled'] ) {
+    fwrite( STDERR, "FAIL: Defective Quick Start heading preset was not repaired.\n" );
+    exit( 1 );
+}
+
+unset( $GLOBALS['smpi_test_options']['smpi_migration_heading_quick_start_0_6_191'] );
+$GLOBALS['smpi_test_options']['smpi_settings']['article_heading_styles_enabled'] = false;
+$GLOBALS['smpi_test_options']['smpi_settings']['article_heading_accent_color'] = '#123456';
+( new SettingsMigrations() )->repair_defective_heading_quick_start_preset();
+if ( false !== $GLOBALS['smpi_test_options']['smpi_settings']['article_heading_styles_enabled'] ) {
+    fwrite( STDERR, "FAIL: Heading migration changed a non-preset disabled setting.\n" );
+    exit( 1 );
+}
+
 restore_error_handler();
-echo "PASS: Settings color updates use defined canonical fallbacks.\n";
+echo "PASS: Settings color updates and targeted heading preset migration.\n";

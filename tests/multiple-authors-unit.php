@@ -245,6 +245,7 @@ namespace {
     use smp_publication_integration\Authorship\AuthorContext;
     use smp_publication_integration\Authorship\ElementorAuthorRenderer;
     use smp_publication_integration\Authorship\LoopBylineRenderer;
+    use smp_publication_integration\Authorship\SingleAuthorFallbackRenderer;
     use smp_publication_integration\Content\MuckRackVerification;
 
     function expect_same( $expected, $actual, string $message ): void {
@@ -293,6 +294,19 @@ namespace {
     unset( $GLOBALS["test_muckrack_enabled"], $GLOBALS["test_muckrack_contexts"] );
 
     $GLOBALS["test_is_singular"] = true;
+
+    $fallback_renderer = new SingleAuthorFallbackRenderer( $repository );
+    $empty_profile_slot = '<style>.smp-vp-hide-if-empty{display:none}</style><span data-smp-vp-empty-loop="single-post" hidden></span>';
+    $GLOBALS["test_muckrack_enabled"] = true;
+    $GLOBALS["test_muckrack_contexts"] = [ "single_author" ];
+    $fallback_multiple = $fallback_renderer->filter_shortcode_output( $empty_profile_slot, "display_profiles_featured_in_single_post" );
+    expect_same( 2, substr_count( $fallback_multiple, 'class="smpi-single-author-fallback__name smpi-post-journalist-link"' ), "Empty Verified Profiles slot renders every canonical SMP author." );
+    expect_same( 2, substr_count( $fallback_multiple, 'smpi-muckrack-link' ), "Canonical author fallback keeps each configured verification badge." );
+    $real_profile_output = '<div class="verified-profiles-loop">Featured profile</div>';
+    expect_same( $real_profile_output, $fallback_renderer->filter_shortcode_output( $real_profile_output, "display_profiles_featured_in_single_post" ), "Real Verified Profiles output is never replaced." );
+    expect_same( $empty_profile_slot, $fallback_renderer->filter_shortcode_output( $empty_profile_slot, "different_shortcode" ), "Unrelated shortcode output is never changed." );
+    unset( $GLOBALS["test_muckrack_enabled"], $GLOBALS["test_muckrack_contexts"] );
+
     $GLOBALS["test_muckrack_enabled"] = true;
     $GLOBALS["test_muckrack_contexts"] = [ "single_author" ];
     $renderer = new ElementorAuthorRenderer( $repository );
@@ -358,6 +372,10 @@ namespace {
     $repository->clear_cache( 10 );
     $unchanged = $renderer->filter_content( $template );
     expect_same( $template, $unchanged, "Empty selection leaves native Elementor output untouched." );
+
+    $fallback_native = $fallback_renderer->filter_shortcode_output( $empty_profile_slot, "display_profiles_featured_in_single_post" );
+    expect_same( 1, substr_count( $fallback_native, 'class="smpi-single-author-fallback__name smpi-post-journalist-link"' ), "Empty canonical selection falls back to the native WordPress author once." );
+    expect_same( 1, substr_count( $fallback_native, "alpha-author/" ), "Native author fallback keeps the canonical author archive URL." );
 
     echo "PASS: multiple-author unit and DOM regression tests\n";
 }

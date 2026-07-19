@@ -12,6 +12,7 @@ use smp_publication_integration\Admin;
 use smp_publication_integration\Config;
 use smp_publication_integration\Content;
 use smp_publication_integration\Support\Dependencies;
+use smp_publication_integration\Settings\SettingsMigrations;
 
 final class Plugin {
     private bool $booted = false;
@@ -64,6 +65,7 @@ final class Plugin {
      */
     private function content_modules(): array {
         return [
+            new SettingsMigrations(),
             new Content\AcfFields(),
             new Content\Shortcodes(),
             new Content\MultiAuthors(),

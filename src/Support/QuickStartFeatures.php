@@ -382,14 +382,14 @@ final class QuickStartFeatures {
                 "title" => "Article H2/H3 styles",
                 "description" => "Styles H2 and H3 headings inside article content.",
                 "settings" => [
-                    "article_heading_styles_enabled" => false,
+                    "article_heading_styles_enabled" => true,
                     "article_heading_style" => "h2-tick",
                     "article_heading_accent_color" => "#000033",
                     "article_heading_h2_font_size" => 23,
                     "article_heading_h3_font_size" => 20,
                 ],
                 "details" => [
-                    [ "label" => "Enabled", "value" => "No" ],
+                    [ "label" => "Enabled", "value" => "Yes" ],
                     [ "label" => "Template", "value" => "h2-tick" ],
                     [ "label" => "Accent color", "value" => "#000033", "color" => "#000033" ],
                     [ "label" => "H2 size", "value" => "23px" ],
