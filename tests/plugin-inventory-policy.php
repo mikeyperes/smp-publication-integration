@@ -47,6 +47,18 @@ namespace {
     assert_true( 'wordpress_org' === $recommended_by_file[ $simple_avatars_file ]['source'], 'Simple Local Avatars must use the WordPress.org installer.' );
     assert_true( 'simple-local-avatars' === $recommended_by_file[ $simple_avatars_file ]['wp_org_slug'], 'Simple Local Avatars WordPress.org slug is incorrect.' );
 
+    assert_true(
+        ! isset( $recommended_by_file['under-construction-page/under-construction.php'] ),
+        'Under Construction must not appear in the required plugin list.'
+    );
+
+    $tts_file = 'smp-wp-text-to-speech/smp-wp-text-to-speech.php';
+    assert_true( isset( $recommended_by_file[ $tts_file ] ), 'SMP WP Text To Speech requirement is missing.' );
+    assert_true( true === $recommended_by_file[ $tts_file ]['required'], 'SMP WP Text To Speech must be required.' );
+    assert_true( 'github' === $recommended_by_file[ $tts_file ]['source'], 'SMP WP Text To Speech must use the GitHub installer.' );
+    assert_true( 'mikeyperes/smp-wp-text-to-speech' === $recommended_by_file[ $tts_file ]['github_repo'], 'SMP WP Text To Speech GitHub repository is incorrect.' );
+    assert_true( 'https://github.com/mikeyperes/smp-wp-text-to-speech' === $recommended_by_file[ $tts_file ]['download_url'], 'SMP WP Text To Speech source URL is incorrect.' );
+
     $pr_wire_file = 'hexa-pr-wire-distributor/hexa-pr-wire-distributor.php';
     assert_true( isset( $recommended_by_file[ $pr_wire_file ] ), 'Hexa PR Wire Distributor requirement is missing.' );
     assert_true( true === $recommended_by_file[ $pr_wire_file ]['required'], 'Hexa PR Wire Distributor must be required.' );
