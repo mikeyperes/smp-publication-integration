@@ -226,6 +226,7 @@ final class CoreUi {
                     var status = filter.querySelector('[data-hpc-filter-status]');
                     var empty = filter.querySelector('[data-hpc-filter-empty]');
                     var itemSelector = filter.dataset.itemSelector || '[data-hpc-filter-item]';
+                    var textSelector = filter.dataset.textSelector || '';
                     var groupSelector = filter.dataset.groupSelector || '';
                     if (!target || !input || !status) return;
                     filter.dataset.hpcCollectionFilterReady = '1';
@@ -243,7 +244,11 @@ final class CoreUi {
                         var items = selected(itemSelector, target);
                         var visible = 0;
                         items.forEach(function(item) {
-                            var text = item.getAttribute('data-hpc-filter-text') || item.textContent || '';
+                            var text = item.getAttribute('data-hpc-filter-text') || '';
+                            if (!text && textSelector) {
+                                text = selected(textSelector, item).map(function(node) { return node.textContent || ''; }).join(' ');
+                            }
+                            if (!text) text = item.textContent || '';
                             var matches = !query || text.toLocaleLowerCase().indexOf(query) !== -1;
                             item.hidden = !matches;
                             if (matches) visible++;
@@ -390,6 +395,7 @@ final class CoreUi {
     public static function collection_filter( array $args ): string {
         $target_id      = sanitize_html_class( (string) ( $args['target_id'] ?? '' ) );
         $item_selector  = trim( (string) ( $args['item_selector'] ?? '[data-hpc-filter-item]' ) );
+        $text_selector  = trim( (string) ( $args['text_selector'] ?? '' ) );
         $group_selector = trim( (string) ( $args['group_selector'] ?? '' ) );
 
         if ( '' === $target_id || '' === $item_selector ) {
@@ -403,7 +409,7 @@ final class CoreUi {
         $plural        = (string) ( $args['item_label_plural'] ?? $singular . 's' );
         $empty_message = (string) ( $args['empty_message'] ?? 'No matching items.' );
 
-        return '<div class="hpc-collection-filter" data-hpc-collection-filter data-target-id="' . esc_attr( $target_id ) . '" data-item-selector="' . esc_attr( $item_selector ) . '" data-group-selector="' . esc_attr( $group_selector ) . '" data-item-label-singular="' . esc_attr( $singular ) . '" data-item-label-plural="' . esc_attr( $plural ) . '">'
+        return '<div class="hpc-collection-filter" data-hpc-collection-filter data-target-id="' . esc_attr( $target_id ) . '" data-item-selector="' . esc_attr( $item_selector ) . '" data-text-selector="' . esc_attr( $text_selector ) . '" data-group-selector="' . esc_attr( $group_selector ) . '" data-item-label-singular="' . esc_attr( $singular ) . '" data-item-label-plural="' . esc_attr( $plural ) . '">'
             . '<label class="screen-reader-text" for="' . esc_attr( $id ) . '">' . esc_html( $label ) . '</label>'
             . '<div class="hpc-collection-filter-field">'
             . '<span class="dashicons dashicons-search hpc-collection-filter-icon" aria-hidden="true"></span>'

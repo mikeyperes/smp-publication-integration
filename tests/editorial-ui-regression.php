@@ -26,11 +26,12 @@ $checks = [
     'Every Features card defaults to the Hexa Core collapsible renderer.' => str_contains( $dashboard, 'bool $collapsible = true' )
         && str_contains( $dashboard, 'CoreUi::collapsible' )
         && str_contains( $dashboard, 'feature_brand_color_tools_html( $settings )' ),
-    "Features expose the reusable Core search and group filter." => version_compare( $core_version, "0.19.53", ">=" )
+    "Features expose the reusable Core search and group filter." => version_compare( $core_version, "0.19.54", ">=" )
         && str_contains( $dashboard, "CoreUi::collection_filter(" )
         && str_contains( $dashboard, "\"target_id\" => \"smpi-feature-collection\"" )
         && str_contains( $dashboard, "\"item_selector\" => \".smpi-feature-filter-item\"" )
         && str_contains( $dashboard, "\"group_selector\" => \".smpi-feature-group\"" )
+        && str_contains( $dashboard, "\"text_selector\" => \":scope > summary, .smpi-feature-overview, .smpi-feature-settings\"" )
         && 2 === substr_count( $dashboard, "\"class\" => \"smpi-feature-filter-item\"" )
         && str_contains( $core_ui_source, "function initCollectionFilters(scope)" )
         && str_contains( $core_ui_source, "DOMContentLoaded" )

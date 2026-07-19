@@ -24,6 +24,7 @@ $html = CoreUi::collection_filter(
         'id'                  => 'feature-search',
         'target_id'           => 'feature-collection',
         'item_selector'       => '.feature-card',
+        "text_selector"       => ".feature-title, .feature-settings",
         'group_selector'      => '.feature-group',
         'label'               => 'Search features',
         'placeholder'         => 'Search features...',
@@ -46,6 +47,7 @@ $checks = [
         && str_contains( $html, 'aria-controls="feature-collection"' )
         && str_contains( $html, '>Search features</label>'),
     'Carries reusable item and group selectors as data.' => str_contains( $html, 'data-item-selector=".feature-card"')
+        && str_contains( $html, "data-text-selector=\".feature-title, .feature-settings\"" )
         && str_contains( $html, 'data-group-selector=".feature-group"'),
     'Renders clear, live-count, and no-result controls.' => str_contains( $html, 'data-hpc-filter-clear hidden')
         && str_contains( $html, 'role="status" aria-live="polite"')
@@ -59,6 +61,8 @@ $checks = [
         && str_contains( $source, 'window.hexaPluginCoreInitCollectionFilters')
         && str_contains( $source, "DOMContentLoaded" )
         && str_contains( $source, "document.addEventListener('hexa-core-host-tab-loaded'"),
+    "Uses host-selected text regions before falling back to full card text." => str_contains( $source, "selected(textSelector, item)" )
+        && str_contains( $source, "data-text-selector" ),
     'Rejects a filter without a target collection.' => '' === CoreUi::collection_filter( [ 'label' => 'Invalid' ] ),
 ];
 

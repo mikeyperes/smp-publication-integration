@@ -1314,6 +1314,7 @@ class DashboardController {
                 "id" => "smpi-feature-search",
                 "target_id" => "smpi-feature-collection",
                 "item_selector" => ".smpi-feature-filter-item",
+                "text_selector" => ":scope > summary, .smpi-feature-overview, .smpi-feature-settings",
                 "group_selector" => ".smpi-feature-group",
                 "label" => "Search features",
                 "placeholder" => "Search features...",

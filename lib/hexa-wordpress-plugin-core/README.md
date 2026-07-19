@@ -212,6 +212,8 @@ Version 0.19.52 adds CoreUi::collection_filter() for searchable admin-card colle
 
 Version 0.19.53 also initializes collection filters after DOMContentLoaded so first-render panels work before any AJAX navigation.
 
+Version 0.19.54 adds an optional host-selected text selector so shared logs and diagnostics do not create false search matches.
+
 The grouped sidebar now places plugin identity and its expand/collapse control in one rail header. The expanded control sits at the top-right; collapsed mode hides identity and centers the control in the compact rail.
 
 ## Scoped CSS Override References
