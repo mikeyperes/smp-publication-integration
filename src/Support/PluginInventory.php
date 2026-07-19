@@ -41,6 +41,7 @@ final class PluginInventory {
             self::normal( 'media-cleaner-pro/media-cleaner-pro.php', 'Media Cleaner (Pro)', 'pro', true ),
             self::wp_org( 'seo-by-rank-math/rank-math.php', 'Rank Math SEO', 'seo-by-rank-math', true ),
             self::normal( 'seo-by-rank-math-pro/rank-math-pro.php', 'Rank Math SEO PRO', 'pro', true ),
+            self::wp_org( 'simple-local-avatars/simple-local-avatars.php', 'Simple Local Avatars', 'simple-local-avatars', true ),
             self::wp_org( 'google-site-kit/google-site-kit.php', 'Site Kit by Google', 'google-site-kit', true ),
             self::github( 'smp-publication-integration/smp-publication-integration.php', 'SMP Publication Integration', 'mikeyperes/smp-publication-integration', false ),
             self::normal( 'smp-wp-text-to-speech/smp-wp-text-to-speech.php', 'SMP WP Text To Speech', 'manual', false ),
@@ -65,7 +66,6 @@ final class PluginInventory {
     public static function forbidden_definitions(): array {
         return [
             self::forbidden( 'jet-engine/jet-engine.php', 'JetEngine', 'jet-engine' ),
-            self::forbidden( 'simple-local-avatars/simple-local-avatars.php', 'Simple Local Avatars', 'simple-local-avatars' ),
         ];
     }
 
@@ -127,15 +127,15 @@ final class PluginInventory {
     public static function forbidden_renderer_args(): array {
         return [
             'title'            => 'Forbidden Plugins',
-            'description'      => 'Only plugins explicitly listed by SMP policy are forbidden. Installed entries require attention; absent entries satisfy the policy.',
+            'description'      => 'Plugins explicitly prohibited by SMP policy. Only installed violations are shown.',
             'action_prefix'    => self::forbidden_action_prefix(),
             'nonce'            => \smp_publication_integration\Admin\Ajax::nonce(),
             'nonce_field'      => 'nonce',
             'persist_key'      => 'smpi-forbidden-plugin-stack',
             'open'             => true,
-            'empty_text'       => 'No explicitly forbidden plugins are configured.',
+            'empty_text'       => 'No forbidden plugins are installed.',
             'show_install_all' => false,
-            'hide_compliant_forbidden' => false,
+            'hide_compliant_forbidden' => true,
             'show_unwanted'    => true,
             'columns'          => [
                 'auto_update' => true,

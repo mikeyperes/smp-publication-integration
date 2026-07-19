@@ -39,10 +39,13 @@ namespace {
         $recommended_by_file[ (string) $definition['plugin_file'] ] = $definition;
     }
 
-    assert_true(
-        ! isset( $recommended_by_file['simple-local-avatars/simple-local-avatars.php'] ),
-        'Simple Local Avatars must not appear in the required plugin list.'
-    );
+    $simple_avatars_file = 'simple-local-avatars/simple-local-avatars.php';
+    assert_true( isset( $recommended_by_file[ $simple_avatars_file ] ), 'Simple Local Avatars requirement is missing.' );
+    assert_true( true === $recommended_by_file[ $simple_avatars_file ]['required'], 'Simple Local Avatars must be required.' );
+    assert_true( true === $recommended_by_file[ $simple_avatars_file ]['checks']['installed'], 'Simple Local Avatars must check installation.' );
+    assert_true( true === $recommended_by_file[ $simple_avatars_file ]['checks']['active'], 'Simple Local Avatars must check activation.' );
+    assert_true( 'wordpress_org' === $recommended_by_file[ $simple_avatars_file ]['source'], 'Simple Local Avatars must use the WordPress.org installer.' );
+    assert_true( 'simple-local-avatars' === $recommended_by_file[ $simple_avatars_file ]['wp_org_slug'], 'Simple Local Avatars WordPress.org slug is incorrect.' );
 
     $pr_wire_file = 'hexa-pr-wire-distributor/hexa-pr-wire-distributor.php';
     assert_true( isset( $recommended_by_file[ $pr_wire_file ] ), 'Hexa PR Wire Distributor requirement is missing.' );
@@ -58,13 +61,12 @@ namespace {
 
     $expected_forbidden = [
         'jet-engine/jet-engine.php',
-        'simple-local-avatars/simple-local-avatars.php',
     ];
     $actual_forbidden = array_keys( $forbidden_by_file );
     sort( $expected_forbidden );
     sort( $actual_forbidden );
 
-    assert_true( $expected_forbidden === $actual_forbidden, 'Forbidden policy must contain exactly JetEngine and Simple Local Avatars.' );
+    assert_true( $expected_forbidden === $actual_forbidden, 'Forbidden policy must contain exactly JetEngine.' );
 
     foreach ( $forbidden_by_file as $plugin_file => $definition ) {
         assert_true( true === $definition['should_not_contain'], $plugin_file . ' must be explicitly forbidden.' );
@@ -80,9 +82,9 @@ namespace {
     $forbidden_args = PluginInventory::forbidden_renderer_args();
     assert_true( 'Forbidden Plugins' === $forbidden_args['title'], 'Forbidden section title is incorrect.' );
     assert_true( false === $forbidden_args['columns']['source'], 'Forbidden plugins must render source beneath the plugin path.' );
-    assert_true( false === $forbidden_args['hide_compliant_forbidden'], 'Absent forbidden plugins must remain visible.' );
+    assert_true( true === $forbidden_args['hide_compliant_forbidden'], 'Absent forbidden plugins must be hidden from the violations table.' );
     assert_true(
-        str_contains( $forbidden_args['description'], 'explicitly listed by SMP policy' ),
+        str_contains( $forbidden_args['description'], 'explicitly prohibited by SMP policy' ),
         'Forbidden section must explain its explicit policy metric.'
     );
 
