@@ -49,6 +49,11 @@ $checks = [
         && str_contains( $dashboard, '$this->post_content_blocks_shortcode_reference_html()' ),    'Breadcrumb background is saved and applied through one scoped CSS variable.' => str_contains( $dashboard, 'breadcrumbs_background_color' )
         && str_contains( $article_styles, '--smpi-bc-background' )
         && str_contains( $article_styles, 'background:var(--smpi-bc-background,#fff)' ),
+    'Breadcrumb background owns a full-width band and bc-b6 has no divider.' => str_contains( $breadcrumbs, 'smpi-breadcrumbs-band' )
+        && str_contains( $article_styles, '.smpi-breadcrumbs-band{background:var(--smpi-bc-background,#fff);box-sizing:border-box;clear:both;margin:0;max-width:none;width:100%}' )
+        && str_contains( $article_styles, '.smpi-bc-b6{max-width:var(--content-width,1140px);padding:14px 0;border-bottom:0}' )
+        && ! str_contains( $article_styles, '.smpi-bc-b6{max-width:var(--content-width,1140px);padding:14px 0;border-bottom:1px' )
+        && str_contains( $dashboard, '.smpi-breadcrumbs-band,.smpi-breadcrumbs' ),
     'Breadcrumb controls render in Template, Appearance, Visibility order.' => str_contains( $dashboard, '$this->breadcrumb_controls_html( $settings )' )
         && str_contains( $breadcrumb_flow, 'smpi-breadcrumb-flow' )
         && strpos( $breadcrumb_flow, '"Template"' ) < strpos( $breadcrumb_flow, '"Appearance"' )
@@ -66,7 +71,7 @@ $checks = [
         && str_contains( $dashboard, 'return ScopedCssOverride::render(' )
         && str_contains( $core_scoped_css, 'final class ScopedCssOverride' )
         && str_contains( $core_scoped_css, "CoreUi::detail_card(" ),
-    'Breadcrumb CSS override is scoped, formatted, and closed by default.' => str_contains( $dashboard, 'body .smpi-breadcrumbs[class*="smpi-bc-"]' )
+    'Breadcrumb CSS override is scoped, formatted, and closed by default.' => str_contains( $dashboard, 'body .smpi-breadcrumbs-band' )
         && str_contains( $dashboard, '"html_example" => $html_example' )
         && str_contains( $dashboard, '"css_example"  => $css_example' )
         && str_contains( $dashboard, '"open"         => false' ),
@@ -75,6 +80,7 @@ $checks = [
         && str_contains( $dashboard, '"input_class"  => "smpi-setting"' )
         && str_contains( $breadcrumbs, 'public static function validate_custom_css' )
         && str_contains( $breadcrumbs, 'CSS_SCOPE_MARKER' )
+        && str_contains( $breadcrumbs, 'LEGACY_CSS_SCOPE_MARKER' )
         && str_contains( $ajax, 'Breadcrumbs::validate_custom_css' )
         && str_contains( $settings_repository, '"breadcrumbs_css_override"' )
         && str_contains( $article_styles, 'Breadcrumbs::custom_css()' ),

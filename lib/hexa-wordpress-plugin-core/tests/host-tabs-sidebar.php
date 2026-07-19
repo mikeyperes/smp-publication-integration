@@ -52,6 +52,15 @@ $args = [
             'tabs'  => [ 'overview', 'features' ],
         ],
     ],
+    'sidebar_identity'    => [
+        'plugin_name'     => 'Example Plugin',
+        'current_version' => '1.2.3',
+        'github_version'  => '1.3.0',
+        'github_url'      => 'https://github.com/example/example-plugin',
+        'core_name'       => 'Hexa WP Core',
+        'core_version'    => '0.19.51',
+        'core_github_url' => 'https://github.com/example/hexa-core',
+    ],
     'sidebar_collapsible' => true,
     'sidebar_persist'     => true,
     'render_callback'     => static function ( string $tab ): void {
@@ -106,6 +115,13 @@ $checks = [
         && str_contains( $rail_rule, 'overflow:visible' )
         && ! str_contains( $rail_rule, 'overflow:auto' )
         && ! str_contains( $rail_rule, 'max-height:calc' ),
+    'Renders identity before the first navigation group.' => str_contains( $html, '<strong class="hpc-host-rail-plugin-name">Example Plugin</strong>' )
+        && strpos( $html, 'hpc-host-rail-identity' ) < strpos( $html, 'hpc-host-rail-group' ),
+    'Renders linked plugin and Core versions safely.' => str_contains( $html, 'Current 1.2.3' )
+        && str_contains( $html, '<a href="https://github.com/example/example-plugin" target="_blank" rel="noopener noreferrer">GitHub 1.3.0</a>' )
+        && str_contains( $html, '<a class="hpc-host-rail-core" href="https://github.com/example/hexa-core" target="_blank" rel="noopener noreferrer">Hexa WP Core 0.19.51</a>' ),
+    'Hides identity when collapsed and wraps version metadata.' => str_contains( $core_ui_source, '.is-sidebar-collapsed .hpc-host-rail-identity{display:none}' )
+        && str_contains( $core_ui_source, '.hpc-host-rail-versions{align-items:baseline;color:var(--hpc-muted);display:flex;flex-wrap:wrap' ),
     'Wraps the mobile navigation without horizontal scrolling.' => str_contains( $core_ui_source, '@media(max-width:960px)' )
         && str_contains( $core_ui_source, 'display:flex;flex-wrap:wrap;gap:6px;max-width:100%' )
         && ! str_contains( $rail_rule, 'overflow-x' ),

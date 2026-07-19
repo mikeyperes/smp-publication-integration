@@ -21,6 +21,7 @@ final class HostTabsRenderer {
         $callback  = $args["render_callback"] ?? null;
         $layout    = isset( $args["layout"] ) ? sanitize_key( (string) $args["layout"] ) : "bar";
         $groups    = isset( $args["groups"] ) && is_array( $args["groups"] ) ? $args["groups"] : [];
+        $sidebar_identity = isset( $args["sidebar_identity"] ) && is_array( $args["sidebar_identity"] ) ? $args["sidebar_identity"] : [];
 
         if ( "" === $root_id ) {
             $root_id = "hpc-host-tabs";
@@ -66,6 +67,7 @@ final class HostTabsRenderer {
         <div id="<?php echo esc_attr( $root_id ); ?>" class="<?php echo esc_attr( $shell_class ); ?>" data-hpc-tab-root data-ajax-url="<?php echo esc_url( $ajax_url ); ?>" data-ajax-action="<?php echo esc_attr( $action ); ?>" data-nonce-field="<?php echo esc_attr( $nonce_key ); ?>" data-nonce="<?php echo esc_attr( $nonce ); ?>" data-page-url="<?php echo esc_url( $page_url ); ?>" data-panel-id="<?php echo esc_attr( $panel_id ); ?>" data-active-tab="<?php echo esc_attr( $active ); ?>" data-sidebar-collapsible="<?php echo $sidebar_collapsible ? "1" : "0"; ?>" data-sidebar-collapsed="<?php echo $sidebar_collapsed ? "1" : "0"; ?>" data-sidebar-persist="<?php echo $sidebar_persist ? "1" : "0"; ?>" data-sidebar-storage-key="<?php echo esc_attr( $sidebar_storage_key ); ?>">
             <?php if ( $sidebar ) : ?>
                 <aside id="<?php echo esc_attr( $rail_id ); ?>" class="hpc-host-rail" aria-label="<?php echo esc_attr( $label ); ?>">
+                    <?php echo $this->sidebar_identity_html( $sidebar_identity ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
                     <?php if ( $sidebar_collapsible ) : ?>
                         <div class="hpc-host-rail-tools">
                             <button type="button" class="hpc-host-sidebar-toggle" data-hpc-sidebar-toggle aria-controls="<?php echo esc_attr( $rail_navigation_id ); ?>" aria-expanded="<?php echo $sidebar_collapsed ? "false" : "true"; ?>" aria-label="<?php echo esc_attr( $toggle_label ); ?>" title="<?php echo esc_attr( $toggle_label ); ?>">
@@ -201,7 +203,55 @@ final class HostTabsRenderer {
             window.addEventListener("popstate", function(){ var params = new URLSearchParams(window.location.search); var tab = params.get("tab") || root.dataset.activeTab || ""; load(tab, tabUrl(tab), false); });
         })();
         </script>
+
         <?php
+    }
+
+    /**
+     * @param array<string,mixed> $identity
+     */
+    private function sidebar_identity_html( array $identity ): string {
+        $plugin_name     = trim( (string) ( $identity["plugin_name"] ?? "" ) );
+        $current_version = trim( (string) ( $identity["current_version"] ?? "" ) );
+        $github_version  = trim( (string) ( $identity["github_version"] ?? "" ) );
+        $github_url      = trim( (string) ( $identity["github_url"] ?? "" ) );
+        $core_name       = trim( (string) ( $identity["core_name"] ?? "" ) );
+        $core_version    = trim( (string) ( $identity["core_version"] ?? "" ) );
+        $core_github_url = trim( (string) ( $identity["core_github_url"] ?? "" ) );
+
+        if ( "" === $plugin_name && "" === $current_version && "" === $github_version && "" === $core_name && "" === $core_version ) {
+            return "";
+        }
+
+        $version_parts = [];
+        if ( "" !== $current_version ) {
+            $version_parts[] = "<span>Current " . esc_html( $current_version ) . "</span>";
+        }
+        if ( "" !== $github_version ) {
+            $github_label = "GitHub " . esc_html( $github_version );
+            $version_parts[] = "" !== $github_url
+                ? "<a href=\"" . esc_url( $github_url ) . "\" target=\"_blank\" rel=\"noopener noreferrer\">" . $github_label . "</a>"
+                : "<span>" . $github_label . "</span>";
+        }
+
+        $core_label = trim( $core_name . ( "" !== $core_version ? " " . $core_version : "" ) );
+        $core_html  = "";
+        if ( "" !== $core_label ) {
+            $core_html = "" !== $core_github_url
+                ? "<a class=\"hpc-host-rail-core\" href=\"" . esc_url( $core_github_url ) . "\" target=\"_blank\" rel=\"noopener noreferrer\">" . esc_html( $core_label ) . "</a>"
+                : "<span class=\"hpc-host-rail-core\">" . esc_html( $core_label ) . "</span>";
+        }
+
+        $html = "<div class=\"hpc-host-rail-identity\">";
+        if ( "" !== $plugin_name ) {
+            $html .= "<strong class=\"hpc-host-rail-plugin-name\">" . esc_html( $plugin_name ) . "</strong>";
+        }
+        if ( [] !== $version_parts ) {
+            $html .= "<div class=\"hpc-host-rail-versions\">" . implode( "<span class=\"hpc-host-rail-version-separator\" aria-hidden=\"true\"> - </span>", $version_parts ) . "</div>";
+        }
+        $html .= $core_html . "</div>";
+
+        return $html;
     }
 
     /**

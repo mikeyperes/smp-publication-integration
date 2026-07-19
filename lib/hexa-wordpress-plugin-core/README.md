@@ -628,6 +628,8 @@ use Hexa\PluginCore\LogFiles\ErrorLogSource;
 
 Use `Hexa\PluginCore\WpAdminTabs\HostTabsRenderer` for the complete host dashboard shell. Core owns the tab or grouped-sidebar markup, responsive layout, AJAX loading, status updates, browser history, accessibility relationships, and optional persisted sidebar state. The host provides routes, labels, groups, request details, and the panel renderer.
 
+For sidebar layouts, hosts may pass a generic `sidebar_identity` array containing plugin and Core names, installed versions, GitHub versions, and repository URLs. Core owns its escaped markup, external-link safety, responsive wrapping, and collapsed-state visibility.
+
 ```php
 ( new \Hexa\PluginCore\WpAdminTabs\HostTabsRenderer() )->render(
     [
@@ -640,6 +642,15 @@ Use `Hexa\PluginCore\WpAdminTabs\HostTabsRenderer` for the complete host dashboa
         "panel_id"            => "example-plugin-panel",
         "layout"              => "sidebar",
         "groups"              => $navigation_groups,
+        "sidebar_identity"    => [
+            "plugin_name"     => "Example Plugin",
+            "current_version" => $installed_version,
+            "github_version"  => $github_version,
+            "github_url"      => "https://github.com/example/example-plugin",
+            "core_name"       => "Hexa WP Core",
+            "core_version"    => $core_version,
+            "core_github_url" => "https://github.com/mikeyperes/hexa-wordpress-plugin-core",
+        ],
         "sidebar_collapsible" => true,
         "sidebar_collapsed"   => false,
         "sidebar_persist"     => true,
@@ -648,7 +659,7 @@ Use `Hexa\PluginCore\WpAdminTabs\HostTabsRenderer` for the complete host dashboa
 );
 ```
 
-The sidebar is expanded by default, uses a 214px desktop rail, collapses to an icon control, and stores state under a key scoped to `root_id` when persistence is enabled. Its rail has no internal scroll container; mobile navigation wraps into multiple lines without horizontal scrolling. Omit `layout` and `groups` for the standard top tab bar.
+The sidebar is expanded by default, uses a 214px desktop rail, collapses to an icon control, and stores state under a key scoped to `root_id` when persistence is enabled. Optional identity metadata sits above navigation while expanded and is hidden when collapsed. Its rail has no internal scroll container; mobile navigation and version text wrap without horizontal scrolling. Omit `layout` and `groups` for the standard top tab bar.
 
 ## System Checks
 

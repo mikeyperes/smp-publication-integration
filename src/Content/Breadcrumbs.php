@@ -12,8 +12,9 @@ if ( ! defined( "ABSPATH" ) ) {
 final class Breadcrumbs {
     public const SHORTCODE = "smp_breadcrumbs";
     public const CSS_SETTING = "breadcrumbs_css_override";
-    public const CSS_SELECTOR = 'body .smpi-breadcrumbs[class*="smpi-bc-"]';
-    public const CSS_SCOPE_MARKER = '.smpi-breadcrumbs[class*="smpi-bc-"]';
+    public const CSS_SELECTOR = 'body .smpi-breadcrumbs-band';
+    public const CSS_SCOPE_MARKER = '.smpi-breadcrumbs-band';
+    public const LEGACY_CSS_SCOPE_MARKER = '.smpi-breadcrumbs[class*="smpi-bc-"]';
 
     public function register(): void {
         add_shortcode( self::SHORTCODE, [ $this, "render_shortcode" ] );
@@ -96,7 +97,7 @@ final class Breadcrumbs {
         $title_html = in_array( $style, [ "bc-b1", "bc-b5" ], true ) && "" !== $title ? "<div class=\"smpi-template-title smpi-breadcrumb-title\">" . esc_html( $title ) . "</div>" : "";
         $content = "bc-b5" === $style ? $crumbs . $title_html : $title_html . $crumbs;
 
-        return "<div class=\"" . esc_attr( $classes ) . "\" style=\"" . esc_attr( $style_attr ) . "\" data-smpi-breadcrumbs data-smpi-breadcrumbs-style=\"" . esc_attr( $style ) . "\">" . self::safe_markup( $content ) . "</div>";
+        return "<div class=\"smpi-breadcrumbs-band\" style=\"" . esc_attr( $style_attr ) . "\" data-smpi-breadcrumbs-band data-smpi-breadcrumbs-style=\"" . esc_attr( $style ) . "\"><div class=\"" . esc_attr( $classes ) . "\" style=\"" . esc_attr( $style_attr ) . "\" data-smpi-breadcrumbs data-smpi-breadcrumbs-style=\"" . esc_attr( $style ) . "\">" . self::safe_markup( $content ) . "</div></div>";
     }
 
     public static function integrity_report(): array {
@@ -149,8 +150,8 @@ final class Breadcrumbs {
                 continue;
             }
             foreach ( preg_split( '~,(?![^()]*\))~', $prelude ) ?: [] as $selector ) {
-                if ( ! str_contains( trim( (string) $selector ), self::CSS_SCOPE_MARKER ) ) {
-                    return [ "valid" => false, "css" => "", "message" => "Every selector must include " . self::CSS_SCOPE_MARKER . "." ];
+                if ( ! str_contains( trim( (string) $selector ), self::CSS_SCOPE_MARKER ) && ! str_contains( trim( (string) $selector ), self::LEGACY_CSS_SCOPE_MARKER ) ) {
+                    return [ "valid" => false, "css" => "", "message" => "Every selector must include " . self::CSS_SCOPE_MARKER . " or " . self::LEGACY_CSS_SCOPE_MARKER . "." ];
                 }
             }
         }

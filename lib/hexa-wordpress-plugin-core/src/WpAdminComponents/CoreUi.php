@@ -59,6 +59,14 @@ final class CoreUi {
             .hpc-host-tabs-shell.is-sidebar{--hpc-host-sidebar-width:214px;align-items:start;display:grid;gap:16px;grid-template-columns:var(--hpc-host-sidebar-width) minmax(0,1fr)}
             .hpc-host-tabs-shell.is-sidebar.is-sidebar-collapsed{grid-template-columns:44px minmax(0,1fr)}
             .hpc-host-rail{align-self:start;background:#fff;border:1px solid var(--hpc-line);border-radius:var(--hpc-radius);max-height:none;max-width:100%;overflow:visible;padding:7px;position:sticky;top:42px}
+            .hpc-host-rail-identity{border-bottom:1px solid #eef1f6;margin:0 2px 6px;min-width:0;overflow-wrap:anywhere;padding:8px 9px 11px;width:calc(100% - 4px)}
+            .hpc-host-rail-plugin-name{color:var(--hpc-ink);display:block;font-size:14px;line-height:1.35;margin:0 0 4px}
+            .hpc-host-rail-versions{align-items:baseline;color:var(--hpc-muted);display:flex;flex-wrap:wrap;font-size:11px;gap:0 2px;line-height:1.45;min-width:0}
+            .hpc-host-rail-versions a,.hpc-host-rail-core{color:var(--hpc-blue);text-decoration:none}
+            .hpc-host-rail-versions a:hover,.hpc-host-rail-core:hover{text-decoration:underline}
+            .hpc-host-rail-version-separator{color:#9aa6b6}
+            .hpc-host-rail-core{display:block;font-size:11px;line-height:1.45;margin-top:3px;overflow-wrap:anywhere}
+            .hpc-host-tabs-shell.is-sidebar-collapsed .hpc-host-rail-identity{display:none}
             .hpc-host-rail-tools{display:flex;justify-content:flex-end;padding:1px 1px 5px}
             .hpc-host-sidebar-toggle{align-items:center;background:#fff;border:1px solid #cfd8e3;border-radius:6px;color:#31405a;cursor:pointer;display:inline-flex;height:32px;justify-content:center;padding:0;transition:background .15s,border-color .15s,color .15s;width:32px}
             .hpc-host-sidebar-toggle:hover{background:#eef3fc;border-color:#aebbd0;color:var(--hpc-blue)}

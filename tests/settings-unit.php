@@ -91,6 +91,12 @@ if ( empty( $valid_result["valid"] ) || $valid_css !== $valid_result["css"] ) {
 " );
     exit( 1 );
 }
+$band_css = 'body .smpi-breadcrumbs-band { background: #123456; }';
+$band_result = Breadcrumbs::validate_custom_css( $band_css );
+if ( empty( $band_result["valid"] ) || $band_css !== $band_result["css"] ) {
+    fwrite( STDERR, "FAIL: Valid breadcrumb band CSS was rejected.\n" );
+    exit( 1 );
+}
 $invalid_result = Breadcrumbs::validate_custom_css( 'body .unscoped-component { color: red; }' );
 if ( ! empty( $invalid_result["valid"] ) ) {
     fwrite( STDERR, "FAIL: Unscoped breadcrumb CSS was accepted.

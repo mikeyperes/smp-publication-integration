@@ -71,6 +71,17 @@ if (
     fwrite( STDERR, "FAIL: SMP must configure the reusable Core sidebar shell explicitly.\n" );
     exit( 1 );
 }
+if (
+    ! str_contains( $controller, 'use Hexa\\PluginCore\\PluginUpdates\\PluginUpdateStatus;' )
+    || ! str_contains( $controller, 'use Hexa\\PluginCore\\CorePackageUpdates\\CorePackageStatus;' )
+    || ! str_contains( $controller, '$sidebar_identity = $this->sidebar_identity();' )
+    || ! str_contains( $controller, '"sidebar_identity" => $sidebar_identity' )
+    || ! str_contains( $controller, 'hexa_plugin_core_updater_config()' )
+    || ! str_contains( $controller, 'hexa_plugin_core_package_config()' )
+) {
+    fwrite( STDERR, "FAIL: SMP must populate Core sidebar identity from the existing update status services.\n" );
+    exit( 1 );
+}
 
 foreach (
     [
@@ -126,6 +137,14 @@ if (
     || ! str_contains( $core_tabs_source, 'window.localStorage.setItem(root.dataset.sidebarStorageKey' )
 ) {
     fwrite( STDERR, "FAIL: Vendored Core sidebar does not match the canonical collapsible shell contract.\n" );
+    exit( 1 );
+}
+if (
+    ! str_contains( $core_ui_source, '.hpc-host-rail-identity{' )
+    || ! str_contains( $core_ui_source, '.is-sidebar-collapsed .hpc-host-rail-identity{display:none}' )
+    || ! str_contains( $core_tabs_source, 'sidebar_identity_html( $sidebar_identity )' )
+) {
+    fwrite( STDERR, "FAIL: Vendored Core is missing the reusable sidebar identity contract.\n" );
     exit( 1 );
 }
 

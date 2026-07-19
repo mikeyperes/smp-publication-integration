@@ -103,7 +103,7 @@ if ( [ 'features' ] !== $rendered ) {
 
 $legacy_areas = [
     'overview'            => 'overview',
-    'quick_run'           => 'operations',
+    'quick_run'           => 'overview',
     'publication_options' => 'publication',
     'profiles'            => 'publication',
     'brand'               => 'publication',
@@ -140,6 +140,18 @@ foreach ( $legacy_areas as $section => $area ) {
         fwrite( STDERR, "FAIL: Flat and legacy routes differ for {$section}.\n" );
         exit( 1 );
     }
+}
+$legacy_quick_start = $navigation->resolve( 'operations', 'quick_run' );
+$groups = $navigation->groups();
+if (
+    'overview' !== $legacy_quick_start->area()
+    || 'quick_run' !== $legacy_quick_start->section()
+    || [ 'overview', 'quick_run' ] !== ( $groups[0]['tabs'] ?? [] )
+    || 'Articles' !== ( $groups[2]['label'] ?? null )
+    || in_array( 'quick_run', $groups[4]['tabs'] ?? [], true )
+) {
+    fwrite( STDERR, "FAIL: Quick Start order, Articles group label, or legacy operations route is incorrect.\n" );
+    exit( 1 );
 }
 
 $legacy_core = $navigation->resolve( 'hexa-core' );

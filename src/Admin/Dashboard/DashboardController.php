@@ -11,6 +11,8 @@ use Hexa\PluginCore\GettingStartedChecklist\GettingStartedChecklistRenderer;
 use Hexa\PluginCore\SnippetRegistry\SnippetRegistry;
 use Hexa\PluginCore\SnippetRegistry\SnippetsTableRenderer;
 use Hexa\PluginCore\WpAdminTabs\HostTabsRenderer;
+use Hexa\PluginCore\PluginUpdates\PluginUpdateStatus;
+use Hexa\PluginCore\CorePackageUpdates\CorePackageStatus;
 use Hexa\PluginCore\WpAdminTabs\TabDefinition;
 use Hexa\PluginCore\WpAdminTabs\TabRegistry;
 use Hexa\PluginCore\WpAdminComponents\ColorControl;
@@ -86,6 +88,7 @@ class DashboardController {
         $section    = isset( $_GET['section'] ) ? sanitize_key( wp_unslash( $_GET['section'] ) ) : '';
         $route      = $navigation->resolve( $requested, $section );
         $active     = $route->section();
+        $sidebar_identity = $this->sidebar_identity();
         if ( Dependencies::acf_active() && function_exists( "acf_form_head" ) ) {
             acf_form_head();
         }
@@ -109,6 +112,7 @@ class DashboardController {
                     "label"           => "SMP Publication Integration sections",
                     "layout"          => "sidebar",
                     "groups"          => $navigation->groups(),
+                    "sidebar_identity" => $sidebar_identity,
                     "sidebar_collapsible" => true,
                     "sidebar_collapsed"   => false,
                     "sidebar_persist"     => true,
@@ -121,6 +125,24 @@ class DashboardController {
         </div>
         <?php $this->scripts(); ?>
         <?php
+    }
+
+    /**
+     * @return array<string,string>
+     */
+    private function sidebar_identity(): array {
+        $plugin_status = ( new PluginUpdateStatus( \smp_publication_integration\hexa_plugin_core_updater_config() ) )->get();
+        $core_status   = ( new CorePackageStatus( \smp_publication_integration\hexa_plugin_core_package_config() ) )->get();
+
+        return [
+            "plugin_name"     => (string) ( $plugin_status["plugin_name"] ?? Config::$plugin_name ),
+            "current_version" => (string) ( $plugin_status["current_version"] ?? Config::VERSION ),
+            "github_version"  => (string) ( $plugin_status["latest_version"] ?? "Unknown" ),
+            "github_url"      => (string) ( $plugin_status["github_url"] ?? "https://github.com/" . Config::$github_repo ),
+            "core_name"       => "Hexa WP Core",
+            "core_version"    => (string) ( $core_status["current_version"] ?? "Unknown" ),
+            "core_github_url" => (string) ( $core_status["github_url"] ?? "https://github.com/mikeyperes/hexa-wordpress-plugin-core" ),
+        ];
     }
 
     public function tab_fragment( string $id ): array {
@@ -1789,32 +1811,34 @@ HTML;
     private function breadcrumb_css_override_html(): string {
         $selector = Breadcrumbs::CSS_SELECTOR;
         $html_example = <<<'HTML'
-<div class="smpi-template smpi-template--breadcrumbs smpi-breadcrumbs smpi-bc-b6">
-  <nav class="smpi-template-content smpi-breadcrumb-nav" aria-label="Breadcrumbs">
-    <p class="smpi-template-list smpi-breadcrumb-list">
-      <a class="smpi-template-item smpi-template-link smpi-breadcrumb-item smpi-breadcrumb-link" href="/">Home</a>
-      <span class="smpi-breadcrumb-separator"> / </span>
-      <span class="smpi-template-item smpi-breadcrumb-item smpi-breadcrumb-current">Current page</span>
-    </p>
-  </nav>
+<div class="smpi-breadcrumbs-band">
+  <div class="smpi-template smpi-template--breadcrumbs smpi-breadcrumbs smpi-bc-b6">
+    <nav class="smpi-template-content smpi-breadcrumb-nav" aria-label="Breadcrumbs">
+      <p class="smpi-template-list smpi-breadcrumb-list">
+        <a class="smpi-template-item smpi-template-link smpi-breadcrumb-item smpi-breadcrumb-link" href="/">Home</a>
+        <span class="smpi-breadcrumb-separator"> / </span>
+        <span class="smpi-template-item smpi-breadcrumb-item smpi-breadcrumb-current">Current page</span>
+      </p>
+    </nav>
+  </div>
 </div>
 HTML;
         $css_example = <<<'CSS'
-body .smpi-breadcrumbs[class*="smpi-bc-"] {
+body .smpi-breadcrumbs-band {
   --smpi-bc-background: #111827;
   --smpi-bc-accent: #60a5fa;
   background: var(--smpi-bc-background);
+}
+
+body .smpi-breadcrumbs-band .smpi-breadcrumbs[class*="smpi-bc-"] .smpi-breadcrumb-link,
+body .smpi-breadcrumbs-band .smpi-breadcrumbs[class*="smpi-bc-"] .smpi-breadcrumb-current {
   color: #f8fafc;
 }
 
-body .smpi-breadcrumbs[class*="smpi-bc-"] .smpi-breadcrumb-link,
-body .smpi-breadcrumbs[class*="smpi-bc-"] .smpi-breadcrumb-current {
-  color: inherit;
-}
-
-body.page-id-123 .smpi-breadcrumbs[class*="smpi-bc-"] {
+body.page-id-123 .smpi-breadcrumbs-band {
   --smpi-bc-background: #ffffff;
 }
+
 CSS;
 
         return ScopedCssOverride::render(
@@ -1823,7 +1847,7 @@ CSS;
                 "selector"     => $selector,
                 "instructions" => [
                     "Enter the CSS you want to apply in the editor below.",
-                    "Keep every selector under the scope shown below. Add body.page-id-123 for one page only.",
+                    "Use the band selector for the full background and its breadcrumb child for text. Add body.page-id-123 for one page only.",
                     "Changes save when you leave the editor and load after the Breadcrumb template CSS.",
                 ],
                 "html_example" => $html_example,
@@ -1932,7 +1956,7 @@ CSS;
             "bc-b3" => [ "label" => "Option 3: Uppercase Eyebrow", "description" => "Letter-spaced uppercase crumbs over a short accent rule.", "preview" => $this->breadcrumb_design_preview_html( "bc-b3" ) ],
             "bc-b4" => [ "label" => "Option 4: Soft Chips", "description" => "Each crumb is a rounded chip; current page becomes a filled accent pill.", "preview" => $this->breadcrumb_design_preview_html( "bc-b4" ) ],
             "bc-b5" => [ "label" => "Option 5: Gradient Lead-in", "description" => "Breadcrumb above a large serif headline on a soft top-down gradient.", "preview" => $this->breadcrumb_design_preview_html( "bc-b5" ) ],
-            "bc-b6" => [ "label" => "Option 6: Flush Minimal", "description" => "Capital-case crumbs with tight letter-spacing, flush to the header grid with no side padding.", "preview" => $this->breadcrumb_design_preview_html( "bc-b6" ) ],
+            "bc-b6" => [ "label" => "Option 6: Flush Minimal", "description" => "Capital-case crumbs aligned to the header grid on a full-width background band, with no forced divider.", "preview" => $this->breadcrumb_design_preview_html( "bc-b6" ) ],
         ];
     }
 
@@ -2057,7 +2081,7 @@ CSS;
         $title_html = in_array( $style, [ "bc-b1", "bc-b5" ], true ) ? "<div class=\"smpi-template-title smpi-breadcrumb-title\">" . esc_html( $title ) . "</div>" : "";
         $inner = "bc-b5" === $style ? $crumbs . $title_html : $title_html . $crumbs;
         $classes = \smp_publication_integration\Content\TemplateMarkup::root_classes( "breadcrumbs", [ "smpi-breadcrumbs", "smpi-" . $style ] );
-        return "<div class=\"" . esc_attr( $classes ) . "\">" . $inner . "</div>";
+        return "<div class=\"smpi-breadcrumbs-band\"><div class=\"" . esc_attr( $classes ) . "\">" . $inner . "</div></div>";
     }
 
     private function toc_design_preview_html( string $style ): string {
@@ -2872,7 +2896,7 @@ CSS;
             function smpiHex(v){v=String(v||``).trim().toLowerCase();if(v&&v.charAt(0)!==`#`)v=`#`+v;if(/^#[0-9a-f]{3}$/.test(v)){v=`#`+v[1]+v[1]+v[2]+v[2]+v[3]+v[3]}return /^#[0-9a-f]{6}$/.test(v)?v:``}
             function smpiRgb(v){var h=smpiHex(v);return h?`rgb(${parseInt(h.slice(1,3),16)}, ${parseInt(h.slice(3,5),16)}, ${parseInt(h.slice(5,7),16)})`:``}
             function smpiRgba(v,a){var h=smpiHex(v);return h?`rgba(${parseInt(h.slice(1,3),16)},${parseInt(h.slice(3,5),16)},${parseInt(h.slice(5,7),16)},${a})`:``}
-            function smpiSetPreviewVar(host,key,value,suffix){if(!host)return;host.style.setProperty(key,String(value)+suffix)}
+            function smpiSetPreviewVar(host,key,value,suffix){if(!host)return;var v=String(value)+suffix;host.style.setProperty(key,v);if(key.indexOf(`--smpi-bc-`)===0)host.querySelectorAll(`.smpi-breadcrumbs-band,.smpi-breadcrumbs`).forEach(function(el){el.style.setProperty(key,v)})}
             function smpiSetDerivedPreviewVars(host,key,value){if(!host||key!==`article_heading_accent_color`)return;var fade=smpiRgba(value,0),highlight=smpiRgba(value,.16);if(fade)host.style.setProperty(`--smpi-heading-accent-fade`,fade);if(highlight)host.style.setProperty(`--smpi-heading-highlight`,highlight)}
             function smpiSyncColor(wrap,value,isEmpty){var hex=smpiHex(value),display=isEmpty?((wrap.find(`[data-smpi-empty-label]`).data(`smpi-empty-label`)||`inherit`)):hex;if(hex){wrap.find(`.smpi-color-swatch,.hpc-color-swatch`).css(`background`,hex);wrap.find(`[data-hpc-copy]`).attr(`data-hpc-copy`,hex);wrap.find(`[data-hpc-color-picker]`).val(hex);wrap.find(`[data-hpc-color-hex-input]`).val(hex)}wrap.find(`[data-smpi-color-hex],[data-hpc-color-hex]`).text(display||hex||`inherit`);wrap.find(`[data-smpi-color-rgb],[data-hpc-color-rgb]`).text(hex?smpiRgb(hex):``)}
             function smpiApplyColor(key,color){var hex=smpiHex(color);if(!key||!hex)return;$(`[data-hpc-color-control][data-key="${key}"]`).each(function(){smpiSyncColor($(this),hex,false);$(this).find(`[data-hpc-color-hex-input]`).val(hex)});var hidden=$(`.smpi-color-hidden[data-key="${key}"]`).first(),picker=$(`.smpi-color-picker[data-smpi-sync-key="${key}"]`).first();if(hidden.length){hidden.val(hex)}if(picker.length){picker.val(hex);smpiSyncColor(picker.closest(`.smpi-color-control`),hex,false)}var m=smpiPV[key],host=document.querySelector(`.smpi-design-host`);if(m&&host){smpiSetPreviewVar(host,m[0],hex,m[1]);smpiSetDerivedPreviewVars(host,key,hex)}}

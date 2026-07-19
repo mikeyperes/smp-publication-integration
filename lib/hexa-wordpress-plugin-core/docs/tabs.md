@@ -100,8 +100,9 @@ For a grouped sidebar, pass:
 - `sidebar_collapsible => true` to render the icon-only collapse control
 - `sidebar_collapsed => false` for the initial state
 - `sidebar_persist => true` to restore state from `localStorage`
+- `sidebar_identity` for optional host plugin and Core name/version links rendered above the navigation
 
-Persistence is scoped by `root_id`. The default expanded rail is 214px and the collapsed rail is 44px. The rail deliberately uses page scrolling instead of an internal vertical scrollbar, and its mobile layout wraps links without horizontal scrolling.
+Persistence is scoped by `root_id`. The optional `sidebar_identity` contract is rendered and styled entirely by Core, opens repository links in a new tab with safe relationship attributes, hides in collapsed mode, and wraps on mobile. The default expanded rail is 214px and the collapsed rail is 44px. The rail deliberately uses page scrolling instead of an internal vertical scrollbar, and its mobile layout wraps links without horizontal scrolling.
 
 ```php
 ( new HostTabsRenderer() )->render(
@@ -115,6 +116,15 @@ Persistence is scoped by `root_id`. The default expanded rail is 214px and the c
         "panel_id"            => "example-plugin-panel",
         "layout"              => "sidebar",
         "groups"              => $groups,
+        "sidebar_identity"    => [
+            "plugin_name"     => "Example Plugin",
+            "current_version" => $installed_version,
+            "github_version"  => $github_version,
+            "github_url"      => "https://github.com/example/example-plugin",
+            "core_name"       => "Hexa WP Core",
+            "core_version"    => $core_version,
+            "core_github_url" => "https://github.com/mikeyperes/hexa-wordpress-plugin-core",
+        ],
         "sidebar_collapsible" => true,
         "sidebar_collapsed"   => false,
         "sidebar_persist"     => true,

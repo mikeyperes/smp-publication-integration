@@ -47,7 +47,8 @@ $checks = [
         && str_contains( $breadcrumbs, "smpi-breadcrumb-title" )
         && str_contains( $breadcrumbs, "smpi-breadcrumb-link" )
         && str_contains( $breadcrumbs, "smpi-breadcrumb-separator" )
-        && str_contains( $breadcrumbs, "smpi-breadcrumb-current" ),
+        && str_contains( $breadcrumbs, "smpi-breadcrumb-current" )
+        && str_contains( $breadcrumbs, "smpi-breadcrumbs-band" ),
 
     "TOC PHP and JavaScript paths use component classes for every structural element." =>
         str_contains( $toc, 'TemplateMarkup::root_classes( "toc"' )
@@ -102,7 +103,8 @@ $checks = [
         && str_contains( $dashboard, 'TemplateMarkup::root_classes( "inline-photo"' )
         && str_contains( $dashboard, 'TemplateMarkup::root_classes( "featured-image-caption"' )
         && str_contains( $dashboard, 'TemplateMarkup::root_classes( "article-summary"' )
-        && str_contains( $dashboard, 'TemplateMarkup::root_classes( "article-faqs"' ),
+        && str_contains( $dashboard, 'TemplateMarkup::root_classes( "article-faqs"' )
+        && str_contains( $dashboard, 'smpi-breadcrumbs-band' ),
 
     "SMP front-end CSS no longer depends on Rank Math or Elementor selectors." =>
         "" !== $css_source

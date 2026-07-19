@@ -35,7 +35,7 @@ final class AdminNavigation {
     private const AREAS = [
         'overview'        => 'Overview',
         'publication'     => 'Publication',
-        'editorial'       => 'Editorial',
+        'editorial'       => 'Articles',
         'structured_data' => 'Structured Data',
         'operations'      => 'Operations',
         'advanced'        => 'Advanced',
@@ -44,6 +44,7 @@ final class AdminNavigation {
     private const SECTIONS = [
         'overview' => [
             'overview' => 'Overview',
+            'quick_run' => 'Quick Start',
         ],
         'publication' => [
             'publication_options' => 'Publication Options',
@@ -65,7 +66,6 @@ final class AdminNavigation {
             'verified_profiles' => 'Verified Profiles',
         ],
         'operations' => [
-            'quick_run'       => 'Quick Start',
             'article_cleanup' => 'Article Cleanup',
             'optimization'    => 'Optimization',
             'plugins'         => 'Plugins',
@@ -201,6 +201,10 @@ final class AdminNavigation {
 
         if ( 'hexa-core' === $section ) {
             $section = 'hexa_core';
+        }
+
+        if ( 'operations' === $tab && 'quick_run' === $section ) {
+            return new AdminRoute( 'overview', 'quick_run' );
         }
 
         if ( isset( $areas[ $tab ] ) ) {

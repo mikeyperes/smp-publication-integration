@@ -1280,6 +1280,8 @@ Namespace: `Hexa\PluginCore\WpAdminTabs`
 
 Use `HostTabsRenderer` for the complete visible host plugin shell. It owns the top-tab or grouped-sidebar markup, responsive UI, AJAX tab loading, status text, history updates, accessibility relationships, load events, and optional persisted sidebar state. Host plugins provide the tab registry, active tab, groups, admin page URL, AJAX action, nonce, unique root and panel IDs, and first-render callback.
 
+Optional `sidebar_identity` data contains host plugin and Core names, installed or GitHub versions, and repository URLs. Core owns escaping, markup, external-link safety, responsive wrapping, and hiding this metadata when the rail is collapsed.
+
 ```php
 ( new \Hexa\PluginCore\WpAdminTabs\HostTabsRenderer() )->render(
     [
@@ -1292,6 +1294,15 @@ Use `HostTabsRenderer` for the complete visible host plugin shell. It owns the t
         "panel_id"            => "example-plugin-panel",
         "layout"              => "sidebar",
         "groups"              => $navigation_groups,
+        "sidebar_identity"    => [
+            "plugin_name"     => "Example Plugin",
+            "current_version" => $installed_version,
+            "github_version"  => $github_version,
+            "github_url"      => "https://github.com/example/example-plugin",
+            "core_name"       => "Hexa WP Core",
+            "core_version"    => $core_version,
+            "core_github_url" => "https://github.com/mikeyperes/hexa-wordpress-plugin-core",
+        ],
         "sidebar_collapsible" => true,
         "sidebar_collapsed"   => false,
         "sidebar_persist"     => true,
@@ -1300,7 +1311,7 @@ Use `HostTabsRenderer` for the complete visible host plugin shell. It owns the t
 );
 ```
 
-The expanded desktop rail is 214px and has no internal vertical scroll. It collapses to a 44px icon control. Persistent state is scoped to `root_id`, and mobile links wrap without horizontal scrolling. Host plugins must remove obsolete host-level tab CSS and JavaScript after migration rather than maintaining two navigation systems.
+The expanded desktop rail is 214px and has no internal vertical scroll. It collapses to a 44px icon control. Persistent state is scoped to `root_id`; identity metadata is hidden when collapsed; and mobile links and versions wrap without horizontal scrolling. Host plugins must remove obsolete host-level tab CSS and JavaScript after migration rather than maintaining two navigation systems.
 
 ## System Checks
 
