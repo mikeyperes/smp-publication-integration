@@ -225,16 +225,6 @@ final class AdminNavigation {
         return new AdminRoute( 'overview', 'overview' );
     }
 
-    public function section_url( string $page_url, string $area, string $section ): string {
-        return add_query_arg(
-            [
-                'tab'     => sanitize_key( $area ),
-                'section' => sanitize_key( $section ),
-            ],
-            $page_url
-        );
-    }
-
     private function known_section( string $section ): bool {
         foreach ( self::SECTIONS as $sections ) {
             if ( isset( $sections[ $section ] ) ) {

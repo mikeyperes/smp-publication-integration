@@ -22,12 +22,26 @@ final class HostTabsRenderer {
         $layout    = isset( $args["layout"] ) ? sanitize_key( (string) $args["layout"] ) : "bar";
         $groups    = isset( $args["groups"] ) && is_array( $args["groups"] ) ? $args["groups"] : [];
 
+        if ( "" === $root_id ) {
+            $root_id = "hpc-host-tabs";
+        }
+        if ( "" === $panel_id ) {
+            $panel_id = "hpc-host-tab-panel";
+        }
+
         if ( "" === $active || ! array_key_exists( $active, $tabs ) ) {
             $keys   = array_keys( $tabs );
             $active = isset( $keys[0] ) ? (string) $keys[0] : "";
         }
 
-        $sidebar = ( "sidebar" === $layout && [] !== $groups );
+        $sidebar             = ( "sidebar" === $layout && [] !== $groups );
+        $sidebar_collapsible = $sidebar && ! empty( $args["sidebar_collapsible"] );
+        $sidebar_collapsed   = $sidebar_collapsible && ! empty( $args["sidebar_collapsed"] );
+        $sidebar_persist     = $sidebar_collapsible
+            && ( ! array_key_exists( "sidebar_persist", $args ) || (bool) $args["sidebar_persist"] );
+        $rail_id             = $root_id . "-rail";
+        $rail_navigation_id  = $root_id . "-rail-navigation";
+        $sidebar_storage_key = "hpc-host-sidebar-" . $root_id;
 
         $panel_html = "";
         if ( is_callable( $callback ) && "" !== $active ) {
@@ -36,26 +50,45 @@ final class HostTabsRenderer {
             $panel_html = (string) ob_get_clean();
         }
 
-        $shell_class  = "hpc-ui hpc-host-tabs-shell " . ( $sidebar ? "is-sidebar" : "is-bar" );
-        $status_label = "" !== $active ? "Loaded " . $this->tab_label( $tabs[ $active ] ?? $active ) . "." : "";
+        $shell_class = "hpc-ui hpc-host-tabs-shell " . ( $sidebar ? "is-sidebar" : "is-bar" );
+        if ( $sidebar_collapsible ) {
+            $shell_class .= " has-collapsible-sidebar";
+        }
+        if ( $sidebar_collapsed ) {
+            $shell_class .= " is-sidebar-collapsed";
+        }
+
+        $status_label  = "" !== $active ? "Loaded " . $this->tab_label( $tabs[ $active ] ?? $active ) . "." : "";
+        $active_tab_id = "" !== $active ? $this->tab_dom_id( $root_id, $active ) : "";
+        $toggle_label  = $sidebar_collapsed ? "Expand navigation" : "Collapse navigation";
+        $toggle_icon   = $sidebar_collapsed ? "dashicons-arrow-right-alt2" : "dashicons-arrow-left-alt2";
         ?>
-        <div id="<?php echo esc_attr( $root_id ); ?>" class="<?php echo esc_attr( $shell_class ); ?>" data-hpc-tab-root data-ajax-url="<?php echo esc_url( $ajax_url ); ?>" data-ajax-action="<?php echo esc_attr( $action ); ?>" data-nonce-field="<?php echo esc_attr( $nonce_key ); ?>" data-nonce="<?php echo esc_attr( $nonce ); ?>" data-page-url="<?php echo esc_url( $page_url ); ?>" data-panel-id="<?php echo esc_attr( $panel_id ); ?>" data-active-tab="<?php echo esc_attr( $active ); ?>">
+        <div id="<?php echo esc_attr( $root_id ); ?>" class="<?php echo esc_attr( $shell_class ); ?>" data-hpc-tab-root data-ajax-url="<?php echo esc_url( $ajax_url ); ?>" data-ajax-action="<?php echo esc_attr( $action ); ?>" data-nonce-field="<?php echo esc_attr( $nonce_key ); ?>" data-nonce="<?php echo esc_attr( $nonce ); ?>" data-page-url="<?php echo esc_url( $page_url ); ?>" data-panel-id="<?php echo esc_attr( $panel_id ); ?>" data-active-tab="<?php echo esc_attr( $active ); ?>" data-sidebar-collapsible="<?php echo $sidebar_collapsible ? "1" : "0"; ?>" data-sidebar-collapsed="<?php echo $sidebar_collapsed ? "1" : "0"; ?>" data-sidebar-persist="<?php echo $sidebar_persist ? "1" : "0"; ?>" data-sidebar-storage-key="<?php echo esc_attr( $sidebar_storage_key ); ?>">
             <?php if ( $sidebar ) : ?>
-                <div class="hpc-host-rail" role="tablist" aria-label="<?php echo esc_attr( $label ); ?>">
-                    <?php echo $this->grouped_nav_html( $groups, $tabs, $page_url, $active ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-                </div>
-                <div class="hpc-host-main">
+                <aside id="<?php echo esc_attr( $rail_id ); ?>" class="hpc-host-rail" aria-label="<?php echo esc_attr( $label ); ?>">
+                    <?php if ( $sidebar_collapsible ) : ?>
+                        <div class="hpc-host-rail-tools">
+                            <button type="button" class="hpc-host-sidebar-toggle" data-hpc-sidebar-toggle aria-controls="<?php echo esc_attr( $rail_navigation_id ); ?>" aria-expanded="<?php echo $sidebar_collapsed ? "false" : "true"; ?>" aria-label="<?php echo esc_attr( $toggle_label ); ?>" title="<?php echo esc_attr( $toggle_label ); ?>">
+                                <span class="dashicons <?php echo esc_attr( $toggle_icon ); ?>" aria-hidden="true"></span>
+                            </button>
+                        </div>
+                    <?php endif; ?>
+                    <div id="<?php echo esc_attr( $rail_navigation_id ); ?>" class="hpc-host-rail-navigation" data-hpc-sidebar-navigation<?php echo $sidebar_collapsed ? " hidden" : ""; ?>>
+                        <?php echo $this->grouped_nav_html( $groups, $tabs, $page_url, $active, $root_id, $panel_id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                    </div>
+                </aside>
+                <main class="hpc-host-main">
                     <div class="hpc-host-tab-status" aria-live="polite"><span class="spinner"></span><span data-hpc-tab-message><?php echo esc_html( $status_label ); ?></span></div>
-                    <section id="<?php echo esc_attr( $panel_id ); ?>" class="hpc-host-tab-panel" data-hpc-tab-panel data-active-tab="<?php echo esc_attr( $active ); ?>" aria-live="polite"><?php echo $panel_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></section>
-                </div>
+                    <section id="<?php echo esc_attr( $panel_id ); ?>" class="hpc-host-tab-panel" data-hpc-tab-panel data-active-tab="<?php echo esc_attr( $active ); ?>" role="tabpanel"<?php echo "" !== $active_tab_id ? ' aria-labelledby="' . esc_attr( $active_tab_id ) . '"' : ""; ?> aria-live="polite"><?php echo $panel_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></section>
+                </main>
             <?php else : ?>
                 <nav class="hpc-host-tabs" role="tablist" aria-label="<?php echo esc_attr( $label ); ?>">
                     <?php foreach ( $tabs as $id => $tab ) {
-                        echo $this->tab_link_html( (string) $id, $tab, $page_url, $active ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+                        echo $this->tab_link_html( (string) $id, $tab, $page_url, $active, $root_id, $panel_id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
                     } ?>
                 </nav>
                 <div class="hpc-host-tab-status" aria-live="polite"><span class="spinner"></span><span data-hpc-tab-message><?php echo esc_html( $status_label ); ?></span></div>
-                <section id="<?php echo esc_attr( $panel_id ); ?>" class="hpc-host-tab-panel" data-hpc-tab-panel data-active-tab="<?php echo esc_attr( $active ); ?>" aria-live="polite"><?php echo $panel_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></section>
+                <section id="<?php echo esc_attr( $panel_id ); ?>" class="hpc-host-tab-panel" data-hpc-tab-panel data-active-tab="<?php echo esc_attr( $active ); ?>" role="tabpanel"<?php echo "" !== $active_tab_id ? ' aria-labelledby="' . esc_attr( $active_tab_id ) . '"' : ""; ?> aria-live="polite"><?php echo $panel_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></section>
             <?php endif; ?>
         </div>
         <script>
@@ -67,12 +100,61 @@ final class HostTabsRenderer {
             var status = root.querySelector(".hpc-host-tab-status");
             var spinner = status ? status.querySelector(".spinner") : null;
             var message = status ? status.querySelector("[data-hpc-tab-message]") : null;
+            var sidebarToggle = root.querySelector("[data-hpc-sidebar-toggle]");
+            var sidebarNavigation = root.querySelector("[data-hpc-sidebar-navigation]");
             function tabs(){ return Array.prototype.slice.call(root.querySelectorAll("[data-hpc-host-tab]")); }
             function setMessage(text){ if (message) message.textContent = text || ""; }
             function setLoading(on){ if (!panel) return; panel.classList.toggle("is-loading", !!on); panel.setAttribute("aria-busy", on ? "true" : "false"); if (spinner) spinner.classList.toggle("is-active", !!on); }
             function eventName(name){ return "hexa-core-host-tab-" + name; }
             function dispatch(name, detail){ detail = detail || {}; detail.root = root; detail.panel = panel; root.dispatchEvent(new CustomEvent(eventName(name), { bubbles: true, detail: detail })); document.dispatchEvent(new CustomEvent(eventName(name), { detail: detail })); }
-            function setActive(tab){ tabs().forEach(function(item){ var on = item.getAttribute("data-hpc-host-tab") === tab; item.classList.toggle("active", on); item.setAttribute("aria-selected", on ? "true" : "false"); }); root.dataset.activeTab = tab; if (panel) panel.setAttribute("data-active-tab", tab); }
+            function setActive(tab){
+                tabs().forEach(function(item){
+                    var on = item.getAttribute("data-hpc-host-tab") === tab;
+                    item.classList.toggle("active", on);
+                    item.setAttribute("aria-selected", on ? "true" : "false");
+                });
+                root.dataset.activeTab = tab;
+                if (panel) {
+                    panel.setAttribute("data-active-tab", tab);
+                    panel.setAttribute("aria-labelledby", root.id + "-tab-" + tab);
+                }
+            }
+            function setSidebarCollapsed(collapsed, persist, announce){
+                if (root.dataset.sidebarCollapsible !== "1") return;
+                collapsed = !!collapsed;
+                root.classList.toggle("is-sidebar-collapsed", collapsed);
+                root.dataset.sidebarCollapsed = collapsed ? "1" : "0";
+                if (sidebarNavigation) sidebarNavigation.hidden = collapsed;
+                if (sidebarToggle) {
+                    var label = collapsed ? "Expand navigation" : "Collapse navigation";
+                    var icon = sidebarToggle.querySelector(".dashicons");
+                    sidebarToggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
+                    sidebarToggle.setAttribute("aria-label", label);
+                    sidebarToggle.setAttribute("title", label);
+                    if (icon) {
+                        icon.classList.toggle("dashicons-arrow-left-alt2", !collapsed);
+                        icon.classList.toggle("dashicons-arrow-right-alt2", collapsed);
+                    }
+                }
+                if (persist && root.dataset.sidebarPersist === "1") {
+                    try {
+                        if (window.localStorage) window.localStorage.setItem(root.dataset.sidebarStorageKey || "", collapsed ? "1" : "0");
+                    } catch (e) {}
+                }
+                if (announce) dispatch("sidebar-state", { collapsed: collapsed });
+            }
+            function restoreSidebar(){
+                if (root.dataset.sidebarCollapsible !== "1") return;
+                var collapsed = root.dataset.sidebarCollapsed === "1";
+                if (root.dataset.sidebarPersist === "1") {
+                    try {
+                        var stored = window.localStorage ? window.localStorage.getItem(root.dataset.sidebarStorageKey || "") : null;
+                        if (stored === "1") collapsed = true;
+                        if (stored === "0") collapsed = false;
+                    } catch (e) {}
+                }
+                setSidebarCollapsed(collapsed, false, false);
+            }
             function tabUrl(tab){ var base = root.dataset.pageUrl || window.location.href; try { var u = new URL(base, window.location.origin); u.searchParams.set("tab", tab); return u.toString(); } catch(e) { return base + (base.indexOf("?") === -1 ? "?" : "&") + "tab=" + encodeURIComponent(tab); } }
             function runScripts(container){
                 if (!container || !container.querySelectorAll) return;
@@ -109,6 +191,12 @@ final class HostTabsRenderer {
                     .catch(function(){ setMessage("Error loading tab."); dispatch("error", { tab: tab }); })
                     .finally(function(){ delete panel.dataset.loading; setLoading(false); });
             }
+            restoreSidebar();
+            if (sidebarToggle) {
+                sidebarToggle.addEventListener("click", function(){
+                    setSidebarCollapsed(root.dataset.sidebarCollapsed !== "1", true, true);
+                });
+            }
             tabs().forEach(function(tab){ tab.addEventListener("click", function(event){ var id = tab.getAttribute("data-hpc-host-tab"); if (!id) return; event.preventDefault(); if (id === root.dataset.activeTab) return; load(id, tab.getAttribute("href"), true); }); });
             window.addEventListener("popstate", function(){ var params = new URLSearchParams(window.location.search); var tab = params.get("tab") || root.dataset.activeTab || ""; load(tab, tabUrl(tab), false); });
         })();
@@ -120,9 +208,9 @@ final class HostTabsRenderer {
      * @param array<int,array<string,mixed>> $groups
      * @param array<string,mixed>            $tabs
      */
-    private function grouped_nav_html( array $groups, array $tabs, string $page_url, string $active ): string {
-        $html      = "";
-        $rendered  = [];
+    private function grouped_nav_html( array $groups, array $tabs, string $page_url, string $active, string $root_id, string $panel_id ): string {
+        $html     = "";
+        $rendered = [];
 
         foreach ( $groups as $group ) {
             if ( ! is_array( $group ) ) {
@@ -139,16 +227,17 @@ final class HostTabsRenderer {
                     continue;
                 }
                 $rendered[ $id ] = true;
-                $links          .= $this->tab_link_html( $id, $tabs[ $id ], $page_url, $active );
+                $links          .= $this->tab_link_html( $id, $tabs[ $id ], $page_url, $active, $root_id, $panel_id );
             }
 
             if ( "" === $links ) {
                 continue;
             }
 
-            $html .= '<div class="hpc-host-rail-group">'
+            $nav_label = "" !== $group_label ? $group_label : "Plugin sections";
+            $html     .= '<div class="hpc-host-rail-group">'
                 . ( "" !== $group_label ? '<p class="hpc-host-rail-title">' . esc_html( $group_label ) . '</p>' : "" )
-                . '<nav class="hpc-host-tabs" role="tablist">' . $links . '</nav>'
+                . '<nav class="hpc-host-tabs" role="tablist" aria-label="' . esc_attr( $nav_label ) . '">' . $links . '</nav>'
                 . '</div>';
         }
 
@@ -159,23 +248,28 @@ final class HostTabsRenderer {
             if ( "" === $id || isset( $rendered[ $id ] ) ) {
                 continue;
             }
-            $leftover .= $this->tab_link_html( $id, $tab, $page_url, $active );
+            $leftover .= $this->tab_link_html( $id, $tab, $page_url, $active, $root_id, $panel_id );
         }
 
         if ( "" !== $leftover ) {
-            $html .= '<div class="hpc-host-rail-group"><p class="hpc-host-rail-title">More</p><nav class="hpc-host-tabs" role="tablist">' . $leftover . '</nav></div>';
+            $html .= '<div class="hpc-host-rail-group"><p class="hpc-host-rail-title">More</p><nav class="hpc-host-tabs" role="tablist" aria-label="More">' . $leftover . '</nav></div>';
         }
 
         return $html;
     }
 
-    private function tab_link_html( string $id, mixed $tab, string $page_url, string $active ): string {
-        $id    = sanitize_key( $id );
-        $text  = $this->tab_label( $tab );
-        $url   = $this->tab_url( $page_url, $id );
-        $is_on = $id === $active;
+    private function tab_link_html( string $id, mixed $tab, string $page_url, string $active, string $root_id, string $panel_id ): string {
+        $id     = sanitize_key( $id );
+        $text   = $this->tab_label( $tab );
+        $url    = $this->tab_url( $page_url, $id );
+        $is_on  = $id === $active;
+        $dom_id = $this->tab_dom_id( $root_id, $id );
 
-        return '<a class="hpc-host-tab' . ( $is_on ? " active" : "" ) . '" href="' . esc_url( $url ) . '" data-hpc-host-tab="' . esc_attr( $id ) . '" role="tab" aria-selected="' . ( $is_on ? "true" : "false" ) . '">' . esc_html( $text ) . '</a>';
+        return '<a id="' . esc_attr( $dom_id ) . '" class="hpc-host-tab' . ( $is_on ? " active" : "" ) . '" href="' . esc_url( $url ) . '" data-hpc-host-tab="' . esc_attr( $id ) . '" role="tab" aria-controls="' . esc_attr( $panel_id ) . '" aria-selected="' . ( $is_on ? "true" : "false" ) . '">' . esc_html( $text ) . '</a>';
+    }
+
+    private function tab_dom_id( string $root_id, string $tab_id ): string {
+        return sanitize_html_class( $root_id . "-tab-" . sanitize_key( $tab_id ) );
     }
 
     private function tab_label( mixed $tab ): string {
