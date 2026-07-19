@@ -22,7 +22,9 @@ require dirname( __DIR__ ) . '/lib/hexa-wordpress-plugin-core/src/ActivityLog/Ac
 require dirname( __DIR__ ) . '/src/Settings/SettingsRepository.php';
 require dirname( __DIR__ ) . '/src/Settings/SettingsMigrations.php';
 require dirname( __DIR__ ) . '/src/Support/Settings.php';
+require dirname( __DIR__ ) . '/src/Content/Breadcrumbs.php';
 
+use smp_publication_integration\Content\Breadcrumbs;
 use smp_publication_integration\Settings\SettingsMigrations;
 use smp_publication_integration\Support\Settings;
 
@@ -79,6 +81,26 @@ $GLOBALS['smpi_test_options']['smpi_settings']['article_heading_accent_color'] =
 ( new SettingsMigrations() )->repair_defective_heading_quick_start_preset();
 if ( false !== $GLOBALS['smpi_test_options']['smpi_settings']['article_heading_styles_enabled'] ) {
     fwrite( STDERR, "FAIL: Heading migration changed a non-preset disabled setting.\n" );
+    exit( 1 );
+}
+
+$valid_css = 'body .smpi-breadcrumbs[class*="smpi-bc-"] { color: #123456; }';
+$valid_result = Breadcrumbs::validate_custom_css( $valid_css );
+if ( empty( $valid_result["valid"] ) || $valid_css !== $valid_result["css"] ) {
+    fwrite( STDERR, "FAIL: Valid scoped breadcrumb CSS was rejected.
+" );
+    exit( 1 );
+}
+$invalid_result = Breadcrumbs::validate_custom_css( 'body .unscoped-component { color: red; }' );
+if ( ! empty( $invalid_result["valid"] ) ) {
+    fwrite( STDERR, "FAIL: Unscoped breadcrumb CSS was accepted.
+" );
+    exit( 1 );
+}
+$settings = Settings::update( [ "breadcrumbs_css_override" => $valid_css ] );
+if ( $valid_css !== $settings["breadcrumbs_css_override"] ) {
+    fwrite( STDERR, "FAIL: Valid breadcrumb CSS was not saved intact.
+" );
     exit( 1 );
 }
 

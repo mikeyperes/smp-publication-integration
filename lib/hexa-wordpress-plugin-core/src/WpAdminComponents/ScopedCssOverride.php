@@ -16,7 +16,14 @@ final class ScopedCssOverride {
                 'Paste the finished CSS into the theme or page builder custom CSS area.',
             ];
         $meta_label = trim( (string) ( $args['meta_label'] ?? 'Scoped CSS' ) );
-        $open = ! empty( $args['open'] );
+        $open = ! empty( $args["open"] );
+        $setting_key = sanitize_html_class( (string) ( $args["setting_key"] ?? "" ) );
+        $editor_value = self::normalize_code( (string) ( $args["value"] ?? "" ) );
+        $editor_label = trim( (string) ( $args["editor_label"] ?? "CSS override" ) );
+        $editor_description = trim( (string) ( $args["editor_description"] ?? "Changes save when you leave the editor." ) );
+        $editor_placeholder = self::normalize_code( (string) ( $args["placeholder"] ?? $css_example ) );
+        $input_class = sanitize_html_class( (string) ( $args["input_class"] ?? "" ) );
+        $status_html = (string) ( $args["status_html"] ?? "" );
 
         if ( '' === $title ) {
             $title = 'CSS override reference';
@@ -42,9 +49,20 @@ final class ScopedCssOverride {
             . CoreUi::copy_button( $selector, 'Copy selector' )
             . '</div>';
 
+        $editor_html = "";
+        if ( "" !== $setting_key ) {
+            $editor_id = "hpc-scoped-css-editor-" . substr( md5( $setting_key . $selector ), 0, 10 );
+            $description_id = $editor_id . "-description";
+            $editor_html = '<div class="hpc-scoped-css-editor" data-hpc-scoped-css-editor>'
+                . '<label for="' . esc_attr( $editor_id ) . '"><strong>' . esc_html( $editor_label ) . '</strong><span id="' . esc_attr( $description_id ) . '">' . esc_html( $editor_description ) . '</span></label>'
+                . '<textarea id="' . esc_attr( $editor_id ) . '" class="hpc-scoped-css-editor-input' . ( "" !== $input_class ? " " . esc_attr( $input_class ) : "" ) . '" data-key="' . esc_attr( $setting_key ) . '" data-hpc-scoped-css-input aria-describedby="' . esc_attr( $description_id ) . '" spellcheck="false" placeholder="' . esc_attr( $editor_placeholder ) . '">' . esc_html( $editor_value ) . '</textarea>'
+                . '<div class="hpc-scoped-css-editor-status" aria-live="polite">' . $status_html . '</div></div>';
+        }
+
         $body = '<div class="hpc-scoped-css-override-content" data-hpc-scoped-css-override data-hpc-scope-selector="' . esc_attr( $selector ) . '">'
             . $instructions_html
             . $selector_html
+            . $editor_html
             . '<div class="hpc-scoped-css-examples">'
             . self::example_html( 'HTML structure', 'HTML', $html_example )
             . self::example_html( 'CSS override', 'CSS', $css_example )
@@ -93,6 +111,13 @@ final class ScopedCssOverride {
 .hpc-scoped-css-selector strong{display:block;font-size:13px;margin-bottom:4px}
 .hpc-scoped-css-selector p{color:var(--hpc-muted);font-size:12px;line-height:1.45;margin:0}
 .hpc-scoped-css-selector code{background:#eef2f7;border:1px solid #d7dee8;border-radius:6px;color:#172033;display:block;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace;max-width:100%;overflow:auto;padding:10px 12px;white-space:nowrap}
+.hpc-scoped-css-editor{display:grid;gap:8px;min-width:0}
+.hpc-scoped-css-editor label{display:grid;gap:3px}
+.hpc-scoped-css-editor label strong{font-size:13px}
+.hpc-scoped-css-editor label span{color:var(--hpc-muted);font-size:12px;line-height:1.45}
+.hpc-scoped-css-editor-input{background:#0f1720;border:1px solid #263446;border-radius:6px;color:#dbe7f3;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace;font-size:13px;line-height:1.55;min-height:260px;padding:14px;resize:vertical;width:100%}
+.hpc-scoped-css-editor-input:focus{border-color:var(--hpc-blue);box-shadow:0 0 0 1px var(--hpc-blue);outline:0}
+.hpc-scoped-css-editor-status{align-items:center;display:flex;min-height:24px}
 .hpc-scoped-css-examples{display:grid;gap:16px}
 .hpc-scoped-css-example{min-width:0}
 .hpc-scoped-css-example+section{border-top:1px solid var(--hpc-line);padding-top:16px}

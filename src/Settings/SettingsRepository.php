@@ -81,6 +81,7 @@ class SettingsRepository {
             "breadcrumbs_hide_home" => true,
             "breadcrumbs_hide_term_archives" => false,
             "breadcrumbs_disabled_post_types" => [],
+            "breadcrumbs_css_override" => "",
             'table_of_contents_enabled' => false,
             'table_of_contents_auto_single' => false,
             "table_of_contents_style" => "toc02",
@@ -434,6 +435,11 @@ class SettingsRepository {
                 $items = is_array( $value ) ? array_map( "sanitize_key", $value ) : [];
                 $items = array_values( array_filter( $items, "post_type_exists" ) );
                 $settings[ $key ] = $items ?: [ "post" ];
+                continue;
+            }
+
+            if ( "breadcrumbs_css_override" === $key ) {
+                $settings[ $key ] = trim( str_replace( [ chr( 13 ), chr( 0 ) ], "", (string) $value ) );
                 continue;
             }
 

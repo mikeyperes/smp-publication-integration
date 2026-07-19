@@ -62,7 +62,7 @@ echo CoreUi::card(
 );
 ```
 
-Scoped CSS reference example:
+Scoped CSS editor or reference example:
 
 ```php
 use Hexa\PluginCore\WpAdminComponents\ScopedCssOverride;
@@ -81,4 +81,4 @@ echo ScopedCssOverride::render(
 
 ## Rule
 
-If a host plugin needs cards, subcards, collapsibles, tooltips, status pills, copy buttons, scoped CSS override references, brand-aware isolated color controls, saved color palettes, or Elementor palette detection, add the missing parameter or helper here first.
+If a host plugin needs cards, subcards, collapsibles, tooltips, status pills, copy buttons, scoped CSS override editors and references, brand-aware isolated color controls, saved color palettes, or Elementor palette detection, add the missing parameter or helper here first.

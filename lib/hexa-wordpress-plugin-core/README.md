@@ -93,7 +93,7 @@ Do not create `HWS\BaseTools\PluginCore`, `HexaWordPressPluginCore`, `Hexa\Core`
 - `SmartSearch`: smart search/X-Search AJAX endpoint and reusable typeahead renderer.
 - `SystemEnvironment`: safe constants, INI, shell wrappers, size parsing, CPU/memory detection, and byte formatting.
 - `WpAdminUiCleanup`: shared admin UI cleanup definitions, AJAX toggles, target-screen CSS/JS, postbox hide/collapse behavior, and footer filters.
-- `WpAdminComponents`: shared visual primitives such as cards, subcards, buttons, pills, tooltips, collapsible sections, and scoped CSS override references.
+- `WpAdminComponents`: shared visual primitives such as cards, subcards, buttons, pills, tooltips, collapsible sections, and scoped CSS override editors and references.
 - `WpAdminAjax`: WordPress admin-AJAX nonce, capability, request parsing, action registration, and handler guards.
 - `WpAdminTabs`: admin tab definitions, registry, host hook integration, and the automatic Hexa core documentation tab.
 - `WpConfigFile`: safe `wp-config.php` constant and `ini_set()` reads/writes with validation and rollback backup handling.
@@ -208,9 +208,9 @@ This panel compares the vendored `VERSION` in the host plugin with the public Gi
 
 ## Scoped CSS Override References
 
-Version 0.19.47 adds `Hexa\PluginCore\WpAdminComponents\ScopedCssOverride`. Host plugins provide a scope selector, short instructions, a formatted HTML structure example, and a formatted CSS example. Core renders a copyable `CoreUi::detail_card()` that is closed by default and prevents each host plugin from rebuilding this reference UI.
+Version 0.19.48 updates `Hexa\PluginCore\WpAdminComponents\ScopedCssOverride`. Host plugins provide a scope selector, short instructions, a formatted HTML structure example, and a formatted CSS example. Core renders a copyable `CoreUi::detail_card()` that is closed by default and prevents each host plugin from rebuilding this reference UI.
 
-The component is display-only. Host plugins remain responsible for choosing selectors that isolate their own frontend markup.
+Pass a setting key, saved value, host input class, and save-status HTML to render the actual CSS editor. Omit the setting key when a read-only reference is needed. Host plugins remain responsible for validation, persistence, and frontend output.
 
 ## Plugin Inventory Policy
 
@@ -496,7 +496,7 @@ echo CoreUi::collapsible(
 );
 ```
 
-For a formatted, closed-by-default scoped CSS reference:
+For a formatted, closed-by-default scoped CSS editor or reference:
 
 ```php
 use Hexa\PluginCore\WpAdminComponents\ScopedCssOverride;

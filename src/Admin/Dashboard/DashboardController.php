@@ -28,6 +28,7 @@ use smp_publication_integration\Admin\Navigation\AdminNavigation;
 use smp_publication_integration\Admin\Navigation\AdminRoute;
 use smp_publication_integration\Config;
 use smp_publication_integration\Content\AuthorShortcodes;
+use smp_publication_integration\Content\Breadcrumbs;
 use smp_publication_integration\Content\MultiAuthors;
 use smp_publication_integration\Content\Schema;
 use smp_publication_integration\Content\Shortcodes;
@@ -1627,7 +1628,7 @@ class DashboardController {
     }
 
     private function breadcrumb_css_override_html(): string {
-        $selector = 'body .smpi-breadcrumbs[class*="smpi-bc-"]';
+        $selector = Breadcrumbs::CSS_SELECTOR;
         $html_example = <<<'HTML'
 <div class="smpi-breadcrumbs smpi-bc-b6">
   <nav class="rank-math-breadcrumb" aria-label="Breadcrumbs">
@@ -1662,12 +1663,19 @@ CSS;
                 "title"        => "Breadcrumb CSS override",
                 "selector"     => $selector,
                 "instructions" => [
-                    "Copy the selector and keep it at the start of every rule.",
-                    "For one page only, replace body with body.page-id-123.",
-                    "Paste the CSS into your theme or page builder custom CSS.",
+                    "Enter the CSS you want to apply in the editor below.",
+                    "Keep every selector under the scope shown below. Add body.page-id-123 for one page only.",
+                    "Changes save when you leave the editor and load after the Breadcrumb template CSS.",
                 ],
                 "html_example" => $html_example,
                 "css_example"  => $css_example,
+                "setting_key"  => Breadcrumbs::CSS_SETTING,
+                "value"        => (string) Settings::get( Breadcrumbs::CSS_SETTING, "" ),
+                "input_class"  => "smpi-setting",
+                "editor_label" => "Your CSS override",
+                "editor_description" => "Edit scoped CSS here. Changes save automatically when you leave the field.",
+                "placeholder"  => $css_example,
+                "status_html" => '<span class="spinner"></span><span class="smpi-save-state"></span>',
                 "open"         => false,
             ]
         );
@@ -2749,7 +2757,7 @@ CSS;
             function smpiEscape(v){return $(`<div>`).text(v==null?``:String(v)).html()}
             function smpiAttr(v){return smpiEscape(v).replace(/"/g,`&quot;`).replace(/'/g,`&#039;`).replace(/`/g,`&#096;`)}
             function smpiSafeUrl(v){v=String(v||``).trim();if(!v)return `#`;try{var u=new URL(v,window.location.origin);return /^(http|https):$/.test(u.protocol)?u.href:`#`}catch(e){return `#`}}
-            function saveRoot(e){return e.closest(`.smpi-control-group,td,.smpi-user-picker,.smpi-profile-picker,.smpi-feature-card`)}
+            function saveRoot(e){return e.closest(`[data-hpc-scoped-css-editor],.smpi-control-group,td,.smpi-user-picker,.smpi-profile-picker,.smpi-feature-card`)}
             function featureRoot(e){return e.closest(`.smpi-feature-card`)}
             function inputStateLabel(e){var k=e.data(`key`)||`setting`;if(e.hasClass(`smpi-setting-array`)){var checked=$(`.smpi-setting-array[data-key="${k}"]`).filter(`:checked`).closest(`.smpi-choice-card`).find(`strong`).map(function(){return $(this).text().trim()}).get();return k+`: `+(checked.length?checked.join(`, `):`none`)}if(e.is(`:checkbox`)){return k+`: `+(e.is(`:checked`)?`Enabled`:`Disabled`)}if(e.is(`[type="radio"]`)){var label=e.closest(`.smpi-choice-card`).find(`strong`).first().text().trim();return k+`: `+(label||e.val())}return k+`: `+(e.val()||`empty`)}
             function updateChoiceState(e){var k=e.data(`key`);if(!k)return;if(e.is(`[type="radio"]`)){var group=$(`input[type="radio"][data-key="${k}"]`).closest(`.smpi-choice-card`);group.removeClass(`is-selected`).find(`.smpi-selected-pill`).remove();var card=e.closest(`.smpi-choice-card`);card.addClass(`is-selected`);if(!card.find(`.smpi-selected-pill`).length){card.append(`<span class="smpi-selected-pill">Selected</span>`)}}else if(e.hasClass(`smpi-setting-array`)){var card=e.closest(`.smpi-choice-card`);card.toggleClass(`is-selected`,e.is(`:checked`));if(e.is(`:checked`)&&!card.find(`.smpi-selected-pill`).length){card.append(`<span class="smpi-selected-pill">Selected</span>`)}if(!e.is(`:checked`)){card.find(`.smpi-selected-pill`).remove()}}}

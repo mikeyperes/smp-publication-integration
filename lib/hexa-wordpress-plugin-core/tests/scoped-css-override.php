@@ -33,6 +33,10 @@ $html = ScopedCssOverride::render(
         ],
         'html_example' => $html_example,
         'css_example'  => $css_example,
+        'setting_key' => 'example_css_override',
+        'value'       => $css_example,
+        'input_class' => 'example-setting',
+        'status_html' => '<span class="save-state"></span>',
     ]
 );
 
@@ -47,6 +51,10 @@ $checks = [
         && str_contains( $html, esc_html( $css_example ) )
         && str_contains( $html, '<strong>HTML structure</strong>' )
         && str_contains( $html, '<strong>CSS override</strong>' ),
+    'Renders an editable saved CSS field when a setting key is supplied.' => str_contains( $html, 'data-hpc-scoped-css-input' )
+        && str_contains( $html, 'data-key="example_css_override"' )
+        && str_contains( $html, 'example-setting' )
+        && str_contains( $html, esc_html( $css_example ) ),
     'Provides copy actions for selector, HTML, and CSS.' => 3 === substr_count( $html, 'data-hpc-copy=' ),
 ];
 

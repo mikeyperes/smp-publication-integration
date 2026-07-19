@@ -9,6 +9,7 @@ use Hexa\PluginCore\WpAdminAjax\AjaxFailure;
 use Hexa\PluginCore\WpAdminAjax\AjaxGuard;
 use Hexa\PluginCore\WpAdminAjax\AjaxRequest;
 use smp_publication_integration\Admin\Dashboard;
+use smp_publication_integration\Content\Breadcrumbs;
 use smp_publication_integration\Content\MultiAuthors;
 use smp_publication_integration\Content\Schema;
 use smp_publication_integration\Support\Dependencies;
@@ -140,6 +141,13 @@ class AjaxController {
         }
         if ( $request->has( "content_generation_api_base", "post" ) ) {
             $changes["content_generation_api_base"] = esc_url_raw( (string) $request->raw( "content_generation_api_base", "", "post" ) );
+        }
+        if ( $request->has( Breadcrumbs::CSS_SETTING, "post" ) ) {
+            $validation = Breadcrumbs::validate_custom_css( (string) $request->raw( Breadcrumbs::CSS_SETTING, "", "post" ) );
+            if ( empty( $validation["valid"] ) ) {
+                throw AjaxFailure::bad_request( (string) ( $validation["message"] ?? "Invalid breadcrumb CSS." ) );
+            }
+            $changes[ Breadcrumbs::CSS_SETTING ] = (string) $validation["css"];
         }
         foreach ( [ "muckrack_icon_size" => [ 8, 64, 16 ], "publication_muckrack_font_size" => [ 8, 64, 14 ], "breadcrumbs_font_size" => [ 8, 64, 13 ], "table_of_contents_text_font_size" => [ 8, 64, 15 ], "article_heading_h2_font_size" => [ 8, 64, 23 ], "article_heading_h3_font_size" => [ 8, 64, 20 ], "article_drop_cap_font_size" => [ 48, 180, 96 ], "inline_photo_caption_font_size" => [ 8, 64, 16 ], "featured_image_caption_font_size" => [ 8, 64, 16 ], "post_faqs_text_font_size" => [ 8, 64, 16 ], "muckrack_icon_size_single_author" => [ 0, 64, 0 ], "muckrack_icon_size_single_footer" => [ 0, 64, 0 ], "muckrack_icon_size_loop_cards" => [ 0, 64, 0 ], "muckrack_icon_size_home" => [ 0, 64, 0 ], "muckrack_icon_size_author" => [ 0, 64, 0 ] ] as $key => $limits ) {
             if ( $request->has( $key, 'post' ) ) {

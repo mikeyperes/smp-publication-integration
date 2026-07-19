@@ -11,6 +11,9 @@ if ( ! defined( "ABSPATH" ) ) {
 
 final class Breadcrumbs {
     public const SHORTCODE = "smp_breadcrumbs";
+    public const CSS_SETTING = "breadcrumbs_css_override";
+    public const CSS_SELECTOR = 'body .smpi-breadcrumbs[class*="smpi-bc-"]';
+    public const CSS_SCOPE_MARKER = '.smpi-breadcrumbs[class*="smpi-bc-"]';
 
     public function register(): void {
         add_shortcode( self::SHORTCODE, [ $this, "render_shortcode" ] );
@@ -109,6 +112,49 @@ final class Breadcrumbs {
             "shortcode" => "[" . self::SHORTCODE . "]",
             "sample_url" => $sample instanceof \WP_Post ? get_permalink( $sample ) : "",
         ];
+    }
+
+    public static function custom_css(): string {
+        $result = self::validate_custom_css( (string) Settings::get( self::CSS_SETTING, "" ) );
+        return ! empty( $result["valid"] ) ? (string) $result["css"] : "";
+    }
+
+    public static function validate_custom_css( string $css ): array {
+        $css = trim( str_replace( [ chr( 13 ), chr( 0 ) ], "", $css ) );
+        if ( "" === $css ) {
+            return [ "valid" => true, "css" => "", "message" => "" ];
+        }
+        if ( strlen( $css ) > 20000 ) {
+            return [ "valid" => false, "css" => "", "message" => "Breadcrumb CSS must be 20,000 characters or fewer." ];
+        }
+        if ( preg_match( '~<|@(?:import|charset|namespace)\b|javascript\s*:|expression\s*\(|behavior\s*:|-moz-binding\s*:~i', $css ) ) {
+            return [ "valid" => false, "css" => "", "message" => "The CSS contains a blocked directive or unsafe value." ];
+        }
+        if ( substr_count( $css, "{" ) !== substr_count( $css, "}" ) ) {
+            return [ "valid" => false, "css" => "", "message" => "The CSS has unbalanced braces." ];
+        }
+
+        $scan = preg_replace( '~/\*.*?\*/~s', "", $css );
+        preg_match_all( '~(?:^|(?<=[{}]))\s*([^{}]+?)\s*\{~s', (string) $scan, $matches );
+        foreach ( (array) ( $matches[1] ?? [] ) as $prelude ) {
+            $prelude = trim( (string) $prelude );
+            if ( "" === $prelude ) {
+                continue;
+            }
+            if ( "@" === $prelude[0] ) {
+                if ( ! preg_match( '~^@(media|supports|container|layer)\b~i', $prelude ) ) {
+                    return [ "valid" => false, "css" => "", "message" => "Only media, supports, container, and layer wrappers are allowed." ];
+                }
+                continue;
+            }
+            foreach ( preg_split( '~,(?![^()]*\))~', $prelude ) ?: [] as $selector ) {
+                if ( ! str_contains( trim( (string) $selector ), self::CSS_SCOPE_MARKER ) ) {
+                    return [ "valid" => false, "css" => "", "message" => "Every selector must include " . self::CSS_SCOPE_MARKER . "." ];
+                }
+            }
+        }
+
+        return [ "valid" => true, "css" => $css, "message" => "" ];
     }
 
     private static function rank_math_markup(): string {

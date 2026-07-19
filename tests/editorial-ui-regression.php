@@ -17,6 +17,9 @@ $feature_card_source = false !== $feature_card_start && false !== $feature_card_
 $elementor  = (string) file_get_contents( $root . '/src/Authorship/ElementorAuthorRenderer.php' );
 $loop       = (string) file_get_contents( $root . '/src/Authorship/LoopBylineRenderer.php' );
 $article_styles = (string) file_get_contents( $root . '/src/Content/ArticleStyles.php' );
+$breadcrumbs = (string) file_get_contents( $root . '/src/Content/Breadcrumbs.php' );
+$ajax = (string) file_get_contents( $root . '/src/Admin/Ajax/AjaxController.php' );
+$settings_repository = (string) file_get_contents( $root . '/src/Settings/SettingsRepository.php' );
 
 $checks = [
     'Every Features card defaults to the Hexa Core collapsible renderer.' => str_contains( $dashboard, 'bool $collapsible = true' )
@@ -39,7 +42,7 @@ $checks = [
         && str_contains( $dashboard_css, '.smpi-breadcrumb-section--template .smpi-control-group:has(input[data-key="breadcrumbs_style"]) .smpi-choice-grid{grid-template-columns:minmax(0,1fr)}' )
         && str_contains( $dashboard_css, '.smpi-breadcrumb-section--visibility .smpi-choice-list' )
         && str_contains( $dashboard_css, '@media(max-width:782px)' ),
-    'Breadcrumb CSS override imports the generic Hexa Core component.' => '0.19.47' === $core_version
+    'Breadcrumb CSS override imports the generic Hexa Core component.' => '0.19.48' === $core_version
         && str_contains( $dashboard, 'use Hexa\PluginCore\WpAdminComponents\ScopedCssOverride;' )
         && str_contains( $dashboard, 'return ScopedCssOverride::render(' )
         && str_contains( $core_scoped_css, 'final class ScopedCssOverride' )
@@ -48,6 +51,14 @@ $checks = [
         && str_contains( $dashboard, '"html_example" => $html_example' )
         && str_contains( $dashboard, '"css_example"  => $css_example' )
         && str_contains( $dashboard, '"open"         => false' ),
+    'Breadcrumb CSS override is editable, validated, saved, and emitted after template CSS.' => str_contains( $core_scoped_css, 'data-hpc-scoped-css-input' )
+        && str_contains( $dashboard, '"setting_key"  => Breadcrumbs::CSS_SETTING' )
+        && str_contains( $dashboard, '"input_class"  => "smpi-setting"' )
+        && str_contains( $breadcrumbs, 'public static function validate_custom_css' )
+        && str_contains( $breadcrumbs, 'CSS_SCOPE_MARKER' )
+        && str_contains( $ajax, 'Breadcrumbs::validate_custom_css' )
+        && str_contains( $settings_repository, '"breadcrumbs_css_override"' )
+        && str_contains( $article_styles, 'Breadcrumbs::custom_css()' ),
     'Breadcrumb CSS override renders immediately before Activity Log.' => str_contains( $feature_card_source, '$before_activity_html' )
         && str_contains( $feature_card_source, 'smpi-feature-before-activity' )
         && strpos( $feature_card_source, 'smpi-feature-before-activity' ) < strpos( $feature_card_source, 'smpi-feature-activity' )
