@@ -73,12 +73,13 @@ namespace {
 
     $expected_forbidden = [
         'jet-engine/jet-engine.php',
+        'wp-user-avatars/wp-user-avatars.php',
     ];
     $actual_forbidden = array_keys( $forbidden_by_file );
     sort( $expected_forbidden );
     sort( $actual_forbidden );
 
-    assert_true( $expected_forbidden === $actual_forbidden, 'Forbidden policy must contain exactly JetEngine.' );
+    assert_true( $expected_forbidden === $actual_forbidden, 'Forbidden policy must contain exactly JetEngine and WP User Avatars.' );
 
     foreach ( $forbidden_by_file as $plugin_file => $definition ) {
         assert_true( true === $definition['should_not_contain'], $plugin_file . ' must be explicitly forbidden.' );

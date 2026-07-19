@@ -65,6 +65,7 @@ final class PluginInventory {
     public static function forbidden_definitions(): array {
         return [
             self::forbidden( 'jet-engine/jet-engine.php', 'JetEngine', 'jet-engine' ),
+            self::forbidden( 'wp-user-avatars/wp-user-avatars.php', 'WP User Avatars', 'wp-user-avatars' ),
         ];
     }
 
