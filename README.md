@@ -7,7 +7,7 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.6.187`
+- Version: `0.6.189`
 
 ## Architecture
 
@@ -22,6 +22,10 @@ WordPress plugin for Scale My Publication publication profiles.
 - `Support`: integration adapters and stable legacy helpers.
 
 The bundled `Hexa\PluginCore` package is registered through the shared package resolver. One selected Core root owns the namespace when multiple Hexa plugins are active.
+
+## 0.6.189 Updates
+
+- Added the breadcrumb dark-background control and full-surface preview/frontend parity requirements to the implementation queue. No breadcrumb runtime behavior changed in this release.
 
 ## 0.6.187 Updates
 
@@ -523,6 +527,7 @@ The bundled `Hexa\PluginCore` package is registered through the shared package r
 
 ## Implementation Queue
 
+- Add a WordPress hex color control for the Breadcrumbs background so dark themes can set the complete breadcrumb surface. The saved value must update the admin preview and frontend from the same setting, apply to the outer injected breadcrumb wrapper and every template-owned background layer, and prevent hard-coded white, soft, or gradient backgrounds from showing through.
 - Add AJAX save/update behavior to the Publication Options tab at `Settings > SMP Publication Integration > Publication Options` so saving does not require a full page reload.
 - Remove fallback-only Publication Options ACF fields that duplicate imported publication data, including Mission Statement Fallback and Publication Summary Fallback.
 - Add a matching shortcode example to the description/instructions for every remaining Publication Options ACF field.
