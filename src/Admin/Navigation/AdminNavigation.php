@@ -95,6 +95,48 @@ final class AdminNavigation {
         return apply_filters( 'smpi_dashboard_flat_tabs', $tabs );
     }
 
+    /**
+     * Ordered tab groups for the sidebar navigation. Built from the existing
+     * area/section map so the rail stays in sync with the flat tab list.
+     *
+     * @return array<int,array{label:string,tabs:array<int,string>}>
+     */
+    public function groups(): array {
+        $tabs     = $this->tabs();
+        $areas    = $this->areas();
+        $assigned = [];
+        $groups   = [];
+
+        foreach ( $areas as $area => $area_label ) {
+            $group_tabs = [];
+            foreach ( array_keys( $this->sections( (string) $area ) ) as $id ) {
+                $id = sanitize_key( (string) $id );
+                if ( '' !== $id && isset( $tabs[ $id ] ) && ! isset( $assigned[ $id ] ) ) {
+                    $group_tabs[]    = $id;
+                    $assigned[ $id ] = true;
+                }
+            }
+
+            if ( [] !== $group_tabs ) {
+                $groups[] = [ 'label' => (string) $area_label, 'tabs' => $group_tabs ];
+            }
+        }
+
+        $leftover = [];
+        foreach ( array_keys( $tabs ) as $id ) {
+            $id = sanitize_key( (string) $id );
+            if ( '' !== $id && ! isset( $assigned[ $id ] ) ) {
+                $leftover[] = $id;
+            }
+        }
+
+        if ( [] !== $leftover ) {
+            $groups[] = [ 'label' => 'More', 'tabs' => $leftover ];
+        }
+
+        return apply_filters( 'smpi_dashboard_tab_groups', $groups );
+    }
+
     public function registry( callable $renderer, ?string $capability = null ): TabRegistry {
         $registry = new TabRegistry();
 

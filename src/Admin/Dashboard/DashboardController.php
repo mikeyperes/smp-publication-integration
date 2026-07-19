@@ -111,6 +111,8 @@ class DashboardController {
                     "root_id"         => "smpi-core-tabs",
                     "panel_id"        => "smpi-tab-panel",
                     "label"           => "SMP Publication Integration sections",
+                    "layout"          => "sidebar",
+                    "groups"          => $navigation->groups(),
                     "render_callback" => function( string $tab ) use ( $registry ): void {
                         $this->render_registered_tab( $registry, $tab );
                     },

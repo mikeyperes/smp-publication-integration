@@ -19,11 +19,15 @@ final class HostTabsRenderer {
         $panel_id  = isset( $args["panel_id"] ) ? sanitize_html_class( (string) $args["panel_id"] ) : "hpc-host-tab-panel";
         $label     = isset( $args["label"] ) ? (string) $args["label"] : "Plugin sections";
         $callback  = $args["render_callback"] ?? null;
+        $layout    = isset( $args["layout"] ) ? sanitize_key( (string) $args["layout"] ) : "bar";
+        $groups    = isset( $args["groups"] ) && is_array( $args["groups"] ) ? $args["groups"] : [];
 
         if ( "" === $active || ! array_key_exists( $active, $tabs ) ) {
             $keys   = array_keys( $tabs );
             $active = isset( $keys[0] ) ? (string) $keys[0] : "";
         }
+
+        $sidebar = ( "sidebar" === $layout && [] !== $groups );
 
         $panel_html = "";
         if ( is_callable( $callback ) && "" !== $active ) {
@@ -31,20 +35,28 @@ final class HostTabsRenderer {
             call_user_func( $callback, $active );
             $panel_html = (string) ob_get_clean();
         }
+
+        $shell_class  = "hpc-ui hpc-host-tabs-shell " . ( $sidebar ? "is-sidebar" : "is-bar" );
+        $status_label = "" !== $active ? "Loaded " . $this->tab_label( $tabs[ $active ] ?? $active ) . "." : "";
         ?>
-        <div id="<?php echo esc_attr( $root_id ); ?>" class="hpc-ui hpc-host-tabs-shell" data-hpc-tab-root data-ajax-url="<?php echo esc_url( $ajax_url ); ?>" data-ajax-action="<?php echo esc_attr( $action ); ?>" data-nonce-field="<?php echo esc_attr( $nonce_key ); ?>" data-nonce="<?php echo esc_attr( $nonce ); ?>" data-page-url="<?php echo esc_url( $page_url ); ?>" data-panel-id="<?php echo esc_attr( $panel_id ); ?>" data-active-tab="<?php echo esc_attr( $active ); ?>">
-            <nav class="hpc-host-tabs" role="tablist" aria-label="<?php echo esc_attr( $label ); ?>">
-                <?php foreach ( $tabs as $id => $tab ) :
-                    $id       = sanitize_key( (string) $id );
-                    $tab_text = $this->tab_label( $tab );
-                    $url      = $this->tab_url( $page_url, $id );
-                    $is_on    = $id === $active;
-                    ?>
-                    <a class="hpc-host-tab<?php echo $is_on ? " active" : ""; ?>" href="<?php echo esc_url( $url ); ?>" data-hpc-host-tab="<?php echo esc_attr( $id ); ?>" role="tab" aria-selected="<?php echo $is_on ? "true" : "false"; ?>"><?php echo esc_html( $tab_text ); ?></a>
-                <?php endforeach; ?>
-            </nav>
-            <div class="hpc-host-tab-status" aria-live="polite"><span class="spinner"></span><span data-hpc-tab-message><?php echo "" !== $active ? "Loaded " . esc_html( $this->tab_label( $tabs[ $active ] ?? $active ) ) . "." : ""; ?></span></div>
-            <section id="<?php echo esc_attr( $panel_id ); ?>" class="hpc-host-tab-panel" data-hpc-tab-panel data-active-tab="<?php echo esc_attr( $active ); ?>" aria-live="polite"><?php echo $panel_html; ?></section>
+        <div id="<?php echo esc_attr( $root_id ); ?>" class="<?php echo esc_attr( $shell_class ); ?>" data-hpc-tab-root data-ajax-url="<?php echo esc_url( $ajax_url ); ?>" data-ajax-action="<?php echo esc_attr( $action ); ?>" data-nonce-field="<?php echo esc_attr( $nonce_key ); ?>" data-nonce="<?php echo esc_attr( $nonce ); ?>" data-page-url="<?php echo esc_url( $page_url ); ?>" data-panel-id="<?php echo esc_attr( $panel_id ); ?>" data-active-tab="<?php echo esc_attr( $active ); ?>">
+            <?php if ( $sidebar ) : ?>
+                <div class="hpc-host-rail" role="tablist" aria-label="<?php echo esc_attr( $label ); ?>">
+                    <?php echo $this->grouped_nav_html( $groups, $tabs, $page_url, $active ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                </div>
+                <div class="hpc-host-main">
+                    <div class="hpc-host-tab-status" aria-live="polite"><span class="spinner"></span><span data-hpc-tab-message><?php echo esc_html( $status_label ); ?></span></div>
+                    <section id="<?php echo esc_attr( $panel_id ); ?>" class="hpc-host-tab-panel" data-hpc-tab-panel data-active-tab="<?php echo esc_attr( $active ); ?>" aria-live="polite"><?php echo $panel_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></section>
+                </div>
+            <?php else : ?>
+                <nav class="hpc-host-tabs" role="tablist" aria-label="<?php echo esc_attr( $label ); ?>">
+                    <?php foreach ( $tabs as $id => $tab ) {
+                        echo $this->tab_link_html( (string) $id, $tab, $page_url, $active ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+                    } ?>
+                </nav>
+                <div class="hpc-host-tab-status" aria-live="polite"><span class="spinner"></span><span data-hpc-tab-message><?php echo esc_html( $status_label ); ?></span></div>
+                <section id="<?php echo esc_attr( $panel_id ); ?>" class="hpc-host-tab-panel" data-hpc-tab-panel data-active-tab="<?php echo esc_attr( $active ); ?>" aria-live="polite"><?php echo $panel_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></section>
+            <?php endif; ?>
         </div>
         <script>
         (function(){
@@ -90,6 +102,7 @@ final class HostTabsRenderer {
                         runScripts(panel);
                         setActive(payload.data.tab || tab);
                         setMessage("Loaded " + (payload.data.label || payload.data.tab || tab) + ".");
+                        if (panel.scrollIntoView) { var r = panel.getBoundingClientRect(); if (r.top < 0) panel.scrollIntoView({ block: "start" }); }
                         if (push !== false && window.history && history.pushState) history.pushState({ hpcHostTab: payload.data.tab || tab }, "", href || tabUrl(payload.data.tab || tab));
                         dispatch("loaded", { tab: payload.data.tab || tab, label: payload.data.label || "", html: payload.data.html || "" });
                     })
@@ -101,6 +114,68 @@ final class HostTabsRenderer {
         })();
         </script>
         <?php
+    }
+
+    /**
+     * @param array<int,array<string,mixed>> $groups
+     * @param array<string,mixed>            $tabs
+     */
+    private function grouped_nav_html( array $groups, array $tabs, string $page_url, string $active ): string {
+        $html      = "";
+        $rendered  = [];
+
+        foreach ( $groups as $group ) {
+            if ( ! is_array( $group ) ) {
+                continue;
+            }
+
+            $group_label = isset( $group["label"] ) ? (string) $group["label"] : "";
+            $group_ids   = isset( $group["tabs"] ) && is_array( $group["tabs"] ) ? $group["tabs"] : [];
+            $links       = "";
+
+            foreach ( $group_ids as $id ) {
+                $id = sanitize_key( (string) $id );
+                if ( "" === $id || ! array_key_exists( $id, $tabs ) || isset( $rendered[ $id ] ) ) {
+                    continue;
+                }
+                $rendered[ $id ] = true;
+                $links          .= $this->tab_link_html( $id, $tabs[ $id ], $page_url, $active );
+            }
+
+            if ( "" === $links ) {
+                continue;
+            }
+
+            $html .= '<div class="hpc-host-rail-group">'
+                . ( "" !== $group_label ? '<p class="hpc-host-rail-title">' . esc_html( $group_label ) . '</p>' : "" )
+                . '<nav class="hpc-host-tabs" role="tablist">' . $links . '</nav>'
+                . '</div>';
+        }
+
+        // Any tab not assigned to a group is still shown so nothing silently disappears.
+        $leftover = "";
+        foreach ( $tabs as $id => $tab ) {
+            $id = sanitize_key( (string) $id );
+            if ( "" === $id || isset( $rendered[ $id ] ) ) {
+                continue;
+            }
+            $leftover .= $this->tab_link_html( $id, $tab, $page_url, $active );
+        }
+
+        if ( "" !== $leftover ) {
+            $html .= '<div class="hpc-host-rail-group"><p class="hpc-host-rail-title">More</p><nav class="hpc-host-tabs" role="tablist">' . $leftover . '</nav></div>';
+        }
+
+        return $html;
+    }
+
+    private function tab_link_html( string $id, mixed $tab, string $page_url, string $active ): string {
+        $id    = sanitize_key( $id );
+        $text  = $this->tab_label( $tab );
+        $url   = $this->tab_url( $page_url, $id );
+        $is_on = $id === $active;
+
+        return '<a class="hpc-host-tab' . ( $is_on ? " active" : "" ) . '" href="' . esc_url( $url ) . '" data-hpc-host-tab="' . esc_attr( $id ) . '" role="tab" aria-selected="' . ( $is_on ? "true" : "false" ) . '">' . esc_html( $text ) . '</a>';
     }
 
     private function tab_label( mixed $tab ): string {
