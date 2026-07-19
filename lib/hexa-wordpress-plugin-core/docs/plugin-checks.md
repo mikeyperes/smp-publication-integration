@@ -144,4 +144,5 @@ echo ( new \Hexa\PluginCore\PluginChecks\PluginInventoryRenderer() )->render(
 - The Installation and Status columns report factual installed/active state separately from policy. Optional or unlisted facts remain neutral unless the host explicitly configures a check.
 - Forbidden definitions remain visible when absent unless the host deliberately sets `hide_compliant_forbidden => true`.
 - Missing or otherwise noncompliant required rows get a red left-side marker.
+- Inventory and plugin-check AJAX fragments render buttons without re-emitting shared Core or DynamicButton asset tags inside row markup.
 - Run `php -n tests/plugin-inventory-policy.php` to verify the policy-state contract.

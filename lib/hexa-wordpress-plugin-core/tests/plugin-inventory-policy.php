@@ -12,6 +12,7 @@ function esc_html( mixed $value ): string {
 
 $root = dirname( __DIR__ );
 
+require_once $root . '/src/WpAdminComponents/DynamicButton.php';
 require_once $root . '/src/PluginChecks/PluginCheckDefinition.php';
 require_once $root . '/src/PluginChecks/PluginCheckService.php';
 require_once $root . '/src/PluginChecks/PluginInventoryRenderer.php';
@@ -21,6 +22,7 @@ use Hexa\PluginCore\PluginChecks\PluginCheckDefinition;
 use Hexa\PluginCore\PluginChecks\PluginCheckService;
 use Hexa\PluginCore\PluginChecks\PluginInventoryRenderer;
 use Hexa\PluginCore\PluginChecks\PluginRecommendationRegistry;
+use Hexa\PluginCore\WpAdminComponents\DynamicButton;
 
 function assert_true( bool $condition, string $message ): void {
     if ( $condition ) {
@@ -158,9 +160,19 @@ assert_true( false === $unlisted_definition['should_not_contain'], 'Registry mus
 assert_true( false === $unlisted_definition['checks']['not_installed'], 'Registry must not require an unlisted plugin to be absent.' );
 assert_true( str_starts_with( $unlisted_definition['id'], 'unlisted-' ), 'Registry must use neutral unlisted identifiers.' );
 
+ob_start();
+$fragment_button = DynamicButton::render( [ 'label' => 'Fragment button', 'render_assets' => false ] );
+$fragment_output = (string) ob_get_clean();
+assert_true( '' === $fragment_output, 'Fragment button rendering must not emit shared asset tags.' );
+assert_true( str_contains( $fragment_button, 'Fragment button' ), 'Fragment button HTML was not returned.' );
+
 $renderer_source = (string) file_get_contents( $root . '/src/PluginChecks/PluginInventoryRenderer.php' );
 assert_true( ! str_contains( $renderer_source, 'requirement_badge' ), 'Legacy contradictory requirement badge remains in the renderer.' );
 assert_true( str_contains( $renderer_source, '<th>Policy</th>' ), 'Policy column is missing.' );
 assert_true( str_contains( $renderer_source, '<th>Installation</th>' ), 'Installation column is missing.' );
+assert_true( 1 === substr_count( $renderer_source, 'DynamicButton::render(' ), 'Inventory fragments still render DynamicButton assets inside rows.' );
+
+$checks_renderer_source = (string) file_get_contents( $root . '/src/PluginChecks/PluginChecksRenderer.php' );
+assert_true( 1 === substr_count( $checks_renderer_source, 'DynamicButton::render(' ), 'Plugin-check fragments still render DynamicButton assets inside rows.' );
 
 echo "PASS: Plugin inventory policy states are explicit, coherent, and neutral for unlisted plugins.\n";

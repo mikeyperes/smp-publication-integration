@@ -208,9 +208,9 @@ final class PluginInventoryRenderer {
         </div>
 
         <div class="hpc-plugin-inventory-actions">
-            <?php echo DynamicButton::render( [ 'label' => 'Refresh checks', 'working_label' => 'Refreshing...', 'success_label' => 'Refreshed', 'class' => 'hpc-button secondary', 'attrs' => [ 'data-plugin-inventory-refresh' => true ] ] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+            <?php echo $this->dynamic_button( [ 'label' => 'Refresh checks', 'working_label' => 'Refreshing...', 'success_label' => 'Refreshed', 'class' => 'hpc-button secondary', 'attrs' => [ 'data-plugin-inventory-refresh' => true ] ] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
             <?php if ( ! empty( $args['show_install_all'] ) ) : ?>
-                <?php echo DynamicButton::render( [ 'label' => 'Install and activate missing', 'working_label' => 'Processing...', 'success_label' => 'Processed', 'class' => 'hpc-button', 'attrs' => [ 'data-plugin-inventory-install-all' => true ] ] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                <?php echo $this->dynamic_button( [ 'label' => 'Install and activate missing', 'working_label' => 'Processing...', 'success_label' => 'Processed', 'class' => 'hpc-button', 'attrs' => [ 'data-plugin-inventory-install-all' => true ] ] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
             <?php endif; ?>
             <?php if ( function_exists( 'admin_url' ) ) : ?>
                 <?php echo CoreUi::external_link( admin_url( 'plugins.php' ), 'Open plugins', 'hpc-button secondary' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
@@ -332,7 +332,7 @@ final class PluginInventoryRenderer {
 
             $actions = [];
             if ( ! empty( $status['active'] ) ) {
-                $actions[] = DynamicButton::render(
+                $actions[] = $this->dynamic_button(
                     [
                         'label'         => 'Deactivate',
                         'working_label' => 'Deactivating...',
@@ -346,7 +346,7 @@ final class PluginInventoryRenderer {
                     ]
                 );
             } else {
-                $actions[] = DynamicButton::render(
+                $actions[] = $this->dynamic_button(
                     [
                         'label'         => 'Activate',
                         'working_label' => 'Activating...',
@@ -361,7 +361,7 @@ final class PluginInventoryRenderer {
                     ]
                 );
             }
-            $actions[] = DynamicButton::render(
+            $actions[] = $this->dynamic_button(
                 [
                     'label'         => 'Delete',
                     'working_label' => 'Deleting...',
@@ -381,7 +381,7 @@ final class PluginInventoryRenderer {
 
         if ( empty( $status['installed'] ) ) {
             if ( ! empty( $status['installable'] ) ) {
-                return DynamicButton::render(
+                return $this->dynamic_button(
                     [
                         'label'         => 'Install and activate',
                         'working_label' => 'Installing...',
@@ -406,7 +406,7 @@ final class PluginInventoryRenderer {
         $primary = '';
 
         if ( empty( $status['active'] ) && ! empty( $definition->checks['active'] ) ) {
-            $primary = DynamicButton::render(
+            $primary = $this->dynamic_button(
                 [
                     'label'         => 'Activate',
                     'working_label' => 'Activating...',
@@ -430,6 +430,15 @@ final class PluginInventoryRenderer {
         return '<div class="hpc-plugin-inventory-action-stack">'
             . '<div class="hpc-plugin-inventory-primary-action">' . $primary . '</div>'
             . '</div>';
+    }
+
+    /**
+     * @param array<string,mixed> $args
+     */
+    private function dynamic_button( array $args ): string {
+        $args['render_assets'] = false;
+
+        return DynamicButton::render( $args );
     }
 
     /**
