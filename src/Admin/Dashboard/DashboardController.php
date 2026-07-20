@@ -30,7 +30,6 @@ use smp_publication_integration\Config;
 use smp_publication_integration\Content\Breadcrumbs;
 use smp_publication_integration\Content\MultiAuthors;
 use smp_publication_integration\Content\Schema;
-use smp_publication_integration\Content\TeamMemberDirectory;
 use smp_publication_integration\Support\Dependencies;
 use smp_publication_integration\Support\ArticleCleanup;
 use smp_publication_integration\Support\PageStructure;
@@ -682,7 +681,7 @@ class DashboardController {
     }
 
     public static function shortcode_catalog(): array {
-        $A = "src/Content/AuthorShortcodes.php"; $S = "src/Content/Shortcodes.php"; $M = "src/Content/MultiAuthors.php"; $MR = "src/Content/MuckRackVerification.php"; $TM = "src/Content/TeamMemberDirectory.php"; $TOC = "src/Content/TableOfContents.php"; $BC = "src/Content/Breadcrumbs.php"; $RT = "src/Content/EstimatedReadTime.php";
+        $A = "src/Content/AuthorShortcodes.php"; $S = "src/Content/Shortcodes.php"; $M = "src/Content/MultiAuthors.php"; $MR = "src/Content/MuckRackVerification.php"; $TOC = "src/Content/TableOfContents.php"; $BC = "src/Content/Breadcrumbs.php"; $RT = "src/Content/EstimatedReadTime.php";
         $authDetail = function( $source, $file, $type ) use ( $A ) { return [ "field" => "user meta", "group" => "WP user profile", "source" => $source, "file" => $file, "plugin" => "SMP Publication Integration", "type" => $type, "edit" => "author" ]; };
         return [
             [ "key" => "author-identity", "title" => "Author identity & bio", "layer" => "Author layer", "live" => "author",
@@ -732,14 +731,6 @@ class DashboardController {
                 [ "tag" => "smp_post_authors", "desc" => "All authors assigned to the post as linked author objects, for a multi-author byline.", "type" => "List", "params" => "post_id, author_index", "detail" => [ "field" => "post_authors", "group" => "Post - Header (group_64a7290b61191)", "source" => "ACF repeater field_smpi_post_authors", "file" => $M, "plugin" => "SMP Publication Integration", "type" => "List", "edit" => "post" ] ],
                 [ "tag" => "smp_post_author_names", "desc" => "A formatted text list of the display names of every author on the post.", "type" => "Text", "params" => "post_id, author_index", "detail" => [ "field" => "post_authors", "group" => "Post - Header (group_64a7290b61191)", "source" => "ACF repeater field_smpi_post_authors", "file" => $M, "plugin" => "SMP Publication Integration", "type" => "Text", "edit" => "post" ] ],
                 [ "tag" => "smp_post_author_ids", "desc" => "The WordPress user IDs of every author on the post.", "type" => "IDs", "params" => "post_id, author_index", "detail" => [ "field" => "post_authors", "group" => "Post - Header (group_64a7290b61191)", "source" => "ACF repeater field_smpi_post_authors", "file" => $M, "plugin" => "SMP Publication Integration", "type" => "IDs", "edit" => "post" ] ],
-              ] ],
-            [ "key" => "team-directory", "requires" => "the Team member directory templates feature and active HWS Team Member CPT", "requires_key" => "team_member_directory_enabled", "title" => "Team member directories", "layer" => "Publication layer", "live" => "publication",
-              "blurb" => "A responsive directory of published Team Member CPT entries. The style attribute selects one of three minimal templates; filters can restrict featured people, category, and result count.",
-              "register_file" => $TM, "access" => "Team, staff, masthead, and executive leadership pages.",
-              "items" => [
-                [ "tag" => "smp_team_members", "desc" => "Displays published Team Member entries through the selected minimal directory template.", "type" => "HTML directory", "params" => "style (portrait_grid|editorial_list|compact_directory), featured_only, category, limit, columns, show_excerpt, link_profiles, order, orderby",
-                  "variations" => [ [ "code" => "[smp_team_members style=\"portrait_grid\" columns=\"3\"]", "label" => "Minimal portrait grid" ], [ "code" => "[smp_team_members style=\"editorial_list\"]", "label" => "Editorial list" ], [ "code" => "[smp_team_members style=\"compact_directory\"]", "label" => "Compact directory" ], [ "code" => "[smp_team_members featured_only=\"1\" limit=\"6\"]", "label" => "Featured Team Members" ] ],
-                  "detail" => [ "field" => "position, featured, excerpt, featured image", "group" => "HWS Team Member (group_64b3a05760b1a)", "source" => "team-member CPT", "file" => $TM, "plugin" => "SMP Publication Integration", "type" => "HTML", "edit" => "publication" ] ],
               ] ],
             [ "key" => "post-content", "title" => "Post content blocks", "layer" => "Post layer", "live" => "post",
               "blurb" => "Structured blocks rendered inside the single-post body: summary, FAQs, and a table of contents. Each takes a style variant. Summary and FAQs read post ACF fields; the TOC is built from the post headings.",
@@ -1465,41 +1456,6 @@ class DashboardController {
 
     private function render_author_feature_group( array $settings ): void {
         $this->feature_group_open( "authors-verification", "Authors and verification", "Author assignment and MuckRack verification output." );
-
-        $team_member_controls = $this->team_member_prerequisite_html()
-            . $this->select_setting_html(
-                "team_member_directory_style",
-                [
-                    "portrait_grid" => [
-                        "label" => "Minimal portrait grid",
-                        "description" => "Clean image-first cards with restrained typography and no decorative buttons.",
-                        "preview" => TeamMemberDirectory::preview_html( "portrait_grid" ),
-                    ],
-                    "editorial_list" => [
-                        "label" => "Editorial list",
-                        "description" => "One person per row with a portrait, role, short biography, and quiet profile link.",
-                        "preview" => TeamMemberDirectory::preview_html( "editorial_list" ),
-                    ],
-                    "compact_directory" => [
-                        "label" => "Compact directory",
-                        "description" => "Dense single-column rows for larger teams where fast name and role scanning matters.",
-                        "preview" => TeamMemberDirectory::preview_html( "compact_directory" ),
-                    ],
-                ],
-                $settings,
-                "Default team directory template"
-            )
-            . $this->team_member_shortcodes_html();
-        $this->feature_card(
-            "Team member directory templates",
-            "team_member_directory_enabled",
-            "Requires the HWS Base Tools <code>team-member</code> custom post type. The matching HWS ACF fields provide <code>position</code> and <code>featured</code>; the post title, excerpt, content, featured image, category, and menu order stay native WordPress data.",
-            "Displays published Team Member entries through one reusable shortcode with three clean, responsive templates. It returns no front-end markup until the feature is enabled and the Team Member CPT is active.",
-            "[smp_team_members]\n[smp_team_members style=\"portrait_grid\"]\n[smp_team_members style=\"editorial_list\"]\n[smp_team_members style=\"compact_directory\" featured_only=\"1\"]",
-            $this->team_member_report_html(),
-            $this->activity_log_html(),
-            $team_member_controls
-        );
 
         $author_muckrack_controls = $this->inline_toggle_setting_html( "muckrack_author_always_show", "Always show for every author" )
             . $this->context_select_html( "muckrack_verified_contexts", [ "single_author" => "single.php header author mention", "single_footer" => "single.php footer/about-author mention", "loop_cards" => "Loop card authors: show checkmark", "home" => "Home page author mention", "author" => "author.php author mention" ], $settings, "Placement contexts" )
@@ -2338,46 +2294,6 @@ CSS;
         return "<span class=smpi-author-block-demo style=--smpi-muckrack-color:" . esc_attr( $color ) . ">Author verified by <strong>MuckRack</strong> editorial team <a href=#>(learn more)</a></span>";
     }
 
-    private function team_member_prerequisite_html(): string {
-        $report = TeamMemberDirectory::integrity_report();
-        $ready = ! empty( $report["post_type_active"] );
-        $acf_ready = ! empty( $report["hws_acf_enabled"] );
-        $settings_url = admin_url( "options-general.php?page=hws-core-tools&tab=website-types" );
-
-        $html = "<style id=\"smpi-team-member-directory-admin-css\">" . TeamMemberDirectory::styles()
-            . ".smpi-control-group:has(input[data-key=\"team_member_directory_style\"]) .smpi-choice-grid{grid-template-columns:minmax(0,1fr)}"
-            . ".smpi-control-group:has(input[data-key=\"team_member_directory_style\"]) .smpi-choice-preview{max-width:820px;overflow:hidden}"
-            . ".smpi-team-prerequisite{border:1px solid #d8dee8;border-left:4px solid #b32d2e;border-radius:6px;background:#fff;padding:14px;margin-bottom:14px}"
-            . ".smpi-team-prerequisite.is-ready{border-left-color:#137333;background:#f3faf5}"
-            . ".smpi-team-prerequisite h3{margin:0 0 10px}.smpi-team-prerequisite .smpi-status-row{margin:7px 0}.smpi-team-prerequisite p{margin:10px 0}"
-            . "</style>";
-        $html .= "<div class=\"smpi-control-group smpi-team-prerequisite" . ( $ready ? " is-ready" : "" ) . "\"><h3>Prerequisite check</h3>";
-        $html .= "<div class=smpi-status-rows><div class=smpi-status-row>" . self::ico( $ready, true ) . "<span>Team Member CPT (<code>team-member</code>): " . esc_html( $ready ? "Active" : "Inactive" ) . "</span></div>";
-        $html .= "<div class=smpi-status-row>" . self::ico( $acf_ready, true ) . "<span>Team Member ACF fields (<code>position</code>, <code>featured</code>): " . esc_html( $acf_ready ? "Active" : "Inactive" ) . "</span></div>";
-        $html .= "<div class=smpi-status-row>" . self::ico( (int) $report["published"] > 0 ) . "<span>Published Team Members: " . esc_html( (string) (int) $report["published"] ) . "</span></div></div>";
-        $html .= $ready
-            ? "<p><strong>Ready.</strong> Select a template, enable this feature, then place the shortcode on the team page.</p>"
-            : "<p><strong>Enable the Team Member CPT first.</strong> The shortcode intentionally returns no markup while the canonical HWS post type is inactive.</p>";
-        $html .= "<p><a class=\"button button-secondary\" target=\"_blank\" rel=\"noopener noreferrer\" href=\"" . esc_url( $settings_url ) . "\">Open Team Member setup</a></p></div>";
-        return $html;
-    }
-
-    private function team_member_shortcodes_html(): string {
-        $rows = [
-            [ "Selected default template", "[smp_team_members]", "Uses the template selected above and displays all published Team Members." ],
-            [ "Minimal portrait grid", "[smp_team_members style=\"portrait_grid\" columns=\"3\"]", "Use columns=1 through 4. Mobile layouts collapse automatically." ],
-            [ "Editorial list", "[smp_team_members style=\"editorial_list\"]", "One person per row with role and short biography." ],
-            [ "Compact directory", "[smp_team_members style=\"compact_directory\"]", "Compact name and role rows for larger teams." ],
-            [ "Featured people only", "[smp_team_members featured_only=\"1\"]", "Filters to Team Members whose HWS featured field is enabled." ],
-            [ "Filtered example", "[smp_team_members category=\"leadership\" limit=\"6\" show_excerpt=\"0\"]", "Filters by category slug, limits results, and hides biographies." ],
-        ];
-        $html = "<div class=\"smpi-control-group smpi-shortcode-reference\"><h3>Copy-ready shortcode</h3><div class=smpi-shortcode-list>";
-        foreach ( $rows as $row ) {
-            $html .= "<div class=smpi-shortcode-row><strong>" . esc_html( $row[0] ) . "</strong><code>" . esc_html( $row[1] ) . "</code><small>" . esc_html( $row[2] ) . "</small></div>";
-        }
-        return $html . "</div></div>";
-    }
-
     private function author_muckrack_mode_help_html( array $settings ): string {
         $forced = Settings::bool( "muckrack_author_always_show" );
         $style_key = (string) ( $settings["muckrack_icon_style"] ?? "circle_check" );
@@ -2485,26 +2401,6 @@ CSS;
         foreach ( $report["sample_files"] as $file ) {
             $html .= "<tr><td><code>" . esc_html( $file["file"] ) . "</code></td><td>" . self::ico( (bool) $file["readable"], true ) . "</td><td><code>" . esc_html( $file["query"] ) . "</code></td></tr>";
         }
-        return $html . "</tbody></table>";
-    }
-
-    private function team_member_report_html(): string {
-        $report = TeamMemberDirectory::integrity_report();
-        $ready = ! empty( $report["enabled"] ) && ! empty( $report["post_type_active"] ) && ! empty( $report["shortcode_registered"] );
-        $html = $this->simple_status_html(
-            $ready,
-            "Feature: " . ( ! empty( $report["enabled"] ) ? "enabled" : "disabled" )
-                . ". Team Member CPT: " . ( ! empty( $report["post_type_active"] ) ? "active" : "inactive" )
-                . ". Shortcode: " . ( ! empty( $report["shortcode_registered"] ) ? "registered" : "not registered" ) . "."
-        );
-        $html .= "<table class=\"widefat striped\"><tbody>";
-        $html .= "<tr><th>Canonical post type</th><td><code>" . esc_html( (string) $report["post_type"] ) . "</code> " . self::ico( (bool) $report["post_type_active"], true ) . "</td></tr>";
-        $html .= "<tr><th>HWS CPT setting</th><td>" . self::ico( (bool) $report["hws_cpt_enabled"], true ) . esc_html( $report["hws_cpt_enabled"] ? "Enabled" : "Disabled" ) . "</td></tr>";
-        $html .= "<tr><th>HWS ACF setting</th><td>" . self::ico( (bool) $report["hws_acf_enabled"], true ) . esc_html( $report["hws_acf_enabled"] ? "Enabled" : "Disabled" ) . "</td></tr>";
-        $html .= "<tr><th>Published / featured</th><td><code>" . esc_html( (string) (int) $report["published"] ) . " / " . esc_html( (string) (int) $report["featured"] ) . "</code></td></tr>";
-        $html .= "<tr><th>Selected template</th><td><code>" . esc_html( (string) $report["style"] ) . "</code></td></tr>";
-        $html .= "<tr><th>Shortcode</th><td><code>" . esc_html( (string) $report["shortcode"] ) . "</code></td></tr>";
-        $html .= "<tr><th>Sample Team Member</th><td>" . ( "" !== (string) $report["sample_url"] ? "<a target=\"_blank\" rel=\"noopener noreferrer\" href=\"" . esc_url( (string) $report["sample_url"] ) . "\">Open sample</a>" : "<span class=smpi-warn>No published Team Member found</span>" ) . "</td></tr>";
         return $html . "</tbody></table>";
     }
 

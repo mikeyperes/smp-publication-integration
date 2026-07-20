@@ -7,7 +7,7 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.6.215`
+- Version: `0.6.216`
 
 ## Architecture
 
@@ -23,12 +23,10 @@ WordPress plugin for Scale My Publication publication profiles.
 
 The bundled `Hexa\PluginCore` package is registered through the shared package resolver. One selected Core root owns the namespace when multiple Hexa plugins are active.
 
-## 0.6.215 Updates
+## 0.6.216 Updates
 
-- Added the `[smp_team_members]` directory backed by the canonical HWS `team-member` custom post type.
-- Added minimal portrait grid, editorial list, and compact directory templates with shared responsive markup and CSS.
-- Added CPT/ACF readiness checks, live counts, copy-ready shortcode variations, and shortcode catalog documentation to Features.
-- Retained the Hexa WP Core grouped sidebar tab shell and AJAX tab loading introduced in 0.6.208.
+- Removed the team-member directory feature that was incorrectly added to this plugin in 0.6.215.
+- Restored ownership of team-member directory templates and their shortcode to HWS Base Tools.
 
 ## 0.6.214 Updates
 

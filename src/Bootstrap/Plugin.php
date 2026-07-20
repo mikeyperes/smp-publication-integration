@@ -80,7 +80,6 @@ final class Plugin {
             new Content\ElementorPrimaryCategory(),
             new Content\MuckRackVerification(),
             new Content\AuthorSocialCleanup(),
-            new Content\TeamMemberDirectory(),
             new Content\Breadcrumbs(),
             new Content\TableOfContents(),
             new Content\InlinePhotoTreatments(),
