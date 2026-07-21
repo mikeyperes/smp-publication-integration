@@ -58,7 +58,7 @@ final class CoreUi {
             .hpc-host-tabs-shell{margin:16px 0 0;max-width:100%;min-width:0}
             .hpc-host-tabs-shell.is-sidebar{--hpc-host-sidebar-width:214px;align-items:start;display:grid;gap:16px;grid-template-columns:var(--hpc-host-sidebar-width) minmax(0,1fr)}
             .hpc-host-tabs-shell.is-sidebar.is-sidebar-collapsed{grid-template-columns:44px minmax(0,1fr)}
-            .hpc-host-rail{align-self:start;background:#fff;border:1px solid var(--hpc-line);border-radius:var(--hpc-radius);max-height:none;max-width:100%;overflow:visible;padding:7px;position:sticky;top:42px}
+            .hpc-host-rail{align-self:start;background:#fff;border:1px solid var(--hpc-line);border-radius:var(--hpc-radius);max-height:none;max-width:100%;overflow:visible;padding:7px;position:static}
             .hpc-host-rail-header{border-bottom:1px solid #eef1f6;margin:0 2px 6px;min-width:0;padding:8px 9px 11px;position:relative}
             .hpc-host-rail-identity{margin:0;min-width:0;overflow-wrap:anywhere;padding:0;width:auto}
             .hpc-host-rail-plugin-name{color:var(--hpc-ink);display:block;font-size:14px;line-height:1.35;margin:0 0 4px;padding-right:38px}
@@ -97,7 +97,7 @@ final class CoreUi {
             .hpc-section{background:#fff;border:1px solid var(--hpc-line);border-radius:8px;margin:0 0 14px;overflow:hidden}
             .hpc-section summary{align-items:center;cursor:pointer;display:flex;font-size:15px;font-weight:800;gap:12px;justify-content:space-between;list-style:none;padding:15px 16px}
             .hpc-section summary::-webkit-details-marker{display:none}
-            .hpc-section-title{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+            .hpc-section-title{min-width:0;overflow-wrap:anywhere;white-space:normal}
             .hpc-section-summary-side{align-items:center;display:inline-flex;flex:0 0 auto;gap:10px;margin-left:auto}
             .hpc-section-toggle{align-items:center;background:#eef2ff;border:1px solid #dbe4ff;border-radius:999px;color:var(--hpc-blue);display:inline-flex;height:28px;justify-content:center;transition:background .18s,border-color .18s,color .18s;width:28px}
             .hpc-section-toggle svg{display:block;fill:currentColor;height:12px;transform:rotate(180deg);transition:transform .18s;width:12px}
@@ -118,8 +118,8 @@ final class CoreUi {
             .hpc-credential-head p{color:var(--hpc-muted);font-size:13px;margin:0}
             .hpc-collection-filter{align-items:center;background:#f8fafc;border:1px solid var(--hpc-line);border-radius:8px;display:grid;gap:8px 14px;grid-template-columns:minmax(240px,520px) auto;margin:18px 0;padding:12px 14px}
             .hpc-collection-filter-field{min-width:0;position:relative}
-            .hpc-collection-filter-icon{color:#718096;font-size:18px;height:18px;left:11px;pointer-events:none;position:absolute;top:50%;transform:translateY(-50%);width:18px}
-            .hpc-collection-filter-input{background:#fff;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;height:40px;margin:0;padding:0 40px 0 37px;width:100%}
+            .hpc-collection-filter-icon{color:#718096;font-size:18px;height:18px;left:14px;pointer-events:none;position:absolute;top:50%;transform:translateY(-50%);width:18px;z-index:1}
+            .hpc-collection-filter-field .hpc-collection-filter-input{background:#fff;border:1px solid #cbd5e1;border-radius:6px;box-sizing:border-box;font-size:13px;height:40px;margin:0;padding:0 44px 0 46px;width:100%}
             .hpc-collection-filter-input:focus{border-color:var(--hpc-blue);box-shadow:0 0 0 2px rgba(49,87,213,.14);outline:0}
             .hpc-collection-filter-clear{align-items:center;background:transparent;border:0;border-radius:5px;color:#64748b;cursor:pointer;display:flex;height:30px;justify-content:center;padding:0;position:absolute;right:5px;top:50%;transform:translateY(-50%);width:30px}
             .hpc-collection-filter-clear:hover{background:#eef2f7;color:#172033}
@@ -128,6 +128,7 @@ final class CoreUi {
             .hpc-collection-filter-status{color:var(--hpc-muted);font-size:12px;justify-self:end;white-space:nowrap}
             .hpc-collection-filter-status strong{color:var(--hpc-ink)}
             .hpc-collection-filter-empty{color:var(--hpc-muted);font-size:13px;grid-column:1/-1;margin:0;padding:3px 0}
+            .hpc-ui [data-hpc-filter-hidden="1"]{display:none!important}
             @media(max-width:680px){.hpc-collection-filter{grid-template-columns:minmax(0,1fr)}.hpc-collection-filter-status{justify-self:start}}
             .hpc-smart-search{position:relative}
             .hpc-smart-search-status{color:var(--hpc-muted);font-size:12px;margin-top:6px}
@@ -251,11 +252,16 @@ final class CoreUi {
                             if (!text) text = item.textContent || '';
                             var matches = !query || text.toLocaleLowerCase().indexOf(query) !== -1;
                             item.hidden = !matches;
+                            if (matches) item.removeAttribute('data-hpc-filter-hidden');
+                            else item.setAttribute('data-hpc-filter-hidden', '1');
                             if (matches) visible++;
                         });
                         selected(groupSelector, target).forEach(function(group) {
                             var groupItems = items.filter(function(item) { return group.contains(item); });
-                            group.hidden = !!query && groupItems.length > 0 && groupItems.every(function(item) { return item.hidden; });
+                            var groupHidden = !!query && groupItems.length > 0 && groupItems.every(function(item) { return item.hidden; });
+                            group.hidden = groupHidden;
+                            if (groupHidden) group.setAttribute('data-hpc-filter-hidden', '1');
+                            else group.removeAttribute('data-hpc-filter-hidden');
                         });
                         var singular = filter.dataset.itemLabelSingular || 'item';
                         var plural = filter.dataset.itemLabelPlural || 'items';
@@ -277,6 +283,9 @@ final class CoreUi {
                             applyFilter();
                             input.focus();
                         });
+                    }
+                    if (window.MutationObserver) {
+                        new MutationObserver(function() { applyFilter(); }).observe(target, {childList:true, subtree:true});
                     }
                     applyFilter();
                 });
@@ -302,18 +311,34 @@ final class CoreUi {
     public static function toggle( string $name, bool $checked, string $label, array $args = [] ): string {
         $id           = isset( $args['id'] ) ? sanitize_key( (string) $args['id'] ) : sanitize_key( $name . '-' . md5( $label ) );
         $value        = isset( $args['value'] ) ? (string) $args['value'] : '1';
-        $class        = trim( 'hpc-toggle ' . sanitize_html_class( (string) ( $args['class'] ?? '' ) ) );
+        $class_names  = preg_split( '/\s+/', trim( 'hpc-toggle ' . (string) ( $args['class'] ?? '' ) ) ) ?: [];
+        $class_names  = array_values( array_filter( array_map( 'sanitize_html_class', $class_names ) ) );
+        $class        = implode( ' ', $class_names );
+        $input_names  = preg_split( '/\s+/', trim( (string) ( $args['input_class'] ?? '' ) ) ) ?: [];
+        $input_names  = array_values( array_filter( array_map( 'sanitize_html_class', $input_names ) ) );
+        $input_class  = [] !== $input_names ? ' class="' . esc_attr( implode( ' ', $input_names ) ) . '"' : '';
         $disabled     = ! empty( $args['disabled'] ) ? ' disabled' : '';
         $tooltip      = '' !== (string) ( $args['tooltip'] ?? '' ) ? ' ' . self::tooltip( (string) $args['tooltip'] ) : '';
         $checked_attr = $checked ? ' checked' : '';
+        $data_attrs   = '';
+
+        foreach ( (array) ( $args['data'] ?? [] ) as $data_key => $data_value ) {
+            if ( ! is_scalar( $data_value ) ) {
+                continue;
+            }
+            $data_key = sanitize_key( str_replace( '_', '-', (string) $data_key ) );
+            if ( '' === $data_key ) {
+                continue;
+            }
+            $data_attrs .= ' data-' . $data_key . '="' . esc_attr( (string) $data_value ) . '"';
+        }
 
         return '<label class="' . esc_attr( $class ) . '" for="' . esc_attr( $id ) . '">'
-            . '<input id="' . esc_attr( $id ) . '" type="checkbox" name="' . esc_attr( $name ) . '" value="' . esc_attr( $value ) . '"' . $checked_attr . $disabled . '>'
+            . '<input id="' . esc_attr( $id ) . '" type="checkbox" name="' . esc_attr( $name ) . '" value="' . esc_attr( $value ) . '"' . $input_class . $data_attrs . $checked_attr . $disabled . '>'
             . '<span class="hpc-toggle-ui" aria-hidden="true"></span>'
             . '<span class="hpc-toggle-label">' . esc_html( $label ) . $tooltip . '</span>'
             . '</label>';
     }
-
     public static function inline_details( string $summary, string $body_html, bool $open = false ): string {
         return '<details class="hpc-inline-details"' . ( $open ? ' open' : '' ) . '><summary>' . esc_html( $summary ) . '</summary><div class="hpc-inline-details-body">' . wp_kses_post( $body_html ) . '</div></details>';
     }

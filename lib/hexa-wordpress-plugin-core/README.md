@@ -50,6 +50,8 @@ hexa-wordpress-plugin-core/
     SiteStructure/      -> Hexa\PluginCore\SiteStructure
     SchemaDetection/    -> Hexa\PluginCore\SchemaDetection
     SchemaTools/        -> Hexa\PluginCore\SchemaTools
+    SearchDisplay/      -> Hexa\PluginCore\SearchDisplay
+    SearchQuery/        -> Hexa\PluginCore\SearchQuery
     SmartSearch/        -> Hexa\PluginCore\SmartSearch
     SystemEnvironment/  -> Hexa\PluginCore\SystemEnvironment
     WpAdminUiCleanup/   -> Hexa\PluginCore\WpAdminUiCleanup
@@ -90,6 +92,8 @@ Do not create `HWS\BaseTools\PluginCore`, `HexaWordPressPluginCore`, `Hexa\Core`
 - `ShortcodeRegistry`: shortcode definition registry, dashboard display renderer, examples, live output, and test runner contracts.
 - `SiteStructure`: reusable critical page blueprint management, assigned page storage, WordPress navigation menu creation, custom menu-item creation, add-all-assigned-pages actions, menu structure attachment, and page-to-menu-item tools.
 - `SchemaDetection`: reusable JSON-LD URL scans, source detection, duplicate schema conflict checks, FAQ validation, and dark admin report rendering.
+- `SearchDisplay`: five reusable front-end WordPress search-form templates with shared markup, CSS, and accessible interactions.
+- `SearchQuery`: bounded native WordPress result matching for all/any/exact terms, whole/prefix/contains word modes, selected post types and sources, one-query-only SQL hooks, and guarded JetEngine search-template bridging.
 - `SmartSearch`: smart search/X-Search AJAX endpoint and reusable typeahead renderer.
 - `SystemEnvironment`: safe constants, INI, shell wrappers, size parsing, CPU/memory detection, and byte formatting.
 - `WpAdminUiCleanup`: shared admin UI cleanup definitions, AJAX toggles, target-screen CSS/JS, postbox hide/collapse behavior, and footer filters.
@@ -171,6 +175,8 @@ Before adding implementations in another Codex or Claude chat, read:
 - `docs/object-cache.md`
 - `docs/site-structure.md`
 - `docs/schema-detection.md`
+- `docs/search-display.md`
+- `docs/search-query.md`
 - `docs/field-structures.md`
 - `docs/faq-sets.md`
 - `docs/brand-colors.md`
@@ -206,13 +212,33 @@ $core_config = CorePackageConfig::from_core_root(
 
 This panel compares the vendored `VERSION` in the host plugin with the public GitHub repository `VERSION`. The host plugin updater and the vendored core updater both render as default-open persistent collapse cards. Each card reports the Git repo, Git URL, Git branch, Git version, current version, current-vs-Git comparison, green/red status flag, check-for-updates action, normalized ZIP download, and live update activity log.
 
+## Native Search Query Behavior
+
+Version 0.19.60 adds a guarded JetEngine listing-grid adapter to `Hexa\PluginCore\SearchQuery`. Version 0.19.59 introduced the reusable native WordPress search-results engine, separating all/any/exact term logic from whole/prefix/contains word matching, supporting selected public post types and explicit native or advanced sources, and keeping display options outside the behavior contract.
+
+Its `pre_get_posts` coordination is deliberately narrow: unrelated, admin, AJAX, REST, cron, feed, unmarked nested, disabled, and empty queries are rejected before host settings are loaded. A trusted adapter may explicitly mark a secondary query created by a search-results template; the SQL callback still binds to that one exact `WP_Query` object and removes itself immediately after the query reaches it. See `docs/search-query.md` for the host protocol and mandatory performance guards.
+
 ## Collection Filters and Sidebar Header
+
+Version 0.19.63 lets CoreUi::toggle() accept sanitized host input classes and data attributes, allowing AJAX-saving host plugins to use the shared toggle renderer without rebuilding its markup.
+
+Version 0.19.62 gives collection-filter search inputs enough selector specificity and left padding to keep the shared search icon separate from placeholder and entered text under WordPress admin styles.
+
+Version 0.19.57 gives filtered items an explicit Core hide state so host row layouts cannot override `hidden` and leave nonmatches visible. Core collapsible titles also wrap instead of truncating on narrow screens.
+
+Version 0.19.56 lets reusable Getting Started checklists opt into Core collection search. Nested and standalone actions are filterable, parent context is indexed with each child, counts update immediately, and active searches are reapplied after template row replacement.
+
+Version 0.19.55 keeps the complete grouped sidebar in normal document flow. The
+rail no longer uses sticky positioning, so long navigation remains reachable by
+normal page scrolling without pinning part of the sidebar to the viewport.
 
 Version 0.19.52 adds CoreUi::collection_filter() for searchable admin-card collections. Hosts supply the target ID, item selector, optional group selector, labels, and empty-state text. Core owns case-insensitive matching, visible/total counts, group hiding, clear and Escape behavior, and reinitialization after hexa-core-host-tab-loaded.
 
 Version 0.19.53 also initializes collection filters after DOMContentLoaded so first-render panels work before any AJAX navigation.
 
 Version 0.19.54 adds an optional host-selected text selector so shared logs and diagnostics do not create false search matches.
+
+Version 0.19.61 adds reusable inherited-value support to ColorControl. Hosts can persist an empty override while Core displays the inherited color and keeps picker, editable hex, RGB, swatch, copy, import, and inherit actions synchronized.
 
 The grouped sidebar now places plugin identity and its expand/collapse control in one rail header. The expanded control sits at the top-right; collapsed mode hides identity and centers the control in the compact rail.
 
@@ -231,6 +257,8 @@ Version 0.19.45 keeps plugin inventory and plugin-check AJAX fragments free of d
 Version 0.19.44 makes plugin inventory policy explicit: satisfied required plugins render green, only host-configured entries are forbidden, absent forbidden entries can remain visible as compliant, and installed plugins outside registered policy remain neutral.
 
 ## Getting Started Checklist
+
+Version 0.19.56 adds the opt-in `show_search`, `search_label`, `search_placeholder`, and `search_empty_message` checklist configuration. Core owns the search UI and nested filtering behavior; host plugins only enable and label it.
 
 Version 0.19.40 decomposes the checklist and site-structure renderers into bounded asset collaborators and splits page menus and template workspaces behind the unchanged `PageStructureManager` facade. The package-local architecture test locks the public API and keeps every affected class below 700 lines.
 
@@ -351,7 +379,7 @@ Version 0.19.4 adds:
 
 ## Brand Color Controls
 
-`Hexa\PluginCore\BrandColors\BrandColorProvider` reads the HWS Base Tools Brand Assets primary and secondary color options and can read Elementor site-setting color/font tokens. `Hexa\PluginCore\WpAdminComponents\ColorControl` renders one reusable admin color control with picker, editable hex value, RGB value, swatch, copy button, and optional HWS primary import button hooks. `Hexa\PluginCore\WpAdminComponents\DetailedColorPicker` renders the paired primary/secondary control with optional Elementor import and optional font controls.
+`Hexa\PluginCore\BrandColors\BrandColorProvider` reads the HWS Base Tools Brand Assets primary and secondary color options and can read Elementor site-setting color/font tokens. `Hexa\PluginCore\WpAdminComponents\ColorControl` renders one reusable admin color control with picker, editable hex value, RGB value, swatch, copy button, optional HWS primary import, and optional inherited-value persistence. `Hexa\PluginCore\WpAdminComponents\DetailedColorPicker` renders the paired primary/secondary control with optional Elementor import and optional font controls.
 
 Host plugins should pass their own setting key and wire save/import AJAX while reusing this markup instead of recreating color pickers.
 
@@ -541,6 +569,24 @@ The storage key pattern is:
 hpc_cred_{slug}_{keyName}
 ```
 
+## Front-End Search Display
+
+Use `Hexa\PluginCore\SearchDisplay\SearchDisplayRenderer` for public site-search forms. It ships the `icon-reveal`, `overlay`, `pill`, `underline`, and `command` templates. Every template submits a native WordPress GET request using the `s` query parameter.
+
+```php
+echo \Hexa\PluginCore\SearchDisplay\SearchDisplayRenderer::render(
+    [
+        'style'       => 'pill',
+        'accent'      => '#2f6df6',
+        'placeholder' => 'Search stories...',
+    ]
+);
+```
+
+Host plugins own saved settings and shortcode registration. They must call this renderer for both admin previews and front-end output. Do not copy its markup or assets into the host plugin.
+
+`SearchDisplay` is not the content-picker typeahead API. Use `SmartSearch` for AJAX result suggestions inside tools and admin workflows.
+
 ## Smart Search / X-Search
 
 Use `Hexa\PluginCore\SmartSearch` for reusable typeahead search. This is the WordPress equivalent of Laravel `<x-hexa-smart-search>`.
@@ -669,7 +715,7 @@ For sidebar layouts, hosts may pass a generic `sidebar_identity` array containin
 );
 ```
 
-The sidebar is expanded by default, uses a 214px desktop rail, collapses to an icon control, and stores state under a key scoped to `root_id` when persistence is enabled. Optional identity metadata sits above navigation while expanded and is hidden when collapsed. Its rail has no internal scroll container; mobile navigation and version text wrap without horizontal scrolling. Omit `layout` and `groups` for the standard top tab bar.
+The sidebar is expanded by default, uses a 214px desktop rail, collapses to an icon control, and stores state under a key scoped to `root_id` when persistence is enabled. Optional identity metadata sits above navigation while expanded and is hidden when collapsed. Its rail remains in normal document flow and has no internal scroll container, so the complete navigation is reached through page scrolling. Mobile navigation and version text wrap without horizontal scrolling. Omit `layout` and `groups` for the standard top tab bar.
 
 ## System Checks
 

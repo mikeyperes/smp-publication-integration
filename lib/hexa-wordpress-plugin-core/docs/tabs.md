@@ -102,7 +102,7 @@ For a grouped sidebar, pass:
 - `sidebar_persist => true` to restore state from `localStorage`
 - `sidebar_identity` for optional host plugin and Core name/version links rendered above the navigation
 
-Persistence is scoped by `root_id`. The optional `sidebar_identity` contract is rendered and styled entirely by Core, opens repository links in a new tab with safe relationship attributes, hides in collapsed mode, and wraps on mobile. The default expanded rail is 214px and the collapsed rail is 44px. The rail deliberately uses page scrolling instead of an internal vertical scrollbar, and its mobile layout wraps links without horizontal scrolling.
+Persistence is scoped by `root_id`. The optional `sidebar_identity` contract is rendered and styled entirely by Core, opens repository links in a new tab with safe relationship attributes, hides in collapsed mode, and wraps on mobile. The default expanded rail is 214px and the collapsed rail is 44px. The rail remains in normal document flow instead of sticking to the viewport, deliberately uses page scrolling instead of an internal vertical scrollbar, and wraps mobile links without horizontal scrolling.
 
 ```php
 ( new HostTabsRenderer() )->render(

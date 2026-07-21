@@ -70,12 +70,21 @@ $checks = [
         && strpos( $breadcrumb_flow, '"Template"' ) < strpos( $breadcrumb_flow, '"Appearance"' )
         && strpos( $breadcrumb_flow, '"Appearance"' ) < strpos( $breadcrumb_flow, '"Visibility"' ),
     'All breadcrumb visibility settings share the Visibility section.' => str_contains( $breadcrumb_flow, 'breadcrumbs_hide_home' )
+        && str_contains( $breadcrumb_flow, 'breadcrumbs_hide_single_posts' )
         && str_contains( $breadcrumb_flow, 'breadcrumbs_hide_term_archives' )
         && str_contains( $breadcrumb_flow, 'breadcrumbs_disabled_post_types' )
         && str_contains( $breadcrumb_flow, '$this->breadcrumb_section_html( "visibility", "03", "Visibility", $visibility )' ),
-    'Breadcrumb templates and exclusions use compact responsive grids.' => str_contains( $dashboard_css, '.smpi-breadcrumb-section--template' )
+    'Breadcrumb visibility uses reusable Core toggles.' => version_compare( $core_version, '0.19.63', '>=' )
+        && str_contains( $breadcrumb_flow, 'breadcrumb_post_type_toggles_html( $settings )' )
+        && ! str_contains( $breadcrumb_flow, 'context_select_html( "breadcrumbs_disabled_post_types"' )
+        && str_contains( $dashboard, 'CoreUi::toggle(' )
+        && str_contains( $dashboard, '"input_class" => "smpi-setting-array"' )
+        && str_contains( $core_ui_source, 'input_class' )
+        && str_contains( $core_ui_source, 'data_attrs' ),
+    'Breadcrumb templates and toggle groups use compact responsive grids.' => str_contains( $dashboard_css, '.smpi-breadcrumb-section--template' )
         && str_contains( $dashboard_css, '.smpi-breadcrumb-section--template .smpi-control-group:has(input[data-key="breadcrumbs_style"]) .smpi-choice-grid{grid-template-columns:minmax(0,1fr)}' )
-        && str_contains( $dashboard_css, '.smpi-breadcrumb-section--visibility .smpi-choice-list' )
+        && str_contains( $dashboard_css, '.smpi-breadcrumb-toggle-grid' )
+        && str_contains( $dashboard_css, '.smpi-breadcrumb-toggle-item .hpc-toggle' )
         && str_contains( $dashboard_css, '@media(max-width:782px)' ),
     'Breadcrumb CSS override imports the generic Hexa Core component.' => version_compare( $core_version, '0.19.48', '>=' )
         && str_contains( $dashboard, 'use Hexa\PluginCore\WpAdminComponents\ScopedCssOverride;' )

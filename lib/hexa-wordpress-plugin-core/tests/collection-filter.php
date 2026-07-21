@@ -52,10 +52,16 @@ $checks = [
     'Renders clear, live-count, and no-result controls.' => str_contains( $html, 'data-hpc-filter-clear hidden')
         && str_contains( $html, 'role="status" aria-live="polite"')
         && str_contains( $html, 'No matching features.'),
+    'Reserves icon space with enough specificity to beat WordPress search input padding.' => str_contains( $source, '.hpc-collection-filter-field .hpc-collection-filter-input{' )
+        && str_contains( $source, 'padding:0 44px 0 46px' )
+        && str_contains( $source, '.hpc-collection-filter-icon{' ),
     'Allows host cards to opt into filtering through a sanitized class.' => str_contains( $collapsible, 'class="hpc-section feature-card invalidclass"'),
-    'Filters case-insensitively and hides nonmatching items.' => str_contains( $source, "toLocaleLowerCase()" )
-        && str_contains( $source, 'item.hidden = !matches;'),
-    'Hides empty groups and reports visible versus total items.' => str_contains( $source, 'group.hidden = !!query')
+    'Filters case-insensitively and force-hides nonmatching items.' => str_contains( $source, "toLocaleLowerCase()" )
+        && str_contains( $source, 'item.hidden = !matches;' )
+        && str_contains( $source, "item.setAttribute('data-hpc-filter-hidden', '1')" )
+        && str_contains( $source, '[data-hpc-filter-hidden="1"]{display:none!important}' ),
+    'Hides empty groups and reports visible versus total items.' => str_contains( $source, 'group.hidden = groupHidden;' )
+        && str_contains( $source, "group.setAttribute('data-hpc-filter-hidden', '1')" )
         && str_contains( $source, "visible + ' of ' + items.length"),
     'Supports clear, Escape, initial load, and AJAX tab reloads.' => str_contains( $source, "event.key !== 'Escape'")
         && str_contains( $source, 'window.hexaPluginCoreInitCollectionFilters')

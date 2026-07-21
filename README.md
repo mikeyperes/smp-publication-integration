@@ -7,7 +7,7 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.6.216`
+- Version: `0.6.217`
 
 ## Architecture
 
@@ -22,6 +22,14 @@ WordPress plugin for Scale My Publication publication profiles.
 - `Support`: integration adapters and stable legacy helpers.
 
 The bundled `Hexa\PluginCore` package is registered through the shared package resolver. One selected Core root owns the namespace when multiple Hexa plugins are active.
+
+## 0.6.217 Updates
+
+- Replaced duplicated author-context color markup and JavaScript with the reusable Hexa WP Core color control.
+- Added editable hex values, HWS primary import, and explicit inherited/custom state to every author context.
+- Replaced Breadcrumb visibility checkboxes with reusable Hexa WP Core toggles.
+- Added an independently saved option to hide breadcrumbs on standard single-post pages.
+- Updated the bundled Hexa WP Core package to 0.19.63.
 
 ## 0.6.216 Updates
 

@@ -41,6 +41,8 @@ src/SnippetRegistry/    Hexa\PluginCore\SnippetRegistry
 src/ShortcodeRegistry/  Hexa\PluginCore\ShortcodeRegistry
 src/SiteStructure/      Hexa\PluginCore\SiteStructure
 src/SchemaDetection/    Hexa\PluginCore\SchemaDetection
+src/SearchDisplay/      Hexa\PluginCore\SearchDisplay
+src/SearchQuery/        Hexa\PluginCore\SearchQuery
 src/SmartSearch/        Hexa\PluginCore\SmartSearch
 src/SystemEnvironment/  Hexa\PluginCore\SystemEnvironment
 src/WpAdminUiCleanup/   Hexa\PluginCore\WpAdminUiCleanup
@@ -149,6 +151,8 @@ Hexa\PluginCore\GettingStartedChecklist
 
 Use `GettingStartedChecklistConfig` for host-owned action names, nonce settings, capability, labels, ordered steps, semantic request types, and request metadata. Use `GettingStartedChecklistAjaxController` to register the guarded AJAX runner. Use `GettingStartedChecklistRenderer` to render the reusable checklist UI with simple action rows, collapsible parent steps only when real subtasks exist, nested subtasks, spinner/check/X states, request type badges, sequential AJAX execution, optional image preview assets in reports, and a collapsed dark technical activity log.
 
+Set `show_search` to `true` for long checklists. Core then renders the shared collection filter, indexes parent and actionable child labels/descriptions/IDs/types, updates visible counts, applies a force-hidden state that host row display rules cannot override, hides parent groups without matches, and reapplies the active query after template changes. Hosts may provide `search_label`, `search_placeholder`, and `search_empty_message`; they must not duplicate the search script.
+
 `GettingStartedChecklistRenderer` owns host-facing markup and delegates its scoped CSS/browser runtime to the internal `GettingStartedChecklistAssets` collaborator. Hosts continue to instantiate only the renderer.
 
 Set `show_type_badges` to `false` for checklist screens that are meant to read as simple action lists. Keep it enabled when request type labels help operators understand mixed setup, status-check, destructive, and configuration tasks.
@@ -173,6 +177,7 @@ Example:
 ```php
 $config = new \Hexa\PluginCore\GettingStartedChecklist\GettingStartedChecklistConfig([
     'root_id'      => 'my-plugin-getting-started',
+    'show_search'  => true,
     'nonce_action' => 'my_plugin_getting_started',
     'run_action'   => 'my_plugin_getting_started_run_item',
     'steps'        => [
@@ -668,6 +673,87 @@ $store = new \Hexa\PluginCore\CredentialVault\CredentialStore();
 $store->store( 'openai', 'api_key', $raw_key );
 $masked = $store->get_masked( 'openai', 'api_key' );
 ```
+
+## Front-End Search Display
+
+Namespace:
+
+```text
+Hexa\PluginCore\SearchDisplay
+```
+
+Class:
+
+```text
+SearchDisplayRenderer
+```
+
+Use this renderer for public site-search forms. It owns five selectable templates: `icon-reveal`, `overlay`, `pill`, `underline`, and `command`. Every template submits a native WordPress GET request with `name="s"`; it does not load AJAX search results.
+
+The host plugin owns its saved design option and shortcode. The host must call this same renderer for the backend preview and the front-end shortcode so preview markup cannot drift from production markup.
+
+```php
+echo \Hexa\PluginCore\SearchDisplay\SearchDisplayRenderer::render([
+    'style'       => 'overlay',
+    'accent'      => '#2f6df6',
+    'placeholder' => 'Search stories...',
+    'hidden_fields' => [ 'example_search' => '1' ],
+]);
+```
+
+Do not duplicate the renderer CSS, SVG, markup, or interaction script inside a host plugin. `hidden_fields` is the bridge to a shortcode-scoped `SearchQuery` engine; names are sanitized, values are escaped, and the renderer accepts at most ten fields.
+
+## Native Search Query Behavior
+
+Namespace:
+
+```text
+Hexa\PluginCore\SearchQuery
+```
+
+Classes:
+
+```text
+SearchQueryConfiguration
+SearchTermParser
+SearchQueryEngine
+JetEngineSearchAdapter
+```
+
+Use this namespace to alter one explicitly eligible native WordPress search-results query. The host owns option storage, capability/nonce checks, available public post types and taxonomies, and the request marker. Core owns normalization, bounded parsing, selected-source SQL, and query scoping.
+
+```php
+$settings_provider = static function (): array {
+    return \Hexa\PluginCore\SearchQuery\SearchQueryConfiguration::normalize(
+        (array) get_option( 'example_search_behavior', [] ),
+        get_post_types( [ 'public' => true ], 'names' ),
+        get_taxonomies( [ 'public' => true ], 'names' )
+    );
+};
+$engine = new \Hexa\PluginCore\SearchQuery\SearchQueryEngine(
+    $settings_provider,
+    'example_search'
+);
+$engine->register();
+
+$jet_engine = new \Hexa\PluginCore\SearchQuery\JetEngineSearchAdapter(
+    $settings_provider,
+    'example_search'
+);
+$jet_engine->register();
+```
+
+Supported behavior:
+
+- term logic: `all`, `any`, or `exact`
+- word matching: `whole`, `prefix`, or `contains`
+- sources: title, content, excerpt, slug, selected taxonomy names, author display names, and selected custom-field keys
+- public post-type selection, result count from 0 to 100, and relevance/newest/oldest/title ordering
+- `shortcode` scope through a hidden marker, or deliberate `all` public-search scope
+
+Safety rules are mandatory. The engine rejects admin, AJAX, REST, cron, XML-RPC, feeds, unmarked nested queries, empty searches, suppressed filters, and disabled queries before host settings are loaded. It then checks enabled/scope state, binds `posts_search` to one exact `WP_Query` object, and removes the temporary filter immediately after that object reaches it. `JetEngineSearchAdapter` can explicitly mark a posts grid created by a search-results template; archive grids and unrelated requests stay untouched. Advanced sources use `EXISTS` subqueries and remain opt-in. Parsing is capped at eight unique terms and 80 characters per term.
+
+Do not copy this into host `pre_get_posts` callbacks. Do not use it for suggestions: `SmartSearch` remains the separate AJAX typeahead/content-picker system. Full protocol: `docs/search-query.md`.
 
 ## Smart Search / X-Search
 
@@ -1317,7 +1403,7 @@ Optional `sidebar_identity` data contains host plugin and Core names, installed 
 );
 ```
 
-The expanded desktop rail is 214px and has no internal vertical scroll. It collapses to a 44px icon control. Persistent state is scoped to `root_id`; identity metadata is hidden when collapsed; and mobile links and versions wrap without horizontal scrolling. Host plugins must remove obsolete host-level tab CSS and JavaScript after migration rather than maintaining two navigation systems.
+The expanded desktop rail is 214px, remains in normal document flow, and has no internal vertical scroll. It does not stick to the viewport, so the full navigation is reached through normal page scrolling. It collapses to a 44px icon control. Persistent state is scoped to `root_id`; identity metadata is hidden when collapsed; and mobile links and versions wrap without horizontal scrolling. Host plugins must remove obsolete host-level tab CSS and JavaScript after migration rather than maintaining two navigation systems.
 
 ## System Checks
 

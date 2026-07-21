@@ -122,6 +122,9 @@ $checks = [
         && str_contains( $rail_rule, 'overflow:visible' )
         && ! str_contains( $rail_rule, 'overflow:auto' )
         && ! str_contains( $rail_rule, 'max-height:calc' ),
+    'Keeps the complete sidebar in normal document flow.' => str_contains( $rail_rule, 'position:static' )
+        && ! str_contains( $rail_rule, 'position:sticky' )
+        && ! str_contains( $rail_rule, 'top:' ),
     'Renders identity before the first navigation group.' => str_contains( $html, '<strong class="hpc-host-rail-plugin-name">Example Plugin</strong>' )
         && strpos( $html, 'hpc-host-rail-identity' ) < strpos( $html, 'hpc-host-rail-group' ),
     'Renders linked plugin and Core versions safely.' => str_contains( $html, 'Current 1.2.3' )

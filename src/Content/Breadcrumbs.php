@@ -71,6 +71,10 @@ final class Breadcrumbs {
             return false;
         }
 
+        if ( "post" === get_post_type( $post ) && Settings::bool( "breadcrumbs_hide_single_posts" ) ) {
+            return false;
+        }
+
         $post_type = get_post_type( $post );
         if ( $post_type && in_array( $post_type, Settings::array( "breadcrumbs_disabled_post_types" ), true ) ) {
             return false;
@@ -108,6 +112,7 @@ final class Breadcrumbs {
             "style" => ArticleStyles::normalize_breadcrumb_style( (string) Settings::get( "breadcrumbs_style", "bc-b2" ) ),
             "rank_math_active" => self::rank_math_available(),
             "hide_home" => Settings::bool( "breadcrumbs_hide_home" ),
+            "hide_single_posts" => Settings::bool( "breadcrumbs_hide_single_posts" ),
             "hide_term_archives" => Settings::bool( "breadcrumbs_hide_term_archives" ),
             "disabled_post_types" => Settings::array( "breadcrumbs_disabled_post_types" ),
             "disabled_object_count" => count( self::disabled_object_ids() ),
