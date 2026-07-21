@@ -47,6 +47,7 @@ function is_singular( mixed $post_type = '' ): bool {
 }
 function get_post(): ?WP_Post { return $GLOBALS['smpi_test_post']; }
 function get_post_type( mixed $post = null ): string { return $post instanceof WP_Post ? $post->post_type : $GLOBALS['smpi_test_post']->post_type; }
+function post_type_exists( string $post_type ): bool { return in_array( $post_type, [ 'post', 'page', 'profile' ], true ); }
 
 require dirname( __DIR__ ) . '/lib/hexa-wordpress-plugin-core/src/ActivityLog/ActivityLogConfig.php';
 require dirname( __DIR__ ) . '/lib/hexa-wordpress-plugin-core/src/ActivityLog/ActivityLogEntry.php';
@@ -62,24 +63,34 @@ use smp_publication_integration\Support\Settings;
 
 $checks = [];
 
-$checks['The single-post visibility option defaults off.'] =
-    false === Settings::defaults()['breadcrumbs_hide_single_posts'];
+$defaults = Settings::defaults();
+$checks['Post-type visibility defaults to no hidden post types and has no global single-post setting.'] =
+    [] === $defaults['breadcrumbs_disabled_post_types']
+    && ! array_key_exists( 'breadcrumbs_hide_single_posts', $defaults );
 
-$settings = Settings::update( [ 'breadcrumbs_hide_single_posts' => true ] );
-$checks['The single-post visibility option is sanitized and persisted as a boolean.'] =
-    true === $settings['breadcrumbs_hide_single_posts']
-    && true === Settings::bool( 'breadcrumbs_hide_single_posts' );
+$settings = Settings::update( [ 'breadcrumbs_disabled_post_types' => [ 'post' ] ] );
+$checks['The Posts toggle persists through the shared post-type array.'] =
+    [ 'post' ] === $settings['breadcrumbs_disabled_post_types']
+    && [ 'post' ] === Settings::array( 'breadcrumbs_disabled_post_types' );
 
-$checks['Enabled single-post hiding suppresses standard post breadcrumbs.'] =
+$checks['Hiding Posts suppresses standard post breadcrumbs.'] =
     false === Breadcrumbs::should_render();
 
 $GLOBALS['smpi_test_post'] = new WP_Post( 43, 'page' );
-$checks['Single-post hiding does not suppress pages.'] =
+$checks['Hiding Posts does not suppress Pages.'] =
     true === Breadcrumbs::should_render();
 
-Settings::update( [ 'breadcrumbs_hide_single_posts' => false ] );
+Settings::update( [ 'breadcrumbs_disabled_post_types' => [ 'page' ] ] );
 $GLOBALS['smpi_test_post'] = new WP_Post( 44, 'post' );
-$checks['Disabling single-post hiding restores standard post breadcrumbs.'] =
+$checks['Hiding Pages restores Posts.'] =
+    true === Breadcrumbs::should_render();
+
+$GLOBALS['smpi_test_post'] = new WP_Post( 45, 'page' );
+$checks['Hiding Pages suppresses Pages independently.'] =
+    false === Breadcrumbs::should_render();
+
+Settings::update( [ 'breadcrumbs_disabled_post_types' => [] ] );
+$checks['Clearing the per-type list restores Page breadcrumbs.'] =
     true === Breadcrumbs::should_render();
 
 foreach ( $checks as $message => $passed ) {
@@ -89,4 +100,4 @@ foreach ( $checks as $message => $passed ) {
     }
 }
 
-echo "PASS: Breadcrumb single-post visibility is persisted, scoped, and reversible.\n";
+echo "PASS: Breadcrumb visibility is persisted and independently scoped by post type.\n";

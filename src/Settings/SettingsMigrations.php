@@ -8,9 +8,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 final class SettingsMigrations {
     private const HEADING_PRESET_MIGRATION = 'smpi_migration_heading_quick_start_0_6_191';
+    private const BREADCRUMB_POST_TYPE_MIGRATION = 'smpi_migration_breadcrumb_post_types_0_6_218';
 
     public function register(): void {
         add_action( 'init', [ $this, 'repair_defective_heading_quick_start_preset' ], 5 );
+        add_action( 'init', [ $this, 'migrate_breadcrumb_single_post_setting' ], 6 );
     }
 
     public function repair_defective_heading_quick_start_preset(): void {
@@ -24,6 +26,33 @@ final class SettingsMigrations {
         }
 
         update_option( self::HEADING_PRESET_MIGRATION, '0.6.191', false );
+    }
+
+    public function migrate_breadcrumb_single_post_setting(): void {
+        if ( get_option( self::BREADCRUMB_POST_TYPE_MIGRATION, false ) ) {
+            return;
+        }
+
+        $settings = get_option( SettingsRepository::OPTION, [] );
+        if ( is_array( $settings ) ) {
+            $hidden_post_types = isset( $settings['breadcrumbs_disabled_post_types'] ) && is_array( $settings['breadcrumbs_disabled_post_types'] )
+                ? $settings['breadcrumbs_disabled_post_types']
+                : [];
+
+            if ( ! empty( $settings['breadcrumbs_hide_single_posts'] ) ) {
+                $hidden_post_types[] = 'post';
+            }
+
+            $settings['breadcrumbs_disabled_post_types'] = array_values(
+                array_unique(
+                    array_filter( array_map( 'sanitize_key', $hidden_post_types ) )
+                )
+            );
+            unset( $settings['breadcrumbs_hide_single_posts'] );
+            update_option( SettingsRepository::OPTION, $settings, false );
+        }
+
+        update_option( self::BREADCRUMB_POST_TYPE_MIGRATION, '0.6.218', false );
     }
 
     public static function matches_defective_heading_quick_start_preset( array $settings ): bool {

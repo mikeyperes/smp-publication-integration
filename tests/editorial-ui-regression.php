@@ -69,13 +69,16 @@ $checks = [
         && str_contains( $breadcrumb_flow, 'smpi-breadcrumb-flow' )
         && strpos( $breadcrumb_flow, '"Template"' ) < strpos( $breadcrumb_flow, '"Appearance"' )
         && strpos( $breadcrumb_flow, '"Appearance"' ) < strpos( $breadcrumb_flow, '"Visibility"' ),
-    'All breadcrumb visibility settings share the Visibility section.' => str_contains( $breadcrumb_flow, 'breadcrumbs_hide_home' )
-        && str_contains( $breadcrumb_flow, 'breadcrumbs_hide_single_posts' )
+    'All breadcrumb visibility settings share the Visibility section without a global single-post option.' => str_contains( $breadcrumb_flow, 'breadcrumbs_hide_home' )
+        && ! str_contains( $breadcrumb_flow, 'breadcrumbs_hide_single_posts' )
         && str_contains( $breadcrumb_flow, 'breadcrumbs_hide_term_archives' )
         && str_contains( $breadcrumb_flow, 'breadcrumbs_disabled_post_types' )
-        && str_contains( $breadcrumb_flow, '$this->breadcrumb_section_html( "visibility", "03", "Visibility", $visibility )' ),
+        && str_contains( $breadcrumb_flow, '$this->breadcrumb_section_html( "visibility", "03", "Visibility", $visibility )' )
+        && ! str_contains( $settings_repository, 'breadcrumbs_hide_single_posts' ),
     'Breadcrumb visibility uses reusable Core toggles.' => version_compare( $core_version, '0.19.63', '>=' )
         && str_contains( $breadcrumb_flow, 'breadcrumb_post_type_toggles_html( $settings )' )
+        && str_contains( $dashboard, 'get_post_types( [ "public" => true ], "objects" )' )
+        && str_contains( $dashboard, 'if ( "attachment" === $type )' )
         && ! str_contains( $breadcrumb_flow, 'context_select_html( "breadcrumbs_disabled_post_types"' )
         && str_contains( $dashboard, 'CoreUi::toggle(' )
         && str_contains( $dashboard, '"input_class" => "smpi-setting-array"' )

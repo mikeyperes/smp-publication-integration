@@ -84,6 +84,35 @@ if ( false !== $GLOBALS['smpi_test_options']['smpi_settings']['article_heading_s
     exit( 1 );
 }
 
+$GLOBALS['smpi_test_options']['smpi_settings'] = [
+    'breadcrumbs_hide_single_posts' => true,
+    'breadcrumbs_disabled_post_types' => [ 'profile' ],
+];
+( new SettingsMigrations() )->migrate_breadcrumb_single_post_setting();
+$migrated_breadcrumbs = $GLOBALS['smpi_test_options']['smpi_settings'];
+if (
+    isset( $migrated_breadcrumbs['breadcrumbs_hide_single_posts'] )
+    || [ 'profile', 'post' ] !== $migrated_breadcrumbs['breadcrumbs_disabled_post_types']
+) {
+    fwrite( STDERR, "FAIL: Legacy single-post breadcrumb visibility was not migrated to the Posts type.\n" );
+    exit( 1 );
+}
+
+unset( $GLOBALS['smpi_test_options']['smpi_migration_breadcrumb_post_types_0_6_218'] );
+$GLOBALS['smpi_test_options']['smpi_settings'] = [
+    'breadcrumbs_hide_single_posts' => false,
+    'breadcrumbs_disabled_post_types' => [ 'page' ],
+];
+( new SettingsMigrations() )->migrate_breadcrumb_single_post_setting();
+$migrated_breadcrumbs = $GLOBALS['smpi_test_options']['smpi_settings'];
+if (
+    isset( $migrated_breadcrumbs['breadcrumbs_hide_single_posts'] )
+    || [ 'page' ] !== $migrated_breadcrumbs['breadcrumbs_disabled_post_types']
+) {
+    fwrite( STDERR, "FAIL: Disabled legacy single-post visibility changed another post type.\n" );
+    exit( 1 );
+}
+
 $valid_css = 'body .smpi-breadcrumbs[class*="smpi-bc-"] { color: #123456; }';
 $valid_result = Breadcrumbs::validate_custom_css( $valid_css );
 if ( empty( $valid_result["valid"] ) || $valid_css !== $valid_result["css"] ) {
@@ -111,4 +140,4 @@ if ( $valid_css !== $settings["breadcrumbs_css_override"] ) {
 }
 
 restore_error_handler();
-echo "PASS: Settings color updates and targeted heading preset migration.\n";
+echo "PASS: Settings color updates and targeted settings migrations.\n";

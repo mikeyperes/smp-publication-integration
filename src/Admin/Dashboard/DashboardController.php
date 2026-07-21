@@ -1825,7 +1825,6 @@ HTML;
             . "</div>";
         $visibility = "<div class=\"smpi-breadcrumb-visibility-grid\">"
             . $this->inline_toggle_setting_html( "breadcrumbs_hide_home", "Hide on front page and posts page" )
-            . $this->inline_toggle_setting_html( "breadcrumbs_hide_single_posts", "Hide on single post pages" )
             . $this->inline_toggle_setting_html( "breadcrumbs_hide_term_archives", "Hide on category and tag pages" )
             . "</div>"
             . $this->breadcrumb_post_type_toggles_html( $settings );
@@ -1903,10 +1902,10 @@ CSS;
         $key = "breadcrumbs_disabled_post_types";
         $selected = isset( $settings[ $key ] ) && is_array( $settings[ $key ] ) ? $settings[ $key ] : [];
         $options = $this->breadcrumb_post_type_options();
-        $html = "<div class=\"smpi-control-group smpi-context-control smpi-breadcrumb-post-type-control\"><h3>Hide on custom post types</h3>";
+        $html = "<div class=\"smpi-control-group smpi-context-control smpi-breadcrumb-post-type-control\"><h3>Hide breadcrumbs by post type</h3><p class=smpi-muted>Choose each individual post type where breadcrumbs should be hidden.</p>";
 
         if ( empty( $options ) ) {
-            return $html . "<p class=smpi-muted>No public custom post types are registered.</p></div>";
+            return $html . "<p class=smpi-muted>No public post types are registered.</p></div>";
         }
 
         $html .= "<div class=smpi-breadcrumb-toggle-grid>";
@@ -2042,7 +2041,10 @@ CSS;
 
     private function breadcrumb_post_type_options(): array {
         $options = [];
-        foreach ( get_post_types( [ "public" => true, "_builtin" => false ], "objects" ) as $type => $object ) {
+        foreach ( get_post_types( [ "public" => true ], "objects" ) as $type => $object ) {
+            if ( "attachment" === $type ) {
+                continue;
+            }
             $options[ $type ] = isset( $object->labels->name ) ? (string) $object->labels->name : $type;
         }
         return $options;
@@ -2310,7 +2312,10 @@ CSS;
 
     private function breadcrumb_post_type_descriptions(): array {
         $descriptions = [];
-        foreach ( get_post_types( [ "public" => true, "_builtin" => false ], "objects" ) as $type => $object ) {
+        foreach ( get_post_types( [ "public" => true ], "objects" ) as $type => $object ) {
+            if ( "attachment" === $type ) {
+                continue;
+            }
             $label = isset( $object->labels->singular_name ) ? (string) $object->labels->singular_name : $type;
             $descriptions[ $type ] = "Do not inject SMP breadcrumbs on single " . $label . " templates.";
         }
@@ -2441,9 +2446,8 @@ CSS;
         $html = $this->simple_status_html( ! empty( $report["enabled"] ), "Breadcrumb feature: " . ( ! empty( $report["enabled"] ) ? "enabled" : "disabled" ) . ". Rank Math renderer available: " . ( ! empty( $report["rank_math_active"] ) ? "yes" : "fallback renderer will be used" ) . "." );
         $html .= "<table class=\"widefat striped\"><tbody>";
         $html .= "<tr><th>Current template</th><td><code>" . esc_html( (string) $report["style"] ) . "</code></td></tr>";
-        $html .= "<tr><th>Hidden on single posts</th><td>" . esc_html( ! empty( $report["hide_single_posts"] ) ? "Yes" : "No" ) . "</td></tr>";
         $html .= "<tr><th>Rank Math source</th><td>" . self::ico( $rank_on, true ) . esc_html( $rank_on ? "Rank Math breadcrumbs are enabled and available to SMP." : "Rank Math breadcrumbs are disabled or missing; SMP fallback breadcrumbs will be used." ) . "</td></tr>";
-        $html .= "<tr><th>Disabled custom post types</th><td><code>" . esc_html( $disabled ) . "</code></td></tr>";
+        $html .= "<tr><th>Hidden post types</th><td><code>" . esc_html( $disabled ) . "</code></td></tr>";
         $html .= "<tr><th>ACF disabled posts/pages selected</th><td><code>" . esc_html( (string) (int) $report["disabled_object_count"] ) . "</code></td></tr>";
         $html .= "<tr><th>Shortcode</th><td><code>" . esc_html( (string) $report["shortcode"] ) . "</code></td></tr>";
         $html .= "<tr><th>Sample proof URL</th><td>" . ( "" !== (string) $report["sample_url"] ? "<a target=\"_blank\" rel=\"noopener noreferrer\" href=\"" . esc_url( (string) $report["sample_url"] ) . "\">Open sample</a>" : "<span class=smpi-warn>No published sample found</span>" ) . "</td></tr>";

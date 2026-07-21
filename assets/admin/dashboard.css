@@ -17,7 +17,7 @@
 .smpi-dashboard .smpi-breadcrumb-section--template .smpi-choice-preview{box-sizing:border-box;max-width:none;overflow:hidden;width:100%}
 .smpi-dashboard .smpi-breadcrumb-appearance-grid{display:grid;gap:18px;grid-template-columns:repeat(3,minmax(0,1fr))}
 .smpi-dashboard .smpi-breadcrumb-appearance-grid>.smpi-control-group{min-width:0}
-.smpi-dashboard .smpi-breadcrumb-visibility-grid{display:grid;gap:10px;grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:18px}
+.smpi-dashboard .smpi-breadcrumb-visibility-grid{display:grid;gap:10px;grid-template-columns:repeat(2,minmax(0,1fr));margin-bottom:18px}
 .smpi-dashboard .smpi-breadcrumb-visibility-grid .smpi-control-row{align-items:center;background:#fff;border:1px solid #d8dee8;border-radius:6px;box-sizing:border-box;display:flex;margin:0;min-height:52px;padding:12px 14px}
 .smpi-dashboard .smpi-breadcrumb-section--visibility .smpi-context-control{margin-top:0}
 .smpi-dashboard .smpi-breadcrumb-toggle-grid{display:grid;gap:10px;grid-template-columns:repeat(2,minmax(0,1fr))}

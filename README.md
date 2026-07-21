@@ -7,7 +7,7 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.6.217`
+- Version: `0.6.218`
 
 ## Architecture
 
@@ -22,6 +22,12 @@ WordPress plugin for Scale My Publication publication profiles.
 - `Support`: integration adapters and stable legacy helpers.
 
 The bundled `Hexa\PluginCore` package is registered through the shared package resolver. One selected Core root owns the namespace when multiple Hexa plugins are active.
+
+## 0.6.218 Updates
+
+- Removed the ambiguous global-looking single-post breadcrumb toggle.
+- Added independent Breadcrumb visibility toggles for Posts, Pages, and every public custom post type.
+- Migrated the retired standard-post boolean into the Posts entry without changing other post-type choices.
 
 ## 0.6.217 Updates
 
@@ -669,7 +675,6 @@ The bundled `Hexa\PluginCore` package is registered through the shared package r
 - Add a matching shortcode example to the description/instructions for every remaining Publication Options ACF field.
 - Update breadcrumbs visibility defaults so SMP never injects breadcrumbs into Elementor Floating Element templates by default.
 - Add a breadcrumbs visibility option to hide breadcrumbs on the front page/home page, with that option selected by default.
-- In breadcrumbs visibility controls, list every registered custom post type and allow disabling breadcrumb injection on each CPT single template.
 
 ### 0.6.67 Updates
 - Hardened Core color controls with max-length hex input and visible invalid-hex rejection before save.
