@@ -402,13 +402,15 @@ final class QuickStartFeatures {
                 "description" => "Adds a large first-letter treatment to article intros.",
                 "settings" => [
                     "article_drop_cap_enabled" => true,
+                    "article_drop_cap_style" => "dropcap-classic",
                     "article_drop_cap_color" => "#111111",
                     "article_drop_cap_font_size" => 96,
                 ],
                 "details" => [
                     [ "label" => "Enabled", "value" => "Yes" ],
-                    [ "label" => "Drop cap color", "value" => "#111111", "color" => "#111111" ],
-                    [ "label" => "Drop cap size", "value" => "96px" ],
+                    [ "label" => "Template", "value" => "Classic editorial" ],
+                    [ "label" => "Accent color", "value" => "#111111", "color" => "#111111" ],
+                    [ "label" => "Size", "value" => "96px" ],
                 ],
             ],
             "inline_photo_treatments" => [

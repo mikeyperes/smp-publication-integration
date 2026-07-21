@@ -92,6 +92,15 @@ final class ArticleStyles {
         return [ "none", "h2-tick", "h2-leftrule", "h2-underline", "h2-topline", "h2-dot", "h2-trailingrule", "h2-serif", "h2-uppercase", "h2-gradient", "h2-bracket", "h2-number", "h2-square", "h2-highlight", "h2-double", "h2-corner_tick" ];
     }
 
+    public static function normalize_article_drop_cap_style( string $style = "" ): string {
+        $style = sanitize_key( "" !== $style ? $style : (string) Settings::get( "article_drop_cap_style", "dropcap-classic" ) );
+        return in_array( $style, self::article_drop_cap_style_keys(), true ) ? $style : "dropcap-classic";
+    }
+
+    public static function article_drop_cap_style_keys(): array {
+        return [ "dropcap-classic", "dropcap-highlight", "dropcap-outline", "dropcap-side-rule", "dropcap-soft-tile" ];
+    }
+
     public static function normalize_inline_photo_style( string $style = "" ): string {
         $style = sanitize_key( "" !== $style ? $style : (string) Settings::get( "inline_photo_treatment", "none" ) );
         return in_array( $style, [ "none", "fig1", "fig2", "fig4", "fig5" ], true ) ? $style : "none";
@@ -164,7 +173,7 @@ final class ArticleStyles {
         }
         if ( Settings::bool( "article_drop_cap_enabled" ) ) {
             $d = self::article_drop_cap_var_values();
-            $css .= "body.single-post{--smpi-dropcap-color:" . $d["color"] . ";--smpi-dropcap-size:" . $d["size"] . "}";
+            $css .= "body.single-post{--smpi-dropcap-color:" . $d["color"] . ";--smpi-dropcap-soft:" . $d["soft"] . ";--smpi-dropcap-ink:" . $d["ink"] . ";--smpi-dropcap-size:" . $d["size"] . "}";
         }
         if ( Settings::bool( "inline_photo_treatments_enabled" ) ) {
             $p = self::photo_var_values();
@@ -210,8 +219,11 @@ final class ArticleStyles {
     }
 
     public static function article_drop_cap_var_values(): array {
+        $color = self::hex( Settings::get( "article_drop_cap_color", "#111111" ), "#111111" );
         return [
-            "color" => self::hex( Settings::get( "article_drop_cap_color", "#111111" ), "#111111" ),
+            "color" => $color,
+            "soft"  => self::rgba( $color, 0.14 ),
+            "ink"   => self::contrast_ink( $color ),
             "size"  => self::px( Settings::get( "article_drop_cap_font_size", 96 ), 96, 48, 180 ),
         ];
     }
@@ -269,6 +281,17 @@ final class ArticleStyles {
 
     private static function fstyle( $value ): string {
         return "italic" === (string) $value ? "italic" : "normal";
+    }
+
+    private static function contrast_ink( string $hex ): string {
+        $hex = ltrim( $hex, "#" );
+        if ( 6 !== strlen( $hex ) || ! ctype_xdigit( $hex ) ) {
+            return "#111111";
+        }
+        $r = hexdec( substr( $hex, 0, 2 ) );
+        $g = hexdec( substr( $hex, 2, 2 ) );
+        $b = hexdec( substr( $hex, 4, 2 ) );
+        return ( ( $r * 299 + $g * 587 + $b * 114 ) / 1000 ) >= 150 ? "#111111" : "#ffffff";
     }
 
     /* ---------------------------------------------------------------------
@@ -351,8 +374,23 @@ final class ArticleStyles {
         return self::article_heading_rules( $style, $scope, $scope . " .smpi-article-heading--h2", $scope . " .smpi-article-heading--h3" );
     }
 
-    public static function article_drop_cap_rules( string $scope, string $paragraph ): string {
-        return $paragraph . "{overflow:visible}" . $paragraph . "::first-letter{float:left;font-family:Arial,Helvetica,sans-serif;font-size:var(--smpi-dropcap-size,96px);font-weight:900;line-height:.78;color:var(--smpi-dropcap-color,#111111);margin:.08em 24px 0 0;text-transform:uppercase;letter-spacing:0}";
+    public static function article_drop_cap_rules( string $style, string $paragraph ): string {
+        $style = self::normalize_article_drop_cap_style( $style );
+        $letter = $paragraph . "::first-letter";
+        $base = $paragraph . "{overflow:visible}" . $letter . "{box-sizing:border-box;float:left;font-family:Arial,Helvetica,sans-serif;font-size:var(--smpi-dropcap-size,96px);font-weight:900;line-height:.78;margin:.08em 24px 0 0;text-transform:uppercase;letter-spacing:0}";
+        switch ( $style ) {
+            case "dropcap-highlight":
+                return $base . $letter . "{background:var(--smpi-dropcap-color,#facc15);color:var(--smpi-dropcap-ink,#111111);line-height:.8;margin:.06em 18px 0 0;padding:.08em .13em .11em}";
+            case "dropcap-outline":
+                return $base . $letter . "{background:transparent;border:2px solid var(--smpi-dropcap-color,#111111);color:var(--smpi-dropcap-color,#111111);line-height:.8;margin:.06em 18px 0 0;padding:.06em .12em .09em}";
+            case "dropcap-side-rule":
+                return $base . $letter . "{border-left:6px solid var(--smpi-dropcap-color,#111111);color:var(--smpi-dropcap-color,#111111);line-height:.82;margin:.06em 20px 0 0;padding-left:.12em}";
+            case "dropcap-soft-tile":
+                return $base . $letter . "{background:var(--smpi-dropcap-soft,rgba(17,17,17,.14));border-radius:6px;color:var(--smpi-dropcap-color,#111111);line-height:.8;margin:.06em 18px 0 0;padding:.08em .13em .11em}";
+            case "dropcap-classic":
+            default:
+                return $base . $letter . "{color:var(--smpi-dropcap-color,#111111)}";
+        }
     }
 
     public static function article_drop_cap_css(): string {
@@ -360,7 +398,8 @@ final class ArticleStyles {
             return "";
         }
         $scope = "body.single-post";
-        return self::article_drop_cap_rules( $scope, $scope . " .smpi-article-lead" );
+        $style = self::normalize_article_drop_cap_style( (string) Settings::get( "article_drop_cap_style", "dropcap-classic" ) );
+        return self::article_drop_cap_rules( $style, $scope . " .smpi-article-lead" );
     }
 
     /* ---------------------------------------------------------------------
@@ -443,8 +482,11 @@ final class ArticleStyles {
             $css .= self::article_heading_rules( $style, $sel, $sel . " .smpi-article-heading--h2", $sel . " .smpi-article-heading--h3" );
         }
         $css .= ".smpi-choice-preview .smpi-ah-preview-stack{box-sizing:border-box;width:100%;max-width:820px;overflow:hidden}.smpi-choice-preview .smpi-ah-preview{box-sizing:border-box;width:100%;min-width:0;overflow:hidden;position:relative}.smpi-choice-preview .smpi-ah-preview *{box-sizing:border-box}.smpi-choice-preview .smpi-ah-preview .smpi-article-heading{clear:none!important;margin:0!important;max-width:100%;overflow-wrap:anywhere;white-space:normal!important}.smpi-choice-preview .smpi-ah-preview .smpi-article-heading::before,.smpi-choice-preview .smpi-ah-preview .smpi-article-heading::after{box-sizing:border-box}.smpi-choice-preview .smpi-ah-preview .smpi-article-paragraph{margin:14px 0 0!important;max-width:100%;overflow-wrap:anywhere}";
-        $css .= ".smpi-choice-preview .smpi-dropcap-preview{background:#fff;border:1px solid #e2e8f0;border-radius:12px;box-sizing:border-box;max-width:760px;overflow:hidden;padding:28px}.smpi-choice-preview .smpi-dropcap-preview .smpi-article-lead{color:#333;font-family:Arial,Helvetica,sans-serif;font-size:30px;line-height:1.95;margin:0}";
-        $css .= self::article_drop_cap_rules( ".smpi-choice-preview .smpi-dropcap-preview", ".smpi-choice-preview .smpi-dropcap-preview .smpi-article-lead" );
+        $css .= ".smpi-choice-preview .smpi-dropcap-preview{background:#fff;border:1px solid #e2e8f0;border-radius:8px;box-sizing:border-box;display:flow-root;max-width:760px;overflow:hidden;padding:24px}.smpi-choice-preview .smpi-dropcap-preview .smpi-article-lead{color:#333;font-family:Arial,Helvetica,sans-serif;font-size:18px;line-height:1.65;margin:0}";
+        foreach ( self::article_drop_cap_style_keys() as $style ) {
+            $sel = ".smpi-choice-preview .smpi-dropcap-preview--" . $style . " .smpi-article-lead";
+            $css .= self::article_drop_cap_rules( $style, $sel );
+        }
         foreach ( [ "fig1", "fig2", "fig4", "fig5" ] as $style ) {
             $sel = ".smpi-pp.smpi-pp-" . $style;
             $css .= self::inline_photo_rules( $style, $sel, $sel . " .smpi-inline-photo-image", $sel . " .smpi-inline-photo-caption" );
@@ -460,7 +502,7 @@ final class ArticleStyles {
         $f = self::faq_var_values();
         $p = self::photo_var_values();
         $fp = self::featured_image_var_values();
-        $css .= ".smpi-design-host{--smpi-bc-accent:" . $b["accent"] . ";--smpi-bc-tint:" . $b["tint"] . ";--smpi-bc-background:" . $b["background"] . ";--smpi-bc-font-size:" . $b["size"] . ";--smpi-toc-accent:" . $t["accent"] . ";--smpi-toc-text:" . $t["text"] . ";--smpi-toc-size:" . $t["size"] . ";--smpi-toc-fstyle:" . $t["fstyle"] . ";--smpi-heading-accent:" . $h["accent"] . ";--smpi-heading-accent-fade:" . $h["accent_fade"] . ";--smpi-heading-highlight:" . $h["highlight"] . ";--smpi-heading-line:" . $h["line"] . ";--smpi-heading-ink:" . $h["ink"] . ";--smpi-heading-h2-size:" . $h["h2_size"] . ";--smpi-heading-h3-size:" . $h["h3_size"] . ";--smpi-dropcap-color:" . $d["color"] . ";--smpi-dropcap-size:" . $d["size"] . ";--smpi-faq-accent:" . $f["accent"] . ";--smpi-faq-text:" . $f["text"] . ";--smpi-faq-size:" . $f["size"] . ";--smpi-faq-fstyle:" . $f["fstyle"] . ";--smpi-photo-accent:" . $p["accent"] . ";--smpi-photo-cap-color:" . $p["color"] . ";--smpi-photo-cap-size:" . $p["size"] . ";--smpi-photo-cap-fstyle:" . $p["fstyle"] . ";--smpi-fi-accent:" . $fp["accent"] . ";--smpi-fi-cap-color:" . $fp["color"] . ";--smpi-fi-cap-size:" . $fp["size"] . ";--smpi-fi-cap-fstyle:" . $fp["fstyle"] . "}";
+        $css .= ".smpi-design-host{--smpi-bc-accent:" . $b["accent"] . ";--smpi-bc-tint:" . $b["tint"] . ";--smpi-bc-background:" . $b["background"] . ";--smpi-bc-font-size:" . $b["size"] . ";--smpi-toc-accent:" . $t["accent"] . ";--smpi-toc-text:" . $t["text"] . ";--smpi-toc-size:" . $t["size"] . ";--smpi-toc-fstyle:" . $t["fstyle"] . ";--smpi-heading-accent:" . $h["accent"] . ";--smpi-heading-accent-fade:" . $h["accent_fade"] . ";--smpi-heading-highlight:" . $h["highlight"] . ";--smpi-heading-line:" . $h["line"] . ";--smpi-heading-ink:" . $h["ink"] . ";--smpi-heading-h2-size:" . $h["h2_size"] . ";--smpi-heading-h3-size:" . $h["h3_size"] . ";--smpi-dropcap-color:" . $d["color"] . ";--smpi-dropcap-soft:" . $d["soft"] . ";--smpi-dropcap-ink:" . $d["ink"] . ";--smpi-dropcap-size:" . $d["size"] . ";--smpi-faq-accent:" . $f["accent"] . ";--smpi-faq-text:" . $f["text"] . ";--smpi-faq-size:" . $f["size"] . ";--smpi-faq-fstyle:" . $f["fstyle"] . ";--smpi-photo-accent:" . $p["accent"] . ";--smpi-photo-cap-color:" . $p["color"] . ";--smpi-photo-cap-size:" . $p["size"] . ";--smpi-photo-cap-fstyle:" . $p["fstyle"] . ";--smpi-fi-accent:" . $fp["accent"] . ";--smpi-fi-cap-color:" . $fp["color"] . ";--smpi-fi-cap-size:" . $fp["size"] . ";--smpi-fi-cap-fstyle:" . $fp["fstyle"] . "}";
         $css .= ".smpi-choice-preview .smpi-breadcrumbs,.smpi-choice-preview .smpi-table-of-contents,.smpi-choice-preview .smpi-post-summary,.smpi-choice-preview .smpi-post-faqs,.smpi-choice-preview .smpi-pp,.smpi-choice-preview .smpi-fi-preview{max-width:100%!important;margin:0!important}.smpi-choice-preview .smpi-pp,.smpi-choice-preview .smpi-fi-preview{display:block}.smpi-choice-preview .smpi-inline-photo-image,.smpi-choice-preview .smpi-featured-image-caption-image{height:120px;width:100%;object-fit:cover}.smpi-choice-preview .smpi-toc-link,.smpi-choice-preview .smpi-post-faq-item{font-size:13px}";
         return $css;
     }

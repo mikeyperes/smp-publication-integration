@@ -1384,15 +1384,15 @@ class DashboardController {
             $article_heading_controls
         );
 
-        $drop_cap_controls = $this->article_drop_cap_preview_html()
-            . $this->color_setting_html( "article_drop_cap_color", "Drop cap color", $settings )
+        $drop_cap_controls = $this->select_setting_html( "article_drop_cap_style", $this->article_drop_cap_style_options(), $settings, "First-letter template" )
+            . $this->color_setting_html( "article_drop_cap_color", "Drop cap accent color", $settings )
             . $this->number_setting_html( "article_drop_cap_font_size", "Drop cap size", $settings, 48, 180, "px" );
         $this->feature_card(
             "Article first-letter drop cap",
             "article_drop_cap_enabled",
             "No ACF changes. Applies CSS to the first letter of the first paragraph inside single post content.",
-            "Styles the first letter of the first paragraph in single-post content.",
-            "No shortcode needed. Enable the feature, then tune color and size.",
+            "Styles the first letter of the first paragraph in single-post content with one of five selectable templates.",
+            "No shortcode needed. Enable the feature, choose a template, then tune accent color and size.",
             $this->article_drop_cap_report_html(),
             $this->activity_log_html(),
             $drop_cap_controls
@@ -2061,6 +2061,16 @@ CSS;
         ];
     }
 
+    private function article_drop_cap_style_options(): array {
+        return [
+            "dropcap-classic" => [ "label" => "Classic editorial", "description" => "A large unframed letter with traditional editorial spacing.", "preview" => $this->article_drop_cap_preview_html( "dropcap-classic" ) ],
+            "dropcap-highlight" => [ "label" => "Highlight block", "description" => "A solid accent tile behind the first letter.", "preview" => $this->article_drop_cap_preview_html( "dropcap-highlight" ) ],
+            "dropcap-outline" => [ "label" => "Outline frame", "description" => "A thin accent frame around the first letter.", "preview" => $this->article_drop_cap_preview_html( "dropcap-outline" ) ],
+            "dropcap-side-rule" => [ "label" => "Side rule", "description" => "A compact first letter anchored by a strong vertical rule.", "preview" => $this->article_drop_cap_preview_html( "dropcap-side-rule" ) ],
+            "dropcap-soft-tile" => [ "label" => "Soft tile", "description" => "A restrained tinted tile with a compact corner radius.", "preview" => $this->article_drop_cap_preview_html( "dropcap-soft-tile" ) ],
+        ];
+    }
+
     private function article_heading_style_options(): array {
         return [
             "none" => [ "label" => "No style", "description" => "Leave theme H2 and H3 styles untouched.", "preview" => $this->article_heading_preview_html( "none" ) ],
@@ -2178,8 +2188,9 @@ CSS;
         return "<div class=\"smpi-ah-preview-stack\"><div class=\"" . esc_attr( $class ) . "\"><h2 class=\"smpi-template-title smpi-article-heading smpi-article-heading--h2\">" . esc_html( $sample[0] ) . "</h2><p class=\"smpi-template-text smpi-article-paragraph\">" . esc_html( $sample[1] ) . "</p></div><div class=\"" . esc_attr( $class ) . "\"><h3 class=\"smpi-template-title smpi-article-heading smpi-article-heading--h3\">What changed next</h3><p class=\"smpi-template-text smpi-article-paragraph\">The same selected treatment applies to article H3 subheadings inside post content.</p></div></div>";
     }
 
-    private function article_drop_cap_preview_html(): string {
-        return "<div class=\"smpi-control-group smpi-dropcap-control\"><h3>Preview</h3><span class=smpi-choice-preview><div class=\"smpi-template smpi-template--article-content smpi-dropcap-preview\"><p class=\"smpi-template-text smpi-article-paragraph smpi-article-lead\">Structured mentorship and practical feedback are producing measurable results, showing how skill-building and coaching can create sustainable operators within the article body.</p></div></span></div>";
+    private function article_drop_cap_preview_html( string $style ): string {
+        $style = \smp_publication_integration\Content\ArticleStyles::normalize_article_drop_cap_style( $style );
+        return "<div class=\"smpi-template smpi-template--article-content smpi-dropcap-preview smpi-dropcap-preview--" . esc_attr( $style ) . "\"><p class=\"smpi-template-text smpi-article-paragraph smpi-article-lead\">Ethereum staking has created new yield opportunities while raising questions about concentration and long-term network resilience.</p></div>";
     }
 
     private function article_heading_report_html(): string {
@@ -2192,10 +2203,11 @@ CSS;
 
     private function article_drop_cap_report_html(): string {
         $enabled = Settings::bool( "article_drop_cap_enabled" );
+        $style = \smp_publication_integration\Content\ArticleStyles::normalize_article_drop_cap_style( (string) Settings::get( "article_drop_cap_style", "dropcap-classic" ) );
         $size = (int) Settings::get( "article_drop_cap_font_size", 96 );
         $color = sanitize_hex_color( (string) Settings::get( "article_drop_cap_color", "#111111" ) ) ?: "#111111";
         $html = $this->simple_status_html( $enabled, $enabled ? "Drop cap CSS is injected on single post content." : "Drop cap CSS is disabled." );
-        $html .= "<table class=widefat><tbody><tr><th>Color</th><td>" . esc_html( $color ) . "</td></tr><tr><th>Size</th><td>" . esc_html( (string) $size ) . "px</td></tr><tr><th>Selector</th><td><code>body.single-post .smpi-article-lead::first-letter</code></td></tr><tr><th>CSS source</th><td><code>ArticleStyles::article_drop_cap_rules()</code></td></tr></tbody></table>";
+        $html .= "<table class=widefat><tbody><tr><th>Template</th><td><code>" . esc_html( $style ) . "</code></td></tr><tr><th>Accent color</th><td>" . esc_html( $color ) . "</td></tr><tr><th>Size</th><td>" . esc_html( (string) $size ) . "px</td></tr><tr><th>Selector</th><td><code>body.single-post .smpi-article-lead::first-letter</code></td></tr><tr><th>CSS source</th><td><code>ArticleStyles::article_drop_cap_rules()</code></td></tr></tbody></table>";
         return $html;
     }
 
@@ -2982,7 +2994,8 @@ CSS;
             function smpiRgb(v){var h=smpiHex(v);return h?`rgb(${parseInt(h.slice(1,3),16)}, ${parseInt(h.slice(3,5),16)}, ${parseInt(h.slice(5,7),16)})`:``}
             function smpiRgba(v,a){var h=smpiHex(v);return h?`rgba(${parseInt(h.slice(1,3),16)},${parseInt(h.slice(3,5),16)},${parseInt(h.slice(5,7),16)},${a})`:``}
             function smpiSetPreviewVar(host,key,value,suffix){if(!host)return;var v=String(value)+suffix;host.style.setProperty(key,v);if(key.indexOf(`--smpi-bc-`)===0)host.querySelectorAll(`.smpi-breadcrumbs-band,.smpi-breadcrumbs`).forEach(function(el){el.style.setProperty(key,v)})}
-            function smpiSetDerivedPreviewVars(host,key,value){if(!host||key!==`article_heading_accent_color`)return;var fade=smpiRgba(value,0),highlight=smpiRgba(value,.16);if(fade)host.style.setProperty(`--smpi-heading-accent-fade`,fade);if(highlight)host.style.setProperty(`--smpi-heading-highlight`,highlight)}
+            function smpiContrastInk(v){var h=smpiHex(v);if(!h)return``;var r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16),b=parseInt(h.slice(5,7),16);return((r*299+g*587+b*114)/1000)>=150?`#111111`:`#ffffff`}
+            function smpiSetDerivedPreviewVars(host,key,value){if(!host)return;if(key===`article_heading_accent_color`){var fade=smpiRgba(value,0),highlight=smpiRgba(value,.16);if(fade)host.style.setProperty(`--smpi-heading-accent-fade`,fade);if(highlight)host.style.setProperty(`--smpi-heading-highlight`,highlight)}if(key===`article_drop_cap_color`){var soft=smpiRgba(value,.14),ink=smpiContrastInk(value);if(soft)host.style.setProperty(`--smpi-dropcap-soft`,soft);if(ink)host.style.setProperty(`--smpi-dropcap-ink`,ink)}}
             function smpiSyncColor(wrap,value,isEmpty){var hex=smpiHex(value),display=isEmpty?((wrap.find(`[data-smpi-empty-label]`).data(`smpi-empty-label`)||`inherit`)):hex;if(hex){wrap.find(`.smpi-color-swatch,.hpc-color-swatch`).css(`background`,hex);wrap.find(`[data-hpc-copy]`).attr(`data-hpc-copy`,hex);wrap.find(`[data-hpc-color-picker]`).val(hex);wrap.find(`[data-hpc-color-hex-input]`).val(hex)}wrap.find(`[data-smpi-color-hex],[data-hpc-color-hex]`).text(display||hex||`inherit`);wrap.find(`[data-smpi-color-rgb],[data-hpc-color-rgb]`).text(hex?smpiRgb(hex):``)}
             function smpiApplyColor(key,color){var hex=smpiHex(color);if(!key||!hex)return;$('[data-hpc-color-control][data-key="'+key+'"]').each(function(){var control=$(this);smpiSyncColor(control,hex,false);control.attr('data-hpc-color-inherited','false').attr('data-hpc-color-effective',hex).removeClass('is-inherited');control.find('[data-hpc-color-value-input]').val(hex);control.find('[data-hpc-color-inherit-state]').text(control.attr('data-hpc-custom-label')||'Custom')});var m=smpiPV[key],host=document.querySelector('.smpi-design-host');if(m&&host){smpiSetPreviewVar(host,m[0],hex,m[1]);smpiSetDerivedPreviewVars(host,key,hex)}}
             $(document).on(`input`,`.smpi-color-setting,[data-hpc-color-picker],[data-hpc-color-hex-input]`,function(){var input=$(this),wrap=input.closest(`[data-hpc-color-control]`);smpiSyncColor(wrap,input.val(),false)});

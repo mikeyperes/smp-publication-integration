@@ -7,7 +7,7 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.6.218`
+- Version: `0.6.219`
 
 ## Architecture
 
@@ -22,6 +22,12 @@ WordPress plugin for Scale My Publication publication profiles.
 - `Support`: integration adapters and stable legacy helpers.
 
 The bundled `Hexa\PluginCore` package is registered through the shared package resolver. One selected Core root owns the namespace when multiple Hexa plugins are active.
+
+## 0.6.219 Updates
+
+- Added five selectable first-letter templates to the existing article drop-cap feature.
+- Replaced the fixed frontend treatment with the same template generator used by the admin previews.
+- Added live accent, contrast, tint, and size updates for drop-cap previews.
 
 ## 0.6.218 Updates
 

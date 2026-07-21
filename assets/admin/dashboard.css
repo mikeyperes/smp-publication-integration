@@ -15,6 +15,10 @@
 .smpi-dashboard .smpi-breadcrumb-section--template .smpi-control-group:has(input[data-key="breadcrumbs_style"]) .smpi-choice-grid{grid-template-columns:minmax(0,1fr)}
 .smpi-dashboard .smpi-breadcrumb-section--template .smpi-choice-card{border-radius:6px;box-sizing:border-box;height:100%;min-width:0}
 .smpi-dashboard .smpi-breadcrumb-section--template .smpi-choice-preview{box-sizing:border-box;max-width:none;overflow:hidden;width:100%}
+.smpi-dashboard .smpi-control-group:has(input[data-key="article_drop_cap_style"]) .smpi-choice-grid{grid-template-columns:minmax(0,1fr)}
+.smpi-dashboard .smpi-control-group:has(input[data-key="article_drop_cap_style"]) .smpi-choice-card{box-sizing:border-box;min-width:0;overflow:hidden}
+.smpi-dashboard .smpi-control-group:has(input[data-key="article_drop_cap_style"]) .smpi-choice-preview{box-sizing:border-box;max-width:760px;overflow:hidden;width:100%}
+.smpi-dashboard .smpi-control-group:has(input[data-key="article_drop_cap_style"]) .smpi-dropcap-preview{max-width:100%;min-width:0;width:100%}
 .smpi-dashboard .smpi-breadcrumb-appearance-grid{display:grid;gap:18px;grid-template-columns:repeat(3,minmax(0,1fr))}
 .smpi-dashboard .smpi-breadcrumb-appearance-grid>.smpi-control-group{min-width:0}
 .smpi-dashboard .smpi-breadcrumb-visibility-grid{display:grid;gap:10px;grid-template-columns:repeat(2,minmax(0,1fr));margin-bottom:18px}

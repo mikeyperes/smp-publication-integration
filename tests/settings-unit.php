@@ -58,6 +58,18 @@ if ( '#0a0b0c' !== $settings[ 'breadcrumbs_background_color' ] ) {
     exit( 1 );
 }
 
+$settings = Settings::update( [ 'article_drop_cap_style' => 'dropcap-highlight' ] );
+if ( 'dropcap-highlight' !== $settings['article_drop_cap_style'] ) {
+    fwrite( STDERR, "FAIL: Valid drop-cap template was not saved.\n" );
+    exit( 1 );
+}
+
+$settings = Settings::update( [ 'article_drop_cap_style' => 'not-a-template' ] );
+if ( 'dropcap-classic' !== $settings['article_drop_cap_style'] ) {
+    fwrite( STDERR, "FAIL: Invalid drop-cap template did not fall back to the classic template.\n" );
+    exit( 1 );
+}
+
 $GLOBALS['smpi_test_options']['smpi_settings'] = [
     'article_heading_styles_enabled'   => false,
     'article_heading_style'            => 'h2-tick',
@@ -140,4 +152,4 @@ if ( $valid_css !== $settings["breadcrumbs_css_override"] ) {
 }
 
 restore_error_handler();
-echo "PASS: Settings color updates and targeted settings migrations.\n";
+echo "PASS: Settings colors, template sanitization, and targeted settings migrations.\n";
