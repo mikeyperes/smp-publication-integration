@@ -14,22 +14,22 @@ assert_muckrack_placement(
     "MuckRack placement must reject pagination containers."
 );
 assert_muckrack_placement(
-    false !== strpos( $source, "isLoop(el)||!isCurrentAuthorTarget(el)" ),
-    "Top placement must only accept the current author outside loops."
+    false !== strpos( $source, "function injectTop()" )
+        && false !== strpos( $source, "function normalizeTopBadges()" ),
+    "The existing author-page placement flow must remain intact."
 );
 assert_muckrack_placement(
-    false !== strpos( $source, "if(!targets.length)return;removeTopAuthorBadges();targets=topAuthorTargets();" )
-        && false !== strpos( $source, "var target=targets[0]" ),
-    "Top placement must normalize duplicates before choosing one author target."
+    false === strpos( $source, "function removeTopAuthorBadges()" )
+        && false === strpos( $source, "function normalizeTopBadge()" ),
+    "Pagination cleanup must not rebuild the author archive header."
 );
 assert_muckrack_placement(
-    false !== strpos( $source, "cleanupInvalidBadges();normalizeTopBadge();" )
-        && false === strpos( $source, "function injectTop()" ),
-    "Runtime placement must use the single normalized top badge path."
+    false !== strpos( $source, "cleanupInvalidBadges();injectTop();injectFooter();injectLoops();normalizeTopBadges();cleanupInvalidBadges();" ),
+    "Runtime placement must preserve author rendering and isolate pagination cleanup."
 );
 assert_muckrack_placement(
     false !== strpos( $source, 'pair.querySelector(":scope > .smpi-muckrack-author-label")' ),
     "Badge cleanup must unwrap generated author labels before reinjection."
 );
 
-echo "PASS: MuckRack badges are constrained to one author target and excluded from pagination." . PHP_EOL;
+echo "PASS: MuckRack pagination cleanup preserves the existing author-page placement flow." . PHP_EOL;
