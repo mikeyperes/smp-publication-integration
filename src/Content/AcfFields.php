@@ -10,6 +10,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 final class AcfFields {
+    public const PUBLICATION_MUCKRACK_VERIFIED_FIELD_KEY = 'field_smpi_publication_muckrack_verified';
+    public const PUBLICATION_MUCKRACK_VERIFIED_FIELD_NAME = 'smpi_publication_muckrack_verified';
+    public const PUBLICATION_MUCKRACK_URL_FIELD_KEY = 'field_smpi_publication_muckrack_url';
+    public const PUBLICATION_MUCKRACK_URL_FIELD_NAME = 'smpi_publication_muckrack_url';
+
     public function register(): void {
         add_action( "acf/init", [ $this, "register_fields" ] );
         add_action( "acf/input/admin_head", [ $this, "admin_faq_styles" ] );
@@ -82,8 +87,8 @@ final class AcfFields {
             [ "key" => "field_smpi_founding_location_url", "label" => "foundingLocation URL", "name" => "smpi_founding_location_url", "type" => "url", "instructions" => "Optional reference URL for the founding place. Example: https://en.wikipedia.org/wiki/New_York_City" ],
             [ "key" => "field_smpi_area_served", "label" => "areaServed", "name" => "smpi_area_served", "type" => "text", "instructions" => "Geography or audience served, comma separated. Example: United States, Canada, Global English speaking readers." ],
             [ "key" => "field_smpi_knows_about", "label" => "knowsAbout or keywords", "name" => "smpi_knows_about", "type" => "textarea", "instructions" => "Editorial coverage topics, comma or line separated. Example: technology, startups, sports business, venture capital, digital media.", "rows" => 3, "new_lines" => "br" ],
-            [ "key" => "field_smpi_publication_muckrack_verified", "label" => "Publication Verified by MuckRack", "name" => "smpi_publication_muckrack_verified", "type" => "true_false", "ui" => 1, "instructions" => "Marks this news outlet as verified by the MuckRack editorial team. Display placement is controlled in Settings > SMP Publication Integration > Features." ],
-            [ "key" => "field_smpi_publication_muckrack_url", "label" => "Publication MuckRack URL", "name" => "smpi_publication_muckrack_url", "type" => "url", "instructions" => "Public MuckRack outlet/profile URL used by the publication verification text." ],
+            [ "key" => self::PUBLICATION_MUCKRACK_VERIFIED_FIELD_KEY, "label" => "Publication Verified by MuckRack", "name" => self::PUBLICATION_MUCKRACK_VERIFIED_FIELD_NAME, "type" => "true_false", "ui" => 1, "instructions" => "Marks this news outlet as verified by the MuckRack editorial team. Display placement is controlled in Settings > SMP Publication Integration > Features." ],
+            [ "key" => self::PUBLICATION_MUCKRACK_URL_FIELD_KEY, "label" => "Publication MuckRack URL", "name" => self::PUBLICATION_MUCKRACK_URL_FIELD_NAME, "type" => "url", "instructions" => "Public MuckRack outlet/profile URL used by the publication verification text." ],
             AcfFieldFactory::multiPostObject( [ "key" => "field_smpi_breadcrumb_disabled_objects", "label" => "Disable SMP Breadcrumbs On Specific Posts Or Pages", "name" => "smpi_breadcrumb_disabled_objects", "instructions" => "Select any posts, pages, or public custom post type entries where SMP breadcrumbs should not render. This is one multi-select field, not a repeater.", "post_types" => self::breadcrumb_disable_post_types() ] ),
             [ 'key' => 'field_smpi_imported_source_url', 'label' => 'Imported Source URL', 'name' => 'smpi_imported_source_url', 'type' => 'url', 'instructions' => 'Reference-only source URL for imported publication records.' ],
             [ 'key' => 'field_smpi_schema_markup', 'label' => 'Publication Schema Markup', 'name' => 'smpi_schema_markup', 'type' => 'textarea', 'instructions' => 'Generated JSON-LD for the current site publication. Refresh from the Schema tab.', 'rows' => 10, 'readonly' => 1 ],

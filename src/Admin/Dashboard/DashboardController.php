@@ -27,7 +27,9 @@ use smp_publication_integration\Admin\QuickStartCleanupWorkflow;
 use smp_publication_integration\Admin\UiCleanup;
 use smp_publication_integration\Admin\Navigation\AdminNavigation;
 use smp_publication_integration\Config;
+use smp_publication_integration\Content\AcfFields;
 use smp_publication_integration\Content\Breadcrumbs;
+use smp_publication_integration\Content\MuckRackVerification;
 use smp_publication_integration\Content\MultiAuthors;
 use smp_publication_integration\Content\Schema;
 use smp_publication_integration\Support\Dependencies;
@@ -1495,7 +1497,8 @@ class DashboardController {
             $this->multi_author_reference_html()
         );
 
-        $publication_muckrack_controls = $this->select_setting_html( "publication_muckrack_text_mode", [ "news_outlet" => [ "label" => "News outlet verified by MuckRack editorial team", "description" => "Generic wording when you do not want the site name in the sentence." ], "publication_name" => [ "label" => get_bloginfo( "name" ) . " verified by MuckRack editorial team", "description" => "Uses the current publication name in the verification sentence." ] ], $settings, "Text option" )
+        $publication_muckrack_controls = $this->publication_muckrack_source_html()
+            . $this->select_setting_html( "publication_muckrack_text_mode", [ "news_outlet" => [ "label" => "News outlet verified by MuckRack editorial team", "description" => "Generic wording when you do not want the site name in the sentence." ], "publication_name" => [ "label" => get_bloginfo( "name" ) . " verified by MuckRack editorial team", "description" => "Uses the current publication name in the verification sentence." ] ], $settings, "Text option" )
             . $this->context_select_html( "publication_muckrack_placements", [ "below_author" => "Below author", "bottom_article" => "Bottom of article" ], $settings )
             . $this->select_setting_html( "publication_muckrack_style", [ "block" => [ "label" => "Editorial block", "description" => "Small article footer block with a left accent bar.", "preview" => $this->publication_preview_sample_html( "block", $settings ) ], "mini_block" => [ "label" => "Mini editorial block", "description" => "Same left-accent editorial concept with smaller text and a quieter footprint.", "preview" => $this->publication_preview_sample_html( "mini_block", $settings ) ], "compact" => [ "label" => "Compact pill", "description" => "Small inline badge for tight author or header layouts.", "preview" => $this->publication_preview_sample_html( "compact", $settings ) ], "minimalist" => [ "label" => "Minimalist text", "description" => "Plain text treatment that blends into existing article copy.", "preview" => $this->publication_preview_sample_html( "minimalist", $settings ) ] ], $settings, "Display style" )
             . $this->color_setting_html( "publication_muckrack_color", "Accent color", $settings )
@@ -2565,7 +2568,7 @@ CSS;
     }
 
     private function publication_muckrack_report_html(): string {
-        $report = \smp_publication_integration\Content\MuckRackVerification::publication_report();
+        $report = MuckRackVerification::publication_report();
         $placements = ! empty( $report["placements"] ) ? implode( ", ", array_map( "sanitize_key", (array) $report["placements"] ) ) : "none selected";
         $html = $this->simple_status_html( ! empty( $report["effective"] ), "Feature toggle: " . ( ! empty( $report["enabled"] ) ? "on" : "off" ) . ". Publication ACF verified: " . ( ! empty( $report["acf_verified"] ) ? "yes" : "no" ) . "." );
         $html .= "<table class=\"widefat striped\"><tbody>";
@@ -2577,6 +2580,59 @@ CSS;
         $html .= "<tr><th>Shortcode</th><td><code>" . esc_html( (string) $report["shortcode"] ) . "</code></td></tr>";
         $html .= "<tr><th>Actual preview</th><td>" . ( "" !== $report["preview_html"] ? wp_kses_post( (string) $report["preview_html"] ) : self::ico( false ) . "Enable feature and verify publication ACF to render the live shortcode preview. Visual examples are shown above." ) . "</td></tr>";
         return $html . "</tbody></table>";
+    }
+
+    private function publication_muckrack_source_html(): string {
+        $report = MuckRackVerification::publication_report();
+        $verified = function_exists( 'get_field' )
+            ? (bool) get_field( AcfFields::PUBLICATION_MUCKRACK_VERIFIED_FIELD_KEY, 'option' )
+            : (bool) get_option( 'options_' . AcfFields::PUBLICATION_MUCKRACK_VERIFIED_FIELD_NAME, false );
+        $source_url = function_exists( 'get_field' )
+            ? trim( (string) get_field( AcfFields::PUBLICATION_MUCKRACK_URL_FIELD_KEY, 'option' ) )
+            : trim( (string) get_option( 'options_' . AcfFields::PUBLICATION_MUCKRACK_URL_FIELD_NAME, '' ) );
+        $input_url = '' !== $source_url ? $source_url : trim( (string) ( $report['url'] ?? '' ) );
+        $effective = MuckRackVerification::publication_enabled();
+        $options_url = add_query_arg(
+            [
+                'page' => Config::$settings_page_slug,
+                'tab'  => 'publication_options',
+            ],
+            admin_url( 'options-general.php' )
+        );
+
+        $status = '<div class="smpi-status-rows smpi-publication-muckrack-source-status">'
+            . $this->publication_muckrack_source_status_html( 'verified', $verified, 'Publication verification source', $verified ? 'Enabled' : 'Disabled' )
+            . $this->publication_muckrack_source_status_html( 'url', '' !== $source_url, 'Publication MuckRack URL', '' !== $source_url ? 'Saved' : 'Missing' )
+            . $this->publication_muckrack_source_status_html( 'effective', $effective, 'Frontend output', $effective ? 'Active' : 'Inactive' )
+            . '</div>';
+        $toggle = CoreUi::toggle(
+            'smpi_publication_muckrack_source_verified',
+            $verified,
+            'Publication verified by MuckRack',
+            [
+                'id'          => 'smpi-publication-muckrack-source-verified',
+                'input_class' => 'smpi-publication-muckrack-source-verified',
+            ]
+        );
+        $edit_link = '<a class="smpi-publication-muckrack-source-link" href="' . esc_url( $options_url ) . '" target="_blank" rel="noopener noreferrer">' . esc_html( $options_url ) . '</a>';
+
+        return '<div class="smpi-control-group smpi-publication-muckrack-source" data-smpi-publication-muckrack-source>'
+            . '<h3>Publication verification source</h3>'
+            . '<p class="smpi-muted">Edit the existing Publication Options ACF fields used by the shortcode and frontend output.</p>'
+            . $status
+            . '<div class="smpi-publication-muckrack-source-fields"><div class="smpi-control-row">' . $toggle . '</div>'
+            . '<label class="smpi-publication-muckrack-source-url-field" for="smpi-publication-muckrack-source-url"><strong>Publication MuckRack URL</strong>'
+            . '<input id="smpi-publication-muckrack-source-url" class="regular-text smpi-publication-muckrack-source-url" type="url" value="' . esc_attr( $input_url ) . '" placeholder="https://muckrack.com/media-outlet/example"></label></div>'
+            . '<div class="smpi-publication-muckrack-source-actions"><button type="button" class="button button-primary" data-smpi-save-publication-muckrack-source>Save publication source</button><span class="spinner"></span><span class="smpi-save-state" aria-live="polite"></span></div>'
+            . '<p class="smpi-publication-muckrack-source-edit"><strong>Edit all Publication Options:</strong> ' . $edit_link . '</p>'
+            . '</div>';
+    }
+
+    private function publication_muckrack_source_status_html( string $key, bool $ok, string $label, string $state ): string {
+        return '<div class="smpi-status-row" data-smpi-publication-muckrack-status="' . esc_attr( $key ) . '">'
+            . self::ico( $ok, true )
+            . '<span><strong>' . esc_html( $label ) . ':</strong> <span data-smpi-publication-muckrack-status-text>' . esc_html( $state ) . '</span></span>'
+            . '</div>';
     }
 
     private function press_release_report_html(): string {
@@ -2983,6 +3039,8 @@ CSS;
             function saveToast(){var t=$(`#smpi-save-toast`);if(t.length)return t;t=$(`<div id="smpi-save-toast" class="smpi-save-toast" aria-live="polite"><span class="smpi-save-toast-spinner" aria-hidden="true"></span><span class="smpi-save-toast-message"></span></div>`);$(`body`).append(t);return t}
             function setGlobalSaveToast(state,message){var t=saveToast();clearTimeout(smpiSaveToastTimer);t.removeClass(`is-saving is-saved is-error`).addClass(`is-visible is-`+state).attr(`role`,state===`error`?`alert`:`status`);t.find(`.smpi-save-toast-message`).text(message);if(state!==`saving`){smpiSaveToastTimer=setTimeout(function(){t.removeClass(`is-visible is-saving is-saved is-error`)},6500)}}
             function saveSetting(e, done){var k=e.data(`key`),d={action:`smpi_save_settings`,nonce:smpiAdmin.nonce,tab:smpiAdmin.activeTab},v;if(!k)return;var r=saveRoot(e),card=featureRoot(e);updateChoiceState(e);if(e.is(`:checkbox`)&&!e.hasClass(`smpi-setting-array`)){e.closest(`.smpi-switch`).find(`strong`).text(e.is(`:checked`)?`Enabled`:`Disabled`)}if(e.hasClass(`smpi-color-setting`)||e.is(`[data-hpc-color-hex-input]`)){var normalized=smpiHex(e.val());if(!normalized){var badLabel=k+`: `+(e.val()||`empty`),badMsg=`Invalid hex color. Use #RRGGBB.`;setSaveState(r,`error`,badMsg);setFeatureSaveState(card,`error`,`Error saving ${badLabel}: ${badMsg}`);setGlobalSaveToast(`error`,`Error saving ${badLabel}: ${badMsg}`);setTabMessage(`Error saving ${badLabel}: ${badMsg}`);if(done)done(null);return}e.val(normalized);smpiSyncColor(e.closest(`.smpi-color-control,[data-hpc-color-control]`),normalized,false)}if(e.hasClass(`smpi-setting-array`)){var g=$(`.smpi-setting-array[data-key="${k}"]`);d[k+`_present`]=1;d[k]=g.filter(`:checked`).map(function(){return $(this).val()}).get()}else{v=e.is(`:checkbox`)?(e.is(`:checked`)?1:0):e.val();d[k]=v}var label=inputStateLabel(e);r.find(`.spinner`).addClass(`is-active`);setSaveState(r,`saving`,`Saving...`);setFeatureSaveState(card,`saving`,`Saving ${label}`);setGlobalSaveToast(`saving`,`Saving ${label}`);setTabMessage(`Saving ${label}`);$.post(smpiAdmin.ajaxUrl,d).done(function(x){var ok=!!(x&&x.success),msg=saveMessage(x,`Server rejected the save.`);setSaveState(r,ok?`saved`:`error`,ok?`✓ Saved`:msg);setFeatureSaveState(card,ok?`saved`:`error`,ok?`Saved ${label}`:`Error saving ${label}: ${msg}`);setGlobalSaveToast(ok?`saved`:`error`,ok?`Saved ${label}`:`Error saving ${label}: ${msg}`);if(ok&&x.data&&x.data.fragment){refreshActiveFragment(x.data.fragment);setTabMessage(`Saved and refreshed ${x.data.fragment.label}.`)}else if(ok){setTabMessage(`Saved ${label}.`)}if(done)done(x)}).fail(function(xhr){var msg=`HTTP ${xhr.status||0} ${xhr.statusText||`request failed`}`;setSaveState(r,`error`,msg);setFeatureSaveState(card,`error`,`Error saving ${label}: ${msg}`);setGlobalSaveToast(`error`,`Error saving ${label}: ${msg}`);setTabMessage(`Error saving ${label}: ${msg}`);if(done)done(null)}).always(function(){r.find(`.spinner`).removeClass(`is-active`);card.removeClass(`is-saving`)})}
+            function setPublicationMuckrackStatus(panel,key,ok,state){var row=panel.find(`[data-smpi-publication-muckrack-status="${key}"]`),icon=row.find(`.smpi-ico`).first();icon.removeClass(`smpi-ico--ok smpi-ico--bad smpi-ico--warn`).addClass(ok?`smpi-ico--ok`:`smpi-ico--bad`).html(ok?`&#10003;`:`&#10007;`);row.find(`[data-smpi-publication-muckrack-status-text]`).text(state)}
+            $(document).on(`click`,`[data-smpi-save-publication-muckrack-source]`,function(){var b=$(this),panel=b.closest(`[data-smpi-publication-muckrack-source]`),card=featureRoot(b),verified=panel.find(`.smpi-publication-muckrack-source-verified`).is(`:checked`),url=String(panel.find(`.smpi-publication-muckrack-source-url`).val()||``).trim(),label=`publication MuckRack source`;panel.find(`.spinner`).addClass(`is-active`);b.prop(`disabled`,true);setSaveState(panel,`saving`,`Saving...`);setFeatureSaveState(card,`saving`,`Saving ${label}`);setGlobalSaveToast(`saving`,`Saving ${label}`);setTabMessage(`Saving ${label}`);$.post(smpiAdmin.ajaxUrl,{action:`smpi_save_publication_muckrack_source`,nonce:smpiAdmin.nonce,verified:verified?1:0,url:url}).done(function(x){var ok=!!(x&&x.success),msg=saveMessage(x,`Server rejected the save.`);if(ok&&x.data){panel.find(`.smpi-publication-muckrack-source-verified`).prop(`checked`,!!x.data.verified);panel.find(`.smpi-publication-muckrack-source-url`).val(x.data.url||``);setPublicationMuckrackStatus(panel,`verified`,!!x.data.verified,x.data.verified?`Enabled`:`Disabled`);setPublicationMuckrackStatus(panel,`url`,!!x.data.url_available,x.data.url_available?`Saved`:`Missing`);setPublicationMuckrackStatus(panel,`effective`,!!x.data.effective,x.data.effective?`Active`:`Inactive`)}setSaveState(panel,ok?`saved`:`error`,ok?`✓ Saved`:msg);setFeatureSaveState(card,ok?`saved`:`error`,ok?msg:`Error saving ${label}: ${msg}`);setGlobalSaveToast(ok?`saved`:`error`,ok?msg:`Error saving ${label}: ${msg}`);setTabMessage(ok?msg:`Error saving ${label}: ${msg}`)}).fail(function(xhr){var msg=`HTTP ${xhr.status||0} ${xhr.statusText||`request failed`}`;setSaveState(panel,`error`,msg);setFeatureSaveState(card,`error`,`Error saving ${label}: ${msg}`);setGlobalSaveToast(`error`,`Error saving ${label}: ${msg}`);setTabMessage(`Error saving ${label}: ${msg}`)}).always(function(){panel.find(`.spinner`).removeClass(`is-active`);card.removeClass(`is-saving`);b.prop(`disabled`,false)})});
             function isDeferredNumberSetting(e){return e.hasClass(`smpi-setting`)&&e.is(`input[type="number"]`)}
             function numberOriginalValue(e){var v=e.data(`smpi-original-value`);return typeof v===`undefined`?String(e.val()||``):String(v)}
             function commitNumberSetting(e){if(!isDeferredNumberSetting(e))return;var current=String(e.val()||``);if(numberOriginalValue(e)===current)return;e.data(`smpi-original-value`,current);saveSetting(e)}

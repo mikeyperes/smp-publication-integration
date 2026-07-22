@@ -27,6 +27,16 @@
 .smpi-dashboard .smpi-breadcrumb-toggle-grid{display:grid;gap:10px;grid-template-columns:repeat(2,minmax(0,1fr))}
 .smpi-dashboard .smpi-breadcrumb-toggle-item{align-items:center;background:#fff;border:1px solid #d8dee8;border-radius:6px;box-sizing:border-box;display:flex;min-height:52px;padding:12px 14px}
 .smpi-dashboard .smpi-breadcrumb-toggle-item .hpc-toggle{box-sizing:border-box;width:100%}
+.smpi-dashboard .smpi-publication-muckrack-source-status{display:grid;gap:10px;grid-template-columns:repeat(3,minmax(0,1fr));margin:16px 0}
+.smpi-dashboard .smpi-publication-muckrack-source-status .smpi-status-row{margin:0;min-width:0}
+.smpi-dashboard .smpi-publication-muckrack-source-fields{align-items:end;display:grid;gap:18px;grid-template-columns:minmax(240px,.65fr) minmax(320px,1.35fr);margin-top:16px}
+.smpi-dashboard .smpi-publication-muckrack-source-fields .smpi-control-row{margin:0;padding:8px 0}
+.smpi-dashboard .smpi-publication-muckrack-source-url-field{display:grid;font-weight:400;gap:7px;min-width:0}
+.smpi-dashboard .smpi-publication-muckrack-source-url{box-sizing:border-box;max-width:none;width:100%}
+.smpi-dashboard .smpi-publication-muckrack-source-actions{align-items:center;display:flex;gap:8px;margin-top:16px}
+.smpi-dashboard .smpi-publication-muckrack-source-actions .spinner{float:none;margin:0}
+.smpi-dashboard .smpi-publication-muckrack-source-edit{border-top:1px solid #e1e6ed;margin:18px 0 0;padding-top:14px}
+.smpi-dashboard .smpi-publication-muckrack-source-link{overflow-wrap:anywhere;word-break:break-word}
 @media(max-width:1050px){
     .smpi-dashboard .smpi-breadcrumb-appearance-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
     .smpi-dashboard .smpi-breadcrumb-appearance-grid>.smpi-control-group:last-child{grid-column:1/-1}
@@ -41,4 +51,5 @@
     .smpi-dashboard .smpi-breadcrumb-appearance-grid,.smpi-dashboard .smpi-breadcrumb-visibility-grid,.smpi-dashboard .smpi-breadcrumb-toggle-grid{grid-template-columns:minmax(0,1fr)}
     .smpi-dashboard .smpi-breadcrumb-appearance-grid>.smpi-control-group:last-child{grid-column:auto}
     .smpi-dashboard .smpi-breadcrumb-section{padding:18px 0}
+    .smpi-dashboard .smpi-publication-muckrack-source-status,.smpi-dashboard .smpi-publication-muckrack-source-fields{grid-template-columns:minmax(0,1fr)}
 }

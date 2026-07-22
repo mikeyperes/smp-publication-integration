@@ -9,7 +9,9 @@ use Hexa\PluginCore\WpAdminAjax\AjaxFailure;
 use Hexa\PluginCore\WpAdminAjax\AjaxGuard;
 use Hexa\PluginCore\WpAdminAjax\AjaxRequest;
 use smp_publication_integration\Admin\Dashboard;
+use smp_publication_integration\Content\AcfFields;
 use smp_publication_integration\Content\Breadcrumbs;
+use smp_publication_integration\Content\MuckRackVerification;
 use smp_publication_integration\Content\MultiAuthors;
 use smp_publication_integration\Content\Schema;
 use smp_publication_integration\Support\Dependencies;
@@ -40,6 +42,7 @@ class AjaxController {
             [
                 'smpi_load_tab'                => [ 'callback' => [ $this, 'load_tab' ] ],
                 'smpi_save_settings'           => [ 'callback' => [ $this, 'save_settings' ] ],
+                'smpi_save_publication_muckrack_source' => [ 'callback' => [ $this, 'save_publication_muckrack_source' ] ],
                 'smpi_import_brand_primary_color' => [ 'callback' => [ $this, 'import_brand_primary_color' ] ],
                 'smpi_search_users'            => [ 'callback' => [ $this, 'search_users' ] ],
                 'smpi_shortcode_user_preview'  => [ 'callback' => [ $this, 'shortcode_user_preview' ] ],
@@ -194,6 +197,43 @@ class AjaxController {
         }
         $response = [ "settings" => $settings, "message" => empty( $changes ) ? "No setting changed." : "Saved " . implode( ", ", array_keys( $changes ) ) . "." ];
         return $response;
+    }
+
+    public function save_publication_muckrack_source( AjaxRequest $request ): array {
+        if ( ! function_exists( 'update_field' ) || ! function_exists( 'get_field' ) ) {
+            throw AjaxFailure::server_error( 'Advanced Custom Fields must be active to update the publication source.' );
+        }
+
+        $verified = $request->bool( 'verified', false, 'post' );
+        $raw_url = trim( (string) $request->raw( 'url', '', 'post' ) );
+        $url = '' === $raw_url ? '' : esc_url_raw( $raw_url, [ 'http', 'https' ] );
+
+        if ( '' !== $raw_url && '' === $url ) {
+            throw AjaxFailure::bad_request( 'Enter a valid http or https MuckRack URL.' );
+        }
+        if ( $verified && '' === $url ) {
+            throw AjaxFailure::bad_request( 'Enter the publication MuckRack URL before enabling verification.' );
+        }
+
+        update_field( AcfFields::PUBLICATION_MUCKRACK_VERIFIED_FIELD_KEY, $verified ? 1 : 0, 'option' );
+        update_field( AcfFields::PUBLICATION_MUCKRACK_URL_FIELD_KEY, $url, 'option' );
+
+        $saved_verified = (bool) get_field( AcfFields::PUBLICATION_MUCKRACK_VERIFIED_FIELD_KEY, 'option' );
+        $saved_url = trim( (string) get_field( AcfFields::PUBLICATION_MUCKRACK_URL_FIELD_KEY, 'option' ) );
+        if ( $saved_verified !== $verified || $saved_url !== $url ) {
+            throw AjaxFailure::server_error( 'The publication ACF source values could not be confirmed after saving.' );
+        }
+
+        $this->purge_frontend_cache();
+
+        return [
+            'verified'       => $saved_verified,
+            'url'            => $saved_url,
+            'url_available'  => '' !== $saved_url,
+            'feature_enabled' => Settings::bool( 'publication_muckrack_verified_enabled' ),
+            'effective'      => MuckRackVerification::publication_enabled(),
+            'message'        => 'Saved the publication MuckRack source in Publication Options.',
+        ];
     }
 
     public function import_brand_primary_color( AjaxRequest $request ): array {
