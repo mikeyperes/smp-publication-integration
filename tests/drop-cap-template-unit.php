@@ -59,6 +59,7 @@ namespace {
     foreach ( [ "Dancing+Script", "Great+Vibes", "Parisienne", "Pinyon+Script", "Allura" ] as $family ) {
         assert_drop_cap( false !== strpos( $preview_link, "family=" . $family ), "Admin previews must load " . $family . "." );
     }
+    assert_drop_cap( 5 === substr_count( $preview_link, 'rel="stylesheet"' ), "Admin previews must load each script family through an independent stylesheet." );
     assert_drop_cap( false !== strpos( $rules[6], "background:var(--smpi-dropcap-soft" ), "Script-tile template must use the shared tint variable." );
     assert_drop_cap( false !== strpos( $rules[7], "border-radius:999px" ), "Script-round template must use a rounded badge." );
     assert_drop_cap( false !== strpos( $rules[8], "border-bottom:4px solid var(--smpi-dropcap-color" ), "Script-underline template must use an accent underline." );

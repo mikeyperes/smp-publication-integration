@@ -184,11 +184,11 @@ final class ArticleStyles {
     }
 
     public static function script_font_preview_link_html(): string {
-        $families = array_map(
-            static fn( array $font ): string => "family=" . $font["google_family"],
-            array_values( self::article_drop_cap_script_fonts() )
-        );
-        return "<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\"><link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin><link rel=\"stylesheet\" id=\"smpi-script-font-previews\" href=\"https://fonts.googleapis.com/css2?" . implode( "&amp;", $families ) . "&amp;display=swap\">";
+        $html = "<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\"><link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>";
+        foreach ( self::article_drop_cap_script_fonts() as $key => $font ) {
+            $html .= "<link rel=\"stylesheet\" id=\"smpi-script-font-preview-" . $key . "\" href=\"https://fonts.googleapis.com/css2?family=" . $font["google_family"] . "&amp;display=swap\">";
+        }
+        return $html;
     }
 
     public static function article_drop_cap_style_keys(): array {
