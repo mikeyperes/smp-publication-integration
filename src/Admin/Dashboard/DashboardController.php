@@ -1309,6 +1309,7 @@ class DashboardController {
     private function features(): void {
         $settings = Settings::all();
         echo "<div class=\"smpi-section-intro\"><h2>Features</h2><p>Enable publication features and configure their output.</p></div>";
+        echo \smp_publication_integration\Content\ArticleStyles::script_font_link_html();
         echo "<style id=smpi-design-preview-css>" . \smp_publication_integration\Content\ArticleStyles::preview_bundle_css() . "</style>";
         echo $this->feature_layout_styles_html();
         echo CoreUi::collection_filter(
@@ -1393,7 +1394,7 @@ class DashboardController {
             "Article first-letter drop cap",
             "article_drop_cap_enabled",
             "No ACF changes. Applies CSS to the first letter of the first paragraph inside single post content.",
-            "Styles the first letter of the first paragraph in single-post content with one of five selectable templates.",
+            "Styles the first letter of the first paragraph in single-post content with one of ten selectable templates.",
             "No shortcode needed. Enable the feature, choose a template, then tune accent color and size.",
             $this->article_drop_cap_report_html(),
             $this->activity_log_html(),
@@ -2071,6 +2072,11 @@ CSS;
             "dropcap-outline" => [ "label" => "Outline frame", "description" => "A thin accent frame around the first letter.", "preview" => $this->article_drop_cap_preview_html( "dropcap-outline" ) ],
             "dropcap-side-rule" => [ "label" => "Side rule", "description" => "A compact first letter anchored by a strong vertical rule.", "preview" => $this->article_drop_cap_preview_html( "dropcap-side-rule" ) ],
             "dropcap-soft-tile" => [ "label" => "Soft tile", "description" => "A restrained tinted tile with a compact corner radius.", "preview" => $this->article_drop_cap_preview_html( "dropcap-soft-tile" ) ],
+            "dropcap-script-classic" => [ "label" => "Script classic", "description" => "A flowing cursive letter with clean editorial spacing.", "preview" => $this->article_drop_cap_preview_html( "dropcap-script-classic" ) ],
+            "dropcap-script-tile" => [ "label" => "Script tile", "description" => "A cursive letter set on a soft tinted tile.", "preview" => $this->article_drop_cap_preview_html( "dropcap-script-tile" ) ],
+            "dropcap-script-round" => [ "label" => "Script round", "description" => "A cursive letter inside a rounded tinted badge.", "preview" => $this->article_drop_cap_preview_html( "dropcap-script-round" ) ],
+            "dropcap-script-underline" => [ "label" => "Script underline", "description" => "A cursive letter anchored by a strong accent underline.", "preview" => $this->article_drop_cap_preview_html( "dropcap-script-underline" ) ],
+            "dropcap-script-shadow" => [ "label" => "Script shadow", "description" => "A cursive letter with a soft offset tint shadow.", "preview" => $this->article_drop_cap_preview_html( "dropcap-script-shadow" ) ],
         ];
     }
 

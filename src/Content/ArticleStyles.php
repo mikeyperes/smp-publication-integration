@@ -36,6 +36,9 @@ final class ArticleStyles {
         $photo = self::normalize_inline_photo_style( (string) Settings::get( "inline_photo_treatment", "none" ) );
         $featured = self::normalize_featured_image_caption_style( (string) Settings::get( "featured_image_caption_template", "fig2" ) );
         $breadcrumb_override = Settings::bool( "breadcrumbs_enabled" ) ? Breadcrumbs::custom_css() : "";
+        if ( Settings::bool( "article_drop_cap_enabled" ) && self::article_drop_cap_style_uses_script_font( self::normalize_article_drop_cap_style( (string) Settings::get( "article_drop_cap_style", "dropcap-classic" ) ) ) ) {
+            echo self::script_font_link_html();
+        }
         echo "<style id=smpi-article-style-controls>" . self::frontend_vars_css() . self::breadcrumbs_css() . self::toc_css() . self::article_heading_css( $heading ) . self::article_drop_cap_css() . self::post_acf_css() . self::inline_photo_css( $photo ) . self::featured_image_caption_css( $featured ) . ( "" !== $breadcrumb_override ? PHP_EOL . $breadcrumb_override : "" ) . "</style>";
     }
 
@@ -97,8 +100,16 @@ final class ArticleStyles {
         return in_array( $style, self::article_drop_cap_style_keys(), true ) ? $style : "dropcap-classic";
     }
 
+    public static function article_drop_cap_style_uses_script_font( string $style ): bool {
+        return 0 === strpos( $style, "dropcap-script-" );
+    }
+
+    public static function script_font_link_html(): string {
+        return "<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\"><link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin><link rel=\"stylesheet\" id=\"smpi-script-font\" href=\"https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&amp;display=swap\">";
+    }
+
     public static function article_drop_cap_style_keys(): array {
-        return [ "dropcap-classic", "dropcap-highlight", "dropcap-outline", "dropcap-side-rule", "dropcap-soft-tile" ];
+        return [ "dropcap-classic", "dropcap-highlight", "dropcap-outline", "dropcap-side-rule", "dropcap-soft-tile", "dropcap-script-classic", "dropcap-script-tile", "dropcap-script-round", "dropcap-script-underline", "dropcap-script-shadow" ];
     }
 
     public static function normalize_inline_photo_style( string $style = "" ): string {
@@ -378,6 +389,7 @@ final class ArticleStyles {
         $style = self::normalize_article_drop_cap_style( $style );
         $letter = $paragraph . "::first-letter";
         $base = $paragraph . "{overflow:visible}" . $letter . "{box-sizing:border-box;float:left;font-family:Arial,Helvetica,sans-serif;font-size:var(--smpi-dropcap-size,96px);font-weight:900;line-height:.78;margin:.08em 24px 0 0;text-transform:uppercase;letter-spacing:0}";
+        $cursive = "font-family:\"Dancing Script\",\"Snell Roundhand\",\"Apple Chancery\",\"Segoe Script\",\"Brush Script MT\",cursive;font-weight:600;line-height:.9;";
         switch ( $style ) {
             case "dropcap-highlight":
                 return $base . $letter . "{background:var(--smpi-dropcap-color,#facc15);color:var(--smpi-dropcap-ink,#111111);line-height:.8;margin:.06em 18px 0 0;padding:.08em .13em .11em}";
@@ -387,6 +399,16 @@ final class ArticleStyles {
                 return $base . $letter . "{border-left:6px solid var(--smpi-dropcap-color,#111111);color:var(--smpi-dropcap-color,#111111);line-height:.82;margin:.06em 20px 0 0;padding-left:.12em}";
             case "dropcap-soft-tile":
                 return $base . $letter . "{background:var(--smpi-dropcap-soft,rgba(17,17,17,.14));border-radius:6px;color:var(--smpi-dropcap-color,#111111);line-height:.8;margin:.06em 18px 0 0;padding:.08em .13em .11em}";
+            case "dropcap-script-classic":
+                return $base . $letter . "{" . $cursive . "color:var(--smpi-dropcap-color,#111111);margin:.02em 22px 0 0}";
+            case "dropcap-script-tile":
+                return $base . $letter . "{" . $cursive . "background:var(--smpi-dropcap-soft,rgba(17,17,17,.12));border-radius:10px;color:var(--smpi-dropcap-color,#111111);margin:.04em 20px 0 0;padding:.1em .17em .14em}";
+            case "dropcap-script-round":
+                return $base . $letter . "{" . $cursive . "background:var(--smpi-dropcap-soft,rgba(17,17,17,.12));border-radius:999px;color:var(--smpi-dropcap-color,#111111);margin:.04em 20px 0 0;padding:.12em .22em .16em}";
+            case "dropcap-script-underline":
+                return $base . $letter . "{" . $cursive . "border-bottom:4px solid var(--smpi-dropcap-color,#111111);color:var(--smpi-dropcap-color,#111111);margin:.02em 22px 0 0;padding-bottom:.05em}";
+            case "dropcap-script-shadow":
+                return $base . $letter . "{" . $cursive . "color:var(--smpi-dropcap-color,#111111);text-shadow:.05em .05em 0 var(--smpi-dropcap-soft,rgba(17,17,17,.22))}";
             case "dropcap-classic":
             default:
                 return $base . $letter . "{color:var(--smpi-dropcap-color,#111111)}";
