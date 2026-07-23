@@ -175,6 +175,7 @@ final class QuickStartFeatures {
     }
 
     public static function items(): array {
+        $drop_cap_color = \smp_publication_integration\Settings\SettingsRepository::color_default( "article_drop_cap_color" );
         return [
             "delete_old_posts_keep_latest_10" => [
                 "title" => "Delete Old Posts, Keep Latest 10",
@@ -403,13 +404,13 @@ final class QuickStartFeatures {
                 "settings" => [
                     "article_drop_cap_enabled" => true,
                     "article_drop_cap_style" => "dropcap-classic",
-                    "article_drop_cap_color" => "#111111",
+                    "article_drop_cap_color" => $drop_cap_color,
                     "article_drop_cap_font_size" => 96,
                 ],
                 "details" => [
                     [ "label" => "Enabled", "value" => "Yes" ],
                     [ "label" => "Template", "value" => "Classic editorial" ],
-                    [ "label" => "Accent color", "value" => "#111111", "color" => "#111111" ],
+                    [ "label" => "Accent color", "value" => $drop_cap_color, "color" => $drop_cap_color ],
                     [ "label" => "Size", "value" => "96px" ],
                 ],
             ],

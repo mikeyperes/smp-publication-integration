@@ -230,7 +230,8 @@ final class ArticleStyles {
     }
 
     public static function article_drop_cap_var_values(): array {
-        $color = self::hex( Settings::get( "article_drop_cap_color", "#111111" ), "#111111" );
+        $default = Settings::color_default( "article_drop_cap_color" );
+        $color = self::hex( Settings::get( "article_drop_cap_color", $default ), $default );
         return [
             "color" => $color,
             "soft"  => self::rgba( $color, 0.14 ),

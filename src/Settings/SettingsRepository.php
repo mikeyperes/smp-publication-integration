@@ -215,7 +215,7 @@ class SettingsRepository {
             "table_of_contents_accent_color" => $brand,
             "table_of_contents_text_color" => "#1f2937",
             "article_heading_accent_color" => $brand,
-            "article_drop_cap_color" => "#111111",
+            "article_drop_cap_color" => $brand,
             "inline_photo_accent_color" => $brand,
             "inline_photo_caption_text_color" => "#272727",
             "featured_image_caption_accent_color" => $brand,

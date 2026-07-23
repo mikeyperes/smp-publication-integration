@@ -26,6 +26,7 @@ require dirname( __DIR__ ) . '/src/Content/Breadcrumbs.php';
 
 use smp_publication_integration\Content\Breadcrumbs;
 use smp_publication_integration\Settings\SettingsMigrations;
+use smp_publication_integration\Settings\SettingsRepository;
 use smp_publication_integration\Support\Settings;
 
 set_error_handler(
@@ -33,6 +34,13 @@ set_error_handler(
         throw new ErrorException( $message, 0, $severity, $file, $line );
     }
 );
+
+$GLOBALS['smpi_test_options']['hws_brand_primary_color'] = '#bd00ff';
+if ( '#bd00ff' !== SettingsRepository::color_default( 'article_drop_cap_color' ) ) {
+    fwrite( STDERR, "FAIL: Drop-cap color did not inherit the Hexa brand primary color.\n" );
+    exit( 1 );
+}
+unset( $GLOBALS['smpi_test_options']['hws_brand_primary_color'] );
 
 $settings = Settings::update( [ 'article_heading_accent_color' => 'invalid' ] );
 if ( '#2d5277' !== $settings['article_heading_accent_color'] ) {

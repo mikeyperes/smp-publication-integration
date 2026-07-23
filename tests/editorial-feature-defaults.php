@@ -24,6 +24,9 @@ $checks = [
     'Feature activity logs use the collapsed Hexa Core renderer.' => str_contains( $dashboard, 'new ActivityLogRenderer( $config )' )
         && str_contains( $dashboard, "'collapsed'   => true" )
         && ! str_contains( $dashboard, '$html = "<ul>"' ),
+    'Drop-cap color uses the shared Hexa brand-primary source.' => str_contains( $settings, '"article_drop_cap_color" => $brand' )
+        && str_contains( $quick, 'SettingsRepository::color_default( "article_drop_cap_color" )' )
+        && ! str_contains( $quick, '"article_drop_cap_color" => "#111111"' ),
 ];
 
 foreach ( $checks as $message => $passed ) {
