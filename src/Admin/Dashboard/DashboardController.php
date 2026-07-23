@@ -2300,7 +2300,7 @@ CSS;
 
     private function article_drop_cap_preview_html( string $style ): string {
         $style = \smp_publication_integration\Content\ArticleStyles::normalize_article_drop_cap_style( $style );
-        return "<div class=\"smpi-template smpi-template--article-content smpi-dropcap-preview smpi-dropcap-preview--" . esc_attr( $style ) . "\"><p class=\"smpi-template-text smpi-article-paragraph smpi-article-lead\">A new generation of founders is reshaping how modern publications tell important stories.</p></div>";
+        return "<div class=\"smpi-template smpi-template--article-content smpi-dropcap-preview smpi-dropcap-preview--" . esc_attr( $style ) . "\"><p class=\"smpi-template-text smpi-article-paragraph smpi-article-lead\">Female founders are reshaping how modern publications tell important stories.</p></div>";
     }
 
     private function article_heading_report_html(): string {
