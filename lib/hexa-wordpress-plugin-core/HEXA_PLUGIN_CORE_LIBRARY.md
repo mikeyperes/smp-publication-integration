@@ -81,7 +81,7 @@ Use `FontFamilyControl::render()` for a reusable font source selector. Core disc
 
 Use `TypographyPreservation::defaults()` and `TypographyPreservation::setting_keys()` to define prefix-scoped font-family, size, color, and weight preservation settings. Render `TypographyPreservationControl` inside a `data-hpc-typography-scope` container and map each property to the host setting keys it disables. Core owns the four toggles, state classes, target synchronization, and `hexa-typography-preserve-change` event; hosts own only their save transport and CSS declaration policy.
 
-Use `TypographyControl::render()` when a feature exposes the corresponding editors. Core composes `FontFamilyControl`, font weight, `ColorControl`, one or more size fields, and the preservation contract into one host-neutral interface with every toggle adjacent to its field. Hosts pass field configuration and save classes instead of concatenating separate controls.
+Use `TypographyControl::render()` when a feature exposes the corresponding editors. Core composes `FontFamilyControl`, font weight, `ColorControl`, one or more size fields, and the preservation contract into one host-neutral interface with every toggle adjacent to its field. Hosts pass field configuration and save classes instead of concatenating separate controls. Preserving a color disables the complete Core color editor, including the native picker and import actions, while keeping the preservation toggle operable.
 
 ```php
 use Hexa\PluginCore\WpAdminComponents\ScopedCssOverride;

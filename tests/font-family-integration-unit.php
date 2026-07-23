@@ -182,8 +182,9 @@ $ajax = (string) file_get_contents( $root . "/src/Admin/Ajax/AjaxController.php"
 $quick_start = (string) file_get_contents( $root . "/src/Support/QuickStartFeatures.php" );
 $core_version = trim( (string) file_get_contents( $root . "/lib/hexa-wordpress-plugin-core/VERSION" ) );
 $core_typography = (string) file_get_contents( $root . "/lib/hexa-wordpress-plugin-core/src/WpAdminComponents/TypographyControl.php" );
+$core_preservation = (string) file_get_contents( $root . "/lib/hexa-wordpress-plugin-core/src/WpAdminComponents/TypographyPreservationControl.php" );
 
-if ( version_compare( $core_version, "0.19.72", "<" ) || ! str_contains( $dashboard, "TypographyControl::render(" ) || str_contains( $dashboard, "FontFamilyControl::render(" ) || ! str_contains( $core_typography, "FontFamilyControl::render(" ) || ! str_contains( $core_typography, '$family["weight_key"]' ) ) {
+if ( version_compare( $core_version, "0.19.73", "<" ) || ! str_contains( $dashboard, "TypographyControl::render(" ) || str_contains( $dashboard, "FontFamilyControl::render(" ) || ! str_contains( $core_typography, "FontFamilyControl::render(" ) || ! str_contains( $core_typography, '$family["weight_key"]' ) || ! str_contains( $core_preservation, '[data-hpc-color-picker],[data-hpc-color-hex-input],[data-hpc-color-value-input],[data-hpc-brand-color-import],[data-hpc-color-inherit]' ) ) {
     fwrite( STDERR, "FAIL: SMP is not using the reusable Hexa WP Core font control.\n" );
     exit( 1 );
 }
