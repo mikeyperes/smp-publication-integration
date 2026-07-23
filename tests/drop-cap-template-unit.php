@@ -78,6 +78,8 @@ namespace {
     $dashboard = (string) file_get_contents( dirname( __DIR__ ) . "/src/Admin/Dashboard/DashboardController.php" );
     assert_drop_cap( false === strpos( $dashboard, "Script letter font" ), "The obsolete full-sentence script-font gallery must be removed." );
     assert_drop_cap( false === strpos( $dashboard, 'select_setting_html( "article_drop_cap_script_font"' ), "The obsolete standalone script-font setting must not remain in the Features UI." );
+    assert_drop_cap( false !== strpos( $dashboard, 'TypographyControl::render(' ) && false !== strpos( $dashboard, '"title" => "Drop cap typography"' ), "Drop-cap typography fields and preservation toggles must share the combined Core control." );
+    assert_drop_cap( false === strpos( $dashboard, '"title" => "Keep current typography"' ), "The detached preservation panel must not remain in SMP." );
     foreach ( array_keys( $template_fonts ) as $style ) {
         assert_drop_cap( false !== strpos( $dashboard, '"' . $style . '" => [' ), $style . " must remain a selectable template row." );
     }

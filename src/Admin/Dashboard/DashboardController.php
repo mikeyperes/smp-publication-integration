@@ -18,7 +18,7 @@ use Hexa\PluginCore\WpAdminTabs\TabRegistry;
 use Hexa\PluginCore\WpAdminComponents\ColorControl;
 use Hexa\PluginCore\WpAdminComponents\CoreUi;
 use Hexa\PluginCore\WpAdminComponents\FontFamilyControl;
-use Hexa\PluginCore\WpAdminComponents\TypographyPreservationControl;
+use Hexa\PluginCore\WpAdminComponents\TypographyControl;
 use Hexa\PluginCore\WpAdminComponents\ScopedCssOverride;
 use Hexa\PluginCore\WpAdminComponents\DynamicButton;
 use Hexa\PluginCore\Typography\TypographyPreservation;
@@ -1385,21 +1385,42 @@ class DashboardController {
             $toc_controls
         );
 
-        $article_heading_controls = $this->typography_preservation_control_html(
-            "article_heading",
-            $settings,
-            [
-                "font_family" => [ "article_heading_font_family" ],
-                "font_size" => [ "article_heading_h2_font_size", "article_heading_h3_font_size" ],
-                "font_weight" => [ "article_heading_font_weight" ],
-            ],
-            true
-        )
-            . $this->select_setting_html( "article_heading_style", $this->article_heading_style_options(), $settings, "Article H2/H3 template" )
-            . $this->font_family_setting_html( "article_heading_font_family", "Heading font", $settings )
-            . $this->color_setting_html( "article_heading_accent_color", "Design accent color", $settings )
-            . $this->number_setting_html( "article_heading_h2_font_size", "H2 font size", $settings, 8, 64, "px" )
-            . $this->number_setting_html( "article_heading_h3_font_size", "H3 font size", $settings, 8, 64, "px" );
+        $article_heading_controls = $this->select_setting_html( "article_heading_style", $this->article_heading_style_options(), $settings, "Article H2/H3 template" )
+            . $this->typography_control_html(
+                "article_heading",
+                $settings,
+                true,
+                [
+                    "title" => "Heading typography",
+                    "description" => "Choose heading values or keep the current theme or Elementor values.",
+                    "font_family" => [
+                        "key" => "article_heading_font_family",
+                        "label" => "Heading font",
+                        "control_class" => "smpi-font-family-core-control",
+                        "select_class" => "smpi-setting smpi-font-family-setting",
+                    ],
+                    "font_weight" => [
+                        "key" => "article_heading_font_weight",
+                        "label" => "Heading weight",
+                        "select_class" => "smpi-setting smpi-font-weight-setting",
+                    ],
+                    "font_color" => [
+                        "key" => "article_heading_accent_color",
+                        "label" => "Design accent color",
+                        "default" => Settings::color_default( "article_heading_accent_color" ),
+                        "disable_when_preserved" => false,
+                        "control_class" => "smpi-color-core-control",
+                        "hex_input_class" => "smpi-setting smpi-color-setting",
+                        "picker_class" => "smpi-color-picker-control",
+                        "import_brand" => true,
+                        "import_button_class" => "button button-secondary",
+                    ],
+                    "font_size" => [
+                        [ "key" => "article_heading_h2_font_size", "label" => "H2 font size", "min" => 8, "max" => 64, "suffix" => "px" ],
+                        [ "key" => "article_heading_h3_font_size", "label" => "H3 font size", "min" => 8, "max" => 64, "suffix" => "px" ],
+                    ],
+                ]
+            );
         $this->feature_card(
             "Article H2/H3 styles",
             "article_heading_styles_enabled",
@@ -1411,20 +1432,46 @@ class DashboardController {
             $article_heading_controls
         );
 
-        $drop_cap_controls = $this->typography_preservation_control_html(
-            "article_drop_cap",
-            $settings,
-            [
-                "font_family" => [ "article_drop_cap_font_family" ],
-                "font_size" => [ "article_drop_cap_font_size" ],
-                "font_weight" => [ "article_drop_cap_font_weight" ],
-            ],
-            false
-        )
-            . $this->select_setting_html( "article_drop_cap_style", $this->article_drop_cap_style_options(), $settings, "First-letter template" )
-            . $this->font_family_setting_html( "article_drop_cap_font_family", "Drop cap font", $settings, "Used by the five non-script templates. Script templates use the typeface shown in their preview." )
-            . $this->color_setting_html( "article_drop_cap_color", "Drop cap accent color", $settings )
-            . $this->number_setting_html( "article_drop_cap_font_size", "Drop cap size", $settings, 48, 180, "px" );
+        $drop_cap_controls = $this->select_setting_html( "article_drop_cap_style", $this->article_drop_cap_style_options(), $settings, "First-letter template" )
+            . $this->typography_control_html(
+                "article_drop_cap",
+                $settings,
+                false,
+                [
+                    "title" => "Drop cap typography",
+                    "description" => "Choose drop cap values or keep the current theme or Elementor values.",
+                    "font_family" => [
+                        "key" => "article_drop_cap_font_family",
+                        "label" => "Drop cap font",
+                        "description" => "Used by non-script templates. Script templates use the typeface shown in their preview.",
+                        "control_class" => "smpi-font-family-core-control",
+                        "select_class" => "smpi-setting smpi-font-family-setting",
+                    ],
+                    "font_weight" => [
+                        "key" => "article_drop_cap_font_weight",
+                        "label" => "Drop cap weight",
+                        "select_class" => "smpi-setting smpi-font-weight-setting",
+                    ],
+                    "font_color" => [
+                        "key" => "article_drop_cap_color",
+                        "label" => "Drop cap accent color",
+                        "default" => Settings::color_default( "article_drop_cap_color" ),
+                        "disable_when_preserved" => false,
+                        "control_class" => "smpi-color-core-control",
+                        "hex_input_class" => "smpi-setting smpi-color-setting",
+                        "picker_class" => "smpi-color-picker-control",
+                        "import_brand" => true,
+                        "import_button_class" => "button button-secondary",
+                    ],
+                    "font_size" => [
+                        "key" => "article_drop_cap_font_size",
+                        "label" => "Drop cap size",
+                        "min" => 48,
+                        "max" => 180,
+                        "suffix" => "px",
+                    ],
+                ]
+            );
         $this->feature_card(
             "Article first-letter drop cap",
             "article_drop_cap_enabled",
@@ -2030,16 +2077,14 @@ CSS;
         ] ) . "</div>";
     }
 
-    private function typography_preservation_control_html( string $prefix, array $settings, array $targets, bool $default ): string {
-        return "<div class=\"smpi-control-group smpi-typography-preservation-control\">" . TypographyPreservationControl::render( [
-            "prefix" => $prefix,
-            "settings" => $settings,
-            "defaults" => $default,
-            "targets" => $targets,
-            "title" => "Keep current typography",
-            "description" => "Keep selected theme or Elementor values while applying the template design.",
-            "input_class" => "smpi-setting",
-        ] ) . "<span class=spinner></span><span class=\"smpi-save-state\" aria-live=\"polite\"></span></div>";
+    private function typography_control_html( string $prefix, array $settings, bool $default, array $args ): string {
+        $args["prefix"] = $prefix;
+        $args["settings"] = $settings;
+        $args["defaults"] = $default;
+        $args["input_class"] = "smpi-setting";
+        $args["control_class"] = trim( "smpi-typography-core-control " . (string) ( $args["control_class"] ?? "" ) );
+
+        return "<div class=\"smpi-control-group smpi-typography-control\">" . TypographyControl::render( $args ) . "<span class=spinner></span><span class=\"smpi-save-state\" aria-live=\"polite\"></span></div>";
     }
 
     private function design_font_variables(): string {

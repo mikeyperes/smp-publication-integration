@@ -39,23 +39,14 @@ final class TypographyPreservationControl {
         $html .= '</header><div class="hpc-typography-preservation-toggles">';
 
         foreach ( $values as $property => $preserve ) {
-            $setting_key = TypographyPreservation::setting_key( $prefix, $property );
-            $target_keys = isset( $targets[ $property ] ) ? (array) $targets[ $property ] : [];
-            $target_keys = array_values( array_filter( array_map( 'sanitize_key', $target_keys ) ) );
-            $html .= CoreUi::toggle(
-                $setting_key,
-                (bool) $preserve,
-                (string) ( $labels[ $property ] ?? $property ),
+            $html .= self::render_toggle(
                 [
-                    "id" => "hpc-typography-" . $prefix . "-" . $property,
-                    "class" => "hpc-typography-preservation-toggle",
+                    "prefix" => $prefix,
+                    "property" => $property,
+                    "checked" => (bool) $preserve,
+                    "label" => (string) ( $labels[ $property ] ?? $property ),
+                    "targets" => isset( $targets[ $property ] ) ? (array) $targets[ $property ] : [],
                     "input_class" => $input_class,
-                    "data" => [
-                        "key" => $setting_key,
-                        "hpc_typography_preserve_setting" => "1",
-                        "hpc_typography_property" => $property,
-                        "hpc_typography_targets" => implode( ",", $target_keys ),
-                    ],
                 ]
             );
         }
@@ -63,7 +54,42 @@ final class TypographyPreservationControl {
         return $html . '</div></section>';
     }
 
-    private static function assets(): string {
+    public static function render_toggle( array $args ): string {
+        $prefix = sanitize_key( (string) ( $args["prefix"] ?? "" ) );
+        $property = sanitize_key( (string) ( $args["property"] ?? "" ) );
+        if ( "" === $prefix || ! in_array( $property, TypographyPreservation::PROPERTIES, true ) ) {
+            return "";
+        }
+
+        $labels = [
+            "font_family" => "Leave font as is",
+            "font_size" => "Leave font size as is",
+            "font_color" => "Leave font color as is",
+            "font_weight" => "Leave font weight as is",
+        ];
+        $setting_key = TypographyPreservation::setting_key( $prefix, $property );
+        $target_keys = array_values( array_filter( array_map( 'sanitize_key', (array) ( $args["targets"] ?? [] ) ) ) );
+        $input_class = trim( "hpc-typography-preserve-setting " . (string) ( $args["input_class"] ?? "" ) );
+
+        return CoreUi::toggle(
+            $setting_key,
+            ! empty( $args["checked"] ),
+            (string) ( $args["label"] ?? $labels[ $property ] ),
+            [
+                "id" => "hpc-typography-" . $prefix . "-" . $property,
+                "class" => trim( "hpc-typography-preservation-toggle " . (string) ( $args["class"] ?? "" ) ),
+                "input_class" => $input_class,
+                "data" => [
+                    "key" => $setting_key,
+                    "hpc_typography_preserve_setting" => "1",
+                    "hpc_typography_property" => $property,
+                    "hpc_typography_targets" => implode( ",", $target_keys ),
+                ],
+            ]
+        );
+    }
+
+    public static function assets(): string {
         static $rendered = false;
         if ( $rendered ) {
             return "";

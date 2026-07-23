@@ -244,6 +244,8 @@ Version 0.19.53 also initializes collection filters after DOMContentLoaded so fi
 
 Version 0.19.54 adds an optional host-selected text selector so shared logs and diagnostics do not create false search matches.
 
+Version 0.19.70 adds `TypographyControl`, a complete host-neutral typography editor that places each preservation toggle beside its Core-owned family, weight, color, or size field. It supports multiple size fields and decorative color controls that remain editable while inherited text color is preserved.
+
 Version 0.19.69 adds `TypographyPreservation` and `TypographyPreservationControl`. Hosts provide a setting prefix and optional target keys; Core owns the four reusable font-family, size, color, and weight preservation settings, toggle markup, target disabling, preview-state classes, and change events.
 
 Version 0.19.68 extends `FontFamilyControl` with an optional Core-owned font-weight selector backed by `FontWeightProvider`. Hosts can persist a default or validated 100-900 weight without duplicating option markup or validation.

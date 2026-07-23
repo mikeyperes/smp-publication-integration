@@ -48,7 +48,7 @@ namespace {
     assert_heading_preserve( false !== strpos( $settings, 'TypographyPreservation::defaults( "article_heading", true )' ), "Heading preservation defaults must come from Core." );
     assert_heading_preserve( false !== strpos( $settings, 'TypographyPreservation::setting_keys( "article_heading" )' ), "Heading preservation keys must come from Core." );
     assert_heading_preserve( false !== strpos( $ajax, "Settings::typography_preservation_setting_keys()" ), "Core-generated preservation keys must persist through AJAX." );
-    assert_heading_preserve( false !== strpos( $dashboard, 'typography_preservation_control_html(' ) && false !== strpos( $dashboard, '"article_heading"' ), "The Features UI must render the reusable Core preservation control." );
+    assert_heading_preserve( false !== strpos( $dashboard, 'typography_control_html(' ) && false !== strpos( $dashboard, 'TypographyControl::render(' ) && false !== strpos( $dashboard, '"article_heading"' ), "The Features UI must render the combined Core typography control." );
     assert_heading_preserve( false === strpos( $dashboard, "smpiSyncHeadingPreserveControls" ), "SMP must not duplicate Core preservation synchronization." );
     assert_heading_preserve( false !== strpos( $quick_start, 'TypographyPreservation::defaults( "article_heading", true )' ), "Quick Start must use Core-generated heading defaults." );
 
