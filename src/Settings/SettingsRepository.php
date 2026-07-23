@@ -5,6 +5,7 @@ use Hexa\PluginCore\ActivityLog\ActivityLogConfig;
 use Hexa\PluginCore\ActivityLog\ActivityLogEntry;
 use Hexa\PluginCore\ActivityLog\ActivityLogger;
 use Hexa\PluginCore\BrandColors\BrandColorProvider;
+use Hexa\PluginCore\BrandColors\FontFamilyProvider;
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
@@ -34,6 +35,7 @@ class SettingsRepository {
             'muckrack_author_always_show' => false,
             'muckrack_verified_contexts' => [ 'single_author', 'single_footer', 'author', 'home', 'loop_cards' ],
             'muckrack_verified_style' => 'tooltip',
+            'muckrack_verified_font_family' => 'template',
             'muckrack_icon_color' => $colors['muckrack_icon_color'],
             'muckrack_icon_style' => 'circle_check',
             "muckrack_icon_size" => 16,
@@ -62,6 +64,7 @@ class SettingsRepository {
             'publication_muckrack_verified_enabled' => false,
             'publication_muckrack_text_mode' => 'news_outlet',
             'publication_muckrack_style' => 'block',
+            'publication_muckrack_font_family' => 'template',
             'publication_muckrack_color' => $colors['publication_muckrack_color'],
             "publication_muckrack_font_size" => 14,
             'publication_muckrack_placements' => [ 'bottom_article' ],
@@ -78,6 +81,7 @@ class SettingsRepository {
             "breadcrumbs_accent_color" => $colors["breadcrumbs_accent_color"],
             "breadcrumbs_background_color" => $colors["breadcrumbs_background_color"],
             "breadcrumbs_font_size" => 13,
+            "breadcrumbs_font_family" => "template",
             "breadcrumbs_hide_home" => true,
             "breadcrumbs_hide_term_archives" => false,
             "breadcrumbs_disabled_post_types" => [],
@@ -90,33 +94,40 @@ class SettingsRepository {
             "table_of_contents_text_font_style" => "normal",
             "table_of_contents_text_font_size" => 15,
             "table_of_contents_text_color" => $colors["table_of_contents_text_color"],
+            "table_of_contents_font_family" => "template",
             "article_heading_styles_enabled" => false,
             "article_heading_style" => "h2-tick",
             "article_heading_accent_color" => $colors["article_heading_accent_color"],
             "article_heading_h2_font_size" => 23,
             "article_heading_h3_font_size" => 20,
+            "article_heading_font_family" => "template",
             "article_drop_cap_enabled" => false,
             "article_drop_cap_style" => "dropcap-classic",
             "article_drop_cap_color" => $colors["article_drop_cap_color"],
             "article_drop_cap_font_size" => 96,
+            "article_drop_cap_font_family" => "template",
             "inline_photo_treatments_enabled" => false,
             "inline_photo_treatment" => "none",
             "inline_photo_accent_color" => $colors["inline_photo_accent_color"],
             "inline_photo_caption_font_style" => "italic",
             "inline_photo_caption_font_size" => 16,
             "inline_photo_caption_text_color" => $colors["inline_photo_caption_text_color"],
+            "inline_photo_caption_font_family" => "template",
             "featured_image_caption_templates_enabled" => false,
             "featured_image_caption_template" => "fig2",
             "featured_image_caption_accent_color" => $colors["featured_image_caption_accent_color"],
             "featured_image_caption_font_style" => "italic",
             "featured_image_caption_font_size" => 16,
             "featured_image_caption_text_color" => $colors["featured_image_caption_text_color"],
+            "featured_image_caption_font_family" => "template",
             "post_summary_style" => "none",
+            "post_summary_font_family" => "template",
             "post_faqs_style" => "none",
             "post_faqs_accent_color" => $colors["post_faqs_accent_color"],
             "post_faqs_text_font_style" => "normal",
             "post_faqs_text_font_size" => 16,
             "post_faqs_text_color" => $colors["post_faqs_text_color"],
+            "post_faqs_font_family" => "template",
             'rank_math_breadcrumb_check_enabled' => true,
             'hws_masked_admin_report_enabled' => true,
             "content_generation_enabled" => true,
@@ -183,6 +194,44 @@ class SettingsRepository {
     public static function array( string $key ): array {
         $value = self::get( $key, [] );
         return is_array( $value ) ? array_values( array_filter( array_map( 'sanitize_key', $value ) ) ) : [];
+    }
+
+    public static function font_family_setting_keys(): array {
+        return array_keys( self::font_family_css_variables() );
+    }
+
+    public static function font_family_css_variables(): array {
+        return [
+            "breadcrumbs_font_family" => "--smpi-bc-font",
+            "table_of_contents_font_family" => "--smpi-toc-font",
+            "article_heading_font_family" => "--smpi-heading-font",
+            "article_drop_cap_font_family" => "--smpi-dropcap-font",
+            "inline_photo_caption_font_family" => "--smpi-photo-cap-font",
+            "featured_image_caption_font_family" => "--smpi-fi-cap-font",
+            "post_summary_font_family" => "--smpi-summary-font",
+            "post_faqs_font_family" => "--smpi-faq-font",
+            "muckrack_verified_font_family" => "--smpi-muckrack-author-font",
+            "publication_muckrack_font_family" => "--smpi-muckrack-publication-font",
+        ];
+    }
+
+    public static function font_family_css( string $key ): string {
+        if ( ! in_array( $key, self::font_family_setting_keys(), true ) || ! class_exists( FontFamilyProvider::class ) ) {
+            return "";
+        }
+
+        return FontFamilyProvider::css_value( (string) self::get( $key, FontFamilyProvider::TEMPLATE ) );
+    }
+
+    public static function font_family_label( string $key ): string {
+        if ( ! in_array( $key, self::font_family_setting_keys(), true ) || ! class_exists( FontFamilyProvider::class ) ) {
+            return "Template font";
+        }
+
+        $font = FontFamilyProvider::resolve( (string) self::get( $key, FontFamilyProvider::TEMPLATE ) );
+        $label = (string) ( $font["label"] ?? "Template font" );
+        $family = (string) ( $font["family"] ?? "" );
+        return "" !== $family && false === stripos( $label, $family ) ? $label . " - " . $family : $label;
     }
 
     public static function brand_primary_color( string $fallback = "#2d5277" ): string {
@@ -283,6 +332,13 @@ class SettingsRepository {
 
             if ( "content_generation_timeout" === $key ) {
                 $settings[ $key ] = max( 5, min( 120, absint( $value ) ?: 45 ) );
+                continue;
+            }
+
+            if ( in_array( $key, self::font_family_setting_keys(), true ) ) {
+                $settings[ $key ] = class_exists( FontFamilyProvider::class )
+                    ? FontFamilyProvider::normalize_selection( (string) $value )
+                    : "template";
                 continue;
             }
 

@@ -97,7 +97,7 @@ Do not create `HWS\BaseTools\PluginCore`, `HexaWordPressPluginCore`, `Hexa\Core`
 - `SmartSearch`: smart search/X-Search AJAX endpoint and reusable typeahead renderer.
 - `SystemEnvironment`: safe constants, INI, shell wrappers, size parsing, CPU/memory detection, and byte formatting.
 - `WpAdminUiCleanup`: shared admin UI cleanup definitions, AJAX toggles, target-screen CSS/JS, postbox hide/collapse behavior, and footer filters.
-- `WpAdminComponents`: shared visual primitives such as cards, subcards, buttons, pills, tooltips, collapsible sections, and scoped CSS override editors and references.
+- `WpAdminComponents`: shared visual primitives such as cards, subcards, buttons, pills, tooltips, collapsible sections, color controls, font-family controls, and scoped CSS override editors and references.
 - `WpAdminAjax`: WordPress admin-AJAX nonce, capability, request parsing, action registration, and handler guards.
 - `WpAdminTabs`: admin tab definitions, registry, host hook integration, and the automatic Hexa core documentation tab.
 - `WpConfigFile`: safe `wp-config.php` constant and `ini_set()` reads/writes with validation and rollback backup handling.
@@ -243,6 +243,8 @@ Version 0.19.52 adds CoreUi::collection_filter() for searchable admin-card colle
 Version 0.19.53 also initializes collection filters after DOMContentLoaded so first-render panels work before any AJAX navigation.
 
 Version 0.19.54 adds an optional host-selected text selector so shared logs and diagnostics do not create false search matches.
+
+Version 0.19.67 adds `FontFamilyProvider` and `FontFamilyControl`. Hosts can offer template, native primary, native secondary, and deduplicated Elementor font choices while saving validated source identifiers instead of arbitrary CSS.
 
 Version 0.19.61 adds reusable inherited-value support to ColorControl. Hosts can persist an empty override while Core displays the inherited color and keeps picker, editable hex, RGB, swatch, copy, import, and inherit actions synchronized.
 

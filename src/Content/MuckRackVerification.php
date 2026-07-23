@@ -45,6 +45,24 @@ final class MuckRackVerification {
         $publication_font = self::setting_int( "publication_muckrack_font_size", 14, 8, 64 );
         $publication_mini_font = max( 8, $publication_font - 2 );
         echo "<style id=smpi-muckrack-styles>.smpi-muckrack-icon{display:inline-flex;align-items:center;justify-content:center;width:1em;height:1em;min-width:1em;margin-left:.28em;vertical-align:middle;line-height:1;--smpi-muckrack-color:#2d5277;color:var(--smpi-muckrack-color,#2d5277);background:transparent;font-size:" . esc_attr( (string) $icon_size ) . "px}.smpi-muckrack-icon svg{display:block;width:1em;height:1em}.smpi-muckrack-icon-check svg{width:1em;height:1em}.smpi-muckrack-link{text-decoration:none;display:inline-flex;align-items:center}.smpi-muckrack-inline-pair{display:inline-flex;align-items:center;max-width:100%;vertical-align:middle}.smpi-muckrack-inline-pair>.smpi-muckrack-author-label{min-width:min-content;word-break:normal;overflow-wrap:normal}.smpi-muckrack-inline-pair>.smpi-muckrack-link,.smpi-muckrack-inline-pair>.smpi-muckrack-icon,.smpi-muckrack-inline-pair>.smpi-muckrack-author-note{align-self:center;flex:0 0 auto}.smpi-muckrack-inline-pair>.smpi-muckrack-link{width:auto!important;max-width:none}.smpi-muckrack-brand{color:var(--smpi-muckrack-color,#2d5277);font-weight:700}.smpi-muckrack-footer-note,.smpi-muckrack-js-below-author,.smpi-muckrack-js-bottom-article{margin:24px 0 0}.smpi-muckrack-author-note{display:inline-flex;align-items:center;gap:.28em;margin:.18em 0 .18em .38em;padding:.34em .55em;border-left:2px solid var(--smpi-muckrack-color,#2d5277);background:#f5f8fb;color:#64748b;font-size:.72em;line-height:1.28;vertical-align:middle}.smpi-muckrack-author-note .smpi-muckrack-brand{color:var(--smpi-muckrack-color,#2d5277)}.smpi-muckrack-author-note a{color:inherit}.smpi-muckrack-footer-note{padding:12px 14px;border-left:3px solid var(--smpi-muckrack-color,#2d5277);background:#f5f8fb;font-size:.95em}.smpi-muckrack-publication-text{--smpi-muckrack-color:#2d5277;font-size:" . esc_attr( (string) $publication_font ) . "px}.smpi-muckrack-publication-note{display:block;clear:both;margin:12px 0 0;line-height:1.35;color:#334155}.smpi-muckrack-publication-footer{font-size:" . esc_attr( (string) $publication_font ) . "px}.smpi-muckrack-publication-block{display:block;padding:10px 12px;border-left:3px solid var(--smpi-muckrack-color,#2d5277);background:#f5f8fb}.smpi-muckrack-publication-mini_block{display:block;padding:7px 10px;border-left:2px solid var(--smpi-muckrack-color,#2d5277);background:#f6f8fb;color:#475569;line-height:1.3;letter-spacing:.005em;font-size:" . esc_attr( (string) $publication_mini_font ) . "px}.smpi-muckrack-publication-compact{display:inline-flex;align-items:center;gap:.35em;padding:.28em .7em;border:1px solid var(--smpi-muckrack-color,#2d5277);border-radius:999px;background:#fff}.smpi-muckrack-publication-minimalist{display:inline;color:inherit}.smpi-muckrack-publication-compact a,.smpi-muckrack-publication-minimalist a,.smpi-muckrack-publication-block a,.smpi-muckrack-publication-mini_block a{color:inherit}</style>";
+        $font_css = self::font_overrides_css();
+        if ( "" !== $font_css ) {
+            echo "<style id=smpi-muckrack-font-controls>" . $font_css . "</style>";
+        }
+    }
+
+    public static function font_overrides_css(): string {
+        $css = "";
+        $author_font = Settings::font_family_css( "muckrack_verified_font_family" );
+        if ( "" !== $author_font ) {
+            $css .= ".smpi-muckrack-author-text,.smpi-muckrack-author-note,.smpi-muckrack-footer-note{font-family:" . $author_font . "}";
+        }
+        $publication_font = Settings::font_family_css( "publication_muckrack_font_family" );
+        if ( "" !== $publication_font ) {
+            $css .= ".smpi-muckrack-publication-text{font-family:" . $publication_font . "}";
+        }
+
+        return $css;
     }
 
     public function render_author_field_shortcode( array $atts = [] ): string {
@@ -360,7 +378,7 @@ SMPI_JS;
         $description = trim( (string) self::author_field( $author_id, self::FIELD_DESCRIPTION ) );
         $description = "" !== $description ? $description : "Author";
         $target = "" !== $url ? $url : "https://muckrack.com/";
-        return esc_html( $description ) . " verified by <span class=\"smpi-muckrack-brand\">MuckRack</span> editorial team <a href=\"" . esc_url( $target ) . "\" target=\"_blank\" rel=\"noopener noreferrer\">(learn more)</a>";
+        return "<span class=\"smpi-muckrack-author-text\">" . esc_html( $description ) . " verified by <span class=\"smpi-muckrack-brand\">MuckRack</span> editorial team <a href=\"" . esc_url( $target ) . "\" target=\"_blank\" rel=\"noopener noreferrer\">(learn more)</a></span>";
     }
 
     public static function verification_author_note( int $author_id, string $context = "" ): string {
@@ -459,6 +477,7 @@ SMPI_JS;
             "style" => (string) Settings::get( "publication_muckrack_style", "block" ),
             "color" => sanitize_hex_color( (string) Settings::get( "publication_muckrack_color", "#2d5277" ) ) ?: "#2d5277",
             "font_size" => self::setting_int( "publication_muckrack_font_size", 14, 8, 64 ),
+            "font_family" => Settings::font_family_label( "publication_muckrack_font_family" ),
             "placements" => Settings::array( "publication_muckrack_placements" ),
             "url" => trim( (string) Fields::option( "publication_muckrack_url" ) ),
             "shortcode" => "[smp_publication_muckrack_verified]",

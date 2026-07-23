@@ -21,6 +21,7 @@ Do not rename these.
 ```text
 src/ActivityLog/        Hexa\PluginCore\ActivityLog
 src/AcfFieldFactory/    Hexa\PluginCore\AcfFieldFactory
+src/BrandColors/        Hexa\PluginCore\BrandColors
 src/CoreBootstrap/      Hexa\PluginCore\CoreBootstrap
 src/CoreContracts/      Hexa\PluginCore\CoreContracts
 src/CorePackageUpdates/ Hexa\PluginCore\CorePackageUpdates
@@ -74,6 +75,8 @@ An optional group selector hides headings whose groups contain no matches. Core 
 Set text_selector when repeated cards contain shared logs or diagnostics. Core searches only those descendant regions, then falls back to data-hpc-filter-text or full item text when no selector is supplied.
 
 Use `ScopedCssOverride::render()` for a closed-by-default CSS editor or reference panel. The host supplies its scope selector, concise instructions, formatted HTML structure, and formatted CSS example. When the host supplies a setting key and value, Core also renders the actual code editor and save-status slot. Core owns the details card, editor, code blocks, and copy actions; the host owns validation, persistence, and frontend output.
+
+Use `FontFamilyControl::render()` for a reusable font source selector. Core discovers Elementor global typography, exposes template/native/unique Elementor choices, validates saved source IDs through `BrandColors\FontFamilyProvider`, and resolves them to safe CSS values. Host plugins own persistence and frontend selectors; they must omit `font-family` when Core returns an empty CSS value.
 
 ```php
 use Hexa\PluginCore\WpAdminComponents\ScopedCssOverride;

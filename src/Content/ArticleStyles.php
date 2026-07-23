@@ -39,7 +39,7 @@ final class ArticleStyles {
         if ( Settings::bool( "article_drop_cap_enabled" ) && self::article_drop_cap_style_uses_script_font( self::normalize_article_drop_cap_style( (string) Settings::get( "article_drop_cap_style", "dropcap-classic" ) ) ) ) {
             echo self::script_font_link_html();
         }
-        echo "<style id=smpi-article-style-controls>" . self::frontend_vars_css() . self::breadcrumbs_css() . self::toc_css() . self::article_heading_css( $heading ) . self::article_drop_cap_css() . self::post_acf_css() . self::inline_photo_css( $photo ) . self::featured_image_caption_css( $featured ) . ( "" !== $breadcrumb_override ? PHP_EOL . $breadcrumb_override : "" ) . "</style>";
+        echo "<style id=smpi-article-style-controls>" . self::frontend_vars_css() . self::breadcrumbs_css() . self::toc_css() . self::article_heading_css( $heading ) . self::article_drop_cap_css() . self::post_acf_css() . self::inline_photo_css( $photo ) . self::featured_image_caption_css( $featured ) . self::font_overrides_css() . ( "" !== $breadcrumb_override ? PHP_EOL . $breadcrumb_override : "" ) . "</style>";
     }
 
     public function decorate_article_content( string $content ): string {
@@ -194,6 +194,28 @@ final class ArticleStyles {
             $f = self::featured_image_var_values();
             $css .= "body.single-post,body.single-press-release{--smpi-fi-accent:" . $f["accent"] . ";--smpi-fi-cap-color:" . $f["color"] . ";--smpi-fi-cap-size:" . $f["size"] . ";--smpi-fi-cap-fstyle:" . $f["fstyle"] . "}";
         }
+        return $css;
+    }
+
+    public static function font_overrides_css(): string {
+        $selectors = [
+            "breadcrumbs_font_family" => ".smpi-breadcrumbs,.smpi-breadcrumbs .smpi-breadcrumb-title,.smpi-breadcrumbs .smpi-breadcrumb-list,.smpi-breadcrumbs .smpi-breadcrumb-link,.smpi-breadcrumbs .smpi-breadcrumb-current",
+            "table_of_contents_font_family" => ".smpi-table-of-contents,.smpi-table-of-contents .smpi-toc-label,.smpi-table-of-contents .smpi-toc-link",
+            "article_heading_font_family" => "body.single-post .smpi-article-heading--h2,body.single-post .smpi-article-heading--h3",
+            "article_drop_cap_font_family" => "body.single-post .smpi-article-lead::first-letter",
+            "inline_photo_caption_font_family" => ".smpi-inline-photo .smpi-inline-photo-caption",
+            "featured_image_caption_font_family" => ".smpi-featured-image-caption .smpi-featured-image-caption-text",
+            "post_summary_font_family" => ".smpi-post-summary,.smpi-post-summary .smpi-template-title,.smpi-post-summary .smpi-template-content,.smpi-post-summary .smpi-template-content *",
+            "post_faqs_font_family" => ".smpi-post-faqs,.smpi-post-faqs .smpi-template-title,.smpi-post-faqs .smpi-template-content,.smpi-post-faqs .smpi-template-content *",
+        ];
+        $css = "";
+        foreach ( $selectors as $key => $selector ) {
+            $font = Settings::font_family_css( $key );
+            if ( "" !== $font ) {
+                $css .= $selector . "{font-family:" . $font . "}";
+            }
+        }
+
         return $css;
     }
 
@@ -355,7 +377,7 @@ final class ArticleStyles {
             case "h2-trailingrule":
                 return $heading . "{display:flex;align-items:center;gap:20px;white-space:nowrap}" . $after . "{content:\"\";flex:1;height:1px;background:var(--smpi-heading-line,#e5e7eb)}";
             case "h2-serif":
-                return $heading . "{font-family:var(--smpi-heading-serif,Georgia,serif)!important;font-weight:700}" . $before . "{content:\"\";display:inline-block;width:22px;height:2px;background:var(--smpi-heading-accent,#d63428);vertical-align:middle;margin-right:15px}";
+                return $heading . "{font-family:var(--smpi-heading-serif,Georgia,serif);font-weight:700}" . $before . "{content:\"\";display:inline-block;width:22px;height:2px;background:var(--smpi-heading-accent,#d63428);vertical-align:middle;margin-right:15px}";
             case "h2-uppercase":
                 return $heading . "{display:inline-block;text-transform:uppercase;letter-spacing:.12em;font-weight:700;padding-top:13px;border-top:2px solid var(--smpi-heading-accent,#d63428)}";
             case "h2-gradient":
