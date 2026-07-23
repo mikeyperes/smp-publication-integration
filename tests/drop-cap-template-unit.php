@@ -38,21 +38,25 @@ namespace {
     assert_drop_cap( false !== strpos( $rules[3], "border-left:6px solid var(--smpi-dropcap-color" ), "Side-rule template must use an accent rule." );
     assert_drop_cap( false !== strpos( $rules[4], "background:var(--smpi-dropcap-soft" ), "Soft-tile template must use the shared tint variable." );
 
+    $template_fonts = ArticleStyles::article_drop_cap_script_template_fonts();
+    $script_fonts = ArticleStyles::article_drop_cap_script_fonts();
     foreach ( [ 5, 6, 7, 8, 9 ] as $i ) {
+        $font_key = $template_fonts[ $styles[ $i ] ] ?? "";
+        $font = $script_fonts[ $font_key ] ?? [];
         assert_drop_cap( false !== strpos( $rules[ $i ], "cursive" ), $styles[ $i ] . " must use the cursive font stack." );
-        assert_drop_cap( false !== strpos( $rules[ $i ], "var(--smpi-dropcap-script-font,\"Dancing Script\")" ), $styles[ $i ] . " must use the selected script font with the Dancing Script fallback." );
-        assert_drop_cap( false !== strpos( $rules[ $i ], "var(--smpi-dropcap-script-weight,600)" ), $styles[ $i ] . " must use the selected script font's recommended weight." );
+        assert_drop_cap( [] !== $font && false !== strpos( $rules[ $i ], 'font-family:"' . $font["family"] . '"' ), $styles[ $i ] . " must use its own script typeface." );
+        assert_drop_cap( false !== strpos( $rules[ $i ], "font-weight:" . $font["default_weight"] ), $styles[ $i ] . " must use its script typeface's weight." );
         assert_drop_cap( ArticleStyles::article_drop_cap_style_uses_script_font( $styles[ $i ] ), $styles[ $i ] . " must be detected as a script-font template." );
         assert_drop_cap( ! ArticleStyles::article_drop_cap_style_uses_script_font( $styles[ $i - 5 ] ), $styles[ $i - 5 ] . " must not be detected as a script-font template." );
     }
-    $script_fonts = ArticleStyles::article_drop_cap_script_fonts();
-    assert_drop_cap( [ "dancing-script", "great-vibes", "parisienne", "pinyon-script" ] === array_keys( $script_fonts ), "Drop-cap must expose the four approved script fonts in order." );
+    assert_drop_cap( [ "dancing-script", "great-vibes", "parisienne", "pinyon-script", "allura" ] === array_keys( $script_fonts ), "Drop-cap must expose the five template-owned script fonts in order." );
+    assert_drop_cap( 5 === count( array_unique( array_values( $template_fonts ) ) ), "Each script template must own a distinct typeface." );
     assert_drop_cap( "dancing-script" === ArticleStyles::normalize_article_drop_cap_script_font( "invalid-font" ), "Invalid script fonts must use Dancing Script." );
     assert_drop_cap( false !== strpos( ArticleStyles::script_font_link_html(), "family=Dancing+Script" ), "The default frontend font link must load Dancing Script." );
-    $great_vibes_link = ArticleStyles::script_font_link_html( "great-vibes" );
+    $great_vibes_link = ArticleStyles::script_font_link_html_for_style( "dropcap-script-tile" );
     assert_drop_cap( false !== strpos( $great_vibes_link, "family=Great+Vibes" ) && false === strpos( $great_vibes_link, "family=Dancing+Script" ), "The frontend must load only the selected script font." );
     $preview_link = ArticleStyles::script_font_preview_link_html();
-    foreach ( [ "Dancing+Script", "Great+Vibes", "Parisienne", "Pinyon+Script" ] as $family ) {
+    foreach ( [ "Dancing+Script", "Great+Vibes", "Parisienne", "Pinyon+Script", "Allura" ] as $family ) {
         assert_drop_cap( false !== strpos( $preview_link, "family=" . $family ), "Admin previews must load " . $family . "." );
     }
     assert_drop_cap( false !== strpos( $rules[6], "background:var(--smpi-dropcap-soft" ), "Script-tile template must use the shared tint variable." );
@@ -60,5 +64,22 @@ namespace {
     assert_drop_cap( false !== strpos( $rules[8], "border-bottom:4px solid var(--smpi-dropcap-color" ), "Script-underline template must use an accent underline." );
     assert_drop_cap( false !== strpos( $rules[9], "text-shadow" ), "Script-shadow template must use an offset shadow." );
 
-    echo "PASS: ten drop-cap templates share one selector and variable contract." . PHP_EOL;
+    $preserved = ArticleStyles::article_drop_cap_rules(
+        "dropcap-script-tile",
+        $selector,
+        [ "font_family" => true, "font_size" => true, "font_color" => true, "font_weight" => true ]
+    );
+    foreach ( [ "font-family:", "font-size:", "font-weight:", "color:" ] as $declaration ) {
+        assert_drop_cap( false === strpos( $preserved, $declaration ), "Preserved drop caps must not emit " . $declaration );
+    }
+    assert_drop_cap( false !== strpos( $preserved, "background:var(--smpi-dropcap-soft" ), "Typography preservation must retain the selected drop-cap design." );
+
+    $dashboard = (string) file_get_contents( dirname( __DIR__ ) . "/src/Admin/Dashboard/DashboardController.php" );
+    assert_drop_cap( false === strpos( $dashboard, "Script letter font" ), "The obsolete full-sentence script-font gallery must be removed." );
+    assert_drop_cap( false === strpos( $dashboard, 'select_setting_html( "article_drop_cap_script_font"' ), "The obsolete standalone script-font setting must not remain in the Features UI." );
+    foreach ( array_keys( $template_fonts ) as $style ) {
+        assert_drop_cap( false !== strpos( $dashboard, '"' . $style . '" => [' ), $style . " must remain a selectable template row." );
+    }
+
+    echo "PASS: five distinct script drop caps share one selector and Core preservation contract." . PHP_EOL;
 }

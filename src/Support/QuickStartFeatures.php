@@ -5,6 +5,7 @@ use Hexa\PluginCore\ContentCleanup\ArticleMediaCleanupScanner;
 use Hexa\PluginCore\GettingStartedChecklist\ChecklistReportBuilder;
 use Hexa\PluginCore\GettingStartedChecklist\GettingStartedChecklistAjaxController;
 use Hexa\PluginCore\GettingStartedChecklist\GettingStartedChecklistConfig;
+use Hexa\PluginCore\Typography\TypographyPreservation;
 use Hexa\PluginCore\WpAdminAjax\AjaxActionRegistry;
 use Hexa\PluginCore\WpAdminAjax\AjaxRequest;
 
@@ -176,6 +177,29 @@ final class QuickStartFeatures {
 
     public static function items(): array {
         $drop_cap_color = \smp_publication_integration\Settings\SettingsRepository::color_default( "article_drop_cap_color" );
+        $heading_settings = array_merge(
+            [
+                "article_heading_styles_enabled" => true,
+                "article_heading_style" => "h2-tick",
+                "article_heading_accent_color" => "#000033",
+                "article_heading_h2_font_size" => 23,
+                "article_heading_h3_font_size" => 20,
+                "article_heading_font_family" => "template",
+                "article_heading_font_weight" => "inherit",
+            ],
+            TypographyPreservation::defaults( "article_heading", true )
+        );
+        $drop_cap_settings = array_merge(
+            [
+                "article_drop_cap_enabled" => true,
+                "article_drop_cap_style" => "dropcap-classic",
+                "article_drop_cap_color" => $drop_cap_color,
+                "article_drop_cap_font_size" => 96,
+                "article_drop_cap_font_family" => "template",
+                "article_drop_cap_font_weight" => "inherit",
+            ],
+            TypographyPreservation::defaults( "article_drop_cap", false )
+        );
         return [
             "delete_old_posts_keep_latest_10" => [
                 "title" => "Delete Old Posts, Keep Latest 10",
@@ -399,19 +423,7 @@ final class QuickStartFeatures {
             "article_h2_h3_styles" => [
                 "title" => "Article H2/H3 styles",
                 "description" => "Styles H2 and H3 headings inside article content.",
-                "settings" => [
-                    "article_heading_styles_enabled" => true,
-                    "article_heading_style" => "h2-tick",
-                    "article_heading_accent_color" => "#000033",
-                    "article_heading_h2_font_size" => 23,
-                    "article_heading_h3_font_size" => 20,
-                    "article_heading_font_family" => "template",
-                    "article_heading_font_weight" => "inherit",
-                    "article_heading_preserve_font_family" => true,
-                    "article_heading_preserve_font_size" => true,
-                    "article_heading_preserve_font_color" => true,
-                    "article_heading_preserve_font_weight" => true,
-                ],
+                "settings" => $heading_settings,
                 "details" => [
                     [ "label" => "Enabled", "value" => "Yes" ],
                     [ "label" => "Template", "value" => "h2-tick" ],
@@ -426,15 +438,7 @@ final class QuickStartFeatures {
             "article_first_letter_drop_cap" => [
                 "title" => "Article first-letter drop cap",
                 "description" => "Adds a large first-letter treatment to article intros.",
-                "settings" => [
-                    "article_drop_cap_enabled" => true,
-                    "article_drop_cap_style" => "dropcap-classic",
-                    "article_drop_cap_color" => $drop_cap_color,
-                    "article_drop_cap_font_size" => 96,
-                    "article_drop_cap_font_family" => "template",
-                    "article_drop_cap_font_weight" => "inherit",
-                    "article_drop_cap_script_font" => "dancing-script",
-                ],
+                "settings" => $drop_cap_settings,
                 "details" => [
                     [ "label" => "Enabled", "value" => "Yes" ],
                     [ "label" => "Template", "value" => "Classic editorial" ],
@@ -442,7 +446,7 @@ final class QuickStartFeatures {
                     [ "label" => "Size", "value" => "96px" ],
                     [ "label" => "Font", "value" => "Template font" ],
                     [ "label" => "Font weight", "value" => "Font default" ],
-                    [ "label" => "Script font", "value" => "Dancing Script" ],
+                    [ "label" => "Keep current typography", "value" => "No" ],
                 ],
             ],
             "inline_photo_treatments" => [

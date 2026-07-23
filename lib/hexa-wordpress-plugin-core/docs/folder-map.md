@@ -52,6 +52,7 @@ The package version is stored in the root `VERSION` file. Root `bootstrap.php` s
 | `src/SmartSearch/` | `Hexa\PluginCore\SmartSearch` | Smart search/X-Search AJAX endpoints and reusable typeahead renderers. |
 | `src/SystemChecks/` | `Hexa\PluginCore\SystemChecks` | Grouped readiness, launch, schema, and environment checklist renderers. |
 | `src/SystemEnvironment/` | `Hexa\PluginCore\SystemEnvironment` | Safe constants, INI, shell wrappers, size parsing, CPU/memory detection, and byte formatting. |
+| `src/Typography/` | `Hexa\PluginCore\Typography` | Prefix-scoped typography-preservation setting keys, defaults, values, and preview-state classes. |
 | `src/WpAdminAjax/` | `Hexa\PluginCore\WpAdminAjax` | WordPress admin-AJAX nonce, capability, request parsing, action registration, and callback guards. |
 | `src/WpAdminComponents/` | `Hexa\PluginCore\WpAdminComponents` | Shared UI primitives: cards, subcards, buttons, pills, tooltips, collapsibles, color/font controls, and scoped CSS override references. |
 | `src/WpAdminTabs/` | `Hexa\PluginCore\WpAdminTabs` | Admin tab definitions, registries, rendering contracts, and the automatic core tab. |

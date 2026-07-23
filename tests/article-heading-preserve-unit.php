@@ -45,13 +45,12 @@ namespace {
     $ajax = (string) file_get_contents( $root . "/src/Admin/Ajax/AjaxController.php" );
     $dashboard = (string) file_get_contents( $root . "/src/Admin/Dashboard/DashboardController.php" );
     $quick_start = (string) file_get_contents( $root . "/src/Support/QuickStartFeatures.php" );
-    foreach ( [ "font_family", "font_size", "font_color", "font_weight" ] as $property ) {
-        $key = "article_heading_preserve_" . $property;
-        assert_heading_preserve( false !== strpos( $settings, '"' . $key . '" => true' ), $key . " must default to preserving the theme value." );
-        assert_heading_preserve( false !== strpos( $ajax, '"' . $key . '"' ), $key . " must persist through AJAX." );
-        assert_heading_preserve( false !== strpos( $dashboard, $key ), $key . " must be exposed as a toggle." );
-        assert_heading_preserve( false !== strpos( $quick_start, '"' . $key . '" => true' ), $key . " must be included in Quick Start." );
-    }
+    assert_heading_preserve( false !== strpos( $settings, 'TypographyPreservation::defaults( "article_heading", true )' ), "Heading preservation defaults must come from Core." );
+    assert_heading_preserve( false !== strpos( $settings, 'TypographyPreservation::setting_keys( "article_heading" )' ), "Heading preservation keys must come from Core." );
+    assert_heading_preserve( false !== strpos( $ajax, "Settings::typography_preservation_setting_keys()" ), "Core-generated preservation keys must persist through AJAX." );
+    assert_heading_preserve( false !== strpos( $dashboard, 'typography_preservation_control_html(' ) && false !== strpos( $dashboard, '"article_heading"' ), "The Features UI must render the reusable Core preservation control." );
+    assert_heading_preserve( false === strpos( $dashboard, "smpiSyncHeadingPreserveControls" ), "SMP must not duplicate Core preservation synchronization." );
+    assert_heading_preserve( false !== strpos( $quick_start, 'TypographyPreservation::defaults( "article_heading", true )' ), "Quick Start must use Core-generated heading defaults." );
 
     echo "PASS: Heading templates can preserve theme font family, size, color, and weight." . PHP_EOL;
 }

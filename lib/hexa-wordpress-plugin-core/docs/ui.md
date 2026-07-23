@@ -27,6 +27,8 @@ ColorControl
 ColorPalette
 ElementorPaletteDetector
 DetailedColorPicker
+FontFamilyControl
+TypographyPreservationControl
 ```
 
 ## Components
@@ -44,6 +46,8 @@ ColorControl::render()
 ColorPalette::render()
 ElementorPaletteDetector::render()
 DetailedColorPicker::render()
+FontFamilyControl::render()
+TypographyPreservationControl::render()
 ```
 
 ## Example
@@ -97,4 +101,4 @@ The title slug is used when `query_key` is omitted. Set `query_state => false` o
 
 ## Rule
 
-If a host plugin needs cards, subcards, collapsibles, tooltips, status pills, copy buttons, scoped CSS override editors and references, brand-aware isolated color controls, saved color palettes, or Elementor palette detection, add the missing parameter or helper here first.
+If a host plugin needs cards, subcards, collapsibles, tooltips, status pills, copy buttons, scoped CSS override editors and references, brand-aware isolated color controls, typography preservation, saved color palettes, or Elementor palette detection, add the missing parameter or helper here first.

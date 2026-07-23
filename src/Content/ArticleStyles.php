@@ -1,6 +1,7 @@
 <?php
 namespace smp_publication_integration\Content;
 
+use Hexa\PluginCore\Typography\TypographyPreservation;
 use smp_publication_integration\Support\RuntimeContext;
 use smp_publication_integration\Support\Settings;
 
@@ -36,8 +37,9 @@ final class ArticleStyles {
         $photo = self::normalize_inline_photo_style( (string) Settings::get( "inline_photo_treatment", "none" ) );
         $featured = self::normalize_featured_image_caption_style( (string) Settings::get( "featured_image_caption_template", "fig2" ) );
         $breadcrumb_override = Settings::bool( "breadcrumbs_enabled" ) ? Breadcrumbs::custom_css() : "";
-        if ( Settings::bool( "article_drop_cap_enabled" ) && self::article_drop_cap_style_uses_script_font( self::normalize_article_drop_cap_style( (string) Settings::get( "article_drop_cap_style", "dropcap-classic" ) ) ) ) {
-            echo self::script_font_link_html( (string) Settings::get( "article_drop_cap_script_font", "dancing-script" ) );
+        $drop_cap_style = self::normalize_article_drop_cap_style( (string) Settings::get( "article_drop_cap_style", "dropcap-classic" ) );
+        if ( Settings::bool( "article_drop_cap_enabled" ) && self::article_drop_cap_style_uses_script_font( $drop_cap_style ) && ! self::typography_preserves( "article_drop_cap", "font_family", false ) ) {
+            echo self::script_font_link_html_for_style( $drop_cap_style );
         }
         echo "<style id=smpi-article-style-controls>" . self::frontend_vars_css() . self::breadcrumbs_css() . self::toc_css() . self::article_heading_css( $heading ) . self::article_drop_cap_css() . self::post_acf_css() . self::inline_photo_css( $photo ) . self::featured_image_caption_css( $featured ) . self::font_overrides_css() . ( "" !== $breadcrumb_override ? PHP_EOL . $breadcrumb_override : "" ) . "</style>";
     }
@@ -130,7 +132,31 @@ final class ArticleStyles {
                 "default_weight" => "400",
                 "google_family" => "Pinyon+Script",
             ],
+            "allura" => [
+                "label" => "Allura",
+                "family" => "Allura",
+                "default_weight" => "400",
+                "google_family" => "Allura",
+            ],
         ];
+    }
+
+    public static function article_drop_cap_script_template_fonts(): array {
+        return [
+            "dropcap-script-classic" => "dancing-script",
+            "dropcap-script-tile" => "great-vibes",
+            "dropcap-script-round" => "parisienne",
+            "dropcap-script-underline" => "pinyon-script",
+            "dropcap-script-shadow" => "allura",
+        ];
+    }
+
+    public static function article_drop_cap_script_font_for_style( string $style ): array {
+        $style = self::normalize_article_drop_cap_style( $style );
+        $font_key = self::article_drop_cap_script_template_fonts()[ $style ] ?? "";
+        return isset( self::article_drop_cap_script_fonts()[ $font_key ] )
+            ? self::article_drop_cap_script_fonts()[ $font_key ]
+            : [];
     }
 
     public static function normalize_article_drop_cap_script_font( string $font = "" ): string {
@@ -145,6 +171,15 @@ final class ArticleStyles {
 
     public static function script_font_link_html( string $font = "dancing-script" ): string {
         $font = self::article_drop_cap_script_font_data( $font );
+        return "<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\"><link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin><link rel=\"stylesheet\" id=\"smpi-script-font\" href=\"https://fonts.googleapis.com/css2?family=" . $font["google_family"] . "&amp;display=swap\">";
+    }
+
+    public static function script_font_link_html_for_style( string $style ): string {
+        $font = self::article_drop_cap_script_font_for_style( $style );
+        if ( [] === $font ) {
+            return "";
+        }
+
         return "<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\"><link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin><link rel=\"stylesheet\" id=\"smpi-script-font\" href=\"https://fonts.googleapis.com/css2?family=" . $font["google_family"] . "&amp;display=swap\">";
     }
 
@@ -232,7 +267,7 @@ final class ArticleStyles {
         }
         if ( Settings::bool( "article_drop_cap_enabled" ) ) {
             $d = self::article_drop_cap_var_values();
-            $css .= "body.single-post{--smpi-dropcap-color:" . $d["color"] . ";--smpi-dropcap-soft:" . $d["soft"] . ";--smpi-dropcap-ink:" . $d["ink"] . ";--smpi-dropcap-size:" . $d["size"] . ";--smpi-dropcap-script-font:" . $d["script_font"] . ";--smpi-dropcap-script-weight:" . $d["script_weight"] . "}";
+            $css .= "body.single-post{--smpi-dropcap-color:" . $d["color"] . ";--smpi-dropcap-soft:" . $d["soft"] . ";--smpi-dropcap-ink:" . $d["ink"] . ";--smpi-dropcap-size:" . $d["size"] . "}";
         }
         if ( Settings::bool( "inline_photo_treatments_enabled" ) ) {
             $p = self::photo_var_values();
@@ -257,17 +292,20 @@ final class ArticleStyles {
             "post_faqs_font_family" => ".smpi-post-faqs,.smpi-post-faqs .smpi-template-title,.smpi-post-faqs .smpi-template-content,.smpi-post-faqs .smpi-template-content *",
         ];
         $css = "";
+        $drop_cap_style = self::normalize_article_drop_cap_style( (string) Settings::get( "article_drop_cap_style", "dropcap-classic" ) );
         foreach ( $selectors as $key => $selector ) {
             $declarations = [];
             $font = Settings::font_family_css( $key );
-            $preserve_font = "article_heading_font_family" === $key && Settings::bool( "article_heading_preserve_font_family" );
-            if ( "" !== $font && ! $preserve_font ) {
+            $preserve_font = self::preserves_font_setting( $key, "font_family" );
+            $template_owns_font = "article_drop_cap_font_family" === $key && self::article_drop_cap_style_uses_script_font( $drop_cap_style );
+            if ( "" !== $font && ! $preserve_font && ! $template_owns_font ) {
                 $declarations[] = "font-family:" . $font;
             }
             $weight_key = str_replace( "_font_family", "_font_weight", $key );
             $weight = Settings::font_weight_css( $weight_key );
-            $preserve_weight = "article_heading_font_weight" === $weight_key && Settings::bool( "article_heading_preserve_font_weight" );
-            if ( "" !== $weight && ! $preserve_weight ) {
+            $preserve_weight = self::preserves_font_setting( $weight_key, "font_weight" );
+            $template_owns_weight = "article_drop_cap_font_weight" === $weight_key && self::article_drop_cap_style_uses_script_font( $drop_cap_style );
+            if ( "" !== $weight && ! $preserve_weight && ! $template_owns_weight ) {
                 $declarations[] = "font-weight:" . $weight;
             }
             if ( ! empty( $declarations ) ) {
@@ -313,14 +351,11 @@ final class ArticleStyles {
     public static function article_drop_cap_var_values(): array {
         $default = Settings::color_default( "article_drop_cap_color" );
         $color = self::hex( Settings::get( "article_drop_cap_color", $default ), $default );
-        $script_font = self::article_drop_cap_script_font_data( (string) Settings::get( "article_drop_cap_script_font", "dancing-script" ) );
         return [
             "color" => $color,
             "soft"  => self::rgba( $color, 0.14 ),
             "ink"   => self::contrast_ink( $color ),
             "size"  => self::px( Settings::get( "article_drop_cap_font_size", 96 ), 96, 48, 180 ),
-            "script_font" => '"' . $script_font["family"] . '"',
-            "script_weight" => $script_font["default_weight"],
         ];
     }
 
@@ -482,13 +517,23 @@ final class ArticleStyles {
         }
     }
 
-    private static function article_heading_preserve_settings(): array {
-        return [
-            "font_family" => Settings::bool( "article_heading_preserve_font_family" ),
-            "font_size" => Settings::bool( "article_heading_preserve_font_size" ),
-            "font_color" => Settings::bool( "article_heading_preserve_font_color" ),
-            "font_weight" => Settings::bool( "article_heading_preserve_font_weight" ),
-        ];
+    private static function typography_preservation_settings( string $prefix, bool $default ): array {
+        return TypographyPreservation::values( Settings::all(), $prefix, $default );
+    }
+
+    private static function typography_preserves( string $prefix, string $property, bool $default ): bool {
+        return TypographyPreservation::preserves( Settings::all(), $prefix, $property, $default );
+    }
+
+    private static function preserves_font_setting( string $setting_key, string $property ): bool {
+        if ( 0 === strpos( $setting_key, "article_heading_" ) ) {
+            return self::typography_preserves( "article_heading", $property, true );
+        }
+        if ( 0 === strpos( $setting_key, "article_drop_cap_" ) ) {
+            return self::typography_preserves( "article_drop_cap", $property, false );
+        }
+
+        return false;
     }
 
     public static function article_heading_css( string $style ): string {
@@ -496,36 +541,60 @@ final class ArticleStyles {
             return "";
         }
         $scope = "body.single-post";
-        return self::article_heading_rules( $style, $scope, $scope . " .smpi-article-heading--h2", $scope . " .smpi-article-heading--h3", self::article_heading_preserve_settings() );
+        return self::article_heading_rules( $style, $scope, $scope . " .smpi-article-heading--h2", $scope . " .smpi-article-heading--h3", self::typography_preservation_settings( "article_heading", true ) );
     }
 
-    public static function article_drop_cap_rules( string $style, string $paragraph ): string {
+    public static function article_drop_cap_rules( string $style, string $paragraph, array $preserve = [] ): string {
         $style = self::normalize_article_drop_cap_style( $style );
         $letter = $paragraph . "::first-letter";
-        $base = $paragraph . "{overflow:visible}" . $letter . "{box-sizing:border-box;float:left;font-family:var(--smpi-dropcap-font,Arial,Helvetica,sans-serif);font-size:var(--smpi-dropcap-size,96px);font-weight:var(--smpi-dropcap-weight,900);line-height:.78;margin:.08em 24px 0 0;text-transform:uppercase;letter-spacing:0}";
-        $cursive = "font-family:var(--smpi-dropcap-font,var(--smpi-dropcap-script-font,\"Dancing Script\")),\"Snell Roundhand\",\"Apple Chancery\",\"Segoe Script\",\"Brush Script MT\",cursive;font-weight:var(--smpi-dropcap-weight,var(--smpi-dropcap-script-weight,600));line-height:.9;";
+        $script_font = self::article_drop_cap_script_font_for_style( $style );
+        $base_declarations = [
+            "box-sizing:border-box",
+            "float:left",
+            "line-height:.78",
+            "margin:.08em 24px 0 0",
+            "text-transform:uppercase",
+            "letter-spacing:0",
+        ];
+        if ( empty( $preserve["font_family"] ) ) {
+            $base_declarations[] = [] !== $script_font
+                ? "font-family:\"" . $script_font["family"] . "\",\"Snell Roundhand\",\"Apple Chancery\",\"Segoe Script\",\"Brush Script MT\",cursive"
+                : "font-family:var(--smpi-dropcap-font,Arial,Helvetica,sans-serif)";
+        }
+        if ( empty( $preserve["font_size"] ) ) {
+            $base_declarations[] = "font-size:var(--smpi-dropcap-size,96px)";
+        }
+        if ( empty( $preserve["font_weight"] ) ) {
+            $base_declarations[] = [] !== $script_font
+                ? "font-weight:" . $script_font["default_weight"]
+                : "font-weight:var(--smpi-dropcap-weight,900)";
+        }
+        $base = $paragraph . "{overflow:visible}" . $letter . "{" . implode( ";", $base_declarations ) . "}";
+        $color = empty( $preserve["font_color"] ) ? "color:var(--smpi-dropcap-color,#111111);" : "";
+        $contrast_color = empty( $preserve["font_color"] ) ? "color:var(--smpi-dropcap-ink,#111111);" : "";
+        $script_line_height = "line-height:.9;";
         switch ( $style ) {
             case "dropcap-highlight":
-                return $base . $letter . "{background:var(--smpi-dropcap-color,#facc15);color:var(--smpi-dropcap-ink,#111111);line-height:.8;margin:.06em 18px 0 0;padding:.08em .13em .11em}";
+                return $base . $letter . "{background:var(--smpi-dropcap-color,#facc15);" . $contrast_color . "line-height:.8;margin:.06em 18px 0 0;padding:.08em .13em .11em}";
             case "dropcap-outline":
-                return $base . $letter . "{background:transparent;border:2px solid var(--smpi-dropcap-color,#111111);color:var(--smpi-dropcap-color,#111111);line-height:.8;margin:.06em 18px 0 0;padding:.06em .12em .09em}";
+                return $base . $letter . "{background:transparent;border:2px solid var(--smpi-dropcap-color,#111111);" . $color . "line-height:.8;margin:.06em 18px 0 0;padding:.06em .12em .09em}";
             case "dropcap-side-rule":
-                return $base . $letter . "{border-left:6px solid var(--smpi-dropcap-color,#111111);color:var(--smpi-dropcap-color,#111111);line-height:.82;margin:.06em 20px 0 0;padding-left:.12em}";
+                return $base . $letter . "{border-left:6px solid var(--smpi-dropcap-color,#111111);" . $color . "line-height:.82;margin:.06em 20px 0 0;padding-left:.12em}";
             case "dropcap-soft-tile":
-                return $base . $letter . "{background:var(--smpi-dropcap-soft,rgba(17,17,17,.14));border-radius:6px;color:var(--smpi-dropcap-color,#111111);line-height:.8;margin:.06em 18px 0 0;padding:.08em .13em .11em}";
+                return $base . $letter . "{background:var(--smpi-dropcap-soft,rgba(17,17,17,.14));border-radius:6px;" . $color . "line-height:.8;margin:.06em 18px 0 0;padding:.08em .13em .11em}";
             case "dropcap-script-classic":
-                return $base . $letter . "{" . $cursive . "color:var(--smpi-dropcap-color,#111111);margin:.02em 22px 0 0}";
+                return $base . $letter . "{" . $script_line_height . $color . "margin:.02em 22px 0 0}";
             case "dropcap-script-tile":
-                return $base . $letter . "{" . $cursive . "background:var(--smpi-dropcap-soft,rgba(17,17,17,.12));border-radius:10px;color:var(--smpi-dropcap-color,#111111);margin:.04em 20px 0 0;padding:.1em .17em .14em}";
+                return $base . $letter . "{" . $script_line_height . "background:var(--smpi-dropcap-soft,rgba(17,17,17,.12));border-radius:10px;" . $color . "margin:.04em 20px 0 0;padding:.1em .17em .14em}";
             case "dropcap-script-round":
-                return $base . $letter . "{" . $cursive . "background:var(--smpi-dropcap-soft,rgba(17,17,17,.12));border-radius:999px;color:var(--smpi-dropcap-color,#111111);margin:.04em 20px 0 0;padding:.12em .22em .16em}";
+                return $base . $letter . "{" . $script_line_height . "background:var(--smpi-dropcap-soft,rgba(17,17,17,.12));border-radius:999px;" . $color . "margin:.04em 20px 0 0;padding:.12em .22em .16em}";
             case "dropcap-script-underline":
-                return $base . $letter . "{" . $cursive . "border-bottom:4px solid var(--smpi-dropcap-color,#111111);color:var(--smpi-dropcap-color,#111111);margin:.02em 22px 0 0;padding-bottom:.05em}";
+                return $base . $letter . "{" . $script_line_height . "border-bottom:4px solid var(--smpi-dropcap-color,#111111);" . $color . "margin:.02em 22px 0 0;padding-bottom:.05em}";
             case "dropcap-script-shadow":
-                return $base . $letter . "{" . $cursive . "color:var(--smpi-dropcap-color,#111111);text-shadow:.05em .05em 0 var(--smpi-dropcap-soft,rgba(17,17,17,.22))}";
+                return $base . $letter . "{" . $script_line_height . $color . "text-shadow:.05em .05em 0 var(--smpi-dropcap-soft,rgba(17,17,17,.22))}";
             case "dropcap-classic":
             default:
-                return $base . $letter . "{color:var(--smpi-dropcap-color,#111111)}";
+                return $base . $letter . "{" . $color . "}";
         }
     }
 
@@ -535,7 +604,7 @@ final class ArticleStyles {
         }
         $scope = "body.single-post";
         $style = self::normalize_article_drop_cap_style( (string) Settings::get( "article_drop_cap_style", "dropcap-classic" ) );
-        return self::article_drop_cap_rules( $style, $scope . " .smpi-article-lead" );
+        return self::article_drop_cap_rules( $style, $scope . " .smpi-article-lead", self::typography_preservation_settings( "article_drop_cap", false ) );
     }
 
     /* ---------------------------------------------------------------------
@@ -613,19 +682,15 @@ final class ArticleStyles {
     public static function preview_bundle_css(): string {
         $css = self::breadcrumbs_css() . self::toc_css() . self::post_acf_css();
         $css .= ".smpi-choice-preview .smpi-ah-preview-stack{display:grid;gap:14px;max-width:760px}.smpi-choice-preview .smpi-ah-preview{background:#fff;border:1px solid var(--smpi-heading-line,#e5e7eb);border-radius:12px;box-sizing:border-box;counter-reset:hx;display:block;margin:0!important;max-width:100%;padding:26px 28px}.smpi-choice-preview .smpi-ah-preview .smpi-article-paragraph{font-size:15px;line-height:1.7;color:#475569;margin:14px 0 0;max-width:680px}.smpi-choice-preview .smpi-ah-preview .smpi-article-heading{line-height:1.3;margin:0;clear:none;text-transform:none;letter-spacing:0}";
-        $heading_preserve = self::article_heading_preserve_settings();
         foreach ( array_diff( self::article_heading_style_keys(), [ "none" ] ) as $style ) {
             $sel = ".smpi-choice-preview .smpi-ah-preview.smpi-ah-preview-" . $style;
-            $css .= self::article_heading_rules( $style, $sel, $sel . " .smpi-article-heading--h2", $sel . " .smpi-article-heading--h3", $heading_preserve );
+            $css .= self::article_heading_rules( $style, $sel, $sel . " .smpi-article-heading--h2", $sel . " .smpi-article-heading--h3" );
         }
         $css .= ".smpi-choice-preview .smpi-ah-preview-stack{box-sizing:border-box;width:100%;max-width:820px;overflow:hidden}.smpi-choice-preview .smpi-ah-preview{box-sizing:border-box;width:100%;min-width:0;overflow:hidden;position:relative}.smpi-choice-preview .smpi-ah-preview *{box-sizing:border-box}.smpi-choice-preview .smpi-ah-preview .smpi-article-heading{clear:none!important;margin:0!important;max-width:100%;overflow-wrap:anywhere;white-space:normal!important}.smpi-choice-preview .smpi-ah-preview .smpi-article-heading::before,.smpi-choice-preview .smpi-ah-preview .smpi-article-heading::after{box-sizing:border-box}.smpi-choice-preview .smpi-ah-preview .smpi-article-paragraph{margin:14px 0 0!important;max-width:100%;overflow-wrap:anywhere}";
         $css .= ".smpi-choice-preview .smpi-dropcap-preview{background:#fff;border:1px solid #e2e8f0;border-radius:8px;box-sizing:border-box;display:flow-root;max-width:760px;overflow:hidden;padding:24px}.smpi-choice-preview .smpi-dropcap-preview .smpi-article-lead{color:#333;font-family:Arial,Helvetica,sans-serif;font-size:18px;line-height:1.65;margin:0}";
         foreach ( self::article_drop_cap_style_keys() as $style ) {
             $sel = ".smpi-choice-preview .smpi-dropcap-preview--" . $style . " .smpi-article-lead";
             $css .= self::article_drop_cap_rules( $style, $sel );
-        }
-        foreach ( self::article_drop_cap_script_fonts() as $key => $font ) {
-            $css .= ".smpi-script-font-preview--" . $key . "{font-family:\"" . $font["family"] . "\",cursive;font-weight:" . $font["default_weight"] . "}";
         }
         foreach ( [ "fig1", "fig2", "fig4", "fig5" ] as $style ) {
             $sel = ".smpi-pp.smpi-pp-" . $style;
@@ -642,7 +707,7 @@ final class ArticleStyles {
         $f = self::faq_var_values();
         $p = self::photo_var_values();
         $fp = self::featured_image_var_values();
-        $css .= ".smpi-design-host{--smpi-bc-accent:" . $b["accent"] . ";--smpi-bc-tint:" . $b["tint"] . ";--smpi-bc-background:" . $b["background"] . ";--smpi-bc-font-size:" . $b["size"] . ";--smpi-toc-accent:" . $t["accent"] . ";--smpi-toc-text:" . $t["text"] . ";--smpi-toc-size:" . $t["size"] . ";--smpi-toc-fstyle:" . $t["fstyle"] . ";--smpi-heading-accent:" . $h["accent"] . ";--smpi-heading-accent-fade:" . $h["accent_fade"] . ";--smpi-heading-highlight:" . $h["highlight"] . ";--smpi-heading-line:" . $h["line"] . ";--smpi-heading-ink:" . $h["ink"] . ";--smpi-heading-h2-size:" . $h["h2_size"] . ";--smpi-heading-h3-size:" . $h["h3_size"] . ";--smpi-dropcap-color:" . $d["color"] . ";--smpi-dropcap-soft:" . $d["soft"] . ";--smpi-dropcap-ink:" . $d["ink"] . ";--smpi-dropcap-size:" . $d["size"] . ";--smpi-dropcap-script-font:" . $d["script_font"] . ";--smpi-dropcap-script-weight:" . $d["script_weight"] . ";--smpi-faq-accent:" . $f["accent"] . ";--smpi-faq-text:" . $f["text"] . ";--smpi-faq-size:" . $f["size"] . ";--smpi-faq-fstyle:" . $f["fstyle"] . ";--smpi-photo-accent:" . $p["accent"] . ";--smpi-photo-cap-color:" . $p["color"] . ";--smpi-photo-cap-size:" . $p["size"] . ";--smpi-photo-cap-fstyle:" . $p["fstyle"] . ";--smpi-fi-accent:" . $fp["accent"] . ";--smpi-fi-cap-color:" . $fp["color"] . ";--smpi-fi-cap-size:" . $fp["size"] . ";--smpi-fi-cap-fstyle:" . $fp["fstyle"] . "}";
+        $css .= ".smpi-design-host{--smpi-bc-accent:" . $b["accent"] . ";--smpi-bc-tint:" . $b["tint"] . ";--smpi-bc-background:" . $b["background"] . ";--smpi-bc-font-size:" . $b["size"] . ";--smpi-toc-accent:" . $t["accent"] . ";--smpi-toc-text:" . $t["text"] . ";--smpi-toc-size:" . $t["size"] . ";--smpi-toc-fstyle:" . $t["fstyle"] . ";--smpi-heading-accent:" . $h["accent"] . ";--smpi-heading-accent-fade:" . $h["accent_fade"] . ";--smpi-heading-highlight:" . $h["highlight"] . ";--smpi-heading-line:" . $h["line"] . ";--smpi-heading-ink:" . $h["ink"] . ";--smpi-heading-h2-size:" . $h["h2_size"] . ";--smpi-heading-h3-size:" . $h["h3_size"] . ";--smpi-dropcap-color:" . $d["color"] . ";--smpi-dropcap-soft:" . $d["soft"] . ";--smpi-dropcap-ink:" . $d["ink"] . ";--smpi-dropcap-size:" . $d["size"] . ";--smpi-faq-accent:" . $f["accent"] . ";--smpi-faq-text:" . $f["text"] . ";--smpi-faq-size:" . $f["size"] . ";--smpi-faq-fstyle:" . $f["fstyle"] . ";--smpi-photo-accent:" . $p["accent"] . ";--smpi-photo-cap-color:" . $p["color"] . ";--smpi-photo-cap-size:" . $p["size"] . ";--smpi-photo-cap-fstyle:" . $p["fstyle"] . ";--smpi-fi-accent:" . $fp["accent"] . ";--smpi-fi-cap-color:" . $fp["color"] . ";--smpi-fi-cap-size:" . $fp["size"] . ";--smpi-fi-cap-fstyle:" . $fp["fstyle"] . "}";
         $css .= ".smpi-choice-preview .smpi-breadcrumbs,.smpi-choice-preview .smpi-table-of-contents,.smpi-choice-preview .smpi-post-summary,.smpi-choice-preview .smpi-post-faqs,.smpi-choice-preview .smpi-pp,.smpi-choice-preview .smpi-fi-preview{max-width:100%!important;margin:0!important}.smpi-choice-preview .smpi-pp,.smpi-choice-preview .smpi-fi-preview{display:block}.smpi-choice-preview .smpi-inline-photo-image,.smpi-choice-preview .smpi-featured-image-caption-image{height:120px;width:100%;object-fit:cover}.smpi-choice-preview .smpi-toc-link,.smpi-choice-preview .smpi-post-faq-item{font-size:13px}";
         return $css;
     }

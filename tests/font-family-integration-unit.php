@@ -64,6 +64,7 @@ require $root . "/lib/hexa-wordpress-plugin-core/src/ActivityLog/ActivityLogger.
 require $root . "/lib/hexa-wordpress-plugin-core/src/BrandColors/BrandColorProvider.php";
 require $root . "/lib/hexa-wordpress-plugin-core/src/BrandColors/FontFamilyProvider.php";
 require $root . "/lib/hexa-wordpress-plugin-core/src/BrandColors/FontWeightProvider.php";
+require $root . "/lib/hexa-wordpress-plugin-core/src/Typography/TypographyPreservation.php";
 require $root . "/src/Settings/SettingsRepository.php";
 require $root . "/src/Support/Settings.php";
 require $root . "/src/Content/ArticleStyles.php";
@@ -143,7 +144,7 @@ $ajax = (string) file_get_contents( $root . "/src/Admin/Ajax/AjaxController.php"
 $quick_start = (string) file_get_contents( $root . "/src/Support/QuickStartFeatures.php" );
 $core_version = trim( (string) file_get_contents( $root . "/lib/hexa-wordpress-plugin-core/VERSION" ) );
 
-if ( version_compare( $core_version, "0.19.68", "<" ) || ! str_contains( $dashboard, "FontFamilyControl::render(" ) || ! str_contains( $dashboard, '"weight_key" => $weight_key' ) ) {
+if ( version_compare( $core_version, "0.19.69", "<" ) || ! str_contains( $dashboard, "FontFamilyControl::render(" ) || ! str_contains( $dashboard, "TypographyPreservationControl::render(" ) || ! str_contains( $dashboard, '"weight_key" => $weight_key' ) ) {
     fwrite( STDERR, "FAIL: SMP is not using the reusable Hexa WP Core font control.\n" );
     exit( 1 );
 }

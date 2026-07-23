@@ -7,6 +7,7 @@ use Hexa\PluginCore\ActivityLog\ActivityLogger;
 use Hexa\PluginCore\BrandColors\BrandColorProvider;
 use Hexa\PluginCore\BrandColors\FontFamilyProvider;
 use Hexa\PluginCore\BrandColors\FontWeightProvider;
+use Hexa\PluginCore\Typography\TypographyPreservation;
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
@@ -17,7 +18,7 @@ class SettingsRepository {
 
     public static function defaults(): array {
         $colors = self::color_defaults();
-        return [
+        $defaults = [
             'founders_enabled'      => true,
             'shadow_posts_enabled' => true,
             'shadow_press_releases' => false,
@@ -107,10 +108,6 @@ class SettingsRepository {
             "article_heading_h3_font_size" => 20,
             "article_heading_font_family" => "template",
             "article_heading_font_weight" => "inherit",
-            "article_heading_preserve_font_family" => true,
-            "article_heading_preserve_font_size" => true,
-            "article_heading_preserve_font_color" => true,
-            "article_heading_preserve_font_weight" => true,
             "article_drop_cap_enabled" => false,
             "article_drop_cap_style" => "dropcap-classic",
             "article_drop_cap_color" => $colors["article_drop_cap_color"],
@@ -161,6 +158,11 @@ class SettingsRepository {
             'page_assignments'      => [],
             'page_templates'        => self::default_page_templates(),
         ];
+        return array_merge(
+            $defaults,
+            TypographyPreservation::defaults( "article_heading", true ),
+            TypographyPreservation::defaults( "article_drop_cap", false )
+        );
     }
 
     public static function all(): array {
@@ -252,6 +254,13 @@ class SettingsRepository {
 
     public static function font_weight_setting_keys(): array {
         return array_keys( self::font_weight_css_variables() );
+    }
+
+    public static function typography_preservation_setting_keys(): array {
+        return array_merge(
+            TypographyPreservation::setting_keys( "article_heading" ),
+            TypographyPreservation::setting_keys( "article_drop_cap" )
+        );
     }
 
     public static function font_weight_css_variables(): array {
@@ -469,7 +478,12 @@ class SettingsRepository {
                 continue;
             }
 
-            if ( in_array( $key, [ 'founders_enabled', 'shadow_posts_enabled', 'shadow_press_releases', 'post_list_defaults_enabled', 'hide_home_posts_without_featured_image', 'post_featured_image_required', 'author_social_cleanup', 'public_debug_enabled', 'estimated_read_time_enabled', 'elementor_css_cache_busting', 'elementor_primary_category_enabled', 'elementor_primary_category_exclude_default', 'publication_social_cleanup', 'muckrack_verified_enabled', 'muckrack_author_always_show', 'publication_muckrack_verified_enabled', 'multi_authors_enabled', 'multi_authors_disable_loop_cards', 'press_release_include_enabled', 'post_summary_acf_enabled', 'post_faqs_acf_enabled', 'article_types_enabled', 'breadcrumbs_enabled', 'breadcrumbs_hide_home', 'breadcrumbs_hide_term_archives', 'table_of_contents_enabled', 'table_of_contents_auto_single', 'table_of_contents_include_summary', 'article_heading_preserve_font_family', 'article_heading_preserve_font_size', 'article_heading_preserve_font_color', 'article_heading_preserve_font_weight', 'article_drop_cap_enabled', 'rank_math_breadcrumb_check_enabled', 'hws_masked_admin_report_enabled', "content_generation_enabled", "post_hygiene_enabled", "post_hygiene_strip_inline_styles", "post_hygiene_unwrap_spans", "post_hygiene_remove_font_tags", "post_hygiene_strip_classes_ids", "post_hygiene_strip_empty_tags", "post_hygiene_clean_heading_children" ], true ) ) {
+            if ( in_array( $key, self::typography_preservation_setting_keys(), true ) ) {
+                $settings[ $key ] = (bool) $value;
+                continue;
+            }
+
+            if ( in_array( $key, [ 'founders_enabled', 'shadow_posts_enabled', 'shadow_press_releases', 'post_list_defaults_enabled', 'hide_home_posts_without_featured_image', 'post_featured_image_required', 'author_social_cleanup', 'public_debug_enabled', 'estimated_read_time_enabled', 'elementor_css_cache_busting', 'elementor_primary_category_enabled', 'elementor_primary_category_exclude_default', 'publication_social_cleanup', 'muckrack_verified_enabled', 'muckrack_author_always_show', 'publication_muckrack_verified_enabled', 'multi_authors_enabled', 'multi_authors_disable_loop_cards', 'press_release_include_enabled', 'post_summary_acf_enabled', 'post_faqs_acf_enabled', 'article_types_enabled', 'breadcrumbs_enabled', 'breadcrumbs_hide_home', 'breadcrumbs_hide_term_archives', 'table_of_contents_enabled', 'table_of_contents_auto_single', 'table_of_contents_include_summary', 'article_drop_cap_enabled', 'rank_math_breadcrumb_check_enabled', 'hws_masked_admin_report_enabled', "content_generation_enabled", "post_hygiene_enabled", "post_hygiene_strip_inline_styles", "post_hygiene_unwrap_spans", "post_hygiene_remove_font_tags", "post_hygiene_strip_classes_ids", "post_hygiene_strip_empty_tags", "post_hygiene_clean_heading_children" ], true ) ) {
                 $settings[ $key ] = (bool) $value;
                 continue;
             }

@@ -7,7 +7,7 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.6.230`
+- Version: `0.6.231`
 
 ## Architecture
 
@@ -22,6 +22,13 @@ WordPress plugin for Scale My Publication publication profiles.
 - `Support`: integration adapters and stable legacy helpers.
 
 The bundled `Hexa\PluginCore` package is registered through the shared package resolver. One selected Core root owns the namespace when multiple Hexa plugins are active.
+
+## 0.6.231 Updates
+
+- Replaced the standalone sentence-based script-font gallery with five single-letter script templates using Dancing Script, Great Vibes, Parisienne, Pinyon Script, and Allura.
+- Added reusable Hexa WP Core typography-preservation settings and controls for font family, size, color, and weight.
+- Applied preservation settings to both article headings and first-letter drop caps, including frontend CSS and admin previews.
+- Updated the bundled Hexa WP Core package to `0.19.69`.
 
 ## 0.6.230 Updates
 

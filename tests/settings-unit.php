@@ -19,6 +19,7 @@ function is_user_logged_in(): bool { return false; }
 require dirname( __DIR__ ) . '/lib/hexa-wordpress-plugin-core/src/ActivityLog/ActivityLogConfig.php';
 require dirname( __DIR__ ) . '/lib/hexa-wordpress-plugin-core/src/ActivityLog/ActivityLogEntry.php';
 require dirname( __DIR__ ) . '/lib/hexa-wordpress-plugin-core/src/ActivityLog/ActivityLogger.php';
+require dirname( __DIR__ ) . '/lib/hexa-wordpress-plugin-core/src/Typography/TypographyPreservation.php';
 require dirname( __DIR__ ) . '/src/Settings/SettingsRepository.php';
 require dirname( __DIR__ ) . '/src/Settings/SettingsMigrations.php';
 require dirname( __DIR__ ) . '/src/Support/Settings.php';
@@ -75,6 +76,22 @@ if ( 'dropcap-highlight' !== $settings['article_drop_cap_style'] ) {
 $settings = Settings::update( [ 'article_drop_cap_style' => 'not-a-template' ] );
 if ( 'dropcap-classic' !== $settings['article_drop_cap_style'] ) {
     fwrite( STDERR, "FAIL: Invalid drop-cap template did not fall back to the classic template.\n" );
+    exit( 1 );
+}
+
+$defaults = SettingsRepository::defaults();
+foreach ( [ 'font_family', 'font_size', 'font_color', 'font_weight' ] as $property ) {
+    if ( true !== $defaults[ 'article_heading_preserve_' . $property ] || false !== $defaults[ 'article_drop_cap_preserve_' . $property ] ) {
+        fwrite( STDERR, "FAIL: Core-generated typography preservation defaults are incorrect.\n" );
+        exit( 1 );
+    }
+}
+$settings = Settings::update( [
+    'article_drop_cap_preserve_font_family' => true,
+    'article_drop_cap_preserve_font_size' => true,
+] );
+if ( true !== $settings['article_drop_cap_preserve_font_family'] || true !== $settings['article_drop_cap_preserve_font_size'] ) {
+    fwrite( STDERR, "FAIL: Drop-cap preservation settings were not saved.\n" );
     exit( 1 );
 }
 
