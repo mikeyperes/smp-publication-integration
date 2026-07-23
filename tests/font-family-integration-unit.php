@@ -144,7 +144,7 @@ $ajax = (string) file_get_contents( $root . "/src/Admin/Ajax/AjaxController.php"
 $quick_start = (string) file_get_contents( $root . "/src/Support/QuickStartFeatures.php" );
 $core_version = trim( (string) file_get_contents( $root . "/lib/hexa-wordpress-plugin-core/VERSION" ) );
 
-if ( version_compare( $core_version, "0.19.71", "<" ) || ! str_contains( $dashboard, "FontFamilyControl::render(" ) || ! str_contains( $dashboard, "TypographyControl::render(" ) || ! str_contains( $dashboard, '"weight_key" => $weight_key' ) ) {
+if ( version_compare( $core_version, "0.19.72", "<" ) || ! str_contains( $dashboard, "FontFamilyControl::render(" ) || ! str_contains( $dashboard, "TypographyControl::render(" ) || ! str_contains( $dashboard, '"weight_key" => $weight_key' ) ) {
     fwrite( STDERR, "FAIL: SMP is not using the reusable Hexa WP Core font control.\n" );
     exit( 1 );
 }

@@ -89,6 +89,8 @@ echo ScopedCssOverride::render(
 
 `CoreUi::collapsible()` automatically gives every titled section a stable query key. Opening or closing a section updates the current URL with one comma-delimited `hpc_open` parameter, and Core restores those sections after a full refresh or an AJAX tab load.
 
+Open collapsibles use the shared Core highlight state: a pale summary background and a slightly stronger boundary. Hosts should not add separate open-card colors.
+
 ```php
 echo CoreUi::collapsible(
     [
