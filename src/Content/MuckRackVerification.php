@@ -53,13 +53,30 @@ final class MuckRackVerification {
 
     public static function font_overrides_css(): string {
         $css = "";
+        $author_declarations = [];
         $author_font = Settings::font_family_css( "muckrack_verified_font_family" );
         if ( "" !== $author_font ) {
-            $css .= ".smpi-muckrack-author-text,.smpi-muckrack-author-note,.smpi-muckrack-footer-note{font-family:" . $author_font . "}";
+            $author_declarations[] = "font-family:" . $author_font;
         }
+        $author_weight = Settings::font_weight_css( "muckrack_verified_font_weight" );
+        if ( "" !== $author_weight ) {
+            $author_declarations[] = "font-weight:" . $author_weight;
+        }
+        if ( ! empty( $author_declarations ) ) {
+            $css .= ".smpi-muckrack-author-text,.smpi-muckrack-author-note,.smpi-muckrack-footer-note{" . implode( ";", $author_declarations ) . "}";
+        }
+
+        $publication_declarations = [];
         $publication_font = Settings::font_family_css( "publication_muckrack_font_family" );
         if ( "" !== $publication_font ) {
-            $css .= ".smpi-muckrack-publication-text{font-family:" . $publication_font . "}";
+            $publication_declarations[] = "font-family:" . $publication_font;
+        }
+        $publication_weight = Settings::font_weight_css( "publication_muckrack_font_weight" );
+        if ( "" !== $publication_weight ) {
+            $publication_declarations[] = "font-weight:" . $publication_weight;
+        }
+        if ( ! empty( $publication_declarations ) ) {
+            $css .= ".smpi-muckrack-publication-text{" . implode( ";", $publication_declarations ) . "}";
         }
 
         return $css;

@@ -6,6 +6,7 @@ use Hexa\PluginCore\ActivityLog\ActivityLogEntry;
 use Hexa\PluginCore\ActivityLog\ActivityLogger;
 use Hexa\PluginCore\BrandColors\BrandColorProvider;
 use Hexa\PluginCore\BrandColors\FontFamilyProvider;
+use Hexa\PluginCore\BrandColors\FontWeightProvider;
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
@@ -36,6 +37,7 @@ class SettingsRepository {
             'muckrack_verified_contexts' => [ 'single_author', 'single_footer', 'author', 'home', 'loop_cards' ],
             'muckrack_verified_style' => 'tooltip',
             'muckrack_verified_font_family' => 'template',
+            'muckrack_verified_font_weight' => 'inherit',
             'muckrack_icon_color' => $colors['muckrack_icon_color'],
             'muckrack_icon_style' => 'circle_check',
             "muckrack_icon_size" => 16,
@@ -65,6 +67,7 @@ class SettingsRepository {
             'publication_muckrack_text_mode' => 'news_outlet',
             'publication_muckrack_style' => 'block',
             'publication_muckrack_font_family' => 'template',
+            'publication_muckrack_font_weight' => 'inherit',
             'publication_muckrack_color' => $colors['publication_muckrack_color'],
             "publication_muckrack_font_size" => 14,
             'publication_muckrack_placements' => [ 'bottom_article' ],
@@ -82,6 +85,7 @@ class SettingsRepository {
             "breadcrumbs_background_color" => $colors["breadcrumbs_background_color"],
             "breadcrumbs_font_size" => 13,
             "breadcrumbs_font_family" => "template",
+            "breadcrumbs_font_weight" => "inherit",
             "breadcrumbs_hide_home" => true,
             "breadcrumbs_hide_term_archives" => false,
             "breadcrumbs_disabled_post_types" => [],
@@ -95,17 +99,25 @@ class SettingsRepository {
             "table_of_contents_text_font_size" => 15,
             "table_of_contents_text_color" => $colors["table_of_contents_text_color"],
             "table_of_contents_font_family" => "template",
+            "table_of_contents_font_weight" => "inherit",
             "article_heading_styles_enabled" => false,
             "article_heading_style" => "h2-tick",
             "article_heading_accent_color" => $colors["article_heading_accent_color"],
             "article_heading_h2_font_size" => 23,
             "article_heading_h3_font_size" => 20,
             "article_heading_font_family" => "template",
+            "article_heading_font_weight" => "inherit",
+            "article_heading_preserve_font_family" => true,
+            "article_heading_preserve_font_size" => true,
+            "article_heading_preserve_font_color" => true,
+            "article_heading_preserve_font_weight" => true,
             "article_drop_cap_enabled" => false,
             "article_drop_cap_style" => "dropcap-classic",
             "article_drop_cap_color" => $colors["article_drop_cap_color"],
             "article_drop_cap_font_size" => 96,
             "article_drop_cap_font_family" => "template",
+            "article_drop_cap_font_weight" => "inherit",
+            "article_drop_cap_script_font" => "dancing-script",
             "inline_photo_treatments_enabled" => false,
             "inline_photo_treatment" => "none",
             "inline_photo_accent_color" => $colors["inline_photo_accent_color"],
@@ -113,6 +125,7 @@ class SettingsRepository {
             "inline_photo_caption_font_size" => 16,
             "inline_photo_caption_text_color" => $colors["inline_photo_caption_text_color"],
             "inline_photo_caption_font_family" => "template",
+            "inline_photo_caption_font_weight" => "inherit",
             "featured_image_caption_templates_enabled" => false,
             "featured_image_caption_template" => "fig2",
             "featured_image_caption_accent_color" => $colors["featured_image_caption_accent_color"],
@@ -120,14 +133,17 @@ class SettingsRepository {
             "featured_image_caption_font_size" => 16,
             "featured_image_caption_text_color" => $colors["featured_image_caption_text_color"],
             "featured_image_caption_font_family" => "template",
+            "featured_image_caption_font_weight" => "inherit",
             "post_summary_style" => "none",
             "post_summary_font_family" => "template",
+            "post_summary_font_weight" => "inherit",
             "post_faqs_style" => "none",
             "post_faqs_accent_color" => $colors["post_faqs_accent_color"],
             "post_faqs_text_font_style" => "normal",
             "post_faqs_text_font_size" => 16,
             "post_faqs_text_color" => $colors["post_faqs_text_color"],
             "post_faqs_font_family" => "template",
+            "post_faqs_font_weight" => "inherit",
             'rank_math_breadcrumb_check_enabled' => true,
             'hws_masked_admin_report_enabled' => true,
             "content_generation_enabled" => true,
@@ -232,6 +248,41 @@ class SettingsRepository {
         $label = (string) ( $font["label"] ?? "Template font" );
         $family = (string) ( $font["family"] ?? "" );
         return "" !== $family && false === stripos( $label, $family ) ? $label . " - " . $family : $label;
+    }
+
+    public static function font_weight_setting_keys(): array {
+        return array_keys( self::font_weight_css_variables() );
+    }
+
+    public static function font_weight_css_variables(): array {
+        return [
+            "breadcrumbs_font_weight" => "--smpi-bc-weight",
+            "table_of_contents_font_weight" => "--smpi-toc-weight",
+            "article_heading_font_weight" => "--smpi-heading-weight",
+            "article_drop_cap_font_weight" => "--smpi-dropcap-weight",
+            "inline_photo_caption_font_weight" => "--smpi-photo-cap-weight",
+            "featured_image_caption_font_weight" => "--smpi-fi-cap-weight",
+            "post_summary_font_weight" => "--smpi-summary-weight",
+            "post_faqs_font_weight" => "--smpi-faq-weight",
+            "muckrack_verified_font_weight" => "--smpi-muckrack-author-weight",
+            "publication_muckrack_font_weight" => "--smpi-muckrack-publication-weight",
+        ];
+    }
+
+    public static function font_weight_css( string $key ): string {
+        if ( ! in_array( $key, self::font_weight_setting_keys(), true ) || ! class_exists( FontWeightProvider::class ) ) {
+            return "";
+        }
+
+        return FontWeightProvider::css_value( self::get( $key, FontWeightProvider::FONT_DEFAULT ) );
+    }
+
+    public static function font_weight_label( string $key ): string {
+        if ( ! in_array( $key, self::font_weight_setting_keys(), true ) || ! class_exists( FontWeightProvider::class ) ) {
+            return "Font default";
+        }
+
+        return FontWeightProvider::label( self::get( $key, FontWeightProvider::FONT_DEFAULT ) );
     }
 
     public static function brand_primary_color( string $fallback = "#2d5277" ): string {
@@ -342,6 +393,13 @@ class SettingsRepository {
                 continue;
             }
 
+            if ( in_array( $key, self::font_weight_setting_keys(), true ) ) {
+                $settings[ $key ] = class_exists( FontWeightProvider::class )
+                    ? FontWeightProvider::normalize_selection( $value )
+                    : "inherit";
+                continue;
+            }
+
             if ( "article_drop_cap_font_size" === $key ) {
                 $value = absint( $value );
                 $settings[ $key ] = max( 48, min( 180, $value ?: 96 ) );
@@ -389,6 +447,7 @@ class SettingsRepository {
                 "table_of_contents_style" => [ "none", "toc00", "toc01", "toc02", "toc03", "toc04" ],
                 "article_heading_style" => [ "none", "h2-tick", "h2-leftrule", "h2-underline", "h2-topline", "h2-dot", "h2-trailingrule", "h2-serif", "h2-uppercase", "h2-gradient", "h2-bracket", "h2-number", "h2-square", "h2-highlight", "h2-double", "h2-corner_tick" ],
                 "article_drop_cap_style" => [ "dropcap-classic", "dropcap-highlight", "dropcap-outline", "dropcap-side-rule", "dropcap-soft-tile", "dropcap-script-classic", "dropcap-script-tile", "dropcap-script-round", "dropcap-script-underline", "dropcap-script-shadow" ],
+                "article_drop_cap_script_font" => [ "dancing-script", "great-vibes", "parisienne", "pinyon-script" ],
                 "inline_photo_treatment" => [ "none", "fig1", "fig2", "fig4", "fig5" ],
                 "featured_image_caption_template" => [ "none", "fig1", "fig2", "fig4", "fig5" ],
                 "post_summary_style" => [ "none", "sum00", "sum01", "sum02", "sum03", "sum04" ],
@@ -410,7 +469,7 @@ class SettingsRepository {
                 continue;
             }
 
-            if ( in_array( $key, [ 'founders_enabled', 'shadow_posts_enabled', 'shadow_press_releases', 'post_list_defaults_enabled', 'hide_home_posts_without_featured_image', 'post_featured_image_required', 'author_social_cleanup', 'public_debug_enabled', 'estimated_read_time_enabled', 'elementor_css_cache_busting', 'elementor_primary_category_enabled', 'elementor_primary_category_exclude_default', 'publication_social_cleanup', 'muckrack_verified_enabled', 'muckrack_author_always_show', 'publication_muckrack_verified_enabled', 'multi_authors_enabled', 'multi_authors_disable_loop_cards', 'press_release_include_enabled', 'post_summary_acf_enabled', 'post_faqs_acf_enabled', 'article_types_enabled', 'breadcrumbs_enabled', 'breadcrumbs_hide_home', 'breadcrumbs_hide_term_archives', 'table_of_contents_enabled', 'table_of_contents_auto_single', 'table_of_contents_include_summary', 'article_drop_cap_enabled', 'rank_math_breadcrumb_check_enabled', 'hws_masked_admin_report_enabled', "content_generation_enabled", "post_hygiene_enabled", "post_hygiene_strip_inline_styles", "post_hygiene_unwrap_spans", "post_hygiene_remove_font_tags", "post_hygiene_strip_classes_ids", "post_hygiene_strip_empty_tags", "post_hygiene_clean_heading_children" ], true ) ) {
+            if ( in_array( $key, [ 'founders_enabled', 'shadow_posts_enabled', 'shadow_press_releases', 'post_list_defaults_enabled', 'hide_home_posts_without_featured_image', 'post_featured_image_required', 'author_social_cleanup', 'public_debug_enabled', 'estimated_read_time_enabled', 'elementor_css_cache_busting', 'elementor_primary_category_enabled', 'elementor_primary_category_exclude_default', 'publication_social_cleanup', 'muckrack_verified_enabled', 'muckrack_author_always_show', 'publication_muckrack_verified_enabled', 'multi_authors_enabled', 'multi_authors_disable_loop_cards', 'press_release_include_enabled', 'post_summary_acf_enabled', 'post_faqs_acf_enabled', 'article_types_enabled', 'breadcrumbs_enabled', 'breadcrumbs_hide_home', 'breadcrumbs_hide_term_archives', 'table_of_contents_enabled', 'table_of_contents_auto_single', 'table_of_contents_include_summary', 'article_heading_preserve_font_family', 'article_heading_preserve_font_size', 'article_heading_preserve_font_color', 'article_heading_preserve_font_weight', 'article_drop_cap_enabled', 'rank_math_breadcrumb_check_enabled', 'hws_masked_admin_report_enabled', "content_generation_enabled", "post_hygiene_enabled", "post_hygiene_strip_inline_styles", "post_hygiene_unwrap_spans", "post_hygiene_remove_font_tags", "post_hygiene_strip_classes_ids", "post_hygiene_strip_empty_tags", "post_hygiene_clean_heading_children" ], true ) ) {
                 $settings[ $key ] = (bool) $value;
                 continue;
             }

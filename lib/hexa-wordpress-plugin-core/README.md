@@ -244,6 +244,8 @@ Version 0.19.53 also initializes collection filters after DOMContentLoaded so fi
 
 Version 0.19.54 adds an optional host-selected text selector so shared logs and diagnostics do not create false search matches.
 
+Version 0.19.68 extends `FontFamilyControl` with an optional Core-owned font-weight selector backed by `FontWeightProvider`. Hosts can persist a default or validated 100-900 weight without duplicating option markup or validation.
+
 Version 0.19.67 adds `FontFamilyProvider` and `FontFamilyControl`. Hosts can offer template, native primary, native secondary, and deduplicated Elementor font choices while saving validated source identifiers instead of arbitrary CSS.
 
 Version 0.19.61 adds reusable inherited-value support to ColorControl. Hosts can persist an empty override while Core displays the inherited color and keeps picker, editable hex, RGB, swatch, copy, import, and inherit actions synchronized.

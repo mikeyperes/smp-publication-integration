@@ -48,9 +48,11 @@ function esc_html( mixed $value ): string {
 $root = dirname( __DIR__ );
 require $root . "/src/BrandColors/BrandColorProvider.php";
 require $root . "/src/BrandColors/FontFamilyProvider.php";
+require $root . "/src/BrandColors/FontWeightProvider.php";
 require $root . "/src/WpAdminComponents/FontFamilyControl.php";
 
 use Hexa\PluginCore\BrandColors\FontFamilyProvider;
+use Hexa\PluginCore\BrandColors\FontWeightProvider;
 use Hexa\PluginCore\WpAdminComponents\FontFamilyControl;
 
 $options = FontFamilyProvider::options();
@@ -60,6 +62,15 @@ $markup = FontFamilyControl::render(
         "label"        => "Heading font",
         "value"        => "elementor_brand_body",
         "select_class" => "host-font-setting",
+        "weight_key" => "heading_font_weight",
+        "weight_value" => "700",
+        "weight_select_class" => "host-weight-setting",
+    ]
+);
+$family_only_markup = FontFamilyControl::render(
+    [
+        "key" => "body_font",
+        "value" => "native_primary",
     ]
 );
 
@@ -77,10 +88,19 @@ $checks = [
     "Unsafe Elementor font values are excluded." => ! isset( $options["elementor_unsafe"] ),
     "Unknown selections fall back to template behavior." => "template" === FontFamilyProvider::normalize_selection( "url-javascript" )
         && "" === FontFamilyProvider::css_value( "url-javascript" ),
+    "Font weights normalize to a bounded reusable option set." => "400" === FontWeightProvider::normalize_selection( "normal" )
+        && "700" === FontWeightProvider::normalize_selection( "bold" )
+        && "" === FontWeightProvider::css_value( "inherit" )
+        && "inherit" === FontWeightProvider::normalize_selection( "950" ),
     "The shared control renders grouped, host-saveable options." => str_contains( $markup, 'data-hpc-font-family-control' )
         && str_contains( $markup, 'class="hpc-font-family-select host-font-setting"' )
         && str_contains( $markup, 'data-source-id="brand_body"' )
         && preg_match( '/value="elementor_brand_body"[^>]* selected/s', $markup ),
+    "The shared control renders the requested host-saveable weight selector." => str_contains( $markup, 'data-hpc-font-weight-select' )
+        && str_contains( $markup, 'class="hpc-font-weight-select host-weight-setting"' )
+        && str_contains( $markup, 'data-key="heading_font_weight"' )
+        && preg_match( '/value="700"[^>]* selected/s', $markup ),
+    "Existing hosts remain family-only until they supply a weight key." => ! str_contains( $family_only_markup, 'data-hpc-font-weight-select' ),
     "The default control avoids duplicate selected-value reporting." => ! str_contains( $markup, '<span class="hpc-font-family-current"' ),
 ];
 
@@ -91,4 +111,4 @@ foreach ( $checks as $message => $passed ) {
     }
 }
 
-echo "PASS: FontFamilyControl safely discovers, stores, resolves, and renders Elementor font sources.\n";
+echo "PASS: FontFamilyControl safely renders validated Elementor font sources and optional weights.\n";

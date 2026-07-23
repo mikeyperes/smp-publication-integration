@@ -39,6 +39,7 @@ FontFamilyProvider
 - `Hexa\PluginCore\WpAdminComponents\ColorPalette::render()` owns multi-color saved palettes and can compose the Elementor detector.
 - `Hexa\PluginCore\WpAdminComponents\DetailedColorPicker::render()` owns the paired primary/secondary visual picker and optional font controls.
 - `Hexa\PluginCore\WpAdminComponents\FontFamilyControl::render()` owns the reusable Elementor-aware font selector.
+- `Hexa\PluginCore\BrandColors\FontWeightProvider` owns the validated default and 100-900 weight choices used by the optional font-picker weight field.
 
 ## Host Plugin Rule
 

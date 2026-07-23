@@ -40,12 +40,21 @@ namespace {
 
     foreach ( [ 5, 6, 7, 8, 9 ] as $i ) {
         assert_drop_cap( false !== strpos( $rules[ $i ], "cursive" ), $styles[ $i ] . " must use the cursive font stack." );
-        assert_drop_cap( false !== strpos( $rules[ $i ], "\"Dancing Script\"" ), $styles[ $i ] . " must lead with the Dancing Script webfont." );
-        assert_drop_cap( false !== strpos( $rules[ $i ], "font-weight:600" ), $styles[ $i ] . " must relax the heavy base weight." );
+        assert_drop_cap( false !== strpos( $rules[ $i ], "var(--smpi-dropcap-script-font,\"Dancing Script\")" ), $styles[ $i ] . " must use the selected script font with the Dancing Script fallback." );
+        assert_drop_cap( false !== strpos( $rules[ $i ], "var(--smpi-dropcap-script-weight,600)" ), $styles[ $i ] . " must use the selected script font's recommended weight." );
         assert_drop_cap( ArticleStyles::article_drop_cap_style_uses_script_font( $styles[ $i ] ), $styles[ $i ] . " must be detected as a script-font template." );
         assert_drop_cap( ! ArticleStyles::article_drop_cap_style_uses_script_font( $styles[ $i - 5 ] ), $styles[ $i - 5 ] . " must not be detected as a script-font template." );
     }
-    assert_drop_cap( false !== strpos( ArticleStyles::script_font_link_html(), "fonts.googleapis.com/css2?family=Dancing+Script" ), "Script font link must load Dancing Script." );
+    $script_fonts = ArticleStyles::article_drop_cap_script_fonts();
+    assert_drop_cap( [ "dancing-script", "great-vibes", "parisienne", "pinyon-script" ] === array_keys( $script_fonts ), "Drop-cap must expose the four approved script fonts in order." );
+    assert_drop_cap( "dancing-script" === ArticleStyles::normalize_article_drop_cap_script_font( "invalid-font" ), "Invalid script fonts must use Dancing Script." );
+    assert_drop_cap( false !== strpos( ArticleStyles::script_font_link_html(), "family=Dancing+Script" ), "The default frontend font link must load Dancing Script." );
+    $great_vibes_link = ArticleStyles::script_font_link_html( "great-vibes" );
+    assert_drop_cap( false !== strpos( $great_vibes_link, "family=Great+Vibes" ) && false === strpos( $great_vibes_link, "family=Dancing+Script" ), "The frontend must load only the selected script font." );
+    $preview_link = ArticleStyles::script_font_preview_link_html();
+    foreach ( [ "Dancing+Script", "Great+Vibes", "Parisienne", "Pinyon+Script" ] as $family ) {
+        assert_drop_cap( false !== strpos( $preview_link, "family=" . $family ), "Admin previews must load " . $family . "." );
+    }
     assert_drop_cap( false !== strpos( $rules[6], "background:var(--smpi-dropcap-soft" ), "Script-tile template must use the shared tint variable." );
     assert_drop_cap( false !== strpos( $rules[7], "border-radius:999px" ), "Script-round template must use a rounded badge." );
     assert_drop_cap( false !== strpos( $rules[8], "border-bottom:4px solid var(--smpi-dropcap-color" ), "Script-underline template must use an accent underline." );

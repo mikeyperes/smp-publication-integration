@@ -63,6 +63,7 @@ require $root . "/lib/hexa-wordpress-plugin-core/src/ActivityLog/ActivityLogEntr
 require $root . "/lib/hexa-wordpress-plugin-core/src/ActivityLog/ActivityLogger.php";
 require $root . "/lib/hexa-wordpress-plugin-core/src/BrandColors/BrandColorProvider.php";
 require $root . "/lib/hexa-wordpress-plugin-core/src/BrandColors/FontFamilyProvider.php";
+require $root . "/lib/hexa-wordpress-plugin-core/src/BrandColors/FontWeightProvider.php";
 require $root . "/src/Settings/SettingsRepository.php";
 require $root . "/src/Support/Settings.php";
 require $root . "/src/Content/ArticleStyles.php";
@@ -78,6 +79,12 @@ if ( 10 !== count( $font_keys ) ) {
     exit( 1 );
 }
 
+$weight_keys = Settings::font_weight_setting_keys();
+if ( 10 !== count( $weight_keys ) ) {
+    fwrite( STDERR, "FAIL: SMP must expose exactly ten shared font-weight settings.\n" );
+    exit( 1 );
+}
+
 $changes = array_fill_keys( $font_keys, "elementor_brand_body" );
 $saved = Settings::update( $changes );
 foreach ( $font_keys as $key ) {
@@ -86,6 +93,17 @@ foreach ( $font_keys as $key ) {
         exit( 1 );
     }
 }
+$saved = Settings::update( array_fill_keys( $weight_keys, "700" ) );
+foreach ( $weight_keys as $key ) {
+    if ( "700" !== $saved[ $key ] ) {
+        fwrite( STDERR, "FAIL: Valid Core font weight was not saved for {$key}.\n" );
+        exit( 1 );
+    }
+}
+Settings::update( [
+    "article_heading_preserve_font_family" => false,
+    "article_heading_preserve_font_weight" => false,
+] );
 
 $article_css = ArticleStyles::font_overrides_css();
 $muckrack_css = MuckRackVerification::font_overrides_css();
@@ -95,6 +113,10 @@ if ( 8 !== substr_count( $article_css, "--e-global-typography-brand_body-font-fa
 }
 if ( 2 !== substr_count( $muckrack_css, "--e-global-typography-brand_body-font-family" ) ) {
     fwrite( STDERR, "FAIL: Both MuckRack outputs did not resolve the selected Elementor source.\n" );
+    exit( 1 );
+}
+if ( 8 !== substr_count( $article_css, "font-weight:700" ) || 2 !== substr_count( $muckrack_css, "font-weight:700" ) ) {
+    fwrite( STDERR, "FAIL: All ten design outputs did not apply the selected Core font weight.\n" );
     exit( 1 );
 }
 
@@ -110,12 +132,18 @@ if ( "template" !== $saved["article_heading_font_family"] || "" !== Settings::fo
     exit( 1 );
 }
 
+$saved = Settings::update( [ "article_heading_font_weight" => "heavy" ] );
+if ( "inherit" !== $saved["article_heading_font_weight"] || "" !== Settings::font_weight_css( "article_heading_font_weight" ) ) {
+    fwrite( STDERR, "FAIL: An invalid font weight bypassed Core validation.\n" );
+    exit( 1 );
+}
+
 $dashboard = (string) file_get_contents( $root . "/src/Admin/Dashboard/DashboardController.php" );
 $ajax = (string) file_get_contents( $root . "/src/Admin/Ajax/AjaxController.php" );
 $quick_start = (string) file_get_contents( $root . "/src/Support/QuickStartFeatures.php" );
 $core_version = trim( (string) file_get_contents( $root . "/lib/hexa-wordpress-plugin-core/VERSION" ) );
 
-if ( version_compare( $core_version, "0.19.67", "<" ) || ! str_contains( $dashboard, "FontFamilyControl::render(" ) ) {
+if ( version_compare( $core_version, "0.19.68", "<" ) || ! str_contains( $dashboard, "FontFamilyControl::render(" ) || ! str_contains( $dashboard, '"weight_key" => $weight_key' ) ) {
     fwrite( STDERR, "FAIL: SMP is not using the reusable Hexa WP Core font control.\n" );
     exit( 1 );
 }
@@ -125,9 +153,15 @@ foreach ( $font_keys as $key ) {
         exit( 1 );
     }
 }
-if ( ! str_contains( $ajax, "Settings::font_family_setting_keys()" ) || ! str_contains( $dashboard, "smpiFV" ) ) {
+foreach ( $weight_keys as $key ) {
+    if ( ! str_contains( $quick_start, '"' . $key . '" => "inherit"' ) ) {
+        fwrite( STDERR, "FAIL: {$key} is missing from Quick Start.\n" );
+        exit( 1 );
+    }
+}
+if ( ! str_contains( $ajax, "Settings::font_family_setting_keys()" ) || ! str_contains( $ajax, "Settings::font_weight_setting_keys()" ) || ! str_contains( $dashboard, "smpiFV" ) || ! str_contains( $dashboard, "smpiWV" ) ) {
     fwrite( STDERR, "FAIL: Shared AJAX persistence or live preview synchronization is missing.\n" );
     exit( 1 );
 }
 
-echo "PASS: All ten SMP design outputs use the reusable Core font source contract.\n";
+echo "PASS: All ten SMP design outputs use the reusable Core font family and weight contracts.\n";
