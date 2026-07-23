@@ -95,6 +95,7 @@ typography_control_assert( str_contains( $markup, 'data-hpc-font-family-select' 
 typography_control_assert( preg_match( '/data-hpc-font-family-select.*data-hpc-typography-property="font_family"/s', $markup ) === 1, "The family preservation toggle must sit after the family picker." );
 typography_control_assert( preg_match( '/data-hpc-font-weight-select.*data-hpc-typography-property="font_weight"/s', $markup ) === 1, "The weight preservation toggle must sit after the weight picker." );
 typography_control_assert( preg_match( '/data-hpc-color-control.*data-hpc-typography-property="font_color"/s', $markup ) === 1, "The color preservation toggle must sit beside the Core color picker." );
+typography_control_assert( preg_match( '/hpc-color-head.*hpc-color-head-action.*data-hpc-typography-property="font_color"/s', $markup ) === 1, "The color preservation toggle must remain attached to the color heading at narrow widths." );
 typography_control_assert( str_contains( $markup, 'data-hpc-typography-targets=""' ), "Decorative accent controls may stay active while text color is preserved." );
 typography_control_assert( str_contains( $markup, 'data-hpc-typography-targets="article_heading_h2_size,article_heading_h3_size"' ), "One size toggle must own every configured size field." );
 typography_control_assert( 2 === substr_count( $markup, 'class="hpc-typography-number-input host-save-setting"' ), "Core must render both host-saveable size fields." );

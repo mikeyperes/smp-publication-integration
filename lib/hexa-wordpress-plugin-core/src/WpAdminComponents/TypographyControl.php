@@ -70,11 +70,8 @@ final class TypographyControl {
         if ( [] !== $color ) {
             $color["value"] = (string) ( $color["value"] ?? $settings[ $color["key"] ] ?? $color["default"] ?? "#2d5277" );
             $color["hex_input_class"] = trim( (string) ( $color["hex_input_class"] ?? $input_class ) );
-            $html .= '<div class="hpc-typography-control-block hpc-typography-control-row"><div class="hpc-typography-control-main">'
-                . ColorControl::render( $color )
-                . '</div><div class="hpc-typography-control-action">'
-                . self::toggle( $prefix, "font_color", $values, $color, $input_class )
-                . '</div></div>';
+            $color["header_action_html"] = self::toggle( $prefix, "font_color", $values, $color, $input_class );
+            $html .= '<div class="hpc-typography-control-block">' . ColorControl::render( $color ) . '</div>';
         }
 
         if ( [] !== $sizes ) {
