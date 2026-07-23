@@ -38,7 +38,7 @@ final class ArticleStyles {
         $featured = self::normalize_featured_image_caption_style( (string) Settings::get( "featured_image_caption_template", "fig2" ) );
         $breadcrumb_override = Settings::bool( "breadcrumbs_enabled" ) ? Breadcrumbs::custom_css() : "";
         $drop_cap_style = self::normalize_article_drop_cap_style( (string) Settings::get( "article_drop_cap_style", "dropcap-classic" ) );
-        if ( Settings::bool( "article_drop_cap_enabled" ) && self::article_drop_cap_style_uses_script_font( $drop_cap_style ) && ! self::typography_preserves( "article_drop_cap", "font_family", false ) ) {
+        if ( Settings::bool( "article_drop_cap_enabled" ) && self::article_drop_cap_style_uses_script_font( $drop_cap_style ) && ! self::typography_preserves( "article_drop_cap", "font_family" ) ) {
             echo self::script_font_link_html_for_style( $drop_cap_style );
         }
         echo "<style id=smpi-article-style-controls>" . self::frontend_vars_css() . self::breadcrumbs_css() . self::toc_css() . self::article_heading_css( $heading ) . self::article_drop_cap_css() . self::post_acf_css() . self::inline_photo_css( $photo ) . self::featured_image_caption_css( $featured ) . self::font_overrides_css() . ( "" !== $breadcrumb_override ? PHP_EOL . $breadcrumb_override : "" ) . "</style>";
@@ -256,11 +256,13 @@ final class ArticleStyles {
     private static function frontend_vars_css(): string {
         $css = "";
         $bc = self::breadcrumb_var_values();
-        $css .= ".smpi-breadcrumbs-band,.smpi-breadcrumbs{--smpi-bc-accent:" . $bc["accent"] . ";--smpi-bc-tint:" . $bc["tint"] . ";--smpi-bc-background:" . $bc["background"] . ";--smpi-bc-font-size:" . $bc["size"] . "}";
+        $css .= ".smpi-breadcrumbs-band,.smpi-breadcrumbs{--smpi-bc-accent:" . $bc["accent"] . ";--smpi-bc-tint:" . $bc["tint"] . ";--smpi-bc-background:" . $bc["background"] . ";--smpi-bc-text:" . $bc["text"] . ";--smpi-bc-font-size:" . $bc["size"] . "}";
         $toc = self::toc_var_values();
         $css .= ".smpi-table-of-contents{--smpi-toc-accent:" . $toc["accent"] . ";--smpi-toc-text:" . $toc["text"] . ";--smpi-toc-size:" . $toc["size"] . ";--smpi-toc-fstyle:" . $toc["fstyle"] . "}";
         $faq = self::faq_var_values();
         $css .= ".smpi-post-faqs{--smpi-faq-accent:" . $faq["accent"] . ";--smpi-faq-text:" . $faq["text"] . ";--smpi-faq-size:" . $faq["size"] . ";--smpi-faq-fstyle:" . $faq["fstyle"] . "}";
+        $summary = self::summary_var_values();
+        $css .= ".smpi-post-summary{--smpi-summary-text:" . $summary["text"] . ";--smpi-summary-size:" . $summary["size"] . "}";
         if ( Settings::bool( "article_heading_styles_enabled" ) ) {
             $h = self::article_heading_var_values();
             $css .= "body.single-post{--smpi-heading-accent:" . $h["accent"] . ";--smpi-heading-accent-fade:" . $h["accent_fade"] . ";--smpi-heading-highlight:" . $h["highlight"] . ";--smpi-heading-line:" . $h["line"] . ";--smpi-heading-ink:" . $h["ink"] . ";--smpi-heading-h2-size:" . $h["h2_size"] . ";--smpi-heading-h3-size:" . $h["h3_size"] . "}";
@@ -281,35 +283,124 @@ final class ArticleStyles {
     }
 
     public static function font_overrides_css(): string {
-        $selectors = [
-            "breadcrumbs_font_family" => ".smpi-breadcrumbs,.smpi-breadcrumbs .smpi-breadcrumb-title,.smpi-breadcrumbs .smpi-breadcrumb-list,.smpi-breadcrumbs .smpi-breadcrumb-link,.smpi-breadcrumbs .smpi-breadcrumb-current",
-            "table_of_contents_font_family" => ".smpi-table-of-contents,.smpi-table-of-contents .smpi-toc-label,.smpi-table-of-contents .smpi-toc-link",
-            "article_heading_font_family" => "body.single-post .smpi-article-heading--h2,body.single-post .smpi-article-heading--h3",
-            "article_drop_cap_font_family" => "body.single-post .smpi-article-lead::first-letter",
-            "inline_photo_caption_font_family" => ".smpi-inline-photo .smpi-inline-photo-caption",
-            "featured_image_caption_font_family" => ".smpi-featured-image-caption .smpi-featured-image-caption-text",
-            "post_summary_font_family" => ".smpi-post-summary,.smpi-post-summary .smpi-template-title,.smpi-post-summary .smpi-template-content,.smpi-post-summary .smpi-template-content *",
-            "post_faqs_font_family" => ".smpi-post-faqs,.smpi-post-faqs .smpi-template-title,.smpi-post-faqs .smpi-template-content,.smpi-post-faqs .smpi-template-content *",
+        $surfaces = [
+            "breadcrumbs" => [
+                "font_family" => "breadcrumbs_font_family",
+                "font_weight" => "breadcrumbs_font_weight",
+                "rules" => [
+                    "font_family" => [ [ ".smpi-breadcrumbs,.smpi-breadcrumbs .smpi-breadcrumb-title,.smpi-breadcrumbs .smpi-breadcrumb-list,.smpi-breadcrumbs .smpi-breadcrumb-link,.smpi-breadcrumbs .smpi-breadcrumb-current" ] ],
+                    "font_weight" => [ [ ".smpi-breadcrumbs,.smpi-breadcrumbs .smpi-breadcrumb-title,.smpi-breadcrumbs .smpi-breadcrumb-list,.smpi-breadcrumbs .smpi-breadcrumb-link,.smpi-breadcrumbs .smpi-breadcrumb-current" ] ],
+                    "font_color" => [ [ ".smpi-breadcrumbs .smpi-breadcrumb-title,.smpi-breadcrumbs .smpi-breadcrumb-list,.smpi-breadcrumbs .smpi-breadcrumb-current", "var(--smpi-bc-text,#374151)" ] ],
+                    "font_size" => [ [ ".smpi-breadcrumbs .smpi-breadcrumb-title,.smpi-breadcrumbs .smpi-breadcrumb-list,.smpi-breadcrumbs .smpi-breadcrumb-link,.smpi-breadcrumbs .smpi-breadcrumb-current", "var(--smpi-bc-font-size,13px)" ] ],
+                ],
+            ],
+            "table_of_contents" => [
+                "font_family" => "table_of_contents_font_family",
+                "font_weight" => "table_of_contents_font_weight",
+                "rules" => [
+                    "font_family" => [ [ ".smpi-table-of-contents,.smpi-table-of-contents .smpi-toc-label,.smpi-table-of-contents .smpi-toc-link" ] ],
+                    "font_weight" => [ [ ".smpi-table-of-contents,.smpi-table-of-contents .smpi-toc-label,.smpi-table-of-contents .smpi-toc-link" ] ],
+                    "font_color" => [ [ ".smpi-table-of-contents .smpi-toc-label,.smpi-table-of-contents .smpi-toc-link:not(:hover)", "var(--smpi-toc-text,#1f2937)" ] ],
+                    "font_size" => [ [ ".smpi-table-of-contents .smpi-toc-label,.smpi-table-of-contents .smpi-toc-link", "var(--smpi-toc-size,15px)" ] ],
+                ],
+            ],
+            "article_heading" => [
+                "font_family" => "article_heading_font_family",
+                "font_weight" => "article_heading_font_weight",
+                "rules" => [
+                    "font_family" => [ [ "body.single-post .smpi-article-heading--h2,body.single-post .smpi-article-heading--h3" ] ],
+                    "font_weight" => [ [ "body.single-post .smpi-article-heading--h2,body.single-post .smpi-article-heading--h3" ] ],
+                    "font_color" => [ [ "body.single-post .smpi-article-heading--h2,body.single-post .smpi-article-heading--h3", "var(--smpi-heading-ink,#111827)" ] ],
+                    "font_size" => [
+                        [ "body.single-post .smpi-article-heading--h2", "var(--smpi-heading-h2-size,23px)" ],
+                        [ "body.single-post .smpi-article-heading--h3", "var(--smpi-heading-h3-size,20px)" ],
+                    ],
+                ],
+            ],
+            "article_drop_cap" => [
+                "font_family" => "article_drop_cap_font_family",
+                "font_weight" => "article_drop_cap_font_weight",
+                "rules" => [
+                    "font_family" => [ [ "body.single-post .smpi-article-lead::first-letter" ] ],
+                    "font_weight" => [ [ "body.single-post .smpi-article-lead::first-letter" ] ],
+                    "font_color" => [ [ "body.single-post .smpi-article-lead::first-letter", "var(--smpi-dropcap-color,#111111)" ] ],
+                    "font_size" => [ [ "body.single-post .smpi-article-lead::first-letter", "var(--smpi-dropcap-size,96px)" ] ],
+                ],
+            ],
+            "inline_photo_caption" => [
+                "font_family" => "inline_photo_caption_font_family",
+                "font_weight" => "inline_photo_caption_font_weight",
+                "rules" => [
+                    "font_family" => [ [ ".smpi-inline-photo .smpi-inline-photo-caption" ] ],
+                    "font_weight" => [ [ ".smpi-inline-photo .smpi-inline-photo-caption" ] ],
+                    "font_color" => [ [ ".smpi-inline-photo .smpi-inline-photo-caption", "var(--smpi-photo-cap-color,#272727)" ] ],
+                    "font_size" => [ [ ".smpi-inline-photo .smpi-inline-photo-caption", "var(--smpi-photo-cap-size,16px)" ] ],
+                ],
+            ],
+            "featured_image_caption" => [
+                "font_family" => "featured_image_caption_font_family",
+                "font_weight" => "featured_image_caption_font_weight",
+                "rules" => [
+                    "font_family" => [ [ ".smpi-featured-image-caption .smpi-featured-image-caption-text" ] ],
+                    "font_weight" => [ [ ".smpi-featured-image-caption .smpi-featured-image-caption-text" ] ],
+                    "font_color" => [ [ ".smpi-featured-image-caption .smpi-featured-image-caption-text", "var(--smpi-fi-cap-color,#272727)" ] ],
+                    "font_size" => [ [ ".smpi-featured-image-caption .smpi-featured-image-caption-text", "var(--smpi-fi-cap-size,16px)" ] ],
+                ],
+            ],
+            "post_summary" => [
+                "font_family" => "post_summary_font_family",
+                "font_weight" => "post_summary_font_weight",
+                "rules" => [
+                    "font_family" => [ [ ".smpi-post-summary,.smpi-post-summary .smpi-template-title,.smpi-post-summary .smpi-template-content,.smpi-post-summary .smpi-template-content *" ] ],
+                    "font_weight" => [ [ ".smpi-post-summary,.smpi-post-summary .smpi-template-title,.smpi-post-summary .smpi-template-content,.smpi-post-summary .smpi-template-content *" ] ],
+                    "font_color" => [ [ ".smpi-post-summary,.smpi-post-summary .smpi-template-title,.smpi-post-summary .smpi-template-content,.smpi-post-summary .smpi-template-content *", "var(--smpi-summary-text,#1f2937)" ] ],
+                    "font_size" => [ [ ".smpi-post-summary,.smpi-post-summary .smpi-template-title,.smpi-post-summary .smpi-template-content,.smpi-post-summary .smpi-template-content *", "var(--smpi-summary-size,16px)" ] ],
+                ],
+            ],
+            "post_faqs" => [
+                "font_family" => "post_faqs_font_family",
+                "font_weight" => "post_faqs_font_weight",
+                "rules" => [
+                    "font_family" => [ [ ".smpi-post-faqs,.smpi-post-faqs .smpi-template-title,.smpi-post-faqs .smpi-template-content,.smpi-post-faqs .smpi-template-content *" ] ],
+                    "font_weight" => [ [ ".smpi-post-faqs,.smpi-post-faqs .smpi-template-title,.smpi-post-faqs .smpi-template-content,.smpi-post-faqs .smpi-template-content *" ] ],
+                    "font_color" => [ [ ".smpi-post-faqs,.smpi-post-faqs .smpi-template-title,.smpi-post-faqs .smpi-template-content,.smpi-post-faqs .smpi-template-content *", "var(--smpi-faq-text,#1f2937)" ] ],
+                    "font_size" => [ [ ".smpi-post-faqs,.smpi-post-faqs .smpi-template-title,.smpi-post-faqs .smpi-template-content,.smpi-post-faqs .smpi-template-content *", "var(--smpi-faq-size,16px)" ] ],
+                ],
+            ],
         ];
         $css = "";
         $drop_cap_style = self::normalize_article_drop_cap_style( (string) Settings::get( "article_drop_cap_style", "dropcap-classic" ) );
-        foreach ( $selectors as $key => $selector ) {
-            $declarations = [];
-            $font = Settings::font_family_css( $key );
-            $preserve_font = self::preserves_font_setting( $key, "font_family" );
-            $template_owns_font = "article_drop_cap_font_family" === $key && self::article_drop_cap_style_uses_script_font( $drop_cap_style );
-            if ( "" !== $font && ! $preserve_font && ! $template_owns_font ) {
-                $declarations[] = "font-family:" . $font;
-            }
-            $weight_key = str_replace( "_font_family", "_font_weight", $key );
-            $weight = Settings::font_weight_css( $weight_key );
-            $preserve_weight = self::preserves_font_setting( $weight_key, "font_weight" );
-            $template_owns_weight = "article_drop_cap_font_weight" === $weight_key && self::article_drop_cap_style_uses_script_font( $drop_cap_style );
-            if ( "" !== $weight && ! $preserve_weight && ! $template_owns_weight ) {
-                $declarations[] = "font-weight:" . $weight;
-            }
-            if ( ! empty( $declarations ) ) {
-                $css .= $selector . "{" . implode( ";", $declarations ) . "}";
+        foreach ( $surfaces as $prefix => $surface ) {
+            $preservation = self::typography_preservation_settings( $prefix );
+            foreach ( TypographyPreservation::PROPERTIES as $property ) {
+                $rules = $surface["rules"][ $property ] ?? [];
+                if ( [] === $rules ) {
+                    continue;
+                }
+                $preserve = ! empty( $preservation[ $property ] );
+                if ( $preserve ) {
+                    continue;
+                }
+                $default_value = "";
+                if ( "font_family" === $property ) {
+                    $default_value = Settings::font_family_css( $surface["font_family"] );
+                } elseif ( "font_weight" === $property ) {
+                    $default_value = Settings::font_weight_css( $surface["font_weight"] );
+                }
+                $template_owns_property = "article_drop_cap" === $prefix
+                    && in_array( $property, [ "font_family", "font_weight" ], true )
+                    && self::article_drop_cap_style_uses_script_font( $drop_cap_style );
+                if ( $template_owns_property ) {
+                    continue;
+                }
+                $css_property = "font_color" === $property ? "color" : str_replace( "_", "-", $property );
+                foreach ( $rules as $rule ) {
+                    $value = (string) ( $rule[1] ?? $default_value );
+                    if ( "" === $value ) {
+                        continue;
+                    }
+                    $css .= (string) $rule[0] . "{" . $css_property . ":" . $value . "!important}";
+                }
             }
         }
 
@@ -321,6 +412,7 @@ final class ArticleStyles {
         return [
             "accent" => $accent,
             "background" => self::hex( Settings::get( "breadcrumbs_background_color", "#ffffff" ), "#ffffff" ),
+            "text"   => self::hex( Settings::get( "breadcrumbs_text_color", "#374151" ), "#374151" ),
             "tint"   => self::rgba( $accent, 0.07 ),
             "size"   => self::px( Settings::get( "breadcrumbs_font_size", 13 ), 13 ),
         ];
@@ -342,7 +434,7 @@ final class ArticleStyles {
             "accent_fade" => self::rgba( $accent, 0 ),
             "highlight" => self::rgba( $accent, 0.16 ),
             "line"    => "#e5e7eb",
-            "ink"     => "#111827",
+            "ink"     => self::hex( Settings::get( "article_heading_text_color", "#111827" ), "#111827" ),
             "h2_size" => self::px( Settings::get( "article_heading_h2_font_size", 23 ), 23 ),
             "h3_size" => self::px( Settings::get( "article_heading_h3_font_size", 20 ), 20 ),
         ];
@@ -365,6 +457,13 @@ final class ArticleStyles {
             "text"   => self::hex( Settings::get( "post_faqs_text_color", "#1f2937" ), "#1f2937" ),
             "size"   => self::px( Settings::get( "post_faqs_text_font_size", 16 ), 16 ),
             "fstyle" => self::fstyle( Settings::get( "post_faqs_text_font_style", "normal" ) ),
+        ];
+    }
+
+    public static function summary_var_values(): array {
+        return [
+            "text" => self::hex( Settings::get( "post_summary_text_color", "#1f2937" ), "#1f2937" ),
+            "size" => self::px( Settings::get( "post_summary_font_size", 16 ), 16 ),
         ];
     }
 
@@ -394,6 +493,74 @@ final class ArticleStyles {
     private static function px( $value, int $fallback, int $min = 8, int $max = 96 ): string {
         $n = absint( $value );
         return ( $n >= $min && $n <= $max ? $n : $fallback ) . "px";
+    }
+
+    private static function remove_preserved_typography( string $css, string $prefix, array $text_selectors = [] ): string {
+        $preservation = self::typography_preservation_settings( $prefix );
+        if ( ! in_array( true, $preservation, true ) ) {
+            return $css;
+        }
+
+        $patterns = [
+            "font_family" => "/(?<![-a-z0-9_])font-family\\s*:[^;}]+;?/i",
+            "font_weight" => "/(?<![-a-z0-9_])font-weight\\s*:[^;}]+;?/i",
+            "font_color" => "/(?<![-a-z0-9_])color\\s*:[^;}]+;?/i",
+            "font_size" => "/(?<![-a-z0-9_])font-size\\s*:[^;}]+;?/i",
+        ];
+        $filtered = preg_replace_callback(
+            "/([^{}]+)\\{([^{}]*)\\}/",
+            static function ( array $matches ) use ( $prefix, $preservation, $patterns, $text_selectors ): string {
+                $selector = trim( (string) $matches[1] );
+                $declarations = (string) $matches[2];
+                foreach ( $patterns as $property => $pattern ) {
+                    if ( empty( $preservation[ $property ] ) || ! self::is_typography_text_selector( $prefix, $property, $selector, $text_selectors ) ) {
+                        continue;
+                    }
+                    $stripped = preg_replace( $pattern, "", $declarations );
+                    if ( is_string( $stripped ) ) {
+                        $declarations = $stripped;
+                    }
+                }
+                return $matches[1] . "{" . $declarations . "}";
+            },
+            $css
+        );
+
+        return is_string( $filtered ) ? $filtered : $css;
+    }
+
+    private static function is_typography_text_selector( string $prefix, string $property, string $selector, array $text_selectors = [] ): bool {
+        if ( preg_match( "/::?(?:before|after)|:hover/", $selector ) ) {
+            return false;
+        }
+        foreach ( $text_selectors as $text_selector ) {
+            if ( "" !== trim( (string) $text_selector ) && false !== strpos( $selector, trim( (string) $text_selector ) ) ) {
+                return true;
+            }
+        }
+        if ( "breadcrumbs" === $prefix ) {
+            if ( false === strpos( $selector, "smpi-breadcrumb" ) || false !== strpos( $selector, "smpi-breadcrumb-separator" ) ) {
+                return false;
+            }
+            return "font_color" !== $property || false === strpos( $selector, "smpi-breadcrumb-link" );
+        }
+        if ( "table_of_contents" === $prefix ) {
+            return false !== strpos( $selector, "smpi-toc-label" ) || false !== strpos( $selector, "smpi-toc-link" );
+        }
+        if ( "post_summary" === $prefix ) {
+            return false !== strpos( $selector, "smpi-post-summary" ) || false !== strpos( $selector, "smpi-sum" );
+        }
+        if ( "post_faqs" === $prefix ) {
+            return false !== strpos( $selector, "smpi-post-faq" ) || false !== strpos( $selector, "smpi-faq" );
+        }
+        if ( "inline_photo_caption" === $prefix ) {
+            return false !== strpos( $selector, "smpi-inline-photo-caption" );
+        }
+        if ( "featured_image_caption" === $prefix ) {
+            return false !== strpos( $selector, "smpi-featured-image-caption-text" );
+        }
+
+        return false;
     }
 
     private static function rgba( string $hex, float $alpha ): string {
@@ -428,22 +595,29 @@ final class ArticleStyles {
     /* ---------------------------------------------------------------------
      * Breadcrumbs
      * ------------------------------------------------------------------- */
-    public static function breadcrumbs_css(): string {
-        return ".smpi-breadcrumbs-band{background:var(--smpi-bc-background,#fff);box-sizing:border-box;clear:both;margin:0;max-width:none;width:100%}.smpi-breadcrumbs{--smpi-bc-line:#e5e7eb;--smpi-bc-muted:#6b7280;--smpi-bc-ink:#111827;--smpi-bc-body:#374151;--smpi-bc-soft:#f7f8f9;background:var(--smpi-bc-background,#fff);box-sizing:border-box;max-width:var(--content-width,1120px);margin:0 auto;font-family:inherit;font-size:var(--smpi-bc-font-size,13px);clear:both}.smpi-breadcrumbs *{box-sizing:border-box}.smpi-breadcrumbs .smpi-breadcrumb-list{margin:0}.smpi-breadcrumbs .smpi-breadcrumb-link{text-decoration:none}.smpi-breadcrumbs .smpi-breadcrumb-title{font-family:Georgia,serif;font-weight:700;letter-spacing:-.01em}.smpi-bc-b1{background:var(--smpi-bc-tint,rgba(214,52,40,.07));padding:20px 24px}.smpi-bc-b1 .smpi-breadcrumb-title{font-size:25px;line-height:1.15;color:var(--smpi-bc-ink,#111827);margin:0 0 8px}.smpi-bc-b1 .smpi-breadcrumb-list{font-size:var(--smpi-bc-font-size,13px);color:var(--smpi-bc-muted,#6b7280);line-height:1.5}.smpi-bc-b1 .smpi-breadcrumb-link{color:var(--smpi-bc-accent,#d63428)}.smpi-bc-b1 .smpi-breadcrumb-link:hover{text-decoration:underline}.smpi-bc-b1 .smpi-breadcrumb-separator{color:#b9b9b9}.smpi-bc-b1 .smpi-breadcrumb-current{color:var(--smpi-bc-muted,#6b7280)}.smpi-bc-b2{padding:14px 24px;border-bottom:1px solid var(--smpi-bc-line,#e5e7eb)}.smpi-bc-b2 .smpi-breadcrumb-list{display:flex;flex-wrap:wrap;align-items:center;font-size:var(--smpi-bc-font-size,13px);color:var(--smpi-bc-muted,#6b7280)}.smpi-bc-b2 .smpi-breadcrumb-link{color:var(--smpi-bc-muted,#6b7280)}.smpi-bc-b2 .smpi-breadcrumb-link:hover{color:var(--smpi-bc-accent,#d63428)}.smpi-bc-b2 .smpi-breadcrumb-separator{font-size:0;margin:0 9px}.smpi-bc-b2 .smpi-breadcrumb-separator::after{content:\"\\203A\";font-size:14px;color:#c3c3c3}.smpi-bc-b2 .smpi-breadcrumb-current{color:var(--smpi-bc-ink,#111827);font-weight:600}.smpi-bc-b3{padding:16px 24px;border-bottom:1px solid var(--smpi-bc-line,#e5e7eb);position:relative}.smpi-bc-b3::after{content:\"\";position:absolute;left:24px;bottom:-1px;width:46px;height:2px;background:var(--smpi-bc-accent,#d63428)}.smpi-bc-b3 .smpi-breadcrumb-list{font-size:var(--smpi-bc-font-size,11px);letter-spacing:.18em;text-transform:uppercase;color:var(--smpi-bc-muted,#6b7280)}.smpi-bc-b3 .smpi-breadcrumb-link{color:var(--smpi-bc-accent,#d63428);font-weight:600}.smpi-bc-b3 .smpi-breadcrumb-separator{font-size:0;margin:0 8px}.smpi-bc-b3 .smpi-breadcrumb-separator::after{content:\"/\";font-size:11px;letter-spacing:0;color:#ccc}.smpi-bc-b3 .smpi-breadcrumb-current{color:var(--smpi-bc-ink,#111827)}.smpi-bc-b4{padding:14px 22px;background:var(--smpi-bc-soft,#f7f8f9);border-bottom:1px solid var(--smpi-bc-line,#e5e7eb)}.smpi-bc-b4 .smpi-breadcrumb-list{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.smpi-bc-b4 .smpi-breadcrumb-link,.smpi-bc-b4 .smpi-breadcrumb-current{display:inline-block;padding:5px 13px;border-radius:999px;font-size:var(--smpi-bc-font-size,12px);line-height:1.4}.smpi-bc-b4 .smpi-breadcrumb-link{background:#fff;border:1px solid var(--smpi-bc-line,#e5e7eb);color:var(--smpi-bc-body,#374151)}.smpi-bc-b4 .smpi-breadcrumb-link:hover{border-color:var(--smpi-bc-accent,#d63428);color:var(--smpi-bc-accent,#d63428)}.smpi-bc-b4 .smpi-breadcrumb-current{background:var(--smpi-bc-accent,#d63428);color:#fff;max-width:100%}.smpi-bc-b4 .smpi-breadcrumb-separator{display:none}.smpi-bc-b5{padding:24px;background:linear-gradient(180deg,var(--smpi-bc-tint,rgba(214,52,40,.07)),#fff)}.smpi-bc-b5 .smpi-breadcrumb-list{font-size:var(--smpi-bc-font-size,12px);letter-spacing:.03em;color:var(--smpi-bc-muted,#6b7280);margin:0 0 11px}.smpi-bc-b5 .smpi-breadcrumb-link{color:var(--smpi-bc-accent,#d63428)}.smpi-bc-b5 .smpi-breadcrumb-separator{font-size:0;margin:0 8px}.smpi-bc-b5 .smpi-breadcrumb-separator::after{content:\"\\2014\";font-size:12px;color:#cdcdcd}.smpi-bc-b5 .smpi-breadcrumb-current{color:var(--smpi-bc-muted,#6b7280)}.smpi-bc-b5 .smpi-breadcrumb-title{font-size:30px;line-height:1.12;color:var(--smpi-bc-ink,#111827);margin:0}.smpi-bc-b6{max-width:var(--content-width,1140px);padding:14px 0;border-bottom:0}.smpi-bc-b6 .smpi-breadcrumb-list{display:flex;flex-wrap:wrap;align-items:center;font-size:var(--smpi-bc-font-size,13px);letter-spacing:.01em;text-transform:capitalize;color:var(--smpi-bc-muted,#6b7280)}.smpi-bc-b6 .smpi-breadcrumb-link{color:var(--smpi-bc-accent,#d63428);font-weight:600}.smpi-bc-b6 .smpi-breadcrumb-link:hover{text-decoration:underline}.smpi-bc-b6 .smpi-breadcrumb-separator{font-size:0;margin:0 8px}.smpi-bc-b6 .smpi-breadcrumb-separator::after{content:\"/\";font-size:13px;letter-spacing:0;color:#cfcfcf}.smpi-bc-b6 .smpi-breadcrumb-current{color:var(--smpi-bc-ink,#111827);font-weight:500}.smpi-breadcrumbs.smpi-bc-b1,.smpi-breadcrumbs.smpi-bc-b4,.smpi-breadcrumbs.smpi-bc-b5{background:var(--smpi-bc-background,#fff)}@media(max-width:680px){.smpi-breadcrumbs{max-width:100%}.smpi-bc-b1,.smpi-bc-b2,.smpi-bc-b3,.smpi-bc-b4,.smpi-bc-b5,.smpi-bc-b6{padding-left:16px;padding-right:16px}.smpi-bc-b1 .smpi-breadcrumb-title{font-size:21px}.smpi-bc-b5 .smpi-breadcrumb-title{font-size:24px}}";
+    public static function breadcrumbs_css( bool $respect_preservation = true ): string {
+        $css = ".smpi-breadcrumbs-band{background:var(--smpi-bc-background,#fff);box-sizing:border-box;clear:both;margin:0;max-width:none;width:100%}.smpi-breadcrumbs{--smpi-bc-line:#e5e7eb;--smpi-bc-muted:#6b7280;--smpi-bc-ink:#111827;--smpi-bc-body:#374151;--smpi-bc-soft:#f7f8f9;background:var(--smpi-bc-background,#fff);box-sizing:border-box;max-width:var(--content-width,1120px);margin:0 auto;font-family:inherit;font-size:var(--smpi-bc-font-size,13px);clear:both}.smpi-breadcrumbs *{box-sizing:border-box}.smpi-breadcrumbs .smpi-breadcrumb-list{margin:0}.smpi-breadcrumbs .smpi-breadcrumb-link{text-decoration:none}.smpi-breadcrumbs .smpi-breadcrumb-title{font-family:Georgia,serif;font-weight:700;letter-spacing:-.01em}.smpi-bc-b1{background:var(--smpi-bc-tint,rgba(214,52,40,.07));padding:20px 24px}.smpi-bc-b1 .smpi-breadcrumb-title{font-size:25px;line-height:1.15;color:var(--smpi-bc-ink,#111827);margin:0 0 8px}.smpi-bc-b1 .smpi-breadcrumb-list{font-size:var(--smpi-bc-font-size,13px);color:var(--smpi-bc-muted,#6b7280);line-height:1.5}.smpi-bc-b1 .smpi-breadcrumb-link{color:var(--smpi-bc-accent,#d63428)}.smpi-bc-b1 .smpi-breadcrumb-link:hover{text-decoration:underline}.smpi-bc-b1 .smpi-breadcrumb-separator{color:#b9b9b9}.smpi-bc-b1 .smpi-breadcrumb-current{color:var(--smpi-bc-muted,#6b7280)}.smpi-bc-b2{padding:14px 24px;border-bottom:1px solid var(--smpi-bc-line,#e5e7eb)}.smpi-bc-b2 .smpi-breadcrumb-list{display:flex;flex-wrap:wrap;align-items:center;font-size:var(--smpi-bc-font-size,13px);color:var(--smpi-bc-muted,#6b7280)}.smpi-bc-b2 .smpi-breadcrumb-link{color:var(--smpi-bc-muted,#6b7280)}.smpi-bc-b2 .smpi-breadcrumb-link:hover{color:var(--smpi-bc-accent,#d63428)}.smpi-bc-b2 .smpi-breadcrumb-separator{font-size:0;margin:0 9px}.smpi-bc-b2 .smpi-breadcrumb-separator::after{content:\"\\203A\";font-size:14px;color:#c3c3c3}.smpi-bc-b2 .smpi-breadcrumb-current{color:var(--smpi-bc-ink,#111827);font-weight:600}.smpi-bc-b3{padding:16px 24px;border-bottom:1px solid var(--smpi-bc-line,#e5e7eb);position:relative}.smpi-bc-b3::after{content:\"\";position:absolute;left:24px;bottom:-1px;width:46px;height:2px;background:var(--smpi-bc-accent,#d63428)}.smpi-bc-b3 .smpi-breadcrumb-list{font-size:var(--smpi-bc-font-size,11px);letter-spacing:.18em;text-transform:uppercase;color:var(--smpi-bc-muted,#6b7280)}.smpi-bc-b3 .smpi-breadcrumb-link{color:var(--smpi-bc-accent,#d63428);font-weight:600}.smpi-bc-b3 .smpi-breadcrumb-separator{font-size:0;margin:0 8px}.smpi-bc-b3 .smpi-breadcrumb-separator::after{content:\"/\";font-size:11px;letter-spacing:0;color:#ccc}.smpi-bc-b3 .smpi-breadcrumb-current{color:var(--smpi-bc-ink,#111827)}.smpi-bc-b4{padding:14px 22px;background:var(--smpi-bc-soft,#f7f8f9);border-bottom:1px solid var(--smpi-bc-line,#e5e7eb)}.smpi-bc-b4 .smpi-breadcrumb-list{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.smpi-bc-b4 .smpi-breadcrumb-link,.smpi-bc-b4 .smpi-breadcrumb-current{display:inline-block;padding:5px 13px;border-radius:999px;font-size:var(--smpi-bc-font-size,12px);line-height:1.4}.smpi-bc-b4 .smpi-breadcrumb-link{background:#fff;border:1px solid var(--smpi-bc-line,#e5e7eb);color:var(--smpi-bc-body,#374151)}.smpi-bc-b4 .smpi-breadcrumb-link:hover{border-color:var(--smpi-bc-accent,#d63428);color:var(--smpi-bc-accent,#d63428)}.smpi-bc-b4 .smpi-breadcrumb-current{background:var(--smpi-bc-accent,#d63428);color:#fff;max-width:100%}.smpi-bc-b4 .smpi-breadcrumb-separator{display:none}.smpi-bc-b5{padding:24px;background:linear-gradient(180deg,var(--smpi-bc-tint,rgba(214,52,40,.07)),#fff)}.smpi-bc-b5 .smpi-breadcrumb-list{font-size:var(--smpi-bc-font-size,12px);letter-spacing:.03em;color:var(--smpi-bc-muted,#6b7280);margin:0 0 11px}.smpi-bc-b5 .smpi-breadcrumb-link{color:var(--smpi-bc-accent,#d63428)}.smpi-bc-b5 .smpi-breadcrumb-separator{font-size:0;margin:0 8px}.smpi-bc-b5 .smpi-breadcrumb-separator::after{content:\"\\2014\";font-size:12px;color:#cdcdcd}.smpi-bc-b5 .smpi-breadcrumb-current{color:var(--smpi-bc-muted,#6b7280)}.smpi-bc-b5 .smpi-breadcrumb-title{font-size:30px;line-height:1.12;color:var(--smpi-bc-ink,#111827);margin:0}.smpi-bc-b6{max-width:var(--content-width,1140px);padding:14px 0;border-bottom:0}.smpi-bc-b6 .smpi-breadcrumb-list{display:flex;flex-wrap:wrap;align-items:center;font-size:var(--smpi-bc-font-size,13px);letter-spacing:.01em;text-transform:capitalize;color:var(--smpi-bc-muted,#6b7280)}.smpi-bc-b6 .smpi-breadcrumb-link{color:var(--smpi-bc-accent,#d63428);font-weight:600}.smpi-bc-b6 .smpi-breadcrumb-link:hover{text-decoration:underline}.smpi-bc-b6 .smpi-breadcrumb-separator{font-size:0;margin:0 8px}.smpi-bc-b6 .smpi-breadcrumb-separator::after{content:\"/\";font-size:13px;letter-spacing:0;color:#cfcfcf}.smpi-bc-b6 .smpi-breadcrumb-current{color:var(--smpi-bc-ink,#111827);font-weight:500}.smpi-breadcrumbs.smpi-bc-b1,.smpi-breadcrumbs.smpi-bc-b4,.smpi-breadcrumbs.smpi-bc-b5{background:var(--smpi-bc-background,#fff)}@media(max-width:680px){.smpi-breadcrumbs{max-width:100%}.smpi-bc-b1,.smpi-bc-b2,.smpi-bc-b3,.smpi-bc-b4,.smpi-bc-b5,.smpi-bc-b6{padding-left:16px;padding-right:16px}.smpi-bc-b1 .smpi-breadcrumb-title{font-size:21px}.smpi-bc-b5 .smpi-breadcrumb-title{font-size:24px}}";
+        return $respect_preservation ? self::remove_preserved_typography( $css, "breadcrumbs" ) : $css;
     }
 
     /* ---------------------------------------------------------------------
      * Table of contents
      * ------------------------------------------------------------------- */
-    public static function toc_css(): string {
-        return ".smpi-table-of-contents{max-width:var(--content-width,720px);margin:0}.smpi-table-of-contents .smpi-toc-label{display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;list-style:none;user-select:none;margin:0}.smpi-table-of-contents .smpi-toc-label::-webkit-details-marker{display:none}.smpi-table-of-contents .smpi-toc-link{text-decoration:none;font-size:var(--smpi-toc-size,15px);font-style:var(--smpi-toc-fstyle,normal)}.smpi-table-of-contents .smpi-toc-list{margin:0;padding:0}.smpi-toc-caret{flex:0 0 auto;width:8px;height:8px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg);transition:transform .2s ease;opacity:.5}.smpi-table-of-contents[open] .smpi-toc-caret{transform:rotate(-135deg)}.smpi-table-of-contents[open] .smpi-toc-list,.smpi-table-of-contents[open] .smpi-toc-panel{margin-top:14px}.smpi-toc-none{border:1px solid #ececec;border-radius:12px;padding:14px 16px}.smpi-toc-none .smpi-toc-list{padding-left:20px}.smpi-toc00{max-width:560px;background:#fafbfc;border-radius:12px;padding:16px 18px}.smpi-toc00 .smpi-toc-label{font-size:.72rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#9ca3af}.smpi-toc00 .smpi-toc-list{list-style:none;display:grid;gap:10px}.smpi-toc00 .smpi-toc-link{color:var(--smpi-toc-text,#111827);border-bottom:1px solid transparent}.smpi-toc00 .smpi-toc-link:hover{color:var(--smpi-toc-accent,#2563eb);border-color:var(--smpi-toc-accent,#2563eb)}.smpi-toc01{max-width:560px;background:#fafbfc;border-radius:12px;border-left:3px solid var(--smpi-toc-accent,#2563eb);padding:14px 18px}.smpi-toc01 .smpi-toc-label{font-size:.82rem;font-weight:800;color:#0a0a0a}.smpi-toc01 .smpi-toc-list{list-style:none;display:grid;gap:11px}.smpi-toc01 .smpi-toc-link{color:var(--smpi-toc-text,#52525b)}.smpi-toc01 .smpi-toc-link:hover{color:var(--smpi-toc-accent,#2563eb)}.smpi-toc02{background:#f7f8f9;border-radius:12px;padding:18px 24px;max-width:560px}.smpi-toc02 .smpi-toc-label{font-size:.75rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#6b7280}.smpi-toc02 .smpi-toc-list{list-style:none;display:grid;gap:12px;counter-reset:t}.smpi-toc02 .smpi-toc-item{counter-increment:t;display:flex;gap:12px;align-items:baseline}.smpi-toc02 .smpi-toc-item:before{content:counter(t,decimal-leading-zero);color:var(--smpi-toc-accent,#2563eb);font-weight:700;font-size:.85rem}.smpi-toc02 .smpi-toc-link{color:var(--smpi-toc-text,#1f2937)}.smpi-toc02 .smpi-toc-link:hover{color:var(--smpi-toc-accent,#2563eb)}.smpi-toc03{background:#f8f9fb;border-radius:14px;padding:18px 22px}.smpi-toc03 .smpi-toc-label{font-size:.6rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#8a92a0}.smpi-toc03 .smpi-toc-list{list-style:none;counter-reset:t}.smpi-toc03 .smpi-toc-item{counter-increment:t}.smpi-toc03 .smpi-toc-link{display:flex;gap:13px;align-items:baseline;padding:9px 10px;margin:0 -10px;border-radius:9px;color:var(--smpi-toc-text,#1f2937);line-height:1.4;transition:background .12s ease,color .12s ease}.smpi-toc03 .smpi-toc-link:before{content:counter(t,decimal-leading-zero);color:var(--smpi-toc-accent,#2563eb);font-weight:800;font-size:.8rem;min-width:1.6em;flex:0 0 auto}.smpi-toc03 .smpi-toc-link:hover{background:#eef1f6;color:var(--smpi-toc-accent,#2563eb)}.smpi-toc04{background:#fafbfc;border-radius:12px;padding:14px 18px}.smpi-toc04 .smpi-toc-label{font-size:.72rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#9ca3af}.smpi-toc04 .smpi-toc-panel{display:flex;flex-wrap:wrap;align-items:center;gap:8px}.smpi-toc04 .smpi-toc-link{color:var(--smpi-toc-text,#374151);border:1px solid #e5e7eb;border-radius:999px;padding:6px 14px;background:#fff;line-height:1.3}.smpi-toc04 .smpi-toc-link:hover{border-color:var(--smpi-toc-accent,#2563eb);color:var(--smpi-toc-accent,#2563eb)}";
+    public static function toc_css( bool $respect_preservation = true ): string {
+        $css = ".smpi-table-of-contents{max-width:var(--content-width,720px);margin:0}.smpi-table-of-contents .smpi-toc-label{display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;list-style:none;user-select:none;margin:0}.smpi-table-of-contents .smpi-toc-label::-webkit-details-marker{display:none}.smpi-table-of-contents .smpi-toc-link{text-decoration:none;font-size:var(--smpi-toc-size,15px);font-style:var(--smpi-toc-fstyle,normal)}.smpi-table-of-contents .smpi-toc-list{margin:0;padding:0}.smpi-toc-caret{flex:0 0 auto;width:8px;height:8px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg);transition:transform .2s ease;opacity:.5}.smpi-table-of-contents[open] .smpi-toc-caret{transform:rotate(-135deg)}.smpi-table-of-contents[open] .smpi-toc-list,.smpi-table-of-contents[open] .smpi-toc-panel{margin-top:14px}.smpi-toc-none{border:1px solid #ececec;border-radius:12px;padding:14px 16px}.smpi-toc-none .smpi-toc-list{padding-left:20px}.smpi-toc00{max-width:560px;background:#fafbfc;border-radius:12px;padding:16px 18px}.smpi-toc00 .smpi-toc-label{font-size:.72rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#9ca3af}.smpi-toc00 .smpi-toc-list{list-style:none;display:grid;gap:10px}.smpi-toc00 .smpi-toc-link{color:var(--smpi-toc-text,#111827);border-bottom:1px solid transparent}.smpi-toc00 .smpi-toc-link:hover{color:var(--smpi-toc-accent,#2563eb);border-color:var(--smpi-toc-accent,#2563eb)}.smpi-toc01{max-width:560px;background:#fafbfc;border-radius:12px;border-left:3px solid var(--smpi-toc-accent,#2563eb);padding:14px 18px}.smpi-toc01 .smpi-toc-label{font-size:.82rem;font-weight:800;color:#0a0a0a}.smpi-toc01 .smpi-toc-list{list-style:none;display:grid;gap:11px}.smpi-toc01 .smpi-toc-link{color:var(--smpi-toc-text,#52525b)}.smpi-toc01 .smpi-toc-link:hover{color:var(--smpi-toc-accent,#2563eb)}.smpi-toc02{background:#f7f8f9;border-radius:12px;padding:18px 24px;max-width:560px}.smpi-toc02 .smpi-toc-label{font-size:.75rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#6b7280}.smpi-toc02 .smpi-toc-list{list-style:none;display:grid;gap:12px;counter-reset:t}.smpi-toc02 .smpi-toc-item{counter-increment:t;display:flex;gap:12px;align-items:baseline}.smpi-toc02 .smpi-toc-item:before{content:counter(t,decimal-leading-zero);color:var(--smpi-toc-accent,#2563eb);font-weight:700;font-size:.85rem}.smpi-toc02 .smpi-toc-link{color:var(--smpi-toc-text,#1f2937)}.smpi-toc02 .smpi-toc-link:hover{color:var(--smpi-toc-accent,#2563eb)}.smpi-toc03{background:#f8f9fb;border-radius:14px;padding:18px 22px}.smpi-toc03 .smpi-toc-label{font-size:.6rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#8a92a0}.smpi-toc03 .smpi-toc-list{list-style:none;counter-reset:t}.smpi-toc03 .smpi-toc-item{counter-increment:t}.smpi-toc03 .smpi-toc-link{display:flex;gap:13px;align-items:baseline;padding:9px 10px;margin:0 -10px;border-radius:9px;color:var(--smpi-toc-text,#1f2937);line-height:1.4;transition:background .12s ease,color .12s ease}.smpi-toc03 .smpi-toc-link:before{content:counter(t,decimal-leading-zero);color:var(--smpi-toc-accent,#2563eb);font-weight:800;font-size:.8rem;min-width:1.6em;flex:0 0 auto}.smpi-toc03 .smpi-toc-link:hover{background:#eef1f6;color:var(--smpi-toc-accent,#2563eb)}.smpi-toc04{background:#fafbfc;border-radius:12px;padding:14px 18px}.smpi-toc04 .smpi-toc-label{font-size:.72rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#9ca3af}.smpi-toc04 .smpi-toc-panel{display:flex;flex-wrap:wrap;align-items:center;gap:8px}.smpi-toc04 .smpi-toc-link{color:var(--smpi-toc-text,#374151);border:1px solid #e5e7eb;border-radius:999px;padding:6px 14px;background:#fff;line-height:1.3}.smpi-toc04 .smpi-toc-link:hover{border-color:var(--smpi-toc-accent,#2563eb);color:var(--smpi-toc-accent,#2563eb)}";
+        return $respect_preservation ? self::remove_preserved_typography( $css, "table_of_contents" ) : $css;
     }
 
     /* ---------------------------------------------------------------------
      * Post summary + FAQ
      * ------------------------------------------------------------------- */
-    public static function post_acf_css(): string {
-        return ".smpi-post-summary{max-width:var(--content-width,720px);margin:0}.smpi-post-faqs{max-width:var(--content-width,720px);margin:2rem auto}.smpi-sum00{background:#f5f6f7;padding:26px 32px}.smpi-sum00 .smpi-post-summary-title{margin:0;font-size:1.3rem;font-weight:800;color:#1f2937;display:inline-block;padding-bottom:8px;border-bottom:3px solid #111827}.smpi-sum00 .smpi-post-summary-content{margin-top:18px}.smpi-sum01{border-left:4px solid #2563eb;padding:2px 0 2px 22px}.smpi-sum01 .smpi-post-summary-content{font-size:15px}.smpi-sum01 .smpi-post-summary-item{margin-bottom:9px;line-height:1.45}.smpi-sum01 .smpi-post-summary-item:last-child{margin-bottom:0}.smpi-sum01 .smpi-post-summary-title{margin:0 0 10px;font-size:.78rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#2563eb}.smpi-sum02{padding:18px 0;border-top:2px solid #0a0a0a;border-bottom:1px solid #e5e7eb}.smpi-sum02 .smpi-post-summary-title{margin:0 0 12px;font-size:.78rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#0a0a0a}.smpi-sum03{border:1px solid #e5e7eb;border-radius:12px;overflow:hidden}.smpi-sum03 .smpi-post-summary-title{margin:0;background:#0a0a0a;color:#fff;padding:12px 22px;font-size:.85rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase}.smpi-sum03 .smpi-post-summary-content{padding:18px 22px}.smpi-sum04{background:#eff4ff;border-radius:14px;padding:24px 28px}.smpi-sum04 .smpi-post-summary-title{margin:0 0 14px;font-size:1.05rem;font-weight:800;color:#1e3a8a;display:flex;align-items:center;gap:9px}.smpi-sum04 .smpi-post-summary-title:before{content:\"\";width:18px;height:18px;border-radius:5px;background:#2563eb}.smpi-post-summary-list{margin:0;padding-left:1.2rem}.smpi-post-faqs-content{color:var(--smpi-faq-text,#1f2937);font-size:var(--smpi-faq-size,16px);font-style:var(--smpi-faq-fstyle,normal)}.smpi-post-faqs-title{font-size:1.05rem;font-weight:800;color:#0a0a0a;margin:0 0 10px}.smpi-post-faq-question{font-size:.95rem;font-weight:700;line-height:1.3;margin:0 0 4px;color:#0a0a0a}.smpi-post-faq-answer{font-size:.86em;line-height:1.5}.smpi-post-faq-text{margin:0 0 .5em}.smpi-post-faq-text:last-child{margin-bottom:0}.smpi-post-faq-list{list-style:none;margin:0;padding:0}.smpi-faq00 .smpi-post-faqs-content,.smpi-faq01 .smpi-post-faqs-content{border-top:1px solid #e5e7eb}.smpi-faq00 .smpi-post-faq-item,.smpi-faq01 .smpi-post-faq-item{border-bottom:1px solid #e5e7eb;padding:16px 0;margin:0}.smpi-faq02 .smpi-post-faq-item{border:1px solid #e5e7eb;border-radius:12px;padding:18px 22px;margin:0 0 14px;box-shadow:0 1px 2px rgba(0,0,0,.04)}.smpi-faq03 .smpi-post-faqs-content{counter-reset:f}.smpi-faq03 .smpi-post-faq-item{counter-increment:f;position:relative;padding:12px 0 12px 34px;border-bottom:1px solid #e5e7eb}.smpi-faq03 .smpi-post-faq-item:before{content:counter(f,decimal-leading-zero);position:absolute;left:0;top:14px;font-size:1rem;font-weight:800;color:var(--smpi-faq-accent,#2563eb);line-height:1}.smpi-faq04 .smpi-post-faq-item{background:#f8fafc;border:1px solid #eef2f7;border-radius:12px;margin-bottom:10px;padding:16px 20px}";
+    public static function post_acf_css( bool $respect_preservation = true ): string {
+        $css = ".smpi-post-summary{max-width:var(--content-width,720px);margin:0}.smpi-post-faqs{max-width:var(--content-width,720px);margin:2rem auto}.smpi-sum00{background:#f5f6f7;padding:26px 32px}.smpi-sum00 .smpi-post-summary-title{margin:0;font-size:1.3rem;font-weight:800;color:#1f2937;display:inline-block;padding-bottom:8px;border-bottom:3px solid #111827}.smpi-sum00 .smpi-post-summary-content{margin-top:18px}.smpi-sum01{border-left:4px solid #2563eb;padding:2px 0 2px 22px}.smpi-sum01 .smpi-post-summary-content{font-size:15px}.smpi-sum01 .smpi-post-summary-item{margin-bottom:9px;line-height:1.45}.smpi-sum01 .smpi-post-summary-item:last-child{margin-bottom:0}.smpi-sum01 .smpi-post-summary-title{margin:0 0 10px;font-size:.78rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#2563eb}.smpi-sum02{padding:18px 0;border-top:2px solid #0a0a0a;border-bottom:1px solid #e5e7eb}.smpi-sum02 .smpi-post-summary-title{margin:0 0 12px;font-size:.78rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#0a0a0a}.smpi-sum03{border:1px solid #e5e7eb;border-radius:12px;overflow:hidden}.smpi-sum03 .smpi-post-summary-title{margin:0;background:#0a0a0a;color:#fff;padding:12px 22px;font-size:.85rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase}.smpi-sum03 .smpi-post-summary-content{padding:18px 22px}.smpi-sum04{background:#eff4ff;border-radius:14px;padding:24px 28px}.smpi-sum04 .smpi-post-summary-title{margin:0 0 14px;font-size:1.05rem;font-weight:800;color:#1e3a8a;display:flex;align-items:center;gap:9px}.smpi-sum04 .smpi-post-summary-title:before{content:\"\";width:18px;height:18px;border-radius:5px;background:#2563eb}.smpi-post-summary-list{margin:0;padding-left:1.2rem}.smpi-post-faqs-content{color:var(--smpi-faq-text,#1f2937);font-size:var(--smpi-faq-size,16px);font-style:var(--smpi-faq-fstyle,normal)}.smpi-post-faqs-title{font-size:1.05rem;font-weight:800;color:#0a0a0a;margin:0 0 10px}.smpi-post-faq-question{font-size:.95rem;font-weight:700;line-height:1.3;margin:0 0 4px;color:#0a0a0a}.smpi-post-faq-answer{font-size:.86em;line-height:1.5}.smpi-post-faq-text{margin:0 0 .5em}.smpi-post-faq-text:last-child{margin-bottom:0}.smpi-post-faq-list{list-style:none;margin:0;padding:0}.smpi-faq00 .smpi-post-faqs-content,.smpi-faq01 .smpi-post-faqs-content{border-top:1px solid #e5e7eb}.smpi-faq00 .smpi-post-faq-item,.smpi-faq01 .smpi-post-faq-item{border-bottom:1px solid #e5e7eb;padding:16px 0;margin:0}.smpi-faq02 .smpi-post-faq-item{border:1px solid #e5e7eb;border-radius:12px;padding:18px 22px;margin:0 0 14px;box-shadow:0 1px 2px rgba(0,0,0,.04)}.smpi-faq03 .smpi-post-faqs-content{counter-reset:f}.smpi-faq03 .smpi-post-faq-item{counter-increment:f;position:relative;padding:12px 0 12px 34px;border-bottom:1px solid #e5e7eb}.smpi-faq03 .smpi-post-faq-item:before{content:counter(f,decimal-leading-zero);position:absolute;left:0;top:14px;font-size:1rem;font-weight:800;color:var(--smpi-faq-accent,#2563eb);line-height:1}.smpi-faq04 .smpi-post-faq-item{background:#f8fafc;border:1px solid #eef2f7;border-radius:12px;margin-bottom:10px;padding:16px 20px}";
+        if ( ! $respect_preservation ) {
+            return $css;
+        }
+        $css = self::remove_preserved_typography( $css, "post_summary" );
+        return self::remove_preserved_typography( $css, "post_faqs" );
     }
 
     /* ---------------------------------------------------------------------
@@ -517,23 +691,13 @@ final class ArticleStyles {
         }
     }
 
-    private static function typography_preservation_settings( string $prefix, bool $default ): array {
-        return TypographyPreservation::values( Settings::all(), $prefix, $default );
+    private static function typography_preservation_settings( string $prefix ): array {
+        return TypographyPreservation::values( Settings::all(), $prefix, Settings::typography_preservation_defaults( $prefix ) );
     }
 
-    private static function typography_preserves( string $prefix, string $property, bool $default ): bool {
-        return TypographyPreservation::preserves( Settings::all(), $prefix, $property, $default );
-    }
-
-    private static function preserves_font_setting( string $setting_key, string $property ): bool {
-        if ( 0 === strpos( $setting_key, "article_heading_" ) ) {
-            return self::typography_preserves( "article_heading", $property, true );
-        }
-        if ( 0 === strpos( $setting_key, "article_drop_cap_" ) ) {
-            return self::typography_preserves( "article_drop_cap", $property, false );
-        }
-
-        return false;
+    private static function typography_preserves( string $prefix, string $property ): bool {
+        $values = self::typography_preservation_settings( $prefix );
+        return ! empty( $values[ $property ] );
     }
 
     public static function article_heading_css( string $style ): string {
@@ -541,7 +705,7 @@ final class ArticleStyles {
             return "";
         }
         $scope = "body.single-post";
-        return self::article_heading_rules( $style, $scope, $scope . " .smpi-article-heading--h2", $scope . " .smpi-article-heading--h3", self::typography_preservation_settings( "article_heading", true ) );
+        return self::article_heading_rules( $style, $scope, $scope . " .smpi-article-heading--h2", $scope . " .smpi-article-heading--h3", self::typography_preservation_settings( "article_heading" ) );
     }
 
     public static function article_drop_cap_rules( string $style, string $paragraph, array $preserve = [] ): string {
@@ -604,7 +768,7 @@ final class ArticleStyles {
         }
         $scope = "body.single-post";
         $style = self::normalize_article_drop_cap_style( (string) Settings::get( "article_drop_cap_style", "dropcap-classic" ) );
-        return self::article_drop_cap_rules( $style, $scope . " .smpi-article-lead", self::typography_preservation_settings( "article_drop_cap", false ) );
+        return self::article_drop_cap_rules( $style, $scope . " .smpi-article-lead", self::typography_preservation_settings( "article_drop_cap" ) );
     }
 
     /* ---------------------------------------------------------------------
@@ -612,9 +776,10 @@ final class ArticleStyles {
      * the front end (theme figures) and the admin preview (figure markup)
      * are byte-identical.
      * ------------------------------------------------------------------- */
-    public static function inline_photo_rules( string $style, string $fig, string $img, string $cap ): string {
+    public static function inline_photo_rules( string $style, string $fig, string $img, string $cap, bool $respect_preservation = true ): string {
         $tpl = self::inline_photo_template( $style );
-        return strtr( $tpl, [ "%FIG%" => $fig, "%IMG%" => $img, "%CAP%" => $cap ] );
+        $css = strtr( $tpl, [ "%FIG%" => $fig, "%IMG%" => $img, "%CAP%" => $cap ] );
+        return $respect_preservation ? self::remove_preserved_typography( $css, "inline_photo_caption", [ $cap ] ) : $css;
     }
 
     private static function inline_photo_template( string $style ): string {
@@ -647,9 +812,10 @@ final class ArticleStyles {
      * treatment designs with independent selectors and CSS variables so this
      * feature can evolve without changing inline figure behavior.
      * ------------------------------------------------------------------- */
-    public static function featured_image_caption_rules( string $style, string $host, string $img, string $cap ): string {
+    public static function featured_image_caption_rules( string $style, string $host, string $img, string $cap, bool $respect_preservation = true ): string {
         $tpl = self::featured_image_caption_template( $style );
-        return strtr( $tpl, [ "%HOST%" => $host, "%IMG%" => $img, "%CAP%" => $cap ] );
+        $css = strtr( $tpl, [ "%HOST%" => $host, "%IMG%" => $img, "%CAP%" => $cap ] );
+        return $respect_preservation ? self::remove_preserved_typography( $css, "featured_image_caption", [ $cap ] ) : $css;
     }
 
     private static function featured_image_caption_template( string $style ): string {
@@ -680,7 +846,7 @@ final class ArticleStyles {
      * containers. This is the one-source-of-truth bundle.
      * ------------------------------------------------------------------- */
     public static function preview_bundle_css(): string {
-        $css = self::breadcrumbs_css() . self::toc_css() . self::post_acf_css();
+        $css = self::breadcrumbs_css( false ) . self::toc_css( false ) . self::post_acf_css( false );
         $css .= ".smpi-choice-preview .smpi-ah-preview-stack{display:grid;gap:14px;max-width:760px}.smpi-choice-preview .smpi-ah-preview{background:#fff;border:1px solid var(--smpi-heading-line,#e5e7eb);border-radius:12px;box-sizing:border-box;counter-reset:hx;display:block;margin:0!important;max-width:100%;padding:26px 28px}.smpi-choice-preview .smpi-ah-preview .smpi-article-paragraph{font-size:15px;line-height:1.7;color:#475569;margin:14px 0 0;max-width:680px}.smpi-choice-preview .smpi-ah-preview .smpi-article-heading{line-height:1.3;margin:0;clear:none;text-transform:none;letter-spacing:0}";
         foreach ( array_diff( self::article_heading_style_keys(), [ "none" ] ) as $style ) {
             $sel = ".smpi-choice-preview .smpi-ah-preview.smpi-ah-preview-" . $style;
@@ -694,20 +860,21 @@ final class ArticleStyles {
         }
         foreach ( [ "fig1", "fig2", "fig4", "fig5" ] as $style ) {
             $sel = ".smpi-pp.smpi-pp-" . $style;
-            $css .= self::inline_photo_rules( $style, $sel, $sel . " .smpi-inline-photo-image", $sel . " .smpi-inline-photo-caption" );
+            $css .= self::inline_photo_rules( $style, $sel, $sel . " .smpi-inline-photo-image", $sel . " .smpi-inline-photo-caption", false );
         }
         foreach ( [ "fig1", "fig2", "fig4", "fig5" ] as $style ) {
             $sel = ".smpi-fi-preview.smpi-fi-preview-" . $style;
-            $css .= self::featured_image_caption_rules( $style, $sel, $sel . " .smpi-featured-image-caption-image", $sel . " .smpi-featured-image-caption-text" );
+            $css .= self::featured_image_caption_rules( $style, $sel, $sel . " .smpi-featured-image-caption-image", $sel . " .smpi-featured-image-caption-text", false );
         }
         $b = self::breadcrumb_var_values();
         $t = self::toc_var_values();
         $h = self::article_heading_var_values();
         $d = self::article_drop_cap_var_values();
+        $s = self::summary_var_values();
         $f = self::faq_var_values();
         $p = self::photo_var_values();
         $fp = self::featured_image_var_values();
-        $css .= ".smpi-design-host{--smpi-bc-accent:" . $b["accent"] . ";--smpi-bc-tint:" . $b["tint"] . ";--smpi-bc-background:" . $b["background"] . ";--smpi-bc-font-size:" . $b["size"] . ";--smpi-toc-accent:" . $t["accent"] . ";--smpi-toc-text:" . $t["text"] . ";--smpi-toc-size:" . $t["size"] . ";--smpi-toc-fstyle:" . $t["fstyle"] . ";--smpi-heading-accent:" . $h["accent"] . ";--smpi-heading-accent-fade:" . $h["accent_fade"] . ";--smpi-heading-highlight:" . $h["highlight"] . ";--smpi-heading-line:" . $h["line"] . ";--smpi-heading-ink:" . $h["ink"] . ";--smpi-heading-h2-size:" . $h["h2_size"] . ";--smpi-heading-h3-size:" . $h["h3_size"] . ";--smpi-dropcap-color:" . $d["color"] . ";--smpi-dropcap-soft:" . $d["soft"] . ";--smpi-dropcap-ink:" . $d["ink"] . ";--smpi-dropcap-size:" . $d["size"] . ";--smpi-faq-accent:" . $f["accent"] . ";--smpi-faq-text:" . $f["text"] . ";--smpi-faq-size:" . $f["size"] . ";--smpi-faq-fstyle:" . $f["fstyle"] . ";--smpi-photo-accent:" . $p["accent"] . ";--smpi-photo-cap-color:" . $p["color"] . ";--smpi-photo-cap-size:" . $p["size"] . ";--smpi-photo-cap-fstyle:" . $p["fstyle"] . ";--smpi-fi-accent:" . $fp["accent"] . ";--smpi-fi-cap-color:" . $fp["color"] . ";--smpi-fi-cap-size:" . $fp["size"] . ";--smpi-fi-cap-fstyle:" . $fp["fstyle"] . "}";
+        $css .= ".smpi-design-host{--smpi-bc-accent:" . $b["accent"] . ";--smpi-bc-tint:" . $b["tint"] . ";--smpi-bc-background:" . $b["background"] . ";--smpi-bc-text:" . $b["text"] . ";--smpi-bc-font-size:" . $b["size"] . ";--smpi-toc-accent:" . $t["accent"] . ";--smpi-toc-text:" . $t["text"] . ";--smpi-toc-size:" . $t["size"] . ";--smpi-toc-fstyle:" . $t["fstyle"] . ";--smpi-heading-accent:" . $h["accent"] . ";--smpi-heading-accent-fade:" . $h["accent_fade"] . ";--smpi-heading-highlight:" . $h["highlight"] . ";--smpi-heading-line:" . $h["line"] . ";--smpi-heading-ink:" . $h["ink"] . ";--smpi-heading-h2-size:" . $h["h2_size"] . ";--smpi-heading-h3-size:" . $h["h3_size"] . ";--smpi-dropcap-color:" . $d["color"] . ";--smpi-dropcap-soft:" . $d["soft"] . ";--smpi-dropcap-ink:" . $d["ink"] . ";--smpi-dropcap-size:" . $d["size"] . ";--smpi-summary-text:" . $s["text"] . ";--smpi-summary-size:" . $s["size"] . ";--smpi-faq-accent:" . $f["accent"] . ";--smpi-faq-text:" . $f["text"] . ";--smpi-faq-size:" . $f["size"] . ";--smpi-faq-fstyle:" . $f["fstyle"] . ";--smpi-photo-accent:" . $p["accent"] . ";--smpi-photo-cap-color:" . $p["color"] . ";--smpi-photo-cap-size:" . $p["size"] . ";--smpi-photo-cap-fstyle:" . $p["fstyle"] . ";--smpi-fi-accent:" . $fp["accent"] . ";--smpi-fi-cap-color:" . $fp["color"] . ";--smpi-fi-cap-size:" . $fp["size"] . ";--smpi-fi-cap-fstyle:" . $fp["fstyle"] . "}";
         $css .= ".smpi-choice-preview .smpi-breadcrumbs,.smpi-choice-preview .smpi-table-of-contents,.smpi-choice-preview .smpi-post-summary,.smpi-choice-preview .smpi-post-faqs,.smpi-choice-preview .smpi-pp,.smpi-choice-preview .smpi-fi-preview{max-width:100%!important;margin:0!important}.smpi-choice-preview .smpi-pp,.smpi-choice-preview .smpi-fi-preview{display:block}.smpi-choice-preview .smpi-inline-photo-image,.smpi-choice-preview .smpi-featured-image-caption-image{height:120px;width:100%;object-fit:cover}.smpi-choice-preview .smpi-toc-link,.smpi-choice-preview .smpi-post-faq-item{font-size:13px}";
         return $css;
     }

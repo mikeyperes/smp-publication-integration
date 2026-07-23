@@ -45,12 +45,12 @@ namespace {
     $ajax = (string) file_get_contents( $root . "/src/Admin/Ajax/AjaxController.php" );
     $dashboard = (string) file_get_contents( $root . "/src/Admin/Dashboard/DashboardController.php" );
     $quick_start = (string) file_get_contents( $root . "/src/Support/QuickStartFeatures.php" );
-    assert_heading_preserve( false !== strpos( $settings, 'TypographyPreservation::defaults( "article_heading", true )' ), "Heading preservation defaults must come from Core." );
-    assert_heading_preserve( false !== strpos( $settings, 'TypographyPreservation::setting_keys( "article_heading" )' ), "Heading preservation keys must come from Core." );
+    assert_heading_preserve( false !== strpos( $settings, '"article_heading" => true' ) && false !== strpos( $settings, 'TypographyPreservation::defaults( $prefix, $preservation_defaults )' ), "Heading preservation defaults must come from the centralized Core registry." );
+    assert_heading_preserve( false !== strpos( $settings, 'TypographyPreservation::setting_keys( $prefix )' ), "Heading preservation keys must come from the centralized Core registry." );
     assert_heading_preserve( false !== strpos( $ajax, "Settings::typography_preservation_setting_keys()" ), "Core-generated preservation keys must persist through AJAX." );
     assert_heading_preserve( false !== strpos( $dashboard, 'typography_control_html(' ) && false !== strpos( $dashboard, 'TypographyControl::render(' ) && false !== strpos( $dashboard, '"article_heading"' ), "The Features UI must render the combined Core typography control." );
     assert_heading_preserve( false === strpos( $dashboard, "smpiSyncHeadingPreserveControls" ), "SMP must not duplicate Core preservation synchronization." );
-    assert_heading_preserve( false !== strpos( $quick_start, 'TypographyPreservation::defaults( "article_heading", true )' ), "Quick Start must use Core-generated heading defaults." );
+    assert_heading_preserve( false !== strpos( $quick_start, 'self::with_typography(' ) && false !== strpos( $quick_start, '"article_heading"' ), "Quick Start must use the centralized Core-generated heading defaults." );
 
     echo "PASS: Heading templates can preserve theme font family, size, color, and weight." . PHP_EOL;
 }

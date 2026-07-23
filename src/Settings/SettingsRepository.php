@@ -39,6 +39,8 @@ class SettingsRepository {
             'muckrack_verified_style' => 'tooltip',
             'muckrack_verified_font_family' => 'template',
             'muckrack_verified_font_weight' => 'inherit',
+            'muckrack_verified_text_color' => $colors['muckrack_verified_text_color'],
+            'muckrack_verified_font_size' => 14,
             'muckrack_icon_color' => $colors['muckrack_icon_color'],
             'muckrack_icon_style' => 'circle_check',
             "muckrack_icon_size" => 16,
@@ -70,6 +72,7 @@ class SettingsRepository {
             'publication_muckrack_font_family' => 'template',
             'publication_muckrack_font_weight' => 'inherit',
             'publication_muckrack_color' => $colors['publication_muckrack_color'],
+            'publication_muckrack_text_color' => $colors['publication_muckrack_text_color'],
             "publication_muckrack_font_size" => 14,
             'publication_muckrack_placements' => [ 'bottom_article' ],
             'multi_authors_enabled' => true,
@@ -84,6 +87,7 @@ class SettingsRepository {
             "breadcrumbs_style" => "bc-b2",
             "breadcrumbs_accent_color" => $colors["breadcrumbs_accent_color"],
             "breadcrumbs_background_color" => $colors["breadcrumbs_background_color"],
+            "breadcrumbs_text_color" => $colors["breadcrumbs_text_color"],
             "breadcrumbs_font_size" => 13,
             "breadcrumbs_font_family" => "template",
             "breadcrumbs_font_weight" => "inherit",
@@ -104,6 +108,7 @@ class SettingsRepository {
             "article_heading_styles_enabled" => false,
             "article_heading_style" => "h2-tick",
             "article_heading_accent_color" => $colors["article_heading_accent_color"],
+            "article_heading_text_color" => $colors["article_heading_text_color"],
             "article_heading_h2_font_size" => 23,
             "article_heading_h3_font_size" => 20,
             "article_heading_font_family" => "template",
@@ -134,6 +139,8 @@ class SettingsRepository {
             "post_summary_style" => "none",
             "post_summary_font_family" => "template",
             "post_summary_font_weight" => "inherit",
+            "post_summary_text_color" => $colors["post_summary_text_color"],
+            "post_summary_font_size" => 16,
             "post_faqs_style" => "none",
             "post_faqs_accent_color" => $colors["post_faqs_accent_color"],
             "post_faqs_text_font_style" => "normal",
@@ -158,11 +165,11 @@ class SettingsRepository {
             'page_assignments'      => [],
             'page_templates'        => self::default_page_templates(),
         ];
-        return array_merge(
-            $defaults,
-            TypographyPreservation::defaults( "article_heading", true ),
-            TypographyPreservation::defaults( "article_drop_cap", false )
-        );
+        foreach ( self::typography_preservation_surfaces() as $prefix => $preservation_defaults ) {
+            $defaults = array_merge( $defaults, TypographyPreservation::defaults( $prefix, $preservation_defaults ) );
+        }
+
+        return $defaults;
     }
 
     public static function all(): array {
@@ -257,10 +264,35 @@ class SettingsRepository {
     }
 
     public static function typography_preservation_setting_keys(): array {
-        return array_merge(
-            TypographyPreservation::setting_keys( "article_heading" ),
-            TypographyPreservation::setting_keys( "article_drop_cap" )
-        );
+        $keys = [];
+        foreach ( array_keys( self::typography_preservation_surfaces() ) as $prefix ) {
+            $keys = array_merge( $keys, TypographyPreservation::setting_keys( $prefix ) );
+        }
+        return $keys;
+    }
+
+    /**
+     * Typography preservation is registered once so defaults, AJAX allowlists,
+     * previews, and frontend output cannot drift between feature cards.
+     */
+    public static function typography_preservation_surfaces(): array {
+        return [
+            "breadcrumbs" => [ "font_family" => false, "font_size" => false, "font_color" => true, "font_weight" => false ],
+            "table_of_contents" => false,
+            "article_heading" => true,
+            "article_drop_cap" => false,
+            "inline_photo_caption" => false,
+            "featured_image_caption" => false,
+            "post_summary" => [ "font_family" => false, "font_size" => true, "font_color" => true, "font_weight" => false ],
+            "post_faqs" => false,
+            "muckrack_verified" => [ "font_family" => false, "font_size" => true, "font_color" => true, "font_weight" => false ],
+            "publication_muckrack" => [ "font_family" => false, "font_size" => false, "font_color" => true, "font_weight" => false ],
+        ];
+    }
+
+    public static function typography_preservation_defaults( string $prefix ) {
+        $surfaces = self::typography_preservation_surfaces();
+        return $surfaces[ $prefix ] ?? true;
     }
 
     public static function font_weight_css_variables(): array {
@@ -318,17 +350,22 @@ class SettingsRepository {
 
         return [
             "muckrack_icon_color" => $brand,
+            "muckrack_verified_text_color" => "#64748b",
             "publication_muckrack_color" => $brand,
+            "publication_muckrack_text_color" => "#334155",
             "breadcrumbs_accent_color" => $brand,
             "breadcrumbs_background_color" => "#ffffff",
+            "breadcrumbs_text_color" => "#374151",
             "table_of_contents_accent_color" => $brand,
             "table_of_contents_text_color" => "#1f2937",
             "article_heading_accent_color" => $brand,
+            "article_heading_text_color" => "#111827",
             "article_drop_cap_color" => $brand,
             "inline_photo_accent_color" => $brand,
             "inline_photo_caption_text_color" => "#272727",
             "featured_image_caption_accent_color" => $brand,
             "featured_image_caption_text_color" => "#272727",
+            "post_summary_text_color" => "#1f2937",
             "post_faqs_accent_color" => $brand,
             "post_faqs_text_color" => "#1f2937",
         ];
@@ -349,17 +386,22 @@ class SettingsRepository {
             "muckrack_icon_color_author",
             "breadcrumbs_accent_color",
             "breadcrumbs_background_color",
+            "breadcrumbs_text_color",
             "table_of_contents_accent_color",
             "table_of_contents_text_color",
             "article_heading_accent_color",
+            "article_heading_text_color",
             "article_drop_cap_color",
             "inline_photo_accent_color",
             "inline_photo_caption_text_color",
             "featured_image_caption_accent_color",
             "featured_image_caption_text_color",
+            "post_summary_text_color",
             "post_faqs_accent_color",
             "post_faqs_text_color",
             "publication_muckrack_color",
+            "publication_muckrack_text_color",
+            "muckrack_verified_text_color",
         ];
     }
 
@@ -415,7 +457,7 @@ class SettingsRepository {
                 continue;
             }
 
-            if ( in_array( $key, [ "muckrack_icon_size", "publication_muckrack_font_size", "breadcrumbs_font_size", "table_of_contents_text_font_size", "article_heading_h2_font_size", "article_heading_h3_font_size", "inline_photo_caption_font_size", "featured_image_caption_font_size", "post_faqs_text_font_size", "muckrack_icon_size_single_author", "muckrack_icon_size_single_footer", "muckrack_icon_size_loop_cards", "muckrack_icon_size_home", "muckrack_icon_size_author" ], true ) ) {
+            if ( in_array( $key, [ "muckrack_icon_size", "muckrack_verified_font_size", "publication_muckrack_font_size", "breadcrumbs_font_size", "table_of_contents_text_font_size", "article_heading_h2_font_size", "article_heading_h3_font_size", "inline_photo_caption_font_size", "featured_image_caption_font_size", "post_summary_font_size", "post_faqs_text_font_size", "muckrack_icon_size_single_author", "muckrack_icon_size_single_footer", "muckrack_icon_size_loop_cards", "muckrack_icon_size_home", "muckrack_icon_size_author" ], true ) ) {
                 $value = absint( $value );
                 if ( 0 === strpos( $key, "muckrack_icon_size_" ) ) {
                     $settings[ $key ] = 0 === $value ? 0 : max( 8, min( 64, $value ) );
@@ -423,12 +465,14 @@ class SettingsRepository {
                 }
                 $font_size_defaults = [
                     "publication_muckrack_font_size" => 14,
+                    "muckrack_verified_font_size" => 14,
                     "breadcrumbs_font_size" => 13,
                     "table_of_contents_text_font_size" => 15,
                     "article_heading_h2_font_size" => 23,
                     "article_heading_h3_font_size" => 20,
                     "inline_photo_caption_font_size" => 16,
                     "featured_image_caption_font_size" => 16,
+                    "post_summary_font_size" => 16,
                     "post_faqs_text_font_size" => 16,
                 ];
                 $default = "muckrack_icon_size" === $key ? 16 : ( $font_size_defaults[ $key ] ?? 18 );
@@ -529,7 +573,7 @@ class SettingsRepository {
                 continue;
             }
 
-            if ( in_array( $key, [ "breadcrumbs_accent_color", "breadcrumbs_background_color", "table_of_contents_accent_color", "table_of_contents_text_color", "article_heading_accent_color", "article_drop_cap_color", "inline_photo_accent_color", "inline_photo_caption_text_color", "featured_image_caption_accent_color", "featured_image_caption_text_color", "post_faqs_accent_color", "post_faqs_text_color" ], true ) ) {
+            if ( in_array( $key, [ "breadcrumbs_accent_color", "breadcrumbs_background_color", "breadcrumbs_text_color", "table_of_contents_accent_color", "table_of_contents_text_color", "article_heading_accent_color", "article_heading_text_color", "article_drop_cap_color", "inline_photo_accent_color", "inline_photo_caption_text_color", "featured_image_caption_accent_color", "featured_image_caption_text_color", "post_summary_text_color", "post_faqs_accent_color", "post_faqs_text_color", "muckrack_verified_text_color", "publication_muckrack_text_color" ], true ) ) {
                 $color = sanitize_hex_color( (string) $value );
                 $settings[ $key ] = $color ?: self::color_default( $key );
                 continue;

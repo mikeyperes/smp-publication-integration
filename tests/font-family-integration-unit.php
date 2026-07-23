@@ -85,6 +85,11 @@ if ( 10 !== count( $weight_keys ) ) {
     fwrite( STDERR, "FAIL: SMP must expose exactly ten shared font-weight settings.\n" );
     exit( 1 );
 }
+$preservation_keys = Settings::typography_preservation_setting_keys();
+if ( 10 !== count( Settings::typography_preservation_surfaces() ) || 40 !== count( $preservation_keys ) || 40 !== count( array_unique( $preservation_keys ) ) ) {
+    fwrite( STDERR, "FAIL: Ten typography surfaces must expose forty unique Core preservation settings.\n" );
+    exit( 1 );
+}
 
 $changes = array_fill_keys( $font_keys, "elementor_brand_body" );
 $saved = Settings::update( $changes );
@@ -121,6 +126,39 @@ if ( 8 !== substr_count( $article_css, "font-weight:700" ) || 2 !== substr_count
     exit( 1 );
 }
 
+$saved = Settings::update( array_fill_keys( $preservation_keys, true ) );
+foreach ( $preservation_keys as $key ) {
+    if ( true !== $saved[ $key ] ) {
+        fwrite( STDERR, "FAIL: {$key} was not saved through the centralized preservation contract.\n" );
+        exit( 1 );
+    }
+}
+if ( "" !== ArticleStyles::font_overrides_css() || "" !== MuckRackVerification::font_overrides_css() ) {
+    fwrite( STDERR, "FAIL: Preserved typography still emitted frontend override CSS.\n" );
+    exit( 1 );
+}
+$breadcrumb_css = ArticleStyles::breadcrumbs_css();
+if ( str_contains( $breadcrumb_css, "font-family:Georgia" ) || str_contains( $breadcrumb_css, "font-size:25px" ) || ! str_contains( $breadcrumb_css, "color:var(--smpi-bc-accent" ) ) {
+    fwrite( STDERR, "FAIL: Breadcrumb preservation removed an accent or retained template typography.\n" );
+    exit( 1 );
+}
+$toc_css = ArticleStyles::toc_css();
+if ( str_contains( $toc_css, "color:var(--smpi-toc-text" ) || str_contains( $toc_css, "font-size:var(--smpi-toc-size" ) || ! str_contains( $toc_css, "color:var(--smpi-toc-accent" ) ) {
+    fwrite( STDERR, "FAIL: TOC preservation removed an accent or retained ordinary text typography.\n" );
+    exit( 1 );
+}
+$content_block_css = ArticleStyles::post_acf_css();
+if ( str_contains( $content_block_css, "color:var(--smpi-faq-text" ) || ! str_contains( $content_block_css, "color:var(--smpi-faq-accent" ) || ! str_contains( $content_block_css, "background:#0a0a0a" ) ) {
+    fwrite( STDERR, "FAIL: Content-block preservation removed decorative CSS or retained FAQ text color.\n" );
+    exit( 1 );
+}
+$caption_css = ArticleStyles::inline_photo_rules( "fig2", ".figure", ".image", ".caption" );
+if ( str_contains( $caption_css, "font-family:" ) || str_contains( $caption_css, "font-size:" ) || str_contains( $caption_css, "color:var(--smpi-photo-cap-color" ) || ! str_contains( $caption_css, "border-top:3px solid var(--smpi-photo-accent" ) ) {
+    fwrite( STDERR, "FAIL: Caption preservation removed its design or retained caption typography.\n" );
+    exit( 1 );
+}
+Settings::update( array_fill_keys( $preservation_keys, false ) );
+
 $saved = Settings::update( [ "article_heading_font_family" => "native_primary" ] );
 if ( "native_primary" !== $saved["article_heading_font_family"] || "Native primary - Roboto" !== Settings::font_family_label( "article_heading_font_family" ) ) {
     fwrite( STDERR, "FAIL: Native primary was not preserved and reported through Core.\n" );
@@ -143,9 +181,14 @@ $dashboard = (string) file_get_contents( $root . "/src/Admin/Dashboard/Dashboard
 $ajax = (string) file_get_contents( $root . "/src/Admin/Ajax/AjaxController.php" );
 $quick_start = (string) file_get_contents( $root . "/src/Support/QuickStartFeatures.php" );
 $core_version = trim( (string) file_get_contents( $root . "/lib/hexa-wordpress-plugin-core/VERSION" ) );
+$core_typography = (string) file_get_contents( $root . "/lib/hexa-wordpress-plugin-core/src/WpAdminComponents/TypographyControl.php" );
 
-if ( version_compare( $core_version, "0.19.72", "<" ) || ! str_contains( $dashboard, "FontFamilyControl::render(" ) || ! str_contains( $dashboard, "TypographyControl::render(" ) || ! str_contains( $dashboard, '"weight_key" => $weight_key' ) ) {
+if ( version_compare( $core_version, "0.19.72", "<" ) || ! str_contains( $dashboard, "TypographyControl::render(" ) || str_contains( $dashboard, "FontFamilyControl::render(" ) || ! str_contains( $core_typography, "FontFamilyControl::render(" ) || ! str_contains( $core_typography, '$family["weight_key"]' ) ) {
     fwrite( STDERR, "FAIL: SMP is not using the reusable Hexa WP Core font control.\n" );
+    exit( 1 );
+}
+if ( 10 !== substr_count( $dashboard, 'typography_surface_control_html( "' ) ) {
+    fwrite( STDERR, "FAIL: Every typography surface must render through the same centralized Dashboard helper.\n" );
     exit( 1 );
 }
 foreach ( $font_keys as $key ) {
