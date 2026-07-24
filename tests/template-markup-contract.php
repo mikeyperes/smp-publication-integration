@@ -70,6 +70,10 @@ $checks = [
         && str_contains( $article, 'smpi-template-image","smpi-article-image' )
         && str_contains( $article, 'smpi-template-title","smpi-article-heading' ),
 
+    "Article fallback preserves the one server-selected drop cap." =>
+        str_contains( $article, 'if(cfg.dropcap&&!root.querySelector(".smpi-article-lead"))' )
+        && ! str_contains( $article, 'if(cfg.dropcap){var lead=Array.from(root.querySelectorAll("p"))' ),
+
     "Inline image PHP paths expose root, link, image, and caption classes." =>
         str_contains( $inline, 'TemplateMarkup::decorate_inline_photos( $html, $style )' )
         && str_contains( $inline, 'TemplateMarkup::root_classes( "inline-photo"' )
