@@ -73,6 +73,7 @@ final class Shortcodes {
                 "field" => "",
                 "post_id" => 0,
                 "format" => "html",
+                "style" => "",
                 "separator" => ", ",
             ],
             $atts,
@@ -86,14 +87,29 @@ final class Shortcodes {
         if ( ! $post_id ) {
             return "";
         }
-        return $this->format_value( Fields::get( $post_id, $field ), sanitize_key( (string) $atts["format"] ), (string) $atts["separator"] );
+
+        $format = sanitize_key( (string) $atts["format"] );
+        if ( "html" === $format ) {
+            if ( "post_summary" === $field ) {
+                return $this->render_post_summary( [ "post_id" => $post_id, "style" => (string) $atts["style"] ] );
+            }
+            if ( "post_faq_items" === $field ) {
+                return $this->render_post_faqs( [ "post_id" => $post_id, "style" => (string) $atts["style"] ] );
+            }
+        }
+
+        return $this->render_post_field_value( $field, $post_id, $format, (string) $atts["separator"] );
     }
 
     public function render_post_summary( array $atts = [] ): string {
         $atts = shortcode_atts( [ "post_id" => 0, "format" => "html", "style" => "" ], $atts, "smp_post_summary" );
-        $atts["field"] = "post_summary";
-        $html = $this->render_post_acf( $atts );
-        return "html" === sanitize_key( (string) $atts["format"] ) ? ArticleStyles::wrap_post_summary( $html, sanitize_key( (string) $atts["style"] ) ) : $html;
+        $post_id = $this->resolve_post_id( (int) $atts["post_id"] );
+        if ( ! $post_id ) {
+            return "";
+        }
+        $format = sanitize_key( (string) $atts["format"] );
+        $html = $this->render_post_field_value( "post_summary", $post_id, $format, ", " );
+        return "html" === $format ? ArticleStyles::wrap_post_summary( $html, sanitize_key( (string) $atts["style"] ) ) : $html;
     }
 
     public function render_post_faqs( array $atts = [] ): string {
@@ -122,6 +138,10 @@ final class Shortcodes {
         }
 
         return ArticleStyles::wrap_post_faqs( $this->render_post_faq_items( $items ), sanitize_key( (string) $atts["style"] ) );
+    }
+
+    private function render_post_field_value( string $field, int $post_id, string $format, string $separator ): string {
+        return $this->format_value( Fields::get( $post_id, $field ), $format, $separator );
     }
 
     private function normalize_post_faq_items( array $rows ): array {

@@ -57,7 +57,8 @@ $checks = [
     'Complex feature guidance is retained outside primary settings.' => str_contains( $dashboard, 'multi_author_settings_html( $settings )' )
         && str_contains( $dashboard, 'multi_author_reference_html()' )
         && str_contains( $dashboard, '$this->author_muckrack_mode_help_html( $settings ) . $this->author_muckrack_shortcodes_html()' )
-        && str_contains( $dashboard, '$this->post_content_blocks_shortcode_reference_html()' ),    'Breadcrumb background is saved and applied through one scoped CSS variable.' => str_contains( $dashboard, 'breadcrumbs_background_color' )
+        && str_contains( $dashboard, '$this->shortcode_usage_html(' ),
+    'Breadcrumb background is saved and applied through one scoped CSS variable.' => str_contains( $dashboard, 'breadcrumbs_background_color' )
         && str_contains( $article_styles, '--smpi-bc-background' )
         && str_contains( $article_styles, 'background:var(--smpi-bc-background,#fff)' ),
     'Breadcrumb background owns a full-width band and bc-b6 has no divider.' => str_contains( $breadcrumbs, 'smpi-breadcrumbs-band' )

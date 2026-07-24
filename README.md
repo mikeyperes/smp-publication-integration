@@ -7,7 +7,7 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.6.241`
+- Version: `0.6.242`
 
 ## Architecture
 
@@ -22,6 +22,14 @@ WordPress plugin for Scale My Publication publication profiles.
 - `Support`: integration adapters and stable legacy helpers.
 
 The bundled `Hexa\PluginCore` package is registered through the shared package resolver. One selected Core root owns the namespace when multiple Hexa plugins are active.
+
+## 0.6.242 Updates
+
+- Made every Table of Contents design fill its article-content width and removed the hardcoded blue accent fallbacks and stale admin preview rules.
+- Added visible Table of Contents shortcode instructions to its feature settings.
+- Split Article Summary and Article FAQs into independent feature cards with their own enablement, editor-field status, designs, colors, typography, shortcodes, and placement controls.
+- Added reusable Summary placement modes and moved Summary and FAQ automatic insertion through one shared placement engine.
+- Made `[smp_post_acf field="post_summary"]` and the FAQ field alias use the same selected design renderers as their canonical shortcodes.
 
 ## 0.6.241 Updates
 

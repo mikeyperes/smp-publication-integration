@@ -5,14 +5,14 @@ if ( ! defined( "ABSPATH" ) ) {
     exit;
 }
 
-final class PostFaqPlacement extends PostContentBlockPlacement {
-    public const SETTING = "post_faqs_placement";
+final class PostSummaryPlacement extends PostContentBlockPlacement {
+    public const SETTING = "post_summary_placement";
     public const MANUAL = parent::MANUAL;
+    public const ABOVE_CONTENT = parent::ABOVE_CONTENT;
     public const BELOW_CONTENT = parent::BELOW_CONTENT;
-    public const BELOW_AUTHOR = parent::BELOW_AUTHOR;
 
     public static function normalize( string $placement ): string {
-        return self::normalize_placement( $placement, [ self::MANUAL, self::BELOW_CONTENT, self::BELOW_AUTHOR ] );
+        return self::normalize_placement( $placement, [ self::MANUAL, self::ABOVE_CONTENT, self::BELOW_CONTENT ] );
     }
 
     protected function setting_key(): string {
@@ -20,38 +20,38 @@ final class PostFaqPlacement extends PostContentBlockPlacement {
     }
 
     protected function enabled_key(): string {
-        return "post_faqs_acf_enabled";
+        return "post_summary_acf_enabled";
     }
 
     protected function shortcode_tag(): string {
-        return "smp_post_faqs";
+        return "smp_post_summary";
     }
 
     protected function acf_field(): string {
-        return "post_faq_items";
+        return "post_summary";
     }
 
     protected function block_selector(): string {
-        return ".smpi-post-faqs";
+        return ".smpi-post-summary";
     }
 
     protected function placement_attribute(): string {
-        return "data-smpi-faq-placement";
+        return "data-smpi-summary-placement";
     }
 
     protected function placement_class_prefix(): string {
-        return "smpi-faq-placement--";
+        return "smpi-summary-placement--";
     }
 
     protected function script_id(): string {
-        return "smpi-post-faq-placement";
+        return "smpi-post-summary-placement";
     }
 
     protected function allowed_placements(): array {
-        return [ self::MANUAL, self::BELOW_CONTENT, self::BELOW_AUTHOR ];
+        return [ self::MANUAL, self::ABOVE_CONTENT, self::BELOW_CONTENT ];
     }
 
     protected function render_block( int $post_id ): string {
-        return trim( $this->shortcodes->render_post_faqs( [ "post_id" => $post_id ] ) );
+        return trim( $this->shortcodes->render_post_summary( [ "post_id" => $post_id ] ) );
     }
 }

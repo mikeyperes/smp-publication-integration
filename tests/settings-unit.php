@@ -45,6 +45,10 @@ if ( '#bd00ff' !== SettingsRepository::color_default( 'post_summary_accent_color
     fwrite( STDERR, "FAIL: Summary design color did not inherit the Hexa brand primary color.\n" );
     exit( 1 );
 }
+if ( '#bd00ff' !== SettingsRepository::color_default( 'table_of_contents_accent_color' ) ) {
+    fwrite( STDERR, "FAIL: TOC accent color did not inherit the Hexa brand primary color.\n" );
+    exit( 1 );
+}
 unset( $GLOBALS['smpi_test_options']['hws_brand_primary_color'] );
 
 $settings = Settings::update( [ 'article_heading_accent_color' => 'invalid' ] );
@@ -62,6 +66,17 @@ if ( '#a1b2c3' !== $settings['article_heading_accent_color'] ) {
 $settings = Settings::update( [ 'post_summary_accent_color' => '#A1B2C3' ] );
 if ( '#a1b2c3' !== $settings['post_summary_accent_color'] ) {
     fwrite( STDERR, "FAIL: Summary design color was not normalized and saved.\n" );
+    exit( 1 );
+}
+
+$settings = Settings::update( [ 'post_summary_placement' => 'above_content' ] );
+if ( 'above_content' !== $settings['post_summary_placement'] ) {
+    fwrite( STDERR, "FAIL: Valid Summary placement was not saved.\n" );
+    exit( 1 );
+}
+$settings = Settings::update( [ 'post_summary_placement' => 'somewhere_else' ] );
+if ( 'manual' !== $settings['post_summary_placement'] ) {
+    fwrite( STDERR, "FAIL: Invalid Summary placement did not fall back to manual.\n" );
     exit( 1 );
 }
 
