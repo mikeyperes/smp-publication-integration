@@ -41,6 +41,10 @@ if ( '#bd00ff' !== SettingsRepository::color_default( 'article_drop_cap_color' )
     fwrite( STDERR, "FAIL: Drop-cap color did not inherit the Hexa brand primary color.\n" );
     exit( 1 );
 }
+if ( '#bd00ff' !== SettingsRepository::color_default( 'post_summary_accent_color' ) ) {
+    fwrite( STDERR, "FAIL: Summary design color did not inherit the Hexa brand primary color.\n" );
+    exit( 1 );
+}
 unset( $GLOBALS['smpi_test_options']['hws_brand_primary_color'] );
 
 $settings = Settings::update( [ 'article_heading_accent_color' => 'invalid' ] );
@@ -52,6 +56,23 @@ if ( '#2d5277' !== $settings['article_heading_accent_color'] ) {
 $settings = Settings::update( [ 'article_heading_accent_color' => '#A1B2C3' ] );
 if ( '#a1b2c3' !== $settings['article_heading_accent_color'] ) {
     fwrite( STDERR, "FAIL: Valid feature color was not normalized and saved.\n" );
+    exit( 1 );
+}
+
+$settings = Settings::update( [ 'post_summary_accent_color' => '#A1B2C3' ] );
+if ( '#a1b2c3' !== $settings['post_summary_accent_color'] ) {
+    fwrite( STDERR, "FAIL: Summary design color was not normalized and saved.\n" );
+    exit( 1 );
+}
+
+$settings = Settings::update( [ 'post_faqs_placement' => 'below_author' ] );
+if ( 'below_author' !== $settings['post_faqs_placement'] ) {
+    fwrite( STDERR, "FAIL: Valid FAQ placement was not saved.\n" );
+    exit( 1 );
+}
+$settings = Settings::update( [ 'post_faqs_placement' => 'somewhere_else' ] );
+if ( 'manual' !== $settings['post_faqs_placement'] ) {
+    fwrite( STDERR, "FAIL: Invalid FAQ placement did not fall back to manual.\n" );
     exit( 1 );
 }
 

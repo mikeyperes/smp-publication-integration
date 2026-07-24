@@ -260,9 +260,9 @@ final class ArticleStyles {
         $toc = self::toc_var_values();
         $css .= ".smpi-table-of-contents{--smpi-toc-accent:" . $toc["accent"] . ";--smpi-toc-text:" . $toc["text"] . ";--smpi-toc-size:" . $toc["size"] . ";--smpi-toc-fstyle:" . $toc["fstyle"] . "}";
         $faq = self::faq_var_values();
-        $css .= ".smpi-post-faqs{--smpi-faq-accent:" . $faq["accent"] . ";--smpi-faq-text:" . $faq["text"] . ";--smpi-faq-size:" . $faq["size"] . ";--smpi-faq-fstyle:" . $faq["fstyle"] . "}";
+        $css .= ".smpi-post-faqs{--smpi-faq-accent:" . $faq["accent"] . ";--smpi-faq-accent-soft:" . $faq["accent_soft"] . ";--smpi-faq-text:" . $faq["text"] . ";--smpi-faq-size:" . $faq["size"] . ";--smpi-faq-fstyle:" . $faq["fstyle"] . "}";
         $summary = self::summary_var_values();
-        $css .= ".smpi-post-summary{--smpi-summary-text:" . $summary["text"] . ";--smpi-summary-size:" . $summary["size"] . "}";
+        $css .= ".smpi-post-summary{--smpi-summary-accent:" . $summary["accent"] . ";--smpi-summary-accent-soft:" . $summary["accent_soft"] . ";--smpi-summary-accent-ink:" . $summary["accent_ink"] . ";--smpi-summary-size:" . $summary["size"] . "}";
         if ( Settings::bool( "article_heading_styles_enabled" ) ) {
             $h = self::article_heading_var_values();
             $css .= "body.single-post{--smpi-heading-accent:" . $h["accent"] . ";--smpi-heading-accent-fade:" . $h["accent_fade"] . ";--smpi-heading-highlight:" . $h["highlight"] . ";--smpi-heading-line:" . $h["line"] . ";--smpi-heading-ink:" . $h["ink"] . ";--smpi-heading-h2-size:" . $h["h2_size"] . ";--smpi-heading-h3-size:" . $h["h3_size"] . "}";
@@ -353,7 +353,6 @@ final class ArticleStyles {
                 "rules" => [
                     "font_family" => [ [ ".smpi-post-summary,.smpi-post-summary .smpi-template-title,.smpi-post-summary .smpi-template-content,.smpi-post-summary .smpi-template-content *" ] ],
                     "font_weight" => [ [ ".smpi-post-summary,.smpi-post-summary .smpi-template-title,.smpi-post-summary .smpi-template-content,.smpi-post-summary .smpi-template-content *" ] ],
-                    "font_color" => [ [ ".smpi-post-summary,.smpi-post-summary .smpi-template-title,.smpi-post-summary .smpi-template-content,.smpi-post-summary .smpi-template-content *", "var(--smpi-summary-text,#1f2937)" ] ],
                     "font_size" => [ [ ".smpi-post-summary,.smpi-post-summary .smpi-template-title,.smpi-post-summary .smpi-template-content,.smpi-post-summary .smpi-template-content *", "var(--smpi-summary-size,16px)" ] ],
                 ],
             ],
@@ -452,8 +451,10 @@ final class ArticleStyles {
     }
 
     public static function faq_var_values(): array {
+        $accent = self::hex( Settings::get( "post_faqs_accent_color", "#2563eb" ), "#2563eb" );
         return [
-            "accent" => self::hex( Settings::get( "post_faqs_accent_color", "#2563eb" ), "#2563eb" ),
+            "accent" => $accent,
+            "accent_soft" => self::rgba( $accent, 0.22 ),
             "text"   => self::hex( Settings::get( "post_faqs_text_color", "#1f2937" ), "#1f2937" ),
             "size"   => self::px( Settings::get( "post_faqs_text_font_size", 16 ), 16 ),
             "fstyle" => self::fstyle( Settings::get( "post_faqs_text_font_style", "normal" ) ),
@@ -461,8 +462,12 @@ final class ArticleStyles {
     }
 
     public static function summary_var_values(): array {
+        $default = Settings::color_default( "post_summary_accent_color" );
+        $accent = self::hex( Settings::get( "post_summary_accent_color", $default ), $default );
         return [
-            "text" => self::hex( Settings::get( "post_summary_text_color", "#1f2937" ), "#1f2937" ),
+            "accent" => $accent,
+            "accent_soft" => self::rgba( $accent, 0.10 ),
+            "accent_ink" => self::contrast_ink( $accent ),
             "size" => self::px( Settings::get( "post_summary_font_size", 16 ), 16 ),
         ];
     }
@@ -548,6 +553,9 @@ final class ArticleStyles {
             return false !== strpos( $selector, "smpi-toc-label" ) || false !== strpos( $selector, "smpi-toc-link" );
         }
         if ( "post_summary" === $prefix ) {
+            if ( "font_color" === $property ) {
+                return false;
+            }
             return false !== strpos( $selector, "smpi-post-summary" ) || false !== strpos( $selector, "smpi-sum" );
         }
         if ( "post_faqs" === $prefix ) {
@@ -612,7 +620,16 @@ final class ArticleStyles {
      * Post summary + FAQ
      * ------------------------------------------------------------------- */
     public static function post_acf_css( bool $respect_preservation = true ): string {
-        $css = ".smpi-post-summary{max-width:var(--content-width,720px);margin:0}.smpi-post-faqs{max-width:var(--content-width,720px);margin:2rem auto}.smpi-sum00{background:#f5f6f7;padding:26px 32px}.smpi-sum00 .smpi-post-summary-title{margin:0;font-size:1.3rem;font-weight:800;color:#1f2937;display:inline-block;padding-bottom:8px;border-bottom:3px solid #111827}.smpi-sum00 .smpi-post-summary-content{margin-top:18px}.smpi-sum01{border-left:4px solid #2563eb;padding:2px 0 2px 22px}.smpi-sum01 .smpi-post-summary-content{font-size:15px}.smpi-sum01 .smpi-post-summary-item{margin-bottom:9px;line-height:1.45}.smpi-sum01 .smpi-post-summary-item:last-child{margin-bottom:0}.smpi-sum01 .smpi-post-summary-title{margin:0 0 10px;font-size:.78rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#2563eb}.smpi-sum02{padding:18px 0;border-top:2px solid #0a0a0a;border-bottom:1px solid #e5e7eb}.smpi-sum02 .smpi-post-summary-title{margin:0 0 12px;font-size:.78rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#0a0a0a}.smpi-sum03{border:1px solid #e5e7eb;border-radius:12px;overflow:hidden}.smpi-sum03 .smpi-post-summary-title{margin:0;background:#0a0a0a;color:#fff;padding:12px 22px;font-size:.85rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase}.smpi-sum03 .smpi-post-summary-content{padding:18px 22px}.smpi-sum04{background:#eff4ff;border-radius:14px;padding:24px 28px}.smpi-sum04 .smpi-post-summary-title{margin:0 0 14px;font-size:1.05rem;font-weight:800;color:#1e3a8a;display:flex;align-items:center;gap:9px}.smpi-sum04 .smpi-post-summary-title:before{content:\"\";width:18px;height:18px;border-radius:5px;background:#2563eb}.smpi-post-summary-list{margin:0;padding-left:1.2rem}.smpi-post-faqs-content{color:var(--smpi-faq-text,#1f2937);font-size:var(--smpi-faq-size,16px);font-style:var(--smpi-faq-fstyle,normal)}.smpi-post-faqs-title{font-size:1.05rem;font-weight:800;color:#0a0a0a;margin:0 0 10px}.smpi-post-faq-question{font-size:.95rem;font-weight:700;line-height:1.3;margin:0 0 4px;color:#0a0a0a}.smpi-post-faq-answer{font-size:.86em;line-height:1.5}.smpi-post-faq-text{margin:0 0 .5em}.smpi-post-faq-text:last-child{margin-bottom:0}.smpi-post-faq-list{list-style:none;margin:0;padding:0}.smpi-faq00 .smpi-post-faqs-content,.smpi-faq01 .smpi-post-faqs-content{border-top:1px solid #e5e7eb}.smpi-faq00 .smpi-post-faq-item,.smpi-faq01 .smpi-post-faq-item{border-bottom:1px solid #e5e7eb;padding:16px 0;margin:0}.smpi-faq02 .smpi-post-faq-item{border:1px solid #e5e7eb;border-radius:12px;padding:18px 22px;margin:0 0 14px;box-shadow:0 1px 2px rgba(0,0,0,.04)}.smpi-faq03 .smpi-post-faqs-content{counter-reset:f}.smpi-faq03 .smpi-post-faq-item{counter-increment:f;position:relative;padding:12px 0 12px 34px;border-bottom:1px solid #e5e7eb}.smpi-faq03 .smpi-post-faq-item:before{content:counter(f,decimal-leading-zero);position:absolute;left:0;top:14px;font-size:1rem;font-weight:800;color:var(--smpi-faq-accent,#2563eb);line-height:1}.smpi-faq04 .smpi-post-faq-item{background:#f8fafc;border:1px solid #eef2f7;border-radius:12px;margin-bottom:10px;padding:16px 20px}";
+        $css = ".smpi-post-summary{max-width:var(--content-width,720px);margin:0}.smpi-post-faqs{max-width:var(--content-width,720px);margin:2rem auto}";
+        $css .= ".smpi-sum00{background:#f5f6f7;padding:26px 32px}.smpi-sum00 .smpi-post-summary-title{margin:0;font-size:1.3rem;font-weight:800;color:var(--smpi-summary-accent,#2563eb);display:inline-block;padding-bottom:8px;border-bottom:3px solid var(--smpi-summary-accent,#2563eb)}.smpi-sum00 .smpi-post-summary-content{margin-top:18px}";
+        $css .= ".smpi-sum01{border:1px solid #e5e7eb;border-left:4px solid var(--smpi-summary-accent,#2563eb);border-radius:0 12px 12px 0;padding:16px 22px}.smpi-sum01 .smpi-post-summary-content{font-size:15px}.smpi-sum01 .smpi-post-summary-item{margin-bottom:9px;line-height:1.45}.smpi-sum01 .smpi-post-summary-item:last-child{margin-bottom:0}.smpi-sum01 .smpi-post-summary-title{margin:0 0 10px;font-size:.78rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--smpi-summary-accent,#2563eb)}";
+        $css .= ".smpi-sum02{padding:18px 0;border-top:2px solid var(--smpi-summary-accent,#2563eb);border-bottom:1px solid #e5e7eb}.smpi-sum02 .smpi-post-summary-title{margin:0 0 12px;font-size:.78rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--smpi-summary-accent,#2563eb)}";
+        $css .= ".smpi-sum03{border:1px solid #e5e7eb;border-radius:12px;overflow:hidden}.smpi-sum03 .smpi-post-summary-title{margin:0;background:var(--smpi-summary-accent,#2563eb);color:var(--smpi-summary-accent-ink,#fff);padding:12px 22px;font-size:.85rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase}.smpi-sum03 .smpi-post-summary-content{padding:18px 22px}";
+        $css .= ".smpi-sum04{background:var(--smpi-summary-accent-soft,rgba(37,99,235,.1));border-radius:14px;padding:24px 28px}.smpi-sum04 .smpi-post-summary-title{margin:0 0 14px;font-size:1.05rem;font-weight:800;color:var(--smpi-summary-accent,#2563eb);display:flex;align-items:center;gap:9px}.smpi-sum04 .smpi-post-summary-title:before{content:\"\";width:18px;height:18px;border-radius:5px;background:var(--smpi-summary-accent,#2563eb)}.smpi-post-summary-list{margin:0;padding-left:1.2rem}";
+        $css .= ".smpi-post-faqs-content{color:var(--smpi-faq-text,#1f2937);font-size:var(--smpi-faq-size,16px);font-style:var(--smpi-faq-fstyle,normal)}.smpi-post-faqs-title{font-size:1.05rem;font-weight:800;color:#0a0a0a;margin:0 0 10px}.smpi-post-faq-question{font-size:.95rem;font-weight:700;line-height:1.3;margin:0 0 4px;color:#0a0a0a}.smpi-post-faq-answer{font-size:.86em;line-height:1.5}.smpi-post-faq-text{margin:0 0 .5em}.smpi-post-faq-text:last-child{margin-bottom:0}.smpi-post-faq-list{list-style:none;margin:0;padding:0}";
+        $css .= ".smpi-faq00 .smpi-post-faqs-content,.smpi-faq01 .smpi-post-faqs-content{border-top:1px solid #e5e7eb}.smpi-faq00 .smpi-post-faq-item,.smpi-faq01 .smpi-post-faq-item{border-bottom:1px solid #e5e7eb;padding:16px 0;margin:0}.smpi-faq02 .smpi-post-faq-item{border:1px solid #e5e7eb;border-radius:12px;padding:18px 22px;margin:0 0 14px;box-shadow:0 1px 2px rgba(0,0,0,.04)}";
+        $css .= ".smpi-faq03 .smpi-post-faqs-content{counter-reset:f}.smpi-faq03 .smpi-post-faq-item{counter-increment:f;position:relative;padding:12px 0 12px 76px;border-bottom:1px solid #e5e7eb}.smpi-faq03 .smpi-post-faq-item:before,.smpi-faq03 .smpi-post-faq-item:after{content:counter(f,decimal-leading-zero);position:absolute;font-weight:800;line-height:1}.smpi-faq03 .smpi-post-faq-item:before{left:0;top:7px;font-size:2rem;color:var(--smpi-faq-accent-soft,rgba(37,99,235,.22))}.smpi-faq03 .smpi-post-faq-item:after{left:42px;top:14px;font-size:1rem;color:var(--smpi-faq-accent,#2563eb)}";
+        $css .= ".smpi-faq04 .smpi-post-faq-item{background:#f8fafc;border:1px solid #eef2f7;border-radius:12px;margin-bottom:10px;padding:16px 20px}";
         if ( ! $respect_preservation ) {
             return $css;
         }
@@ -874,8 +891,8 @@ final class ArticleStyles {
         $f = self::faq_var_values();
         $p = self::photo_var_values();
         $fp = self::featured_image_var_values();
-        $css .= ".smpi-design-host{--smpi-bc-accent:" . $b["accent"] . ";--smpi-bc-tint:" . $b["tint"] . ";--smpi-bc-background:" . $b["background"] . ";--smpi-bc-text:" . $b["text"] . ";--smpi-bc-font-size:" . $b["size"] . ";--smpi-toc-accent:" . $t["accent"] . ";--smpi-toc-text:" . $t["text"] . ";--smpi-toc-size:" . $t["size"] . ";--smpi-toc-fstyle:" . $t["fstyle"] . ";--smpi-heading-accent:" . $h["accent"] . ";--smpi-heading-accent-fade:" . $h["accent_fade"] . ";--smpi-heading-highlight:" . $h["highlight"] . ";--smpi-heading-line:" . $h["line"] . ";--smpi-heading-ink:" . $h["ink"] . ";--smpi-heading-h2-size:" . $h["h2_size"] . ";--smpi-heading-h3-size:" . $h["h3_size"] . ";--smpi-dropcap-color:" . $d["color"] . ";--smpi-dropcap-soft:" . $d["soft"] . ";--smpi-dropcap-ink:" . $d["ink"] . ";--smpi-dropcap-size:" . $d["size"] . ";--smpi-summary-text:" . $s["text"] . ";--smpi-summary-size:" . $s["size"] . ";--smpi-faq-accent:" . $f["accent"] . ";--smpi-faq-text:" . $f["text"] . ";--smpi-faq-size:" . $f["size"] . ";--smpi-faq-fstyle:" . $f["fstyle"] . ";--smpi-photo-accent:" . $p["accent"] . ";--smpi-photo-cap-color:" . $p["color"] . ";--smpi-photo-cap-size:" . $p["size"] . ";--smpi-photo-cap-fstyle:" . $p["fstyle"] . ";--smpi-fi-accent:" . $fp["accent"] . ";--smpi-fi-cap-color:" . $fp["color"] . ";--smpi-fi-cap-size:" . $fp["size"] . ";--smpi-fi-cap-fstyle:" . $fp["fstyle"] . "}";
-        $css .= ".smpi-choice-preview .smpi-breadcrumbs,.smpi-choice-preview .smpi-table-of-contents,.smpi-choice-preview .smpi-post-summary,.smpi-choice-preview .smpi-post-faqs,.smpi-choice-preview .smpi-pp,.smpi-choice-preview .smpi-fi-preview{max-width:100%!important;margin:0!important}.smpi-choice-preview .smpi-pp,.smpi-choice-preview .smpi-fi-preview{display:block}.smpi-choice-preview .smpi-inline-photo-image,.smpi-choice-preview .smpi-featured-image-caption-image{height:120px;width:100%;object-fit:cover}.smpi-choice-preview .smpi-toc-link,.smpi-choice-preview .smpi-post-faq-item{font-size:13px}";
+        $css .= ".smpi-design-host{--smpi-bc-accent:" . $b["accent"] . ";--smpi-bc-tint:" . $b["tint"] . ";--smpi-bc-background:" . $b["background"] . ";--smpi-bc-text:" . $b["text"] . ";--smpi-bc-font-size:" . $b["size"] . ";--smpi-toc-accent:" . $t["accent"] . ";--smpi-toc-text:" . $t["text"] . ";--smpi-toc-size:" . $t["size"] . ";--smpi-toc-fstyle:" . $t["fstyle"] . ";--smpi-heading-accent:" . $h["accent"] . ";--smpi-heading-accent-fade:" . $h["accent_fade"] . ";--smpi-heading-highlight:" . $h["highlight"] . ";--smpi-heading-line:" . $h["line"] . ";--smpi-heading-ink:" . $h["ink"] . ";--smpi-heading-h2-size:" . $h["h2_size"] . ";--smpi-heading-h3-size:" . $h["h3_size"] . ";--smpi-dropcap-color:" . $d["color"] . ";--smpi-dropcap-soft:" . $d["soft"] . ";--smpi-dropcap-ink:" . $d["ink"] . ";--smpi-dropcap-size:" . $d["size"] . ";--smpi-summary-accent:" . $s["accent"] . ";--smpi-summary-accent-soft:" . $s["accent_soft"] . ";--smpi-summary-accent-ink:" . $s["accent_ink"] . ";--smpi-summary-size:" . $s["size"] . ";--smpi-faq-accent:" . $f["accent"] . ";--smpi-faq-accent-soft:" . $f["accent_soft"] . ";--smpi-faq-text:" . $f["text"] . ";--smpi-faq-size:" . $f["size"] . ";--smpi-faq-fstyle:" . $f["fstyle"] . ";--smpi-photo-accent:" . $p["accent"] . ";--smpi-photo-cap-color:" . $p["color"] . ";--smpi-photo-cap-size:" . $p["size"] . ";--smpi-photo-cap-fstyle:" . $p["fstyle"] . ";--smpi-fi-accent:" . $fp["accent"] . ";--smpi-fi-cap-color:" . $fp["color"] . ";--smpi-fi-cap-size:" . $fp["size"] . ";--smpi-fi-cap-fstyle:" . $fp["fstyle"] . "}";
+        $css .= ".smpi-choice-preview .smpi-breadcrumbs,.smpi-choice-preview .smpi-table-of-contents,.smpi-choice-preview .smpi-post-summary,.smpi-choice-preview .smpi-post-faqs,.smpi-choice-preview .smpi-pp,.smpi-choice-preview .smpi-fi-preview{max-width:100%!important;margin:0!important}.smpi-choice-preview .smpi-pp,.smpi-choice-preview .smpi-fi-preview{display:block}.smpi-choice-preview .smpi-inline-photo-image,.smpi-choice-preview .smpi-featured-image-caption-image{height:120px;width:100%;object-fit:cover}.smpi-choice-preview .smpi-toc-link,.smpi-choice-preview .smpi-post-faq-item{font-size:13px}.smpi-choice-preview .smpi-faq03>.smpi-post-faqs-content:before{content:none!important}";
         return $css;
     }
 

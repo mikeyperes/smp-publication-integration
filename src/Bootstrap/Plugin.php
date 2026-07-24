@@ -85,6 +85,7 @@ final class Plugin {
             new Content\InlinePhotoTreatments(),
             new Content\FeaturedImageCaptions(),
             new Content\ArticleStyles(),
+            new Content\PostFaqPlacement(),
             new Content\PostHygiene(),
             new Content\ContentGeneration(),
             new Content\GoingLiveChecklist(),

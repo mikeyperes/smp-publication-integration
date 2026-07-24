@@ -4,7 +4,7 @@
  * Description: Publication profile integration for Scale My Publication systems.
  * Author: Michael Peres
  * Plugin URI: https://github.com/mikeyperes/smp-publication-integration
- * Version: 0.6.239
+ * Version: 0.6.240
  * Text Domain: smp-publication-integration
  * Domain Path: /languages
  * Author URI: https://michaelperes.com
@@ -47,6 +47,7 @@ require_once __DIR__ . "/src/Content/TableOfContents.php";
 require_once __DIR__ . "/src/Content/InlinePhotoTreatments.php";
 require_once __DIR__ . "/src/Content/FeaturedImageCaptions.php";
 require_once __DIR__ . "/src/Content/ArticleStyles.php";
+require_once __DIR__ . "/src/Content/PostFaqPlacement.php";
 require_once __DIR__ . "/src/Content/PostHygiene.php";
 require_once __DIR__ . "/src/Content/ContentGeneration.php";
 require_once __DIR__ . "/src/Content/GoingLiveChecklist.php";
@@ -58,7 +59,7 @@ require_once __DIR__ . "/src/Admin/UiCleanup.php";
 require_once __DIR__ . "/src/Admin/Dashboard.php";
 
 final class Config {
-    public const VERSION = "0.6.239";
+    public const VERSION = "0.6.240";
 
     public static string $plugin_name        = 'SMP Publication Integration';
     public static string $plugin_slug        = 'smp-publication-integration';

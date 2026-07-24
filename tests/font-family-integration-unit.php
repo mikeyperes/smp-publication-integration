@@ -148,7 +148,12 @@ if ( str_contains( $toc_css, "color:var(--smpi-toc-text" ) || str_contains( $toc
     exit( 1 );
 }
 $content_block_css = ArticleStyles::post_acf_css();
-if ( str_contains( $content_block_css, "color:var(--smpi-faq-text" ) || ! str_contains( $content_block_css, "color:var(--smpi-faq-accent" ) || ! str_contains( $content_block_css, "background:#0a0a0a" ) ) {
+if (
+    str_contains( $content_block_css, "color:var(--smpi-faq-text" )
+    || ! str_contains( $content_block_css, "color:var(--smpi-faq-accent" )
+    || ! str_contains( $content_block_css, "background:var(--smpi-summary-accent" )
+    || str_contains( ArticleStyles::font_overrides_css(), "--smpi-summary-text" )
+) {
     fwrite( STDERR, "FAIL: Content-block preservation removed decorative CSS or retained FAQ text color.\n" );
     exit( 1 );
 }

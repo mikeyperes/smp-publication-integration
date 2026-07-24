@@ -139,9 +139,11 @@ class SettingsRepository {
             "post_summary_style" => "none",
             "post_summary_font_family" => "template",
             "post_summary_font_weight" => "inherit",
+            "post_summary_accent_color" => $colors["post_summary_accent_color"],
             "post_summary_text_color" => $colors["post_summary_text_color"],
             "post_summary_font_size" => 16,
             "post_faqs_style" => "none",
+            "post_faqs_placement" => "manual",
             "post_faqs_accent_color" => $colors["post_faqs_accent_color"],
             "post_faqs_text_font_style" => "normal",
             "post_faqs_text_font_size" => 16,
@@ -365,6 +367,7 @@ class SettingsRepository {
             "inline_photo_caption_text_color" => "#272727",
             "featured_image_caption_accent_color" => $brand,
             "featured_image_caption_text_color" => "#272727",
+            "post_summary_accent_color" => $brand,
             "post_summary_text_color" => "#1f2937",
             "post_faqs_accent_color" => $brand,
             "post_faqs_text_color" => "#1f2937",
@@ -396,6 +399,7 @@ class SettingsRepository {
             "inline_photo_caption_text_color",
             "featured_image_caption_accent_color",
             "featured_image_caption_text_color",
+            "post_summary_accent_color",
             "post_summary_text_color",
             "post_faqs_accent_color",
             "post_faqs_text_color",
@@ -414,6 +418,7 @@ class SettingsRepository {
             "article_heading_accent_color",
             "inline_photo_accent_color",
             "featured_image_caption_accent_color",
+            "post_summary_accent_color",
             "post_faqs_accent_color",
         ];
     }
@@ -505,6 +510,7 @@ class SettingsRepository {
                 "featured_image_caption_template" => [ "none", "fig1", "fig2", "fig4", "fig5" ],
                 "post_summary_style" => [ "none", "sum00", "sum01", "sum02", "sum03", "sum04" ],
                 "post_faqs_style" => [ "none", "faq00", "faq01", "faq02", "faq03", "faq04" ],
+                "post_faqs_placement" => [ "manual", "below_content", "below_author" ],
                 "multi_authors_loop_output" => [ "primary", "comma", "lines" ],
                 "table_of_contents_text_font_style" => [ "normal", "italic" ],
                 "inline_photo_caption_font_style" => [ "normal", "italic" ],
@@ -573,7 +579,7 @@ class SettingsRepository {
                 continue;
             }
 
-            if ( in_array( $key, [ "breadcrumbs_accent_color", "breadcrumbs_background_color", "breadcrumbs_text_color", "table_of_contents_accent_color", "table_of_contents_text_color", "article_heading_accent_color", "article_heading_text_color", "article_drop_cap_color", "inline_photo_accent_color", "inline_photo_caption_text_color", "featured_image_caption_accent_color", "featured_image_caption_text_color", "post_summary_text_color", "post_faqs_accent_color", "post_faqs_text_color", "muckrack_verified_text_color", "publication_muckrack_text_color" ], true ) ) {
+            if ( in_array( $key, [ "breadcrumbs_accent_color", "breadcrumbs_background_color", "breadcrumbs_text_color", "table_of_contents_accent_color", "table_of_contents_text_color", "article_heading_accent_color", "article_heading_text_color", "article_drop_cap_color", "inline_photo_accent_color", "inline_photo_caption_text_color", "featured_image_caption_accent_color", "featured_image_caption_text_color", "post_summary_accent_color", "post_summary_text_color", "post_faqs_accent_color", "post_faqs_text_color", "muckrack_verified_text_color", "publication_muckrack_text_color" ], true ) ) {
                 $color = sanitize_hex_color( (string) $value );
                 $settings[ $key ] = $color ?: self::color_default( $key );
                 continue;
