@@ -38,7 +38,9 @@ $checks = [
         && str_contains( $article, ".smpi-post-faq-item:before,.smpi-faq03 .smpi-post-faq-item:after" )
         && str_contains( $article, "color:var(--smpi-faq-accent-soft" )
         && str_contains( $article, "color:var(--smpi-faq-accent,#2563eb)" )
-        && str_contains( $article, ".smpi-choice-preview .smpi-faq03>.smpi-post-faqs-content:before{content:none!important}" ),
+        && str_contains( $article, ".smpi-choice-preview .smpi-faq03>.smpi-post-faqs-content:before{content:none!important}" )
+        && ! str_contains( $dashboard, "#c7d6ff" )
+        && ! str_contains( $dashboard, ".smpi-design-faq" ),
     "FAQ placement exposes Manual, Below content, and Below author." => PostFaqPlacement::MANUAL === PostFaqPlacement::normalize( "manual" )
         && PostFaqPlacement::BELOW_CONTENT === PostFaqPlacement::normalize( "below_content" )
         && PostFaqPlacement::BELOW_AUTHOR === PostFaqPlacement::normalize( "below_author" )
