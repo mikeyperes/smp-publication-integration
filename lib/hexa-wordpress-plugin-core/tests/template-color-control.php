@@ -64,6 +64,8 @@ template_color_control_assert( str_contains( $markup, 'class="hpc-color-value-in
 template_color_control_assert( str_contains( $markup, 'value=palette.accent||' ), "Live previews must use the explicit accent role instead of palette order." );
 template_color_control_assert( str_contains( $markup, 'var DEFAULT="template_default",PRIMARY="site_primary",SECONDARY="site_secondary",CUSTOM="custom"' ), "The UI must share the resolver's four modes." );
 template_color_control_assert( str_contains( $markup, 'var value=mode===DEFAULT?"":transform' ), "Template Default previews must remove mapped overrides." );
+template_color_control_assert( str_contains( $markup, 'var explicit=hex(color);if(!explicit)syncCustomDisplay(control);color=explicit||base(control,mode)' ), "Explicit picker events must resolve before fallback synchronization so an older stored value cannot replace the selected color." );
+template_color_control_assert( ! str_contains( $markup, 'syncCustomDisplay(control);color=hex(color)||base(control,mode)' ), "The template control must not overwrite an explicit picker event from stale nested storage." );
 template_color_control_assert( ! str_contains( (string) file_get_contents( $root . "/src/WpAdminComponents/TemplateColorControl.php" ), "smpi-" ), "The generic control must remain host-neutral." );
 
-echo "PASS: TemplateColorControl renders the shared four-mode UI and native accent behavior.\n";
+echo "PASS: TemplateColorControl renders the shared four-mode UI and preserves explicit picker events.\n";

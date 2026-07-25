@@ -38,6 +38,7 @@ TemplateColorResolver
 - `BrandColorProvider::rgb_string($hex)` converts a hex value to `rgb(r, g, b)`.
 - `Hexa\PluginCore\WpAdminComponents\ColorControl::render()` owns the visual picker/hex/RGB/swatch/copy/import control and optional inherited-value state.
 - `Hexa\PluginCore\WpAdminComponents\TemplateColorControl::render()` owns the reusable four-mode source selector, native/site/custom swatches, custom picker, reset action, and live CSS-variable preview.
+- Explicit picker and hex events are resolved before the nested fallback display is synchronized, so host save listeners always receive the newly selected value regardless of script render order.
 - `Hexa\PluginCore\WpAdminComponents\ElementorPaletteDetector::render()` owns the reference-only Elementor palette detector.
 - `Hexa\PluginCore\WpAdminComponents\ColorPalette::render()` owns multi-color saved palettes and can compose the Elementor detector.
 - `Hexa\PluginCore\WpAdminComponents\DetailedColorPicker::render()` owns the paired primary/secondary visual picker and optional font controls.

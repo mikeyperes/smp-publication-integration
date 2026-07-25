@@ -154,6 +154,15 @@ template_design_assert(
 );
 $dashboard_source = (string) file_get_contents( $root . "/src/Admin/Dashboard/DashboardController.php" );
 template_design_assert( 10 === substr_count( $dashboard_source, 'template_color_setting_html( "' ), "Every design surface must render through the shared Core template color control." );
+$core_template_color_source = (string) file_get_contents( $core . "/src/WpAdminComponents/TemplateColorControl.php" );
+template_design_assert(
+    str_contains( $core_template_color_source, 'var explicit=hex(color);if(!explicit)syncCustomDisplay(control);color=explicit||base(control,mode)' ),
+    "The bundled Core can replace a newly selected custom color with stale nested storage."
+);
+template_design_assert(
+    ! str_contains( $core_template_color_source, 'syncCustomDisplay(control);color=hex(color)||base(control,mode)' ),
+    "The bundled Core still uses the stale picker event order."
+);
 
 $template_count = 0;
 $color_case_count = 0;
