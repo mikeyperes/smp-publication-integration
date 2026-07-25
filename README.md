@@ -7,7 +7,7 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.6.244`
+- Version: `0.6.245`
 
 ## Architecture
 
@@ -22,6 +22,11 @@ WordPress plugin for Scale My Publication publication profiles.
 - `Support`: integration adapters and stable legacy helpers.
 
 The bundled `Hexa\PluginCore` package is registered through the shared package resolver. One selected Core root owns the namespace when multiple Hexa plugins are active.
+
+## 0.6.245 Updates
+
+- Made author text and minimalist publication previews use the same MuckRack semantic classes and accent variables as frontend output.
+- Added preview-contract coverage so every color-bearing verification template visibly reflects the selected design color.
 
 ## 0.6.244 Updates
 

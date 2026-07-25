@@ -108,7 +108,13 @@ $checks = [
         && str_contains( $dashboard, 'TemplateMarkup::root_classes( "featured-image-caption"' )
         && str_contains( $dashboard, 'TemplateMarkup::root_classes( "article-summary"' )
         && str_contains( $dashboard, 'TemplateMarkup::root_classes( "article-faqs"' )
-        && str_contains( $dashboard, 'smpi-breadcrumbs-band' ),
+        && str_contains( $dashboard, 'smpi-breadcrumbs-band' )
+        && str_contains( $dashboard, 'smpi-author-inline-demo smpi-muckrack-author-text' )
+        && str_contains( $dashboard, 'smpi-muckrack-brand smpi-muckrack-author-brand' )
+        && str_contains( $dashboard, 'smpi-author-block-demo smpi-muckrack-author-note' )
+        && str_contains( $dashboard, 'smpi-muckrack-icon " . $icon_class' )
+        && str_contains( $dashboard, 'smpi-muckrack-publication-text smpi-muckrack-publication-' )
+        && str_contains( $dashboard, 'smpi-muckrack-brand smpi-publication-preview-brand' ),
 
     "SMP front-end CSS no longer depends on Rank Math or Elementor selectors." =>
         "" !== $css_source
