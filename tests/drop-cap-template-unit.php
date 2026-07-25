@@ -6,8 +6,12 @@ namespace {
         return strtolower( preg_replace( "/[^a-zA-Z0-9_\\-]/", "", (string) $key ) );
     }
 
+    require_once __DIR__ . "/../lib/hexa-wordpress-plugin-core/src/Typography/TypographyPreservation.php";
+    require_once __DIR__ . "/../lib/hexa-wordpress-plugin-core/src/Typography/TemplateTypography.php";
     require_once __DIR__ . "/../src/Content/ArticleStyles.php";
 
+    use Hexa\PluginCore\Typography\TemplateTypography;
+    use Hexa\PluginCore\Typography\TypographyPreservation;
     use smp_publication_integration\Content\ArticleStyles;
 
     function assert_drop_cap( bool $condition, string $message ): void {
@@ -22,9 +26,10 @@ namespace {
     assert_drop_cap( "dropcap-classic" === ArticleStyles::normalize_article_drop_cap_style( "invalid-style" ), "Invalid template must use the classic fallback." );
 
     $selector = ".test-article .smpi-article-lead";
+    $template_typography = array_fill_keys( TypographyPreservation::PROPERTIES, false );
     $rules = [];
     foreach ( $styles as $style ) {
-        $css = ArticleStyles::article_drop_cap_rules( $style, $selector );
+        $css = ArticleStyles::article_drop_cap_rules( $style, $selector, $template_typography, TemplateTypography::TEMPLATE_DEFAULT, "template" );
         assert_drop_cap( false !== strpos( $css, $selector . "::first-letter" ), $style . " must use the shared first-letter selector." );
         assert_drop_cap( false !== strpos( $css, "var(--smpi-dropcap-size,96px)" ), $style . " must use the shared size variable." );
         assert_drop_cap( false !== strpos( $css, "var(--smpi-dropcap-color" ), $style . " must use the shared accent variable." );
@@ -68,7 +73,9 @@ namespace {
     $preserved = ArticleStyles::article_drop_cap_rules(
         "dropcap-script-tile",
         $selector,
-        [ "font_family" => true, "font_size" => true, "font_color" => true, "font_weight" => true ]
+        [ "font_family" => true, "font_size" => true, "font_color" => true, "font_weight" => true ],
+        TemplateTypography::SITE_INHERIT,
+        "template"
     );
     foreach ( [ "font-family:", "font-size:", "font-weight:", "color:" ] as $declaration ) {
         assert_drop_cap( false === strpos( $preserved, $declaration ), "Preserved drop caps must not emit " . $declaration );
@@ -76,9 +83,10 @@ namespace {
     assert_drop_cap( false !== strpos( $preserved, "background:var(--smpi-dropcap-soft" ), "Typography preservation must retain the selected drop-cap design." );
 
     $dashboard = (string) file_get_contents( dirname( __DIR__ ) . "/src/Admin/Dashboard/DashboardController.php" );
+    $registry = (string) file_get_contents( dirname( __DIR__ ) . "/src/Design/TemplateDesignRegistry.php" );
     assert_drop_cap( false === strpos( $dashboard, "Script letter font" ), "The obsolete full-sentence script-font gallery must be removed." );
     assert_drop_cap( false === strpos( $dashboard, 'select_setting_html( "article_drop_cap_script_font"' ), "The obsolete standalone script-font setting must not remain in the Features UI." );
-    assert_drop_cap( false !== strpos( $dashboard, 'TypographyControl::render(' ) && false !== strpos( $dashboard, '"title" => "Drop cap typography"' ), "Drop-cap typography fields and preservation toggles must share the combined Core control." );
+    assert_drop_cap( false !== strpos( $dashboard, 'TypographyControl::render(' ) && false !== strpos( $registry, '"title" => "Drop cap typography"' ), "Drop-cap typography fields and preservation toggles must share the combined Core control." );
     assert_drop_cap( false === strpos( $dashboard, '"title" => "Keep current typography"' ), "The detached preservation panel must not remain in SMP." );
     foreach ( array_keys( $template_fonts ) as $style ) {
         assert_drop_cap( false !== strpos( $dashboard, '"' . $style . '" => [' ), $style . " must remain a selectable template row." );

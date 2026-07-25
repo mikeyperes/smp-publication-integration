@@ -60,12 +60,12 @@ $checks = [
         && str_contains( $dashboard, '$this->shortcode_usage_html(' ),
     'Breadcrumb background is saved and applied through one scoped CSS variable.' => str_contains( $dashboard, 'breadcrumbs_background_color' )
         && str_contains( $article_styles, '--smpi-bc-background' )
-        && str_contains( $article_styles, 'background:var(--smpi-bc-background,#fff)' ),
+        && str_contains( $article_styles, '.smpi-breadcrumbs-band{background:var(--smpi-bc-background,transparent)' ),
     'Breadcrumb background owns a full-width band and bc-b6 has no divider.' => str_contains( $breadcrumbs, 'smpi-breadcrumbs-band' )
-        && str_contains( $article_styles, '.smpi-breadcrumbs-band{background:var(--smpi-bc-background,#fff);box-sizing:border-box;clear:both;margin:0;max-width:none;width:100%}' )
+        && str_contains( $article_styles, '.smpi-breadcrumbs-band{background:var(--smpi-bc-background,transparent)' )
         && str_contains( $article_styles, '.smpi-bc-b6{max-width:var(--content-width,1140px);padding:14px 0;border-bottom:0}' )
         && ! str_contains( $article_styles, '.smpi-bc-b6{max-width:var(--content-width,1140px);padding:14px 0;border-bottom:1px' )
-        && str_contains( $dashboard, '.smpi-breadcrumbs-band,.smpi-breadcrumbs' ),
+        && str_contains( $article_styles, '.smpi-breadcrumbs-band,.smpi-breadcrumbs' ),
     'Breadcrumb controls render in Template, Appearance, Visibility order.' => str_contains( $dashboard, '$this->breadcrumb_controls_html( $settings )' )
         && str_contains( $breadcrumb_flow, 'smpi-breadcrumb-flow' )
         && strpos( $breadcrumb_flow, '"Template"' ) < strpos( $breadcrumb_flow, '"Appearance"' )

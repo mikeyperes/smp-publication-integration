@@ -7,7 +7,10 @@ use Hexa\PluginCore\ActivityLog\ActivityLogger;
 use Hexa\PluginCore\BrandColors\BrandColorProvider;
 use Hexa\PluginCore\BrandColors\FontFamilyProvider;
 use Hexa\PluginCore\BrandColors\FontWeightProvider;
+use Hexa\PluginCore\BrandColors\TemplateColorResolver;
+use Hexa\PluginCore\Typography\TemplateTypography;
 use Hexa\PluginCore\Typography\TypographyPreservation;
+use smp_publication_integration\Design\TemplateDesignRegistry;
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
@@ -41,7 +44,7 @@ class SettingsRepository {
             'muckrack_verified_font_weight' => 'inherit',
             'muckrack_verified_text_color' => $colors['muckrack_verified_text_color'],
             'muckrack_verified_font_size' => 14,
-            'muckrack_icon_color' => $colors['muckrack_icon_color'],
+            'muckrack_icon_color' => '',
             'muckrack_icon_style' => 'circle_check',
             "muckrack_icon_size" => 16,
             "muckrack_icon_margin_left" => 2,
@@ -71,7 +74,7 @@ class SettingsRepository {
             'publication_muckrack_style' => 'block',
             'publication_muckrack_font_family' => 'template',
             'publication_muckrack_font_weight' => 'inherit',
-            'publication_muckrack_color' => $colors['publication_muckrack_color'],
+            'publication_muckrack_color' => '',
             'publication_muckrack_text_color' => $colors['publication_muckrack_text_color'],
             "publication_muckrack_font_size" => 14,
             'publication_muckrack_placements' => [ 'bottom_article' ],
@@ -85,8 +88,8 @@ class SettingsRepository {
             'article_types_enabled' => false,
             "breadcrumbs_enabled" => true,
             "breadcrumbs_style" => "bc-b2",
-            "breadcrumbs_accent_color" => $colors["breadcrumbs_accent_color"],
-            "breadcrumbs_background_color" => $colors["breadcrumbs_background_color"],
+            "breadcrumbs_accent_color" => '',
+            "breadcrumbs_background_color" => '',
             "breadcrumbs_text_color" => $colors["breadcrumbs_text_color"],
             "breadcrumbs_font_size" => 13,
             "breadcrumbs_font_family" => "template",
@@ -99,7 +102,7 @@ class SettingsRepository {
             'table_of_contents_auto_single' => false,
             "table_of_contents_style" => "toc02",
             "table_of_contents_include_summary" => true,
-            "table_of_contents_accent_color" => $colors["table_of_contents_accent_color"],
+            "table_of_contents_accent_color" => '',
             "table_of_contents_text_font_style" => "normal",
             "table_of_contents_text_font_size" => 15,
             "table_of_contents_text_color" => $colors["table_of_contents_text_color"],
@@ -107,7 +110,7 @@ class SettingsRepository {
             "table_of_contents_font_weight" => "inherit",
             "article_heading_styles_enabled" => false,
             "article_heading_style" => "h2-tick",
-            "article_heading_accent_color" => $colors["article_heading_accent_color"],
+            "article_heading_accent_color" => '',
             "article_heading_text_color" => $colors["article_heading_text_color"],
             "article_heading_h2_font_size" => 23,
             "article_heading_h3_font_size" => 20,
@@ -115,14 +118,14 @@ class SettingsRepository {
             "article_heading_font_weight" => "inherit",
             "article_drop_cap_enabled" => false,
             "article_drop_cap_style" => "dropcap-classic",
-            "article_drop_cap_color" => $colors["article_drop_cap_color"],
+            "article_drop_cap_color" => '',
             "article_drop_cap_font_size" => 96,
             "article_drop_cap_font_family" => "template",
             "article_drop_cap_font_weight" => "inherit",
             "article_drop_cap_script_font" => "dancing-script",
             "inline_photo_treatments_enabled" => false,
             "inline_photo_treatment" => "none",
-            "inline_photo_accent_color" => $colors["inline_photo_accent_color"],
+            "inline_photo_accent_color" => '',
             "inline_photo_caption_font_style" => "italic",
             "inline_photo_caption_font_size" => 16,
             "inline_photo_caption_text_color" => $colors["inline_photo_caption_text_color"],
@@ -130,7 +133,7 @@ class SettingsRepository {
             "inline_photo_caption_font_weight" => "inherit",
             "featured_image_caption_templates_enabled" => false,
             "featured_image_caption_template" => "fig2",
-            "featured_image_caption_accent_color" => $colors["featured_image_caption_accent_color"],
+            "featured_image_caption_accent_color" => '',
             "featured_image_caption_font_style" => "italic",
             "featured_image_caption_font_size" => 16,
             "featured_image_caption_text_color" => $colors["featured_image_caption_text_color"],
@@ -139,13 +142,13 @@ class SettingsRepository {
             "post_summary_style" => "none",
             "post_summary_font_family" => "template",
             "post_summary_font_weight" => "inherit",
-            "post_summary_accent_color" => $colors["post_summary_accent_color"],
+            "post_summary_accent_color" => '',
             "post_summary_text_color" => $colors["post_summary_text_color"],
             "post_summary_font_size" => 16,
             "post_summary_placement" => "manual",
             "post_faqs_style" => "none",
             "post_faqs_placement" => "manual",
-            "post_faqs_accent_color" => $colors["post_faqs_accent_color"],
+            "post_faqs_accent_color" => '',
             "post_faqs_text_font_style" => "normal",
             "post_faqs_text_font_size" => 16,
             "post_faqs_text_color" => $colors["post_faqs_text_color"],
@@ -168,7 +171,9 @@ class SettingsRepository {
             'page_assignments'      => [],
             'page_templates'        => self::default_page_templates(),
         ];
+        $defaults = array_merge( $defaults, TemplateDesignRegistry::source_defaults() );
         foreach ( self::typography_preservation_surfaces() as $prefix => $preservation_defaults ) {
+            $defaults[ TemplateTypography::setting_key( $prefix ) ] = TemplateTypography::TEMPLATE_DEFAULT;
             $defaults = array_merge( $defaults, TypographyPreservation::defaults( $prefix, $preservation_defaults ) );
         }
 
@@ -229,18 +234,7 @@ class SettingsRepository {
     }
 
     public static function font_family_css_variables(): array {
-        return [
-            "breadcrumbs_font_family" => "--smpi-bc-font",
-            "table_of_contents_font_family" => "--smpi-toc-font",
-            "article_heading_font_family" => "--smpi-heading-font",
-            "article_drop_cap_font_family" => "--smpi-dropcap-font",
-            "inline_photo_caption_font_family" => "--smpi-photo-cap-font",
-            "featured_image_caption_font_family" => "--smpi-fi-cap-font",
-            "post_summary_font_family" => "--smpi-summary-font",
-            "post_faqs_font_family" => "--smpi-faq-font",
-            "muckrack_verified_font_family" => "--smpi-muckrack-author-font",
-            "publication_muckrack_font_family" => "--smpi-muckrack-publication-font",
-        ];
+        return TemplateDesignRegistry::font_family_css_variables();
     }
 
     public static function font_family_css( string $key ): string {
@@ -274,43 +268,37 @@ class SettingsRepository {
         return $keys;
     }
 
+    public static function typography_mode_setting_keys(): array {
+        return array_map( [ TemplateTypography::class, "setting_key" ], array_keys( self::typography_preservation_surfaces() ) );
+    }
+
     /**
      * Typography preservation is registered once so defaults, AJAX allowlists,
      * previews, and frontend output cannot drift between feature cards.
      */
     public static function typography_preservation_surfaces(): array {
-        return [
-            "breadcrumbs" => [ "font_family" => false, "font_size" => false, "font_color" => true, "font_weight" => false ],
-            "table_of_contents" => false,
-            "article_heading" => true,
-            "article_drop_cap" => false,
-            "inline_photo_caption" => false,
-            "featured_image_caption" => false,
-            "post_summary" => [ "font_family" => false, "font_size" => true, "font_color" => true, "font_weight" => false ],
-            "post_faqs" => false,
-            "muckrack_verified" => [ "font_family" => false, "font_size" => true, "font_color" => true, "font_weight" => false ],
-            "publication_muckrack" => [ "font_family" => false, "font_size" => false, "font_color" => true, "font_weight" => false ],
-        ];
+        return TemplateDesignRegistry::typography_preservation_surfaces();
     }
 
     public static function typography_preservation_defaults( string $prefix ) {
-        $surfaces = self::typography_preservation_surfaces();
-        return $surfaces[ $prefix ] ?? true;
+        return TemplateDesignRegistry::typography_preservation_defaults( $prefix );
+    }
+
+    public static function typography_mode( string $prefix ): string {
+        $key = TemplateTypography::setting_key( $prefix );
+        return TemplateTypography::normalize_mode( (string) self::get( $key, TemplateTypography::TEMPLATE_DEFAULT ) );
+    }
+
+    public static function typography_values( string $prefix ): array {
+        return TemplateTypography::preservation_values(
+            self::all(),
+            $prefix,
+            self::typography_preservation_defaults( $prefix )
+        );
     }
 
     public static function font_weight_css_variables(): array {
-        return [
-            "breadcrumbs_font_weight" => "--smpi-bc-weight",
-            "table_of_contents_font_weight" => "--smpi-toc-weight",
-            "article_heading_font_weight" => "--smpi-heading-weight",
-            "article_drop_cap_font_weight" => "--smpi-dropcap-weight",
-            "inline_photo_caption_font_weight" => "--smpi-photo-cap-weight",
-            "featured_image_caption_font_weight" => "--smpi-fi-cap-weight",
-            "post_summary_font_weight" => "--smpi-summary-weight",
-            "post_faqs_font_weight" => "--smpi-faq-weight",
-            "muckrack_verified_font_weight" => "--smpi-muckrack-author-weight",
-            "publication_muckrack_font_weight" => "--smpi-muckrack-publication-weight",
-        ];
+        return TemplateDesignRegistry::font_weight_css_variables();
     }
 
     public static function font_weight_css( string $key ): string {
@@ -376,6 +364,11 @@ class SettingsRepository {
     }
 
     public static function color_default( string $key ): string {
+        foreach ( TemplateDesignRegistry::definitions() as $definition ) {
+            if ( $definition["custom_key"] === $key ) {
+                return (string) $definition["fallback"];
+            }
+        }
         $defaults = self::color_defaults();
         return $defaults[ $key ] ?? self::brand_primary_color( "#2d5277" );
     }
@@ -411,17 +404,7 @@ class SettingsRepository {
     }
 
     public static function brand_primary_color_keys(): array {
-        return [
-            "muckrack_icon_color",
-            "publication_muckrack_color",
-            "breadcrumbs_accent_color",
-            "table_of_contents_accent_color",
-            "article_heading_accent_color",
-            "inline_photo_accent_color",
-            "featured_image_caption_accent_color",
-            "post_summary_accent_color",
-            "post_faqs_accent_color",
-        ];
+        return TemplateDesignRegistry::custom_color_setting_keys();
     }
 
     public static function update( array $changes ): array {
@@ -440,6 +423,16 @@ class SettingsRepository {
 
             if ( "content_generation_timeout" === $key ) {
                 $settings[ $key ] = max( 5, min( 120, absint( $value ) ?: 45 ) );
+                continue;
+            }
+
+            if ( in_array( $key, TemplateDesignRegistry::source_setting_keys(), true ) ) {
+                $settings[ $key ] = TemplateColorResolver::normalize_source( (string) $value );
+                continue;
+            }
+
+            if ( in_array( $key, self::typography_mode_setting_keys(), true ) ) {
+                $settings[ $key ] = TemplateTypography::normalize_mode( (string) $value );
                 continue;
             }
 
@@ -506,7 +499,7 @@ class SettingsRepository {
                 "table_of_contents_style" => [ "none", "toc00", "toc01", "toc02", "toc03", "toc04" ],
                 "article_heading_style" => [ "none", "h2-tick", "h2-leftrule", "h2-underline", "h2-topline", "h2-dot", "h2-trailingrule", "h2-serif", "h2-uppercase", "h2-gradient", "h2-bracket", "h2-number", "h2-square", "h2-highlight", "h2-double", "h2-corner_tick" ],
                 "article_drop_cap_style" => [ "dropcap-classic", "dropcap-highlight", "dropcap-outline", "dropcap-side-rule", "dropcap-soft-tile", "dropcap-script-classic", "dropcap-script-tile", "dropcap-script-round", "dropcap-script-underline", "dropcap-script-shadow" ],
-                "article_drop_cap_script_font" => [ "dancing-script", "great-vibes", "parisienne", "pinyon-script" ],
+                "article_drop_cap_script_font" => [ "dancing-script", "great-vibes", "parisienne", "pinyon-script", "allura" ],
                 "inline_photo_treatment" => [ "none", "fig1", "fig2", "fig4", "fig5" ],
                 "featured_image_caption_template" => [ "none", "fig1", "fig2", "fig4", "fig5" ],
                 "post_summary_style" => [ "none", "sum00", "sum01", "sum02", "sum03", "sum04" ],
@@ -552,14 +545,20 @@ class SettingsRepository {
                 continue;
             }
 
-            if ( 'muckrack_icon_color' === $key || 0 === strpos( $key, 'muckrack_icon_color_' ) ) {
+            if ( in_array( $key, TemplateDesignRegistry::custom_color_setting_keys(), true ) ) {
                 $raw = trim( (string) $value );
-                if ( 0 === strpos( $key, 'muckrack_icon_color_' ) && '' === $raw ) {
+                $settings[ $key ] = "" === $raw ? "" : ( sanitize_hex_color( $raw ) ?: "" );
+                continue;
+            }
+
+            if ( 0 === strpos( $key, 'muckrack_icon_color_' ) ) {
+                $raw = trim( (string) $value );
+                if ( '' === $raw ) {
                     $settings[ $key ] = '';
                     continue;
                 }
                 $color = sanitize_hex_color( $raw );
-                $settings[ $key ] = $color ?: ( 0 === strpos( $key, 'muckrack_icon_color_' ) ? '' : self::color_default( 'muckrack_icon_color' ) );
+                $settings[ $key ] = $color ?: '';
                 continue;
             }
 
@@ -575,13 +574,13 @@ class SettingsRepository {
                 continue;
             }
 
-            if ( 'publication_muckrack_color' === $key ) {
-                $color = sanitize_hex_color( (string) $value );
-                $settings[ $key ] = $color ?: self::color_default( 'publication_muckrack_color' );
+            if ( "breadcrumbs_background_color" === $key ) {
+                $raw = trim( (string) $value );
+                $settings[ $key ] = "" === $raw ? "" : ( sanitize_hex_color( $raw ) ?: "" );
                 continue;
             }
 
-            if ( in_array( $key, [ "breadcrumbs_accent_color", "breadcrumbs_background_color", "breadcrumbs_text_color", "table_of_contents_accent_color", "table_of_contents_text_color", "article_heading_accent_color", "article_heading_text_color", "article_drop_cap_color", "inline_photo_accent_color", "inline_photo_caption_text_color", "featured_image_caption_accent_color", "featured_image_caption_text_color", "post_summary_accent_color", "post_summary_text_color", "post_faqs_accent_color", "post_faqs_text_color", "muckrack_verified_text_color", "publication_muckrack_text_color" ], true ) ) {
+            if ( in_array( $key, [ "breadcrumbs_text_color", "table_of_contents_text_color", "article_heading_text_color", "inline_photo_caption_text_color", "featured_image_caption_text_color", "post_summary_text_color", "post_faqs_text_color", "muckrack_verified_text_color", "publication_muckrack_text_color" ], true ) ) {
                 $color = sanitize_hex_color( (string) $value );
                 $settings[ $key ] = $color ?: self::color_default( $key );
                 continue;

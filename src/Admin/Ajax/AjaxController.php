@@ -2,6 +2,7 @@
 namespace smp_publication_integration\Admin\Ajax;
 
 use Hexa\PluginCore\BrandColors\BrandColorProvider;
+use Hexa\PluginCore\BrandColors\TemplateColorResolver;
 use Hexa\PluginCore\PluginChecks\PluginInventoryAjaxController;
 use Hexa\PluginCore\SiteStructure\SiteStructureAjaxController;
 use Hexa\PluginCore\WpAdminAjax\AjaxActionRegistry;
@@ -14,6 +15,7 @@ use smp_publication_integration\Content\Breadcrumbs;
 use smp_publication_integration\Content\MuckRackVerification;
 use smp_publication_integration\Content\MultiAuthors;
 use smp_publication_integration\Content\Schema;
+use smp_publication_integration\Design\TemplateDesignRegistry;
 use smp_publication_integration\Support\Dependencies;
 use smp_publication_integration\Support\PageStructure;
 use smp_publication_integration\Support\PluginInventory;
@@ -188,6 +190,11 @@ class AjaxController {
                 $changes[ $key ] = $request->key( $key, "inherit", "post" );
             }
         }
+        foreach ( array_merge( TemplateDesignRegistry::source_setting_keys(), Settings::typography_mode_setting_keys() ) as $key ) {
+            if ( $request->has( $key, "post" ) ) {
+                $changes[ $key ] = $request->key( $key, "", "post" );
+            }
+        }
         foreach ( [ "breadcrumbs_style", "table_of_contents_style", "article_heading_style", "article_drop_cap_style", "inline_photo_treatment", "featured_image_caption_template", "post_summary_style", "post_summary_placement", "post_faqs_style", "post_faqs_placement", "multi_authors_loop_output", "table_of_contents_text_font_style", "inline_photo_caption_font_style", "featured_image_caption_font_style", "post_faqs_text_font_style", 'post_time_mode', 'muckrack_verified_style', 'muckrack_icon_style', 'publication_muckrack_text_mode', 'publication_muckrack_style' ] as $key ) {
             if ( $request->has( $key, 'post' ) ) {
                 $changes[ $key ] = $request->key( $key, '', 'post' );
@@ -255,15 +262,19 @@ class AjaxController {
         $brand = Settings::brand_primary_color( "#2d5277" );
 
         if ( "_all_feature_primary_colors" === $key ) {
-            $keys = Settings::brand_primary_color_keys();
+            $source_keys = TemplateDesignRegistry::source_setting_keys();
         } elseif ( in_array( $key, Settings::color_setting_keys(), true ) ) {
+            $source_keys = [];
             $keys = [ $key ];
         } else {
             throw AjaxFailure::bad_request( "Invalid color setting." );
         }
 
         $changes = [];
-        foreach ( $keys as $setting_key ) {
+        foreach ( $source_keys ?? [] as $setting_key ) {
+            $changes[ $setting_key ] = TemplateColorResolver::SITE_PRIMARY;
+        }
+        foreach ( $keys ?? [] as $setting_key ) {
             $changes[ $setting_key ] = $brand;
         }
 
@@ -272,8 +283,12 @@ class AjaxController {
         $this->purge_frontend_cache();
 
         $colors = [];
-        foreach ( $keys as $setting_key ) {
+        foreach ( $keys ?? [] as $setting_key ) {
             $colors[ $setting_key ] = $brand;
+        }
+        $sources = [];
+        foreach ( $source_keys ?? [] as $setting_key ) {
+            $sources[ $setting_key ] = TemplateColorResolver::SITE_PRIMARY;
         }
 
         return [
@@ -281,7 +296,8 @@ class AjaxController {
             "color" => $brand,
             "rgb" => BrandColorProvider::rgb_string( $brand ),
             "colors" => $colors,
-            "message" => "_all_feature_primary_colors" === $key ? "Imported HWS primary color into feature accent colors." : "Imported HWS primary color into " . $key . ".",
+            "sources" => $sources,
+            "message" => "_all_feature_primary_colors" === $key ? "Set every template design color to Site Primary." : "Imported HWS primary color into " . $key . ".",
         ];
     }
 

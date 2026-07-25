@@ -45,7 +45,8 @@ namespace {
     $ajax = (string) file_get_contents( $root . "/src/Admin/Ajax/AjaxController.php" );
     $dashboard = (string) file_get_contents( $root . "/src/Admin/Dashboard/DashboardController.php" );
     $quick_start = (string) file_get_contents( $root . "/src/Support/QuickStartFeatures.php" );
-    assert_heading_preserve( false !== strpos( $settings, '"article_heading" => true' ) && false !== strpos( $settings, 'TypographyPreservation::defaults( $prefix, $preservation_defaults )' ), "Heading preservation defaults must come from the centralized Core registry." );
+    $registry = (string) file_get_contents( $root . "/src/Design/TemplateDesignRegistry.php" );
+    assert_heading_preserve( false !== strpos( $settings, 'return TemplateDesignRegistry::typography_preservation_surfaces();' ) && false !== strpos( $registry, '"article_heading" => true' ) && false !== strpos( $settings, 'TypographyPreservation::defaults( $prefix, $preservation_defaults )' ), "Heading preservation defaults must come from the centralized design registry." );
     assert_heading_preserve( false !== strpos( $settings, 'TypographyPreservation::setting_keys( $prefix )' ), "Heading preservation keys must come from the centralized Core registry." );
     assert_heading_preserve( false !== strpos( $ajax, "Settings::typography_preservation_setting_keys()" ), "Core-generated preservation keys must persist through AJAX." );
     assert_heading_preserve( false !== strpos( $dashboard, 'typography_control_html(' ) && false !== strpos( $dashboard, 'TypographyControl::render(' ) && false !== strpos( $dashboard, '"article_heading"' ), "The Features UI must render the combined Core typography control." );

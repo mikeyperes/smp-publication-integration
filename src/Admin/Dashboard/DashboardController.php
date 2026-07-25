@@ -18,9 +18,11 @@ use Hexa\PluginCore\WpAdminTabs\TabRegistry;
 use Hexa\PluginCore\WpAdminComponents\ColorControl;
 use Hexa\PluginCore\WpAdminComponents\CoreUi;
 use Hexa\PluginCore\WpAdminComponents\TypographyControl;
+use Hexa\PluginCore\WpAdminComponents\TemplateColorControl;
 use Hexa\PluginCore\WpAdminComponents\ScopedCssOverride;
 use Hexa\PluginCore\WpAdminComponents\DynamicButton;
 use Hexa\PluginCore\Typography\TypographyPreservation;
+use Hexa\PluginCore\Typography\TemplateTypography;
 use Hexa\PluginCore\SiteStructure\SiteStructureRenderer;
 use Hexa\PluginCore\SchemaDetection\SchemaPageScanner;
 use Hexa\PluginCore\SchemaDetection\SchemaScanRenderer;
@@ -34,6 +36,7 @@ use smp_publication_integration\Content\Breadcrumbs;
 use smp_publication_integration\Content\MuckRackVerification;
 use smp_publication_integration\Content\MultiAuthors;
 use smp_publication_integration\Content\Schema;
+use smp_publication_integration\Design\TemplateDesignRegistry;
 use smp_publication_integration\Support\Dependencies;
 use smp_publication_integration\Support\ArticleCleanup;
 use smp_publication_integration\Support\PageStructure;
@@ -1311,7 +1314,7 @@ class DashboardController {
         $settings = Settings::all();
         echo "<div class=\"smpi-section-intro\"><h2>Features</h2><p>Enable publication features and configure their output.</p></div>";
         echo \smp_publication_integration\Content\ArticleStyles::script_font_preview_link_html();
-        echo "<style id=smpi-design-preview-css>" . \smp_publication_integration\Content\ArticleStyles::preview_bundle_css() . "</style>";
+        echo "<style id=smpi-design-preview-css>" . \smp_publication_integration\Content\ArticleStyles::preview_bundle_css() . TemplateDesignRegistry::preview_typography_state_css() . "</style>";
         echo $this->feature_layout_styles_html();
         echo CoreUi::collection_filter(
             [
@@ -1331,13 +1334,15 @@ class DashboardController {
         echo CoreUi::collapsible( [ "title" => "HWS Base Tools primary color", "body_html" => $this->feature_brand_color_tools_html( $settings ), "open" => false, "meta_html" => CoreUi::pill( "Color source", "dark" ), "class" => "smpi-feature-filter-item" ] );
         $design_classes = [ "smpi-design-host", "smpi-feature-groups" ];
         foreach ( Settings::typography_preservation_surfaces() as $prefix => $default ) {
-            foreach ( TypographyPreservation::values( $settings, $prefix, $default ) as $property => $preserve ) {
+            $mode = Settings::typography_mode( $prefix );
+            $design_classes[] = TemplateTypography::mode_state_class( $prefix, $mode );
+            foreach ( TemplateTypography::preservation_values( $settings, $prefix, $default ) as $property => $preserve ) {
                 if ( $preserve ) {
                     $design_classes[] = TypographyPreservation::state_class( $prefix, $property );
                 }
             }
         }
-        echo "<div class=\"" . esc_attr( implode( " ", $design_classes ) ) . "\" data-hpc-typography-scope style=\"" . esc_attr( $this->design_font_variables() ) . "\">";
+        echo "<div class=\"" . esc_attr( implode( " ", $design_classes ) ) . "\" data-hpc-typography-scope data-hpc-template-color-scope style=\"" . esc_attr( $this->design_preview_variables() ) . "\">";
         $this->render_article_design_feature_group( $settings );
         $this->render_author_feature_group( $settings );
         $this->render_content_feature_group( $settings );
@@ -1366,8 +1371,7 @@ class DashboardController {
         $toc_controls = $this->inline_toggle_setting_html( "table_of_contents_auto_single", "Automatically place above article content" )
             . $this->inline_toggle_setting_html( "table_of_contents_include_summary", "Include the Article Summary link" )
             . $this->select_setting_html( "table_of_contents_style", $this->toc_style_options(), $settings, "Table of contents design" )
-            . $this->color_setting_html( "table_of_contents_accent_color", "Table of contents accent color", $settings )
-            . $this->font_style_setting_html( "table_of_contents_text_font_style", "Table of contents text font style", $settings )
+            . $this->template_color_setting_html( "table_of_contents", "Table of contents design color", $settings )
             . $this->typography_surface_control_html( "table_of_contents", $settings )
             . $this->shortcode_usage_html(
                 "Use the default shortcode in an Elementor Shortcode widget or in post content. Turn off automatic placement when positioning it manually.",
@@ -1389,7 +1393,7 @@ class DashboardController {
         );
 
         $article_heading_controls = $this->select_setting_html( "article_heading_style", $this->article_heading_style_options(), $settings, "Article H2/H3 template" )
-            . $this->color_setting_html( "article_heading_accent_color", "Design accent color", $settings )
+            . $this->template_color_setting_html( "article_heading", "Heading design color", $settings )
             . $this->typography_surface_control_html( "article_heading", $settings );
         $this->feature_card(
             "Article H2/H3 styles",
@@ -1403,6 +1407,7 @@ class DashboardController {
         );
 
         $drop_cap_controls = $this->select_setting_html( "article_drop_cap_style", $this->article_drop_cap_style_options(), $settings, "First-letter template" )
+            . $this->template_color_setting_html( "article_drop_cap", "Drop cap design color", $settings )
             . $this->typography_surface_control_html( "article_drop_cap", $settings );
         $this->feature_card(
             "Article first-letter drop cap",
@@ -1416,8 +1421,7 @@ class DashboardController {
         );
 
         $inline_photo_controls = $this->select_setting_html( "inline_photo_treatment", $this->inline_photo_treatment_options(), $settings, "Inline photo treatment" )
-            . $this->color_setting_html( "inline_photo_accent_color", "Inline photo accent color", $settings )
-            . $this->font_style_setting_html( "inline_photo_caption_font_style", "Caption text font style", $settings )
+            . $this->template_color_setting_html( "inline_photo_caption", "Inline photo design color", $settings )
             . $this->typography_surface_control_html( "inline_photo_caption", $settings );
         $this->feature_card(
             "Inline photo treatments",
@@ -1431,8 +1435,7 @@ class DashboardController {
         );
 
         $featured_image_caption_controls = $this->select_setting_html( "featured_image_caption_template", $this->featured_image_caption_template_options(), $settings, "Featured image caption template" )
-            . $this->color_setting_html( "featured_image_caption_accent_color", "Featured caption accent color", $settings )
-            . $this->font_style_setting_html( "featured_image_caption_font_style", "Featured caption font style", $settings )
+            . $this->template_color_setting_html( "featured_image_caption", "Featured caption design color", $settings )
             . $this->typography_surface_control_html( "featured_image_caption", $settings );
         $this->feature_card(
             "Featured image caption templates",
@@ -1448,7 +1451,7 @@ class DashboardController {
         $post_summary_controls = $this->post_content_block_required_field_html( "summary" )
             . $this->select_setting_html( "post_summary_style", $this->post_summary_style_options(), $settings, "Summary output style" )
             . $this->select_setting_html( "post_summary_placement", $this->post_summary_placement_options(), $settings, "Summary placement" )
-            . $this->color_setting_html( "post_summary_accent_color", "Summary design color", $settings )
+            . $this->template_color_setting_html( "post_summary", "Summary design color", $settings )
             . $this->typography_surface_control_html( "post_summary", $settings )
             . $this->shortcode_usage_html(
                 "Both shortcodes use the selected Summary design. Choose Manual placement when positioning the block in Elementor or post content.",
@@ -1472,8 +1475,7 @@ class DashboardController {
         $post_faq_controls = $this->post_content_block_required_field_html( "faqs" )
             . $this->select_setting_html( "post_faqs_style", $this->post_faq_style_options(), $settings, "FAQ output style" )
             . $this->select_setting_html( "post_faqs_placement", $this->post_faq_placement_options(), $settings, "FAQ placement" )
-            . $this->color_setting_html( "post_faqs_accent_color", "FAQ accent color", $settings )
-            . $this->font_style_setting_html( "post_faqs_text_font_style", "FAQ text font style", $settings )
+            . $this->template_color_setting_html( "post_faqs", "FAQ design color", $settings )
             . $this->typography_surface_control_html( "post_faqs", $settings )
             . $this->shortcode_usage_html(
                 "Use the shortcode for manual placement. Automatic modes insert the same canonical FAQ output once per article.",
@@ -1505,7 +1507,7 @@ class DashboardController {
             . $this->select_setting_html( "muckrack_verified_style", [ "tooltip" => [ "label" => "Tooltip icon", "description" => "Small badge beside the author name. Hover or focus explains the verification without adding sentence-length text.", "preview" => $this->author_tooltip_preview_html( $settings ) ], "text" => [ "label" => "Inline text", "description" => "Writes the full verification sentence directly into the author area.", "preview" => $this->author_inline_preview_html( $settings ) ], "compact_block" => [ "label" => "Small editorial block", "description" => "Smaller author version of the editorial verification block with left accent and compact text.", "preview" => $this->author_compact_block_preview_html( $settings ) ] ], $settings, "Display style" )
             . $this->typography_surface_control_html( "muckrack_verified", $settings )
             . $this->icon_style_setting_html( $settings )
-            . $this->color_setting_html( "muckrack_icon_color", "Default icon color", $settings )
+            . $this->template_color_setting_html( "muckrack_verified", "Author verification design color", $settings )
             . $this->number_setting_html( "muckrack_icon_size", "Default checkmark size", $settings, 8, 64, "px" )
             . $this->number_setting_html( "muckrack_icon_margin_left", "Default checkmark margin-left", $settings, -32, 64, "px" )
             . $this->number_setting_html( "muckrack_icon_margin_top", "Default checkmark margin-top", $settings, -32, 64, "px" )
@@ -1543,7 +1545,7 @@ class DashboardController {
             . $this->select_setting_html( "publication_muckrack_text_mode", [ "news_outlet" => [ "label" => "News outlet verified by MuckRack editorial team", "description" => "Generic wording when you do not want the site name in the sentence." ], "publication_name" => [ "label" => get_bloginfo( "name" ) . " verified by MuckRack editorial team", "description" => "Uses the current publication name in the verification sentence." ] ], $settings, "Text option" )
             . $this->context_select_html( "publication_muckrack_placements", [ "below_author" => "Below author", "bottom_article" => "Bottom of article" ], $settings )
             . $this->select_setting_html( "publication_muckrack_style", [ "block" => [ "label" => "Editorial block", "description" => "Small article footer block with a left accent bar.", "preview" => $this->publication_preview_sample_html( "block", $settings ) ], "mini_block" => [ "label" => "Mini editorial block", "description" => "Same left-accent editorial concept with smaller text and a quieter footprint.", "preview" => $this->publication_preview_sample_html( "mini_block", $settings ) ], "compact" => [ "label" => "Compact pill", "description" => "Small inline badge for tight author or header layouts.", "preview" => $this->publication_preview_sample_html( "compact", $settings ) ], "minimalist" => [ "label" => "Minimalist text", "description" => "Plain text treatment that blends into existing article copy.", "preview" => $this->publication_preview_sample_html( "minimalist", $settings ) ] ], $settings, "Display style" )
-            . $this->color_setting_html( "publication_muckrack_color", "Accent color", $settings )
+            . $this->template_color_setting_html( "publication_muckrack", "Publication verification design color", $settings )
             . $this->typography_surface_control_html( "publication_muckrack", $settings );
         $this->feature_card(
             "MuckRack verified publication",
@@ -1839,7 +1841,7 @@ HTML;
         $rgb = (string) $payload["primary_rgb"];
         $link = "" !== (string) $payload["admin_url"] ? CoreUi::external_link( (string) $payload["admin_url"], "Open HWS Brand Assets", "button button-secondary" ) : "";
 
-        return "<section class=\"smpi-feature-card smpi-feature-card--core-collapsible smpi-brand-color-tools\"><div class=smpi-feature-head><div><p class=smpi-kicker>Brand color source</p><h2>HWS Base Tools primary color</h2><p class=smpi-muted>Feature color defaults now use this HWS Brand Assets value when a setting has not been customized.</p></div></div><div class=smpi-feature-grid><section><h3>Primary color</h3><p><code>" . esc_html( $primary ) . "</code> <code>" . esc_html( $rgb ) . "</code></p><span class=smpi-color-swatch style=\"background:" . esc_attr( $primary ) . "\"></span></section><section><h3>Import controls</h3><p>Apply the HWS primary color to all primary/accent feature color settings.</p><button type=button class=\"button button-primary\" data-smpi-import-brand-color data-key=\"_all_feature_primary_colors\" data-brand-color=\"" . esc_attr( $primary ) . "\">Import primary color into feature accents</button> " . $link . "<span class=spinner></span><span class=\"smpi-save-state\" aria-live=\"polite\"></span></section></div></section>";
+        return "<section class=\"smpi-feature-card smpi-feature-card--core-collapsible smpi-brand-color-tools\"><div class=smpi-feature-head><div><p class=smpi-kicker>Brand color source</p><h2>HWS Base Tools primary color</h2><p class=smpi-muted>Each design can use its original palette, the site palette, or a custom accent.</p></div></div><div class=smpi-feature-grid><section><h3>Primary color</h3><p><code>" . esc_html( $primary ) . "</code> <code>" . esc_html( $rgb ) . "</code></p><span class=smpi-color-swatch style=\"background:" . esc_attr( $primary ) . "\"></span></section><section><h3>Apply to all designs</h3><p>Set every template design card to Site Primary without changing neutral text, borders, or backgrounds.</p><button type=button class=\"button button-primary\" data-smpi-import-brand-color data-key=\"_all_feature_primary_colors\" data-brand-color=\"" . esc_attr( $primary ) . "\">Use Site Primary for all designs</button> " . $link . "<span class=spinner></span><span class=\"smpi-save-state\" aria-live=\"polite\"></span></section></div></section>";
     }
 
     private function inline_toggle_html( string $key ): string {
@@ -1866,8 +1868,8 @@ HTML;
     private function breadcrumb_controls_html( array $settings ): string {
         $template = $this->select_setting_html( "breadcrumbs_style", $this->breadcrumb_style_options(), $settings, "Breadcrumb template" );
         $appearance = "<div class=\"smpi-breadcrumb-appearance-grid\">"
-            . $this->color_setting_html( "breadcrumbs_accent_color", "Primary color", $settings )
-            . $this->color_setting_html( "breadcrumbs_background_color", "Background color", $settings )
+            . $this->template_color_setting_html( "breadcrumbs", "Breadcrumb design color", $settings )
+            . $this->optional_color_setting_html( "breadcrumbs_background_color", "Background override", $settings, "Use template background" )
             . $this->typography_surface_control_html( "breadcrumbs", $settings )
             . "</div>";
         $visibility = "<div class=\"smpi-breadcrumb-visibility-grid\">"
@@ -1998,104 +2000,61 @@ CSS;
         return $html . "</div><span class=spinner></span><span class=smpi-save-state></span></div>";
     }
 
-    private function color_setting_html( string $key, string $label, array $settings ): string {
+    private function template_color_setting_html( string $surface, string $label, array $settings ): string {
+        $definition = TemplateDesignRegistry::definition( $surface );
+        if ( [] === $definition ) {
+            return "";
+        }
+
+        return "<div class=\"smpi-control-group smpi-template-color-control\">" . TemplateColorControl::render( [
+            "source_key" => $definition["source_key"],
+            "custom_key" => $definition["custom_key"],
+            "template_key" => $definition["template_key"],
+            "template" => TemplateDesignRegistry::template( $surface, $settings ),
+            "source" => TemplateDesignRegistry::source( $surface, $settings ),
+            "custom" => (string) ( $settings[ $definition["custom_key"] ] ?? "" ),
+            "palettes" => $definition["palettes"],
+            "variables" => $definition["variables"],
+            "fallback" => $definition["fallback"],
+            "title" => $label,
+            "description" => "Template Default keeps the original palette. Site and Custom modes replace only mapped design accents.",
+            "input_class" => "smpi-setting",
+            "control_class" => "smpi-template-color-core-control",
+            "preview_scope" => ".smpi-design-host",
+            "status_html" => "<span class=spinner></span><span class=\"smpi-save-state\" aria-live=\"polite\"></span>",
+        ] ) . "</div>";
+    }
+
+    private function optional_color_setting_html( string $key, string $label, array $settings, string $inherit_label ): string {
         $default = Settings::color_default( $key );
-        $color = sanitize_hex_color( (string) ( $settings[ $key ] ?? $default ) ) ?: $default;
+        $color = sanitize_hex_color( (string) ( $settings[ $key ] ?? "" ) ) ?: "";
         return "<div class=smpi-control-group>" . ColorControl::render( [
             "key" => $key,
             "label" => $label,
             "value" => $color,
             "default" => $default,
+            "allow_inherit" => true,
+            "inherited_value" => $default,
+            "inherit_label" => $inherit_label,
+            "inherited_status_label" => "Template background",
             "control_class" => "smpi-color-core-control",
-            "hex_input_class" => "smpi-setting smpi-color-setting",
+            "hex_input_class" => "smpi-color-setting",
+            "value_input_class" => "smpi-setting smpi-color-hidden",
             "picker_class" => "smpi-color-picker-control",
-            "import_brand" => true,
-            "import_button_class" => "button button-secondary",
+            "preview_scope" => ".smpi-design-host",
+            "preview_variables" => [ "--smpi-bc-background" => "color" ],
             "status_html" => "<span class=spinner></span><span class=\"smpi-save-state\" aria-live=\"polite\"></span>",
         ] ) . "</div>";
     }
 
     private function typography_surface_control_html( string $prefix, array $settings ): string {
-        $definitions = [
-            "breadcrumbs" => [
-                "title" => "Breadcrumb typography",
-                "font_family" => [ "key" => "breadcrumbs_font_family", "label" => "Breadcrumb font" ],
-                "font_weight" => [ "key" => "breadcrumbs_font_weight", "label" => "Breadcrumb weight" ],
-                "font_color" => [ "key" => "breadcrumbs_text_color", "label" => "Breadcrumb text color" ],
-                "font_size" => [ "key" => "breadcrumbs_font_size", "label" => "Breadcrumb font size", "min" => 8, "max" => 64, "suffix" => "px" ],
-            ],
-            "table_of_contents" => [
-                "title" => "Table of contents typography",
-                "font_family" => [ "key" => "table_of_contents_font_family", "label" => "Table of contents font" ],
-                "font_weight" => [ "key" => "table_of_contents_font_weight", "label" => "Table of contents weight" ],
-                "font_color" => [ "key" => "table_of_contents_text_color", "label" => "Table of contents text color" ],
-                "font_size" => [ "key" => "table_of_contents_text_font_size", "label" => "Table of contents text size", "min" => 8, "max" => 64, "suffix" => "px" ],
-            ],
-            "article_heading" => [
-                "title" => "Heading typography",
-                "font_family" => [ "key" => "article_heading_font_family", "label" => "Heading font" ],
-                "font_weight" => [ "key" => "article_heading_font_weight", "label" => "Heading weight" ],
-                "font_color" => [ "key" => "article_heading_text_color", "label" => "Heading text color" ],
-                "font_size" => [
-                    [ "key" => "article_heading_h2_font_size", "label" => "H2 font size", "min" => 8, "max" => 64, "suffix" => "px" ],
-                    [ "key" => "article_heading_h3_font_size", "label" => "H3 font size", "min" => 8, "max" => 64, "suffix" => "px" ],
-                ],
-            ],
-            "article_drop_cap" => [
-                "title" => "Drop cap typography",
-                "font_family" => [ "key" => "article_drop_cap_font_family", "label" => "Drop cap font", "description" => "Non-script templates use this font. Script templates use the typeface shown in the template preview." ],
-                "font_weight" => [ "key" => "article_drop_cap_font_weight", "label" => "Drop cap weight" ],
-                "font_color" => [ "key" => "article_drop_cap_color", "label" => "Drop cap color" ],
-                "font_size" => [ "key" => "article_drop_cap_font_size", "label" => "Drop cap size", "min" => 48, "max" => 180, "suffix" => "px" ],
-            ],
-            "inline_photo_caption" => [
-                "title" => "Inline caption typography",
-                "font_family" => [ "key" => "inline_photo_caption_font_family", "label" => "Caption font" ],
-                "font_weight" => [ "key" => "inline_photo_caption_font_weight", "label" => "Caption weight" ],
-                "font_color" => [ "key" => "inline_photo_caption_text_color", "label" => "Caption text color" ],
-                "font_size" => [ "key" => "inline_photo_caption_font_size", "label" => "Caption text size", "min" => 8, "max" => 64, "suffix" => "px" ],
-            ],
-            "featured_image_caption" => [
-                "title" => "Featured caption typography",
-                "font_family" => [ "key" => "featured_image_caption_font_family", "label" => "Caption font" ],
-                "font_weight" => [ "key" => "featured_image_caption_font_weight", "label" => "Caption weight" ],
-                "font_color" => [ "key" => "featured_image_caption_text_color", "label" => "Caption text color" ],
-                "font_size" => [ "key" => "featured_image_caption_font_size", "label" => "Caption text size", "min" => 8, "max" => 64, "suffix" => "px" ],
-            ],
-            "post_summary" => [
-                "title" => "Summary typography",
-                "font_family" => [ "key" => "post_summary_font_family", "label" => "Summary font" ],
-                "font_weight" => [ "key" => "post_summary_font_weight", "label" => "Summary weight" ],
-                "font_size" => [ "key" => "post_summary_font_size", "label" => "Summary text size", "min" => 8, "max" => 64, "suffix" => "px" ],
-            ],
-            "post_faqs" => [
-                "title" => "FAQ typography",
-                "font_family" => [ "key" => "post_faqs_font_family", "label" => "FAQ font" ],
-                "font_weight" => [ "key" => "post_faqs_font_weight", "label" => "FAQ weight" ],
-                "font_color" => [ "key" => "post_faqs_text_color", "label" => "FAQ text color" ],
-                "font_size" => [ "key" => "post_faqs_text_font_size", "label" => "FAQ text size", "min" => 8, "max" => 64, "suffix" => "px" ],
-            ],
-            "muckrack_verified" => [
-                "title" => "Author verification typography",
-                "font_family" => [ "key" => "muckrack_verified_font_family", "label" => "Verification font" ],
-                "font_weight" => [ "key" => "muckrack_verified_font_weight", "label" => "Verification weight" ],
-                "font_color" => [ "key" => "muckrack_verified_text_color", "label" => "Verification text color" ],
-                "font_size" => [ "key" => "muckrack_verified_font_size", "label" => "Verification text size", "min" => 8, "max" => 64, "suffix" => "px" ],
-            ],
-            "publication_muckrack" => [
-                "title" => "Publication verification typography",
-                "font_family" => [ "key" => "publication_muckrack_font_family", "label" => "Verification font" ],
-                "font_weight" => [ "key" => "publication_muckrack_font_weight", "label" => "Verification weight" ],
-                "font_color" => [ "key" => "publication_muckrack_text_color", "label" => "Verification text color" ],
-                "font_size" => [ "key" => "publication_muckrack_font_size", "label" => "Verification text size", "min" => 8, "max" => 64, "suffix" => "px" ],
-            ],
-        ];
-        if ( ! isset( $definitions[ $prefix ] ) ) {
+        $args = TemplateDesignRegistry::typography_definition( $prefix );
+        if ( [] === $args ) {
             return "";
         }
 
-        $args = $definitions[ $prefix ];
-        $args["description"] = "Choose typography values or leave individual properties unchanged.";
+        $args["description"] = "Use the template typography, inherit the site typography, or configure custom values.";
+        $args["mode_control"] = true;
         foreach ( [ "font_family", "font_weight", "font_color" ] as $property ) {
             if ( empty( $args[ $property ]["key"] ) ) {
                 continue;
@@ -2119,148 +2078,38 @@ CSS;
         $args["prefix"] = $prefix;
         $args["settings"] = $settings;
         $args["defaults"] = $default;
+        $args["preview_variables"] = TemplateDesignRegistry::typography_preview_variables( $prefix );
         $args["input_class"] = "smpi-setting";
         $args["control_class"] = trim( "smpi-typography-core-control " . (string) ( $args["control_class"] ?? "" ) );
 
         return "<div class=\"smpi-control-group smpi-typography-control\">" . TypographyControl::render( $args ) . "<span class=spinner></span><span class=\"smpi-save-state\" aria-live=\"polite\"></span></div>";
     }
 
-    private function design_font_variables(): string {
+    private function design_preview_variables(): string {
         $variables = [];
         $all_settings = Settings::all();
-        $drop_cap_style = \smp_publication_integration\Content\ArticleStyles::normalize_article_drop_cap_style( (string) Settings::get( "article_drop_cap_style", "dropcap-classic" ) );
-        foreach ( Settings::font_family_css_variables() as $key => $variable ) {
-            $prefix = substr( $key, 0, -strlen( "_font_family" ) );
-            $preservation = TypographyPreservation::values( $all_settings, $prefix, Settings::typography_preservation_defaults( $prefix ) );
-            if ( ! empty( $preservation["font_family"] ) || ( "article_drop_cap" === $prefix && \smp_publication_integration\Content\ArticleStyles::article_drop_cap_style_uses_script_font( $drop_cap_style ) ) ) {
-                continue;
-            }
-            $value = Settings::font_family_css( $key );
-            if ( "" !== $value ) {
-                $variables[] = $variable . ":" . $value;
-            }
+        foreach ( array_keys( TemplateDesignRegistry::definitions() ) as $surface ) {
+            $variables = array_merge(
+                $variables,
+                TemplateDesignRegistry::css_variables( $surface, $all_settings ),
+                TemplateDesignRegistry::typography_css_variables( $surface, $all_settings )
+            );
         }
-        foreach ( Settings::font_weight_css_variables() as $key => $variable ) {
-            $prefix = substr( $key, 0, -strlen( "_font_weight" ) );
-            $preservation = TypographyPreservation::values( $all_settings, $prefix, Settings::typography_preservation_defaults( $prefix ) );
-            if ( ! empty( $preservation["font_weight"] ) || ( "article_drop_cap" === $prefix && \smp_publication_integration\Content\ArticleStyles::article_drop_cap_style_uses_script_font( $drop_cap_style ) ) ) {
-                continue;
-            }
-            $value = Settings::font_weight_css( $key );
-            if ( "" !== $value ) {
-                $variables[] = $variable . ":" . $value;
-            }
+        $breadcrumb_background = sanitize_hex_color( (string) ( $all_settings["breadcrumbs_background_color"] ?? "" ) );
+        if ( $breadcrumb_background ) {
+            $variables["--smpi-bc-background"] = $breadcrumb_background;
         }
-        $variables[] = "--smpi-muckrack-author-text:" . ( sanitize_hex_color( (string) Settings::get( "muckrack_verified_text_color", "#64748b" ) ) ?: "#64748b" );
-        $variables[] = "--smpi-muckrack-author-size:" . max( 8, min( 64, (int) Settings::get( "muckrack_verified_font_size", 14 ) ) ) . "px";
-        $variables[] = "--smpi-muckrack-publication-text:" . ( sanitize_hex_color( (string) Settings::get( "publication_muckrack_text_color", "#334155" ) ) ?: "#334155" );
-        $variables[] = "--smpi-muckrack-publication-size:" . max( 8, min( 64, (int) Settings::get( "publication_muckrack_font_size", 14 ) ) ) . "px";
-
-        return implode( ";", $variables );
-    }
-
-    private function typography_preview_css(): string {
-        $surfaces = [
-            "breadcrumbs" => [
-                "font_family" => [ [ ".smpi-breadcrumbs,.smpi-breadcrumbs .smpi-breadcrumb-title,.smpi-breadcrumbs .smpi-breadcrumb-list,.smpi-breadcrumbs .smpi-breadcrumb-link,.smpi-breadcrumbs .smpi-breadcrumb-current", "var(--smpi-bc-font)" ] ],
-                "font_weight" => [ [ ".smpi-breadcrumbs,.smpi-breadcrumbs .smpi-breadcrumb-title,.smpi-breadcrumbs .smpi-breadcrumb-list,.smpi-breadcrumbs .smpi-breadcrumb-link,.smpi-breadcrumbs .smpi-breadcrumb-current", "var(--smpi-bc-weight)" ] ],
-                "font_color" => [ [ ".smpi-breadcrumbs .smpi-breadcrumb-title,.smpi-breadcrumbs .smpi-breadcrumb-list,.smpi-breadcrumbs .smpi-breadcrumb-current", "var(--smpi-bc-text,#374151)" ] ],
-                "font_size" => [ [ ".smpi-breadcrumbs .smpi-breadcrumb-title,.smpi-breadcrumbs .smpi-breadcrumb-list,.smpi-breadcrumbs .smpi-breadcrumb-link,.smpi-breadcrumbs .smpi-breadcrumb-current", "var(--smpi-bc-font-size,13px)" ] ],
-            ],
-            "table_of_contents" => [
-                "font_family" => [ [ ".smpi-table-of-contents,.smpi-table-of-contents .smpi-toc-label,.smpi-table-of-contents .smpi-toc-link", "var(--smpi-toc-font)" ] ],
-                "font_weight" => [ [ ".smpi-table-of-contents,.smpi-table-of-contents .smpi-toc-label,.smpi-table-of-contents .smpi-toc-link", "var(--smpi-toc-weight)" ] ],
-                "font_color" => [ [ ".smpi-table-of-contents .smpi-toc-label,.smpi-table-of-contents .smpi-toc-link:not(:hover)", "var(--smpi-toc-text,#1f2937)" ] ],
-                "font_size" => [ [ ".smpi-table-of-contents .smpi-toc-label,.smpi-table-of-contents .smpi-toc-link", "var(--smpi-toc-size,15px)" ] ],
-            ],
-            "article_heading" => [
-                "font_family" => [ [ ".smpi-article-heading", "var(--smpi-heading-font,var(--smpi-heading-sans,Arial,sans-serif))" ] ],
-                "font_weight" => [ [ ".smpi-article-heading", "var(--smpi-heading-weight,700)" ] ],
-                "font_color" => [ [ ".smpi-article-heading", "var(--smpi-heading-ink,#111827)" ] ],
-                "font_size" => [ [ ".smpi-article-heading--h2", "var(--smpi-heading-h2-size,23px)" ], [ ".smpi-article-heading--h3", "var(--smpi-heading-h3-size,20px)" ] ],
-            ],
-            "article_drop_cap" => [
-                "font_family" => [ [ ".smpi-dropcap-preview:not([class*=\"smpi-dropcap-preview--dropcap-script-\"]) .smpi-article-lead::first-letter", "var(--smpi-dropcap-font,Arial,Helvetica,sans-serif)", ".smpi-dropcap-preview .smpi-article-lead::first-letter" ] ],
-                "font_weight" => [ [ ".smpi-dropcap-preview:not([class*=\"smpi-dropcap-preview--dropcap-script-\"]) .smpi-article-lead::first-letter", "var(--smpi-dropcap-weight,900)", ".smpi-dropcap-preview .smpi-article-lead::first-letter" ] ],
-                "font_color" => [ [ ".smpi-dropcap-preview .smpi-article-lead::first-letter", "var(--smpi-dropcap-color,#111111)" ] ],
-                "font_size" => [ [ ".smpi-dropcap-preview .smpi-article-lead::first-letter", "var(--smpi-dropcap-size,96px)" ] ],
-            ],
-            "inline_photo_caption" => [
-                "font_family" => [ [ ".smpi-inline-photo-caption", "var(--smpi-photo-cap-font)" ] ],
-                "font_weight" => [ [ ".smpi-inline-photo-caption", "var(--smpi-photo-cap-weight)" ] ],
-                "font_color" => [ [ ".smpi-inline-photo-caption", "var(--smpi-photo-cap-color,#272727)" ] ],
-                "font_size" => [ [ ".smpi-inline-photo-caption", "var(--smpi-photo-cap-size,16px)" ] ],
-            ],
-            "featured_image_caption" => [
-                "font_family" => [ [ ".smpi-featured-image-caption-text", "var(--smpi-fi-cap-font)" ] ],
-                "font_weight" => [ [ ".smpi-featured-image-caption-text", "var(--smpi-fi-cap-weight)" ] ],
-                "font_color" => [ [ ".smpi-featured-image-caption-text", "var(--smpi-fi-cap-color,#272727)" ] ],
-                "font_size" => [ [ ".smpi-featured-image-caption-text", "var(--smpi-fi-cap-size,16px)" ] ],
-            ],
-            "post_summary" => [
-                "font_family" => [ [ ".smpi-post-summary,.smpi-post-summary .smpi-template-title,.smpi-post-summary .smpi-template-content,.smpi-post-summary .smpi-template-content *", "var(--smpi-summary-font)" ] ],
-                "font_weight" => [ [ ".smpi-post-summary,.smpi-post-summary .smpi-template-title,.smpi-post-summary .smpi-template-content,.smpi-post-summary .smpi-template-content *", "var(--smpi-summary-weight)" ] ],
-                "font_color" => [ [ ".smpi-post-summary,.smpi-post-summary .smpi-template-title,.smpi-post-summary .smpi-template-content,.smpi-post-summary .smpi-template-content *", "var(--smpi-summary-text,#1f2937)" ] ],
-                "font_size" => [ [ ".smpi-post-summary,.smpi-post-summary .smpi-template-title,.smpi-post-summary .smpi-template-content,.smpi-post-summary .smpi-template-content *", "var(--smpi-summary-size,16px)" ] ],
-            ],
-            "post_faqs" => [
-                "font_family" => [ [ ".smpi-post-faqs,.smpi-post-faqs .smpi-template-title,.smpi-post-faqs .smpi-template-content,.smpi-post-faqs .smpi-template-content *", "var(--smpi-faq-font)" ] ],
-                "font_weight" => [ [ ".smpi-post-faqs,.smpi-post-faqs .smpi-template-title,.smpi-post-faqs .smpi-template-content,.smpi-post-faqs .smpi-template-content *", "var(--smpi-faq-weight)" ] ],
-                "font_color" => [ [ ".smpi-post-faqs,.smpi-post-faqs .smpi-template-title,.smpi-post-faqs .smpi-template-content,.smpi-post-faqs .smpi-template-content *", "var(--smpi-faq-text,#1f2937)" ] ],
-                "font_size" => [ [ ".smpi-post-faqs,.smpi-post-faqs .smpi-template-title,.smpi-post-faqs .smpi-template-content,.smpi-post-faqs .smpi-template-content *", "var(--smpi-faq-size,16px)" ] ],
-            ],
-            "muckrack_verified" => [
-                "font_family" => [ [ ".smpi-author-inline-demo,.smpi-author-block-demo,.smpi-tooltip-demo", "var(--smpi-muckrack-author-font)" ] ],
-                "font_weight" => [ [ ".smpi-author-inline-demo,.smpi-author-block-demo,.smpi-tooltip-demo", "var(--smpi-muckrack-author-weight)" ] ],
-                "font_color" => [ [ ".smpi-author-inline-demo,.smpi-author-block-demo,.smpi-tooltip-demo", "var(--smpi-muckrack-author-text,#64748b)" ] ],
-                "font_size" => [ [ ".smpi-author-inline-demo,.smpi-author-block-demo,.smpi-tooltip-demo", "var(--smpi-muckrack-author-size,14px)" ] ],
-            ],
-            "publication_muckrack" => [
-                "font_family" => [ [ ".smpi-publication-preview-block,.smpi-publication-preview-mini_block,.smpi-publication-preview-compact,.smpi-publication-preview-minimalist", "var(--smpi-muckrack-publication-font)" ] ],
-                "font_weight" => [ [ ".smpi-publication-preview-block,.smpi-publication-preview-mini_block,.smpi-publication-preview-compact,.smpi-publication-preview-minimalist", "var(--smpi-muckrack-publication-weight)" ] ],
-                "font_color" => [ [ ".smpi-publication-preview-block,.smpi-publication-preview-mini_block,.smpi-publication-preview-compact,.smpi-publication-preview-minimalist", "var(--smpi-muckrack-publication-text,#334155)" ] ],
-                "font_size" => [ [ ".smpi-publication-preview-block,.smpi-publication-preview-mini_block,.smpi-publication-preview-compact,.smpi-publication-preview-minimalist", "var(--smpi-muckrack-publication-size,14px)" ] ],
-            ],
-        ];
-        $properties = [
-            "font_family" => "font-family",
-            "font_weight" => "font-weight",
-            "font_color" => "color",
-            "font_size" => "font-size",
-        ];
-        $host = ".smpi-design-host";
-        $css = "";
-        foreach ( $surfaces as $prefix => $surface ) {
-            foreach ( $properties as $property => $css_property ) {
-                $state_class = TypographyPreservation::state_class( $prefix, $property );
-                foreach ( $surface[ $property ] ?? [] as $rule ) {
-                    $selector = (string) $rule[0];
-                    $value = (string) $rule[1];
-                    $preserved_selector = (string) ( $rule[2] ?? $selector );
-                    $active_host = $host . ":not(." . $state_class . ")";
-                    $preserved_host = $host . "." . $state_class;
-                    $active_selectors = implode( ",", array_map( static fn( string $item ): string => $active_host . " " . trim( $item ), explode( ",", $selector ) ) );
-                    $preserved_selectors = implode( ",", array_map( static fn( string $item ): string => $preserved_host . " " . trim( $item ), explode( ",", $preserved_selector ) ) );
-                    $css .= $active_selectors . "{" . $css_property . ":" . $value . "!important}";
-                    $css .= $preserved_selectors . "{" . $css_property . ":inherit!important}";
-                }
-            }
+        $declarations = [];
+        foreach ( $variables as $variable => $value ) {
+            $declarations[] = $variable . ":" . $value;
         }
-
-        return $css;
+        return implode( ";", $declarations );
     }
 
     private function number_setting_html( string $key, string $label, array $settings, int $min = 8, int $max = 64, string $suffix = "" ): string {
         $value = isset( $settings[ $key ] ) ? (int) $settings[ $key ] : $min;
         $value = max( $min, min( $max, $value ) );
         return "<div class=smpi-control-group><h3>" . esc_html( $label ) . "</h3><label class=smpi-number-control><input class=smpi-setting type=number min=" . esc_attr( (string) $min ) . " max=" . esc_attr( (string) $max ) . " data-key=" . esc_attr( $key ) . " value=" . esc_attr( (string) $value ) . "><span>" . esc_html( $suffix ) . "</span></label><span class=spinner></span><span class=smpi-save-state></span></div>";
-    }
-
-    private function font_style_setting_html( string $key, string $label, array $settings ): string {
-        return $this->select_setting_html( $key, [
-            "normal" => [ "label" => "Normal text", "description" => "Keep the selected text upright." ],
-            "italic" => [ "label" => "Italic text", "description" => "Use an editorial italic treatment." ],
-        ], $settings, $label );
     }
 
     private function author_context_overrides_html( array $settings ): string {
@@ -2271,7 +2120,7 @@ CSS;
             "home" => [ "label" => "Home page authors", "description" => "Overrides author badges in home page article lists." ],
             "author" => [ "label" => "Author archive/profile", "description" => "Overrides badges on author.php archive/profile pages." ],
         ];
-        $default_color = sanitize_hex_color( (string) ( $settings["muckrack_icon_color"] ?? Settings::color_default( "muckrack_icon_color" ) ) ) ?: Settings::color_default( "muckrack_icon_color" );
+        $default_color = TemplateDesignRegistry::effective_color( "muckrack_verified", $settings );
         $html = "<div class=\"smpi-control-group smpi-context-overrides\"><h3>Context overrides</h3><p class=smpi-muted>Choose a custom color or use the default color above. Every context uses the same Hexa WP Core color control.</p><div class=smpi-context-override-list>";
         foreach ( $contexts as $context => $meta ) {
             $color_key = "muckrack_icon_color_" . $context;
@@ -2670,7 +2519,6 @@ CSS;
     }
 
     private function author_icon_preview_html( array $settings, string $style = "" ): string {
-        $color = sanitize_hex_color( (string) ( $settings["muckrack_icon_color"] ?? "#2d5277" ) ) ?: "#2d5277";
         $style = "" !== $style ? $style : (string) ( $settings["muckrack_icon_style"] ?? "circle_check" );
         if ( ! in_array( $style, [ "circle_check", "circle_outline_check", "check" ], true ) ) {
             $style = "circle_check";
@@ -2682,7 +2530,7 @@ CSS;
         $margin_top = isset( $settings['muckrack_icon_margin_top'] ) ? (int) $settings['muckrack_icon_margin_top'] : 0;
         $margin_left = max( -32, min( 64, $margin_left ) );
         $margin_top = max( -32, min( 64, $margin_top ) );
-        return '<span class="' . esc_attr( $class ) . '" style="--smpi-muckrack-color:' . esc_attr( $color ) . ';color:' . esc_attr( $color ) . ';font-size:' . esc_attr( (string) $size ) . 'px;margin-left:' . esc_attr( (string) $margin_left ) . 'px;margin-top:' . esc_attr( (string) $margin_top ) . 'px" aria-label="Verified by MuckRack editorial team">' . $this->muckrack_icon_svg_html( $style ) . '</span>';
+        return '<span class="' . esc_attr( $class ) . '" style="font-size:' . esc_attr( (string) $size ) . 'px;margin-left:' . esc_attr( (string) $margin_left ) . 'px;margin-top:' . esc_attr( (string) $margin_top ) . 'px" aria-label="Verified by MuckRack editorial team">' . $this->muckrack_icon_svg_html( $style ) . '</span>';
     }
 
     private function muckrack_icon_svg_html( string $style ): string {
@@ -2700,13 +2548,11 @@ CSS;
     }
 
     private function author_inline_preview_html( array $settings ): string {
-        $color = sanitize_hex_color( (string) ( $settings["muckrack_icon_color"] ?? "#2d5277" ) ) ?: "#2d5277";
-        return "<span class=smpi-author-inline-demo>Journalist verified by <strong style=\"color:" . esc_attr( $color ) . "\">MuckRack</strong> editorial team <a href=#>(learn more)</a></span>";
+        return "<span class=smpi-author-inline-demo>Journalist verified by <strong class=smpi-muckrack-author-brand>MuckRack</strong> editorial team <a href=#>(learn more)</a></span>";
     }
 
     private function author_compact_block_preview_html( array $settings ): string {
-        $color = sanitize_hex_color( (string) ( $settings["muckrack_icon_color"] ?? "#2d5277" ) ) ?: "#2d5277";
-        return "<span class=smpi-author-block-demo style=--smpi-muckrack-color:" . esc_attr( $color ) . ">Author verified by <strong>MuckRack</strong> editorial team <a href=#>(learn more)</a></span>";
+        return "<span class=smpi-author-block-demo>Author verified by <strong>MuckRack</strong> editorial team <a href=#>(learn more)</a></span>";
     }
 
     private function author_muckrack_mode_help_html( array $settings ): string {
@@ -2735,10 +2581,9 @@ CSS;
 
 
     private function publication_preview_sample_html( string $style, array $settings ): string {
-        $color = sanitize_hex_color( (string) ( $settings["publication_muckrack_color"] ?? "#2d5277" ) ) ?: "#2d5277";
         $label = "publication_name" === (string) ( $settings["publication_muckrack_text_mode"] ?? "news_outlet" ) ? get_bloginfo( "name" ) : "News outlet";
         $class = "smpi-publication-preview-" . sanitize_html_class( $style );
-        return '<span class="' . esc_attr( $class ) . '" style="--smpi-muckrack-color:' . esc_attr( $color ) . '">' . esc_html( $label ) . ' verified by <strong class="smpi-publication-preview-brand">MuckRack</strong> editorial team <a href="#">(learn more)</a></span>';
+        return '<span class="' . esc_attr( $class ) . '">' . esc_html( $label ) . ' verified by <strong class="smpi-publication-preview-brand">MuckRack</strong> editorial team <a href="#">(learn more)</a></span>';
     }
 
 
@@ -2756,7 +2601,14 @@ CSS;
     }
 
     private function typography_preserved_label( string $prefix ): string {
-        $values = TypographyPreservation::values( Settings::all(), $prefix, Settings::typography_preservation_defaults( $prefix ) );
+        $mode = Settings::typography_mode( $prefix );
+        if ( TemplateTypography::TEMPLATE_DEFAULT === $mode ) {
+            return "Not applicable in Template Default";
+        }
+        if ( TemplateTypography::SITE_INHERIT === $mode ) {
+            return "All typography uses the site";
+        }
+        $values = TemplateTypography::preservation_values( Settings::all(), $prefix, Settings::typography_preservation_defaults( $prefix ) );
         $properties = array_keys( array_filter( $values ) );
         return [] === $properties ? "None" : implode( ", ", array_map( static fn( string $property ): string => str_replace( "_", " ", $property ), $properties ) );
     }
@@ -2860,6 +2712,9 @@ CSS;
         $html = $this->simple_status_html( Settings::bool( "muckrack_verified_enabled" ), "Top 10 authors by published posts checked for MuckRack ACF/user fields. Always-show override: " . ( $forced ? "on" : "off" ) . ". Font: " . Settings::font_family_label( "muckrack_verified_font_family" ) . "." );
         $text_color = sanitize_hex_color( (string) Settings::get( "muckrack_verified_text_color", "#64748b" ) ) ?: "#64748b";
         $html .= "<table class=\"widefat striped\"><tbody>";
+        $typography_mode = Settings::typography_mode( "muckrack_verified" );
+        $typography_options = TemplateTypography::options();
+        $html .= "<tr><th>Typography mode</th><td>" . esc_html( (string) ( $typography_options[ $typography_mode ]["label"] ?? "Template Default" ) ) . "</td></tr>";
         $html .= "<tr><th>Font</th><td>" . esc_html( Settings::font_family_label( "muckrack_verified_font_family" ) ) . "</td></tr>";
         $html .= "<tr><th>Font weight</th><td>" . esc_html( Settings::font_weight_label( "muckrack_verified_font_weight" ) ) . "</td></tr>";
         $html .= "<tr><th>Text color</th><td><span class=smpi-color-swatch style=\"background:" . esc_attr( $text_color ) . "\"></span> <code>" . esc_html( $text_color ) . "</code></td></tr>";
@@ -2949,6 +2804,8 @@ CSS;
         $html .= "<table class=\"widefat striped\"><tbody>";
         $html .= "<tr><th>Text option</th><td><code>" . esc_html( (string) $report["text_mode"] ) . "</code></td></tr>";
         $html .= "<tr><th>Display style</th><td><code>" . esc_html( (string) $report["style"] ) . "</code></td></tr>";
+        $html .= "<tr><th>Color mode</th><td><code>" . esc_html( (string) $report["color_source"] ) . "</code></td></tr>";
+        $html .= "<tr><th>Typography mode</th><td><code>" . esc_html( (string) $report["typography_mode"] ) . "</code></td></tr>";
         $html .= "<tr><th>Font</th><td>" . esc_html( (string) $report["font_family"] ) . "</td></tr>";
         $html .= "<tr><th>Font weight</th><td>" . esc_html( (string) $report["font_weight"] ) . "</td></tr>";
         $html .= "<tr><th>Text color</th><td><span class=smpi-color-swatch style=\"background:" . esc_attr( (string) $report["text_color"] ) . "\"></span> <code>" . esc_html( (string) $report["text_color"] ) . "</code></td></tr>";
@@ -3427,7 +3284,7 @@ CSS;
             function saveToast(){var t=$(`#smpi-save-toast`);if(t.length)return t;t=$(`<div id="smpi-save-toast" class="smpi-save-toast" aria-live="polite"><span class="smpi-save-toast-spinner" aria-hidden="true"></span><span class="smpi-save-toast-message"></span></div>`);$(`body`).append(t);return t}
             function setGlobalSaveToast(state,message){var t=saveToast();clearTimeout(smpiSaveToastTimer);t.removeClass(`is-saving is-saved is-error`).addClass(`is-visible is-`+state).attr(`role`,state===`error`?`alert`:`status`);t.find(`.smpi-save-toast-message`).text(message);if(state!==`saving`){smpiSaveToastTimer=setTimeout(function(){t.removeClass(`is-visible is-saving is-saved is-error`)},6500)}}
             function syncFeatureSummaryState(input,settings){if(!input.hasClass(`smpi-feature-primary-toggle`))return;var key=input.data(`key`),raw=settings&&Object.prototype.hasOwnProperty.call(settings,key)?settings[key]:input.is(`:checked`),enabled=raw===true||raw===1||raw===`1`,details=input.closest(`details.smpi-feature-filter-item`),pill=details.children(`summary`).find(`.hpc-section-summary-side .hpc-pill`).first();input.prop(`checked`,enabled);input.closest(`.smpi-switch`).find(`strong`).text(enabled?`Enabled`:`Disabled`);pill.removeClass(`success warning dark`).addClass(enabled?`success`:`warning`).attr(`aria-live`,`polite`).text(enabled?`Enabled`:`Disabled`)}
-            function saveSetting(e, done){var k=e.data(`key`),d={action:`smpi_save_settings`,nonce:smpiAdmin.nonce,tab:smpiAdmin.activeTab},v;if(!k)return;var r=saveRoot(e),card=featureRoot(e);updateChoiceState(e);if(e.is(`:checkbox`)&&!e.hasClass(`smpi-setting-array`)){e.closest(`.smpi-switch`).find(`strong`).text(e.is(`:checked`)?`Enabled`:`Disabled`)}if(e.hasClass(`smpi-color-setting`)||e.is(`[data-hpc-color-hex-input]`)){var normalized=smpiHex(e.val());if(!normalized){var badLabel=k+`: `+(e.val()||`empty`),badMsg=`Invalid hex color. Use #RRGGBB.`;setSaveState(r,`error`,badMsg);setFeatureSaveState(card,`error`,`Error saving ${badLabel}: ${badMsg}`);setGlobalSaveToast(`error`,`Error saving ${badLabel}: ${badMsg}`);setTabMessage(`Error saving ${badLabel}: ${badMsg}`);if(done)done(null);return}e.val(normalized);smpiSyncColor(e.closest(`.smpi-color-control,[data-hpc-color-control]`),normalized,false)}if(e.hasClass(`smpi-setting-array`)){var g=$(`.smpi-setting-array[data-key="${k}"]`);d[k+`_present`]=1;d[k]=g.filter(`:checked`).map(function(){return $(this).val()}).get()}else{v=e.is(`:checkbox`)?(e.is(`:checked`)?1:0):e.val();d[k]=v}var label=inputStateLabel(e);r.find(`.spinner`).addClass(`is-active`);setSaveState(r,`saving`,`Saving...`);setFeatureSaveState(card,`saving`,`Saving ${label}`);setGlobalSaveToast(`saving`,`Saving ${label}`);setTabMessage(`Saving ${label}`);$.post(smpiAdmin.ajaxUrl,d).done(function(x){var ok=!!(x&&x.success),msg=saveMessage(x,`Server rejected the save.`);if(ok)syncFeatureSummaryState(e,x.data&&x.data.settings?x.data.settings:null);setSaveState(r,ok?`saved`:`error`,ok?`✓ Saved`:msg);setFeatureSaveState(card,ok?`saved`:`error`,ok?`Saved ${label}`:`Error saving ${label}: ${msg}`);setGlobalSaveToast(ok?`saved`:`error`,ok?`Saved ${label}`:`Error saving ${label}: ${msg}`);if(ok&&x.data&&x.data.fragment){refreshActiveFragment(x.data.fragment);setTabMessage(`Saved and refreshed ${x.data.fragment.label}.`)}else if(ok){setTabMessage(`Saved ${label}.`)}if(done)done(x)}).fail(function(xhr){var msg=`HTTP ${xhr.status||0} ${xhr.statusText||`request failed`}`;setSaveState(r,`error`,msg);setFeatureSaveState(card,`error`,`Error saving ${label}: ${msg}`);setGlobalSaveToast(`error`,`Error saving ${label}: ${msg}`);setTabMessage(`Error saving ${label}: ${msg}`);if(done)done(null)}).always(function(){r.find(`.spinner`).removeClass(`is-active`);card.removeClass(`is-saving`)})}
+            function saveSetting(e, done){var k=e.data(`key`),d={action:`smpi_save_settings`,nonce:smpiAdmin.nonce,tab:smpiAdmin.activeTab},v;if(!k)return;var r=saveRoot(e),card=featureRoot(e);updateChoiceState(e);if(e.is(`:checkbox`)&&!e.hasClass(`smpi-setting-array`)){e.closest(`.smpi-switch`).find(`strong`).text(e.is(`:checked`)?`Enabled`:`Disabled`)}if(e.hasClass(`smpi-color-setting`)||e.is(`[data-hpc-color-hex-input]`)){var normalized=smpiHex(e.val());if(!normalized){var badLabel=k+`: `+(e.val()||`empty`),badMsg=`Invalid hex color. Use #RRGGBB.`;setSaveState(r,`error`,badMsg);setFeatureSaveState(card,`error`,`Error saving ${badLabel}: ${badMsg}`);setGlobalSaveToast(`error`,`Error saving ${badLabel}: ${badMsg}`);setTabMessage(`Error saving ${badLabel}: ${badMsg}`);if(done)done(null);return}e.val(normalized)}if(e.hasClass(`smpi-setting-array`)){var g=$(`.smpi-setting-array[data-key="${k}"]`);d[k+`_present`]=1;d[k]=g.filter(`:checked`).map(function(){return $(this).val()}).get()}else{v=e.is(`:checkbox`)?(e.is(`:checked`)?1:0):e.val();d[k]=v}var label=inputStateLabel(e);r.find(`.spinner`).addClass(`is-active`);setSaveState(r,`saving`,`Saving...`);setFeatureSaveState(card,`saving`,`Saving ${label}`);setGlobalSaveToast(`saving`,`Saving ${label}`);setTabMessage(`Saving ${label}`);$.post(smpiAdmin.ajaxUrl,d).done(function(x){var ok=!!(x&&x.success),msg=saveMessage(x,`Server rejected the save.`);if(ok)syncFeatureSummaryState(e,x.data&&x.data.settings?x.data.settings:null);setSaveState(r,ok?`saved`:`error`,ok?`✓ Saved`:msg);setFeatureSaveState(card,ok?`saved`:`error`,ok?`Saved ${label}`:`Error saving ${label}: ${msg}`);setGlobalSaveToast(ok?`saved`:`error`,ok?`Saved ${label}`:`Error saving ${label}: ${msg}`);if(ok&&x.data&&x.data.fragment){refreshActiveFragment(x.data.fragment);setTabMessage(`Saved and refreshed ${x.data.fragment.label}.`)}else if(ok){setTabMessage(`Saved ${label}.`)}if(done)done(x)}).fail(function(xhr){var msg=`HTTP ${xhr.status||0} ${xhr.statusText||`request failed`}`;setSaveState(r,`error`,msg);setFeatureSaveState(card,`error`,`Error saving ${label}: ${msg}`);setGlobalSaveToast(`error`,`Error saving ${label}: ${msg}`);setTabMessage(`Error saving ${label}: ${msg}`);if(done)done(null)}).always(function(){r.find(`.spinner`).removeClass(`is-active`);card.removeClass(`is-saving`)})}
             function setPublicationMuckrackStatus(panel,key,ok,state){var row=panel.find(`[data-smpi-publication-muckrack-status="${key}"]`),icon=row.find(`.smpi-ico`).first();icon.removeClass(`smpi-ico--ok smpi-ico--bad smpi-ico--warn`).addClass(ok?`smpi-ico--ok`:`smpi-ico--bad`).html(ok?`&#10003;`:`&#10007;`);row.find(`[data-smpi-publication-muckrack-status-text]`).text(state)}
             $(document).on(`click`,`[data-smpi-save-publication-muckrack-source]`,function(){var b=$(this),panel=b.closest(`[data-smpi-publication-muckrack-source]`),card=featureRoot(b),verified=panel.find(`.smpi-publication-muckrack-source-verified`).is(`:checked`),url=String(panel.find(`.smpi-publication-muckrack-source-url`).val()||``).trim(),label=`publication MuckRack source`;panel.find(`.spinner`).addClass(`is-active`);b.prop(`disabled`,true);setSaveState(panel,`saving`,`Saving...`);setFeatureSaveState(card,`saving`,`Saving ${label}`);setGlobalSaveToast(`saving`,`Saving ${label}`);setTabMessage(`Saving ${label}`);$.post(smpiAdmin.ajaxUrl,{action:`smpi_save_publication_muckrack_source`,nonce:smpiAdmin.nonce,verified:verified?1:0,url:url}).done(function(x){var ok=!!(x&&x.success),msg=saveMessage(x,`Server rejected the save.`);if(ok&&x.data){panel.find(`.smpi-publication-muckrack-source-verified`).prop(`checked`,!!x.data.verified);panel.find(`.smpi-publication-muckrack-source-url`).val(x.data.url||``);setPublicationMuckrackStatus(panel,`verified`,!!x.data.verified,x.data.verified?`Enabled`:`Disabled`);setPublicationMuckrackStatus(panel,`url`,!!x.data.url_available,x.data.url_available?`Saved`:`Missing`);setPublicationMuckrackStatus(panel,`effective`,!!x.data.effective,x.data.effective?`Active`:`Inactive`)}setSaveState(panel,ok?`saved`:`error`,ok?`✓ Saved`:msg);setFeatureSaveState(card,ok?`saved`:`error`,ok?msg:`Error saving ${label}: ${msg}`);setGlobalSaveToast(ok?`saved`:`error`,ok?msg:`Error saving ${label}: ${msg}`);setTabMessage(ok?msg:`Error saving ${label}: ${msg}`)}).fail(function(xhr){var msg=`HTTP ${xhr.status||0} ${xhr.statusText||`request failed`}`;setSaveState(panel,`error`,msg);setFeatureSaveState(card,`error`,`Error saving ${label}: ${msg}`);setGlobalSaveToast(`error`,`Error saving ${label}: ${msg}`);setTabMessage(`Error saving ${label}: ${msg}`)}).always(function(){panel.find(`.spinner`).removeClass(`is-active`);card.removeClass(`is-saving`);b.prop(`disabled`,false)})});
             function isDeferredNumberSetting(e){return e.hasClass(`smpi-setting`)&&e.is(`input[type="number"]`)}
@@ -3438,23 +3295,8 @@ CSS;
             $(document).on(`keydown`,`.smpi-setting[type="number"]`,function(ev){if(ev.key===`Enter`){ev.preventDefault();$(this).trigger(`blur`)}});
             $(document).on(`change`,`.smpi-setting,.smpi-setting-array`,function(){var e=$(this);if(isDeferredNumberSetting(e))return;saveSetting(e)});
             function smpiHex(v){v=String(v||``).trim().toLowerCase();if(v&&v.charAt(0)!==`#`)v=`#`+v;if(/^#[0-9a-f]{3}$/.test(v)){v=`#`+v[1]+v[1]+v[2]+v[2]+v[3]+v[3]}return /^#[0-9a-f]{6}$/.test(v)?v:``}
-            function smpiRgb(v){var h=smpiHex(v);return h?`rgb(${parseInt(h.slice(1,3),16)}, ${parseInt(h.slice(3,5),16)}, ${parseInt(h.slice(5,7),16)})`:``}
-            function smpiRgba(v,a){var h=smpiHex(v);return h?`rgba(${parseInt(h.slice(1,3),16)},${parseInt(h.slice(3,5),16)},${parseInt(h.slice(5,7),16)},${a})`:``}
-            function smpiSetPreviewVar(host,key,value,suffix){if(!host)return;var v=String(value)+suffix;host.style.setProperty(key,v);if(key.indexOf(`--smpi-bc-`)===0)host.querySelectorAll(`.smpi-breadcrumbs-band,.smpi-breadcrumbs`).forEach(function(el){el.style.setProperty(key,v)})}
-            function smpiContrastInk(v){var h=smpiHex(v);if(!h)return``;var r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16),b=parseInt(h.slice(5,7),16);return((r*299+g*587+b*114)/1000)>=150?`#111111`:`#ffffff`}
-            function smpiSetDerivedPreviewVars(host,key,value){if(!host)return;if(key===`article_heading_accent_color`){var fade=smpiRgba(value,0),highlight=smpiRgba(value,.16);if(fade)host.style.setProperty(`--smpi-heading-accent-fade`,fade);if(highlight)host.style.setProperty(`--smpi-heading-highlight`,highlight)}if(key===`article_drop_cap_color`){var soft=smpiRgba(value,.14),ink=smpiContrastInk(value);if(soft)host.style.setProperty(`--smpi-dropcap-soft`,soft);if(ink)host.style.setProperty(`--smpi-dropcap-ink`,ink)}if(key===`post_summary_accent_color`){var summarySoft=smpiRgba(value,.1),summaryInk=smpiContrastInk(value);if(summarySoft)host.style.setProperty(`--smpi-summary-accent-soft`,summarySoft);if(summaryInk)host.style.setProperty(`--smpi-summary-accent-ink`,summaryInk)}if(key===`post_faqs_accent_color`){var faqSoft=smpiRgba(value,.22);if(faqSoft)host.style.setProperty(`--smpi-faq-accent-soft`,faqSoft)}}
-            function smpiSyncColor(wrap,value,isEmpty){var hex=smpiHex(value),display=isEmpty?((wrap.find(`[data-smpi-empty-label]`).data(`smpi-empty-label`)||`inherit`)):hex;if(hex){wrap.find(`.smpi-color-swatch,.hpc-color-swatch`).css(`background`,hex);wrap.find(`[data-hpc-copy]`).attr(`data-hpc-copy`,hex);wrap.find(`[data-hpc-color-picker]`).val(hex);wrap.find(`[data-hpc-color-hex-input]`).val(hex)}wrap.find(`[data-smpi-color-hex],[data-hpc-color-hex]`).text(display||hex||`inherit`);wrap.find(`[data-smpi-color-rgb],[data-hpc-color-rgb]`).text(hex?smpiRgb(hex):``)}
-            function smpiApplyColor(key,color){var hex=smpiHex(color);if(!key||!hex)return;$('[data-hpc-color-control][data-key="'+key+'"]').each(function(){var control=$(this);smpiSyncColor(control,hex,false);control.attr('data-hpc-color-inherited','false').attr('data-hpc-color-effective',hex).removeClass('is-inherited');control.find('[data-hpc-color-value-input]').val(hex);control.find('[data-hpc-color-inherit-state]').text(control.attr('data-hpc-custom-label')||'Custom')});var m=smpiPV[key],host=document.querySelector('.smpi-design-host');if(m&&host){smpiSetPreviewVar(host,m[0],hex,m[1]);smpiSetDerivedPreviewVars(host,key,hex)}}
-            $(document).on(`input`,`.smpi-color-setting,[data-hpc-color-picker],[data-hpc-color-hex-input]`,function(){var input=$(this),wrap=input.closest(`[data-hpc-color-control]`);smpiSyncColor(wrap,input.val(),false)});
-            $(document).on(`click`,`[data-smpi-import-brand-color]`,function(){var b=$(this),key=b.data(`key`),r=saveRoot(b),card=featureRoot(b),label=key===`_all_feature_primary_colors`?`HWS primary color into feature accents`:`HWS primary color into ${key}`;r.find(`.spinner`).addClass(`is-active`);b.prop(`disabled`,true);setSaveState(r,`saving`,`Importing...`);setFeatureSaveState(card,`saving`,`Importing ${label}`);setGlobalSaveToast(`saving`,`Importing ${label}`);$.post(smpiAdmin.ajaxUrl,{action:`smpi_import_brand_primary_color`,nonce:smpiAdmin.nonce,key:key,tab:smpiAdmin.activeTab}).done(function(x){var ok=!!(x&&x.success),msg=saveMessage(x,`Server rejected the import.`);if(ok&&x.data&&x.data.colors){$.each(x.data.colors,function(k,c){smpiApplyColor(k,c)})}setSaveState(r,ok?`saved`:`error`,ok?`✓ Imported`:msg);setFeatureSaveState(card,ok?`saved`:`error`,ok?msg:`Error importing ${label}: ${msg}`);setGlobalSaveToast(ok?`saved`:`error`,ok?msg:`Error importing ${label}: ${msg}`);setTabMessage(ok?msg:`Error importing ${label}: ${msg}`)}).fail(function(xhr){var msg=`HTTP ${xhr.status||0} ${xhr.statusText||`request failed`}`;setSaveState(r,`error`,msg);setFeatureSaveState(card,`error`,`Error importing ${label}: ${msg}`);setGlobalSaveToast(`error`,`Error importing ${label}: ${msg}`);setTabMessage(`Error importing ${label}: ${msg}`)}).always(function(){r.find(`.spinner`).removeClass(`is-active`);card.removeClass(`is-saving`);b.prop(`disabled`,false)})});
+            $(document).on(`click`,`[data-smpi-import-brand-color]`,function(){var b=$(this),key=b.data(`key`),r=saveRoot(b),card=featureRoot(b),label=key===`_all_feature_primary_colors`?`HWS primary color into feature accents`:`HWS primary color into ${key}`;r.find(`.spinner`).addClass(`is-active`);b.prop(`disabled`,true);setSaveState(r,`saving`,`Importing...`);setFeatureSaveState(card,`saving`,`Importing ${label}`);setGlobalSaveToast(`saving`,`Importing ${label}`);$.post(smpiAdmin.ajaxUrl,{action:`smpi_import_brand_primary_color`,nonce:smpiAdmin.nonce,key:key,tab:smpiAdmin.activeTab}).done(function(x){var ok=!!(x&&x.success),msg=saveMessage(x,`Server rejected the import.`);if(ok&&x.data){if(x.data.colors&&window.hexaColorControl){$.each(x.data.colors,function(k,c){window.hexaColorControl.applyByKey(k,c,false)})}if(x.data.sources&&window.hexaTemplateColorControl){$.each(x.data.sources,function(k,source){window.hexaTemplateColorControl.applyByKey(k,source)})}}setSaveState(r,ok?`saved`:`error`,ok?`✓ Imported`:msg);setFeatureSaveState(card,ok?`saved`:`error`,ok?msg:`Error importing ${label}: ${msg}`);setGlobalSaveToast(ok?`saved`:`error`,ok?msg:`Error importing ${label}: ${msg}`);setTabMessage(ok?msg:`Error importing ${label}: ${msg}`)}).fail(function(xhr){var msg=`HTTP ${xhr.status||0} ${xhr.statusText||`request failed`}`;setSaveState(r,`error`,msg);setFeatureSaveState(card,`error`,`Error importing ${label}: ${msg}`);setGlobalSaveToast(`error`,`Error importing ${label}: ${msg}`);setTabMessage(`Error importing ${label}: ${msg}`)}).always(function(){r.find(`.spinner`).removeClass(`is-active`);card.removeClass(`is-saving`);b.prop(`disabled`,false)})});
             $(document).on(`click`,`[data-smpi-test-multi-authors]`,function(){var b=$(this),r=saveRoot(b),card=featureRoot(b),target=r.find(`[data-smpi-multi-author-test-target]`).val()||``,out=r.find(`[data-smpi-multi-author-test-result]`).first(),label=target?`Multiple author frontend hook for ${target}`:`Multiple author frontend hook for latest post`;r.find(`.spinner`).addClass(`is-active`);b.prop(`disabled`,true);out.html(`<p class="smpi-muted">Testing frontend author hook...</p>`);setSaveState(r,`saving`,`Testing...`);setFeatureSaveState(card,`saving`,`Testing ${label}`);setGlobalSaveToast(`saving`,`Testing ${label}`);$.post(smpiAdmin.ajaxUrl,{action:`smpi_test_multi_authors`,nonce:smpiAdmin.nonce,target:target,tab:smpiAdmin.activeTab}).done(function(x){var ok=!!(x&&x.success),msg=saveMessage(x,`Server rejected the test.`);out.html(ok&&x.data&&x.data.html?x.data.html:`<div class="notice notice-error inline"><p>${smpiEscape(msg)}</p></div>`);setSaveState(r,ok?`saved`:`error`,ok?`✓ Tested`:msg);setFeatureSaveState(card,ok?`saved`:`error`,ok?msg:`Error testing ${label}: ${msg}`);setGlobalSaveToast(ok?`saved`:`error`,ok?msg:`Error testing ${label}: ${msg}`);setTabMessage(ok?msg:`Error testing ${label}: ${msg}`)}).fail(function(xhr){var msg=`HTTP ${xhr.status||0} ${xhr.statusText||`request failed`}`;out.html(`<div class="notice notice-error inline"><p>${smpiEscape(msg)}</p></div>`);setSaveState(r,`error`,msg);setFeatureSaveState(card,`error`,`Error testing ${label}: ${msg}`);setGlobalSaveToast(`error`,`Error testing ${label}: ${msg}`);setTabMessage(`Error testing ${label}: ${msg}`)}).always(function(){r.find(`.spinner`).removeClass(`is-active`);card.removeClass(`is-saving`);b.prop(`disabled`,false)})});
-            var smpiPV={'breadcrumbs_background_color':['--smpi-bc-background',''],'breadcrumbs_accent_color':['--smpi-bc-accent',''],'breadcrumbs_text_color':['--smpi-bc-text',''],'breadcrumbs_font_size':['--smpi-bc-font-size','px'],'table_of_contents_accent_color':['--smpi-toc-accent',''],'table_of_contents_text_color':['--smpi-toc-text',''],'table_of_contents_text_font_size':['--smpi-toc-size','px'],'table_of_contents_text_font_style':['--smpi-toc-fstyle',''],'article_heading_accent_color':['--smpi-heading-accent',''],'article_heading_text_color':['--smpi-heading-ink',''],'article_heading_h2_font_size':['--smpi-heading-h2-size','px'],'article_heading_h3_font_size':['--smpi-heading-h3-size','px'],'article_drop_cap_color':['--smpi-dropcap-color',''],'article_drop_cap_font_size':['--smpi-dropcap-size','px'],'post_summary_accent_color':['--smpi-summary-accent',''],'post_summary_font_size':['--smpi-summary-size','px'],'post_faqs_accent_color':['--smpi-faq-accent',''],'post_faqs_text_color':['--smpi-faq-text',''],'post_faqs_text_font_size':['--smpi-faq-size','px'],'post_faqs_text_font_style':['--smpi-faq-fstyle',''],'inline_photo_accent_color':['--smpi-photo-accent',''],'inline_photo_caption_text_color':['--smpi-photo-cap-color',''],'inline_photo_caption_font_size':['--smpi-photo-cap-size','px'],'inline_photo_caption_font_style':['--smpi-photo-cap-fstyle',''],'featured_image_caption_accent_color':['--smpi-fi-accent',''],'featured_image_caption_text_color':['--smpi-fi-cap-color',''],'featured_image_caption_font_size':['--smpi-fi-cap-size','px'],'featured_image_caption_font_style':['--smpi-fi-cap-fstyle',''],'muckrack_verified_text_color':['--smpi-muckrack-author-text',''],'muckrack_verified_font_size':['--smpi-muckrack-author-size','px'],'publication_muckrack_text_color':['--smpi-muckrack-publication-text',''],'publication_muckrack_font_size':['--smpi-muckrack-publication-size','px']};
-            $(document).on(`input change`,`.smpi-setting`,function(){var k=$(this).data(`key`),host=document.querySelector(`.smpi-design-host`),m=smpiPV[k];if(!m)return;if(host){smpiSetPreviewVar(host,m[0],$(this).val(),m[1]);smpiSetDerivedPreviewVars(host,k,$(this).val())}});
-            var smpiFV=<?php echo wp_json_encode( Settings::font_family_css_variables() ); ?>;
-            $(document).on(`change`,`[data-hpc-font-family-select].smpi-setting`,function(){var k=$(this).data(`key`),variable=smpiFV[k],host=document.querySelector(`.smpi-design-host`),option=this.options[this.selectedIndex],css=option?String(option.getAttribute(`data-css`)||``):``;if(!variable||!host)return;if(css){host.style.setProperty(variable,css)}else{host.style.removeProperty(variable)}});
-            var smpiWV=<?php echo wp_json_encode( Settings::font_weight_css_variables() ); ?>;
-            $(document).on(`change`,`[data-hpc-font-weight-select].smpi-setting`,function(){var k=$(this).data(`key`),variable=smpiWV[k],host=document.querySelector(`.smpi-design-host`),option=this.options[this.selectedIndex],css=option?String(option.getAttribute(`data-css`)||``):``;if(!variable||!host)return;if(css){host.style.setProperty(variable,css)}else{host.style.removeProperty(variable)}});
-            document.addEventListener(`hexa-typography-preserve-change`,function(event){var detail=event.detail||{},host=detail.scope;if(!host)return;var variableMap=detail.property===`font_family`?smpiFV:(detail.property===`font_weight`?smpiWV:null);if(!variableMap)return;var input=detail.control?detail.control.querySelector(`[data-hpc-typography-property="${detail.property}"]`):null;String(input?input.getAttribute(`data-hpc-typography-targets`):``).split(`,`).filter(Boolean).forEach(function(key){var variable=variableMap[key];if(!variable)return;if(detail.preserve){host.style.removeProperty(variable);return}var target=host.querySelector(`[data-key="${key}"]`),option=target&&target.options?target.options[target.selectedIndex]:null,css=option?String(option.getAttribute(`data-css`)||``):``;if(css)host.style.setProperty(variable,css);else host.style.removeProperty(variable)})});
             var userTimer=null;
             function lockUserCard(u){return `<div class="smpi-profile-card"><div class="smpi-profile-avatar"><img src="${smpiAttr(smpiSafeUrl(u.avatar))}" alt=""></div><div class="smpi-profile-info"><h3>${smpiEscape(u.name||u.label)}</h3><p><span class="dashicons dashicons-email"></span> ${smpiEscape(u.email||``)}</p><p><a class="button button-secondary" target="_blank" rel="noopener noreferrer" href="${smpiAttr(smpiSafeUrl(u.edit_url))}">Edit Profile</a> <a class="button button-secondary" target="_blank" rel="noopener noreferrer" href="${smpiAttr(smpiSafeUrl(u.view_url))}">View Author Page</a></p></div></div>`}
             $(document).on(`input`,`.smpi-user-search`,function(){var input=$(this),picker=input.closest(`.smpi-user-picker`),box=picker.find(`.smpi-user-results`),term=input.val();clearTimeout(userTimer);if(term.length<2){box.empty();return}userTimer=setTimeout(function(){picker.find(`.spinner`).addClass(`is-active`);$.post(smpiAdmin.ajaxUrl,{action:`smpi_search_users`,nonce:smpiAdmin.nonce,term:term}).done(function(x){box.empty();if(!x.success||!x.data.users.length){box.html(`<p class="smpi-muted">No matching users.</p>`);return}$.each(x.data.users,function(i,u){var b=$(`<button type="button" class="button smpi-user-result"></button>`).append($(`<strong></strong>`).text(u.label||``),` `,$(`<span class="smpi-muted"></span>`).text(u.email||``)).data(`user`,u);box.append(b)})}).always(function(){picker.find(`.spinner`).removeClass(`is-active`)})},250)});
@@ -3483,12 +3325,11 @@ CSS;
     <?php }
 
     private function styles(): void { ?>
-        <style>.smpi-dashboard{max-width:1280px}.smpi-hero{margin:18px 0;padding:28px 30px;border:1px solid #dcdcde;border-radius:14px;background:linear-gradient(135deg,#fff 0%,#eef6fb 100%);box-shadow:0 10px 28px rgba(0,0,0,.05)}.smpi-kicker{margin:0 0 8px;color:#2271b1;font-weight:700;letter-spacing:.08em;text-transform:uppercase}.smpi-hero h2{margin:0 0 10px;font-size:22px;line-height:1.3;max-width:54ch}.smpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;margin:18px 0}.smpi-card,.smpi-panel{padding:18px;border:1px solid #dcdcde;border-radius:12px;background:#fff;margin:16px 0}.smpi-card h3,.smpi-panel h2{margin-top:0}.smpi-panel h2{font-size:16px;margin-bottom:14px}.smpi-ok{color:#008a20;font-weight:700}.smpi-warn{color:#996800;font-weight:700}.smpi-bad{color:#b32d2e;font-weight:700}.smpi-code,.smpi-code-panel{white-space:pre-wrap;background:#101517;color:#e6edf3;border:1px solid #1f2933;border-radius:10px;padding:14px;max-height:520px;overflow:auto}.smpi-page-select,.smpi-mapping-select{min-width:320px}.smpi-save-state{align-items:center;border-radius:999px;display:inline-flex;font-weight:800;margin-left:8px;min-height:24px;padding:3px 9px}.smpi-save-state:empty{display:none}.smpi-save-state.is-saving{background:#eef2f7;color:#475569}.smpi-save-state.is-saved{background:#e6f4ea;color:#137333}.smpi-save-state.is-error{background:#fce8e6;color:#b32d2e;white-space:normal}.smpi-user-picker{padding:14px;border:1px solid #dcdcde;border-radius:10px;background:#f9fafb;margin:12px 0}.smpi-user-results{display:grid;gap:6px;margin-top:10px;max-width:720px}.smpi-user-result{text-align:left;justify-content:flex-start}.smpi-profile-card{display:flex;gap:18px;align-items:center;padding:18px;border:1px solid #e5e7eb;border-radius:12px;background:#f9fafb;margin:14px 0}.smpi-profile-avatar img{width:96px;height:96px;border-radius:999px;background:#fff;object-fit:cover;box-shadow:0 2px 10px rgba(0,0,0,.08)}.smpi-profile-info h3{margin:0 0 6px}.smpi-profile-fields{display:grid;gap:10px;margin-top:12px}.smpi-field-preview{padding:11px 14px;border:1px solid #e5e7eb;border-radius:8px;background:#fff}.smpi-field-preview p{margin:6px 0 0}.smpi-muted{color:#646970}.smpi-alert{padding:12px 14px;border-radius:8px;border:1px solid #f0c36d;background:#fff8e5}.smpi-alert-warning{color:#664d03}.smpi-publication-author-panel{padding:0;overflow:hidden}.smpi-publication-author-panel .smpi-overview-section{padding:24px 28px;background:linear-gradient(135deg,#111827 0%,#1f3a5f 100%);color:#fff}.smpi-publication-author-panel .smpi-overview-section .smpi-kicker{color:#9bd4ff}.smpi-publication-author-panel .smpi-overview-section h2{font-size:30px;margin:0 0 8px}.smpi-publication-author-panel .smpi-overview-section p:last-child{max-width:760px;font-size:15px;color:#e5edf7}.smpi-author-binding-layout{display:grid;grid-template-columns:minmax(320px,520px) 1fr;gap:22px;padding:24px 28px}.smpi-author-search-card{padding:18px;border:1px solid #d8dee8;border-radius:14px;background:#f8fafc}.smpi-user-picker{padding:0;border:0;background:transparent;margin:12px 0 0}.smpi-user-search{width:min(100%,420px);font-size:16px;padding:8px 12px}.smpi-empty-state{padding:22px;border:1px dashed #b9c2cf;border-radius:14px;background:#fbfcfe;color:#334155}.smpi-empty-state p{margin:8px 0 0}.smpi-advanced-map{display:none}.smpi-founder-profile-panel{border-top:1px solid #e5e7eb;padding:22px 28px}.smpi-founder-header h3{margin:0 0 6px}.smpi-profile-picker{padding:18px;border:1px solid #d8dee8;border-radius:14px;background:#f8fafc}.smpi-profile-search{width:min(100%,420px);font-size:16px;padding:8px 12px}.smpi-profile-results{display:grid;gap:6px;margin-top:10px;max-width:720px}.smpi-profile-result{text-align:left;justify-content:flex-start}.smpi-founder-selected{display:grid;gap:12px;margin-top:16px}.smpi-founder-profile-card{display:flex;gap:14px;align-items:center;padding:14px;border:1px solid #e5e7eb;border-radius:12px;background:#fff}.smpi-founder-thumb img,.smpi-founder-thumb span{width:58px;height:58px;border-radius:999px;display:flex;align-items:center;justify-content:center;background:#eef2f7;object-fit:cover}.smpi-founder-info p{margin:6px 0 0}.smpi-system{margin-top:18px}.smpi-defs{margin:0}.smpi-def{display:grid;grid-template-columns:190px 1fr;gap:18px;align-items:center;padding:13px 0;border-top:1px solid #eef0f2}.smpi-def:first-child{border-top:0;padding-top:2px}.smpi-def-block{align-items:start}.smpi-defs dt{margin:0;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#646970}.smpi-defs dd{margin:0}.smpi-defs code{background:#f0f1f3;border-radius:6px;padding:4px 9px;font-size:13px;color:#1d2327;word-break:break-all}@media(max-width:782px){.smpi-def{grid-template-columns:1fr;gap:6px}}.smpi-feature-card{padding:22px;border:1px solid #d8dee8;border-radius:18px;background:#fff;margin:18px 0;box-shadow:0 10px 28px rgba(15,23,42,.05)}.smpi-feature-card.smpi-feature-card--core-collapsible{background:transparent;border:0;border-radius:0;box-shadow:none;margin:0;padding:0}.smpi-feature-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;border-bottom:1px solid #eef0f2;padding-bottom:16px;margin-bottom:16px}.smpi-feature-head h2{font-size:22px;margin:0}.smpi-feature-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}.smpi-feature-grid section,.smpi-feature-controls{border:1px solid #eef0f2;border-radius:14px;background:#f8fafc;padding:14px}.smpi-feature-report,.smpi-feature-activity{grid-column:1/-1;overflow-x:auto}.smpi-feature-report table{min-width:720px;max-width:100%}.smpi-feature-report .widefat{width:100%}.smpi-feature-grid h3,.smpi-control-group h3{margin:0 0 9px;font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:#475569}.smpi-choice-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:10px}.smpi-control-group:has(input[data-key="muckrack_verified_style"]) .smpi-choice-grid,.smpi-control-group:has(input[data-key="muckrack_icon_style"]) .smpi-choice-grid,.smpi-control-group:has(input[data-key="publication_muckrack_style"]) .smpi-choice-grid{grid-template-columns:1fr}.smpi-control-group:has(input[data-key="muckrack_verified_style"]) .smpi-choice-preview,.smpi-control-group:has(input[data-key="muckrack_icon_style"]) .smpi-choice-preview,.smpi-control-group:has(input[data-key="publication_muckrack_style"]) .smpi-choice-preview{max-width:620px}.smpi-control-group:has(input[data-key="muckrack_icon_style"]) .smpi-choice-preview{display:flex;align-items:center;gap:10px}.smpi-control-group:has(input[data-key="muckrack_icon_style"]) .smpi-choice-preview:before{content:"Jane Reporter";font-weight:700;color:#1f2937}.smpi-control-group:has(input[data-key="muckrack_icon_style"]) .smpi-choice-preview:after{content:"Verified by MuckRack editorial team";font-size:12px;color:#64748b}.smpi-choice-list{display:grid;grid-template-columns:1fr;gap:10px}.smpi-choice-card{display:flex;gap:12px;align-items:flex-start;position:relative;padding:14px 16px;border:1px solid #d8dee8;border-radius:14px;background:#fff;cursor:pointer;box-shadow:inset 0 0 0 1px transparent}.smpi-choice-card input{margin-top:3px}.smpi-choice-card strong{display:block;color:#1f2937}.smpi-choice-card small{display:block;margin-top:3px;color:#64748b;line-height:1.35}.smpi-choice-body{min-width:0;flex:1}.smpi-selected-pill{margin-left:auto;align-self:flex-start;background:#2271b1;color:#fff;border-radius:999px;padding:2px 8px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}.smpi-choice-card.is-selected,.smpi-choice-card:has(input:checked){border-color:#2271b1;background:#eef6fb;box-shadow:inset 0 0 0 1px #2271b1}.smpi-choice-preview{display:block;margin-top:10px;padding:12px;border:1px solid #e2e8f0;border-radius:10px;background:#fff}.smpi-preview-stack,.smpi-publication-preview-list{display:grid;gap:12px}.smpi-mode-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}.smpi-mode-grid>div,.smpi-shortcode-row{padding:12px;border:1px solid #d8dee8;border-radius:12px;background:#fff}.smpi-shortcode-list{display:grid;gap:10px}.smpi-shortcode-row{display:grid;grid-template-columns:minmax(180px,240px) minmax(260px,1fr);gap:8px 14px;align-items:start}.smpi-shortcode-row code{white-space:normal;word-break:break-word}.smpi-shortcode-row small{grid-column:2;color:#64748b}.smpi-shortcode-reference{margin-bottom:14px}.smpi-preview-demo,.smpi-publication-preview-item{padding:12px;border:1px solid #d8dee8;border-radius:12px;background:#fff}.smpi-tooltip-demo{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.smpi-tooltip-bubble{background:#111827;color:#fff;border-radius:8px;padding:6px 8px;font-size:12px;white-space:nowrap}.smpi-author-inline-demo{display:inline-block}.smpi-author-block-demo{display:inline-flex;align-items:center;gap:.25em;border-left:2px solid var(--smpi-muckrack-color,#2d5277);background:#f5f8fb;color:#64748b;padding:6px 8px;font-size:11px;line-height:1.25}.smpi-author-block-demo strong{color:var(--smpi-muckrack-color,#2d5277)}.smpi-publication-preview-block{display:block;border-left:3px solid var(--smpi-muckrack-color,#2d5277);background:#f5f8fb;padding:8px 10px;font-size:12px;line-height:1.3;max-width:520px}.smpi-publication-preview-mini_block{display:block;border-left:2px solid var(--smpi-muckrack-color,#2d5277);background:#f6f8fb;padding:6px 9px;font-size:11px;line-height:1.25;max-width:520px;color:#475569}.smpi-publication-preview-compact{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--smpi-muckrack-color,#2d5277);border-radius:999px;padding:4px 9px;background:#fff;font-size:12px;line-height:1.25}.smpi-publication-preview-minimalist{display:inline;color:#334155;font-size:12px;line-height:1.3}.smpi-publication-preview-brand{color:var(--smpi-muckrack-color,#2d5277);font-weight:700}.smpi-switch{display:inline-flex;gap:10px;align-items:center}.smpi-switch input{position:absolute;opacity:0}.smpi-switch span{width:42px;height:24px;border-radius:999px;background:#cbd5e1;position:relative;display:inline-block}.smpi-switch span:before{content:"";width:18px;height:18px;border-radius:999px;background:#fff;position:absolute;left:3px;top:3px;transition:.18s}.smpi-switch input:checked+span{background:#2271b1}.smpi-switch input:checked+span:before{transform:translateX(18px)}.smpi-control-row{margin:10px 0}.smpi-color-control{align-items:center;display:flex;gap:10px;flex-wrap:wrap}.smpi-color-control input[type=color]{height:38px;width:54px}.smpi-color-control code{background:#eef0f3;border-radius:4px;min-width:76px;padding:5px 8px;text-align:center}.smpi-color-control .hpc-button,.smpi-color-control .button{padding:7px 10px}.smpi-color-rgb{background:#eef0f3;border-radius:4px;min-width:128px;padding:5px 8px;text-align:center}.smpi-brand-color-tools .smpi-feature-grid{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}.smpi-color-swatch{display:inline-block;width:32px;height:32px;border-radius:8px;border:1px solid #cbd5e1;vertical-align:middle}.smpi-icon-preview{display:flex;gap:10px;margin-top:8px}.smpi-muckrack-preview-circle,.smpi-muckrack-preview-outline,.smpi-muckrack-preview-check{display:inline-flex;align-items:center;justify-content:center;--smpi-muckrack-color:#2d5277;color:var(--smpi-muckrack-color,#2d5277);line-height:1}.smpi-muckrack-preview-circle svg,.smpi-muckrack-preview-outline svg,.smpi-muckrack-preview-check svg{display:block;width:1em;height:1em}.smpi-ico{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;min-width:20px;border-radius:999px;font-size:12px;font-weight:700;line-height:1;margin-right:8px;vertical-align:middle}.smpi-ico--ok{background:#e6f4ea;color:#137333}.smpi-ico--bad{background:#fce8e6;color:#c5221f}.smpi-ico--warn{background:#fef7e0;color:#9a6700}.smpi-status-line{display:flex;align-items:center;margin:8px 0}.smpi-status-line span,.smpi-status-row span{color:#1f2937}.smpi-status-rows{display:grid;gap:10px;margin:14px 0}.smpi-status-row{display:flex;align-items:center;font-weight:600}.smpi-pill{display:inline-flex;align-items:center;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}.smpi-pill--saved{background:#e6f4ea;color:#137333}.smpi-author-binding-layout{display:block;padding:24px 28px}.smpi-author-search-card{padding:18px;border:1px solid #d8dee8;border-radius:14px;background:#f8fafc;max-width:760px}.smpi-user-picker.is-locked .smpi-edit-view{display:none}.smpi-user-picker:not(.is-locked) .smpi-locked-view{display:none}.smpi-locked-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 16px;border:1px solid #cfe3d6;background:#f3faf5;border-radius:12px}.smpi-locked-label{font-weight:700;color:#0f5132}.smpi-locked-bar .smpi-change-user{margin-left:auto}.smpi-edit-actions{display:flex;align-items:center;gap:14px;margin-top:12px}.smpi-user-result{display:block;width:100%;text-align:left;padding:8px 12px;height:auto;line-height:1.5}.smpi-save-state.is-saved{color:#137333}.smpi-dashboard a[target="_blank"]::after{content:"\2197";font-size:.82em;margin-left:3px;line-height:1;opacity:.6;font-weight:700;text-decoration:none}.smpi-number-control{display:flex;align-items:center;gap:8px}.smpi-number-control input{width:90px}.smpi-context-override-list{display:grid;gap:10px}.smpi-context-override-row{display:grid;grid-template-columns:minmax(220px,1fr) minmax(180px,220px) minmax(160px,200px);gap:12px;align-items:center;padding:12px;border:1px solid #d8dee8;border-radius:12px;background:#fff}.smpi-context-override-row strong,.smpi-context-override-row small{display:block}.smpi-context-override-row small{color:#64748b;margin-top:3px;line-height:1.35}.smpi-context-override-row input[type=text]{width:100%;max-width:150px}.smpi-context-override-row input[type=color]{width:54px}.smpi-context-override-row input[type=number]{width:80px}.smpi-control-group:has(input[data-key="table_of_contents_style"]) .smpi-choice-grid,.smpi-control-group:has(input[data-key="inline_photo_treatment"]) .smpi-choice-grid,.smpi-control-group:has(input[data-key="featured_image_caption_template"]) .smpi-choice-grid,.smpi-control-group:has(input[data-key="post_summary_style"]) .smpi-choice-grid,.smpi-control-group:has(input[data-key="post_faqs_style"]) .smpi-choice-grid{grid-template-columns:1fr}.smpi-design-preview{display:block;max-width:640px;color:#334155}.smpi-design-preview ol,.smpi-design-preview ul{margin:8px 0 0;padding-left:20px}.smpi-design-photo{margin:0}.smpi-photo-block{display:block;width:100%;height:92px;background:linear-gradient(135deg,#d8dee8,#f8fafc);border-radius:10px}.smpi-design-photo figcaption{margin-top:9px;font-size:12px;line-height:1.45;color:#64748b}.smpi-design-fig1 .smpi-photo-block{box-shadow:0 14px 28px -22px #111;border-radius:14px}.smpi-design-fig1 figcaption{padding-left:12px;border-left:3px solid #d63428;font-family:Georgia,serif;font-style:italic;color:#1f2937}.smpi-design-fig2{border-radius:14px;overflow:hidden;box-shadow:0 16px 34px -28px #111}.smpi-design-fig2 .smpi-photo-block{border-radius:0}.smpi-design-fig2 figcaption{background:#fafafa;border-top:3px solid #d63428;padding:12px}.smpi-design-fig4{position:relative;border-radius:14px;overflow:hidden}.smpi-design-fig4 .smpi-photo-block{height:110px;border-radius:0}.smpi-design-fig4 figcaption{position:absolute;left:0;right:0;bottom:0;color:#fff;background:linear-gradient(transparent,rgba(0,0,0,.78));padding:38px 14px 12px}.smpi-design-fig5{border:1px solid #e5e7eb;border-radius:14px;padding:10px;box-shadow:0 14px 30px -24px #111}.smpi-plugin-registry .button{margin:0 4px 6px 0}.smpi-design-photo figcaption{color:var(--smpi-inline-photo-caption-color,#272727);font-size:var(--smpi-inline-photo-caption-size,16px);font-style:var(--smpi-inline-photo-caption-style,italic)}.smpi-design-fig1 figcaption{border-left-color:var(--smpi-inline-photo-accent,#d63428)}.smpi-design-fig2 figcaption{border-top-color:var(--smpi-inline-photo-accent,#d63428)}.smpi-design-fig5{border-color:var(--smpi-inline-photo-accent,#d63428)}.smpi-page-detail-wrap{margin-top:14px}.smpi-page-detail{border:1px solid #d8dee8;border-radius:14px;background:#f8fafc;padding:16px;margin-top:12px}.smpi-page-detail-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;border-bottom:1px solid #e5e7eb;padding-bottom:12px;margin-bottom:12px}.smpi-page-detail h3{margin:0 0 4px;font-size:16px}.smpi-page-meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px 16px;margin:0}.smpi-page-meta div{padding:10px;border:1px solid #e5e7eb;border-radius:10px;background:#fff}.smpi-page-meta dt{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#64748b;margin:0 0 4px}.smpi-page-meta dd{margin:0;word-break:break-word}.smpi-page-meta-wide{grid-column:1/-1}.smpi-page-slug-row dd{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.smpi-page-slug-input{max-width:360px}.smpi-page-actions{margin:12px 0 0}.smpi-page-detail-missing{border-color:#f0c36d;background:#fff8e5}</style>
+        <style>.smpi-dashboard{max-width:1280px}.smpi-hero{margin:18px 0;padding:28px 30px;border:1px solid #dcdcde;border-radius:14px;background:linear-gradient(135deg,#fff 0%,#eef6fb 100%);box-shadow:0 10px 28px rgba(0,0,0,.05)}.smpi-kicker{margin:0 0 8px;color:#2271b1;font-weight:700;letter-spacing:.08em;text-transform:uppercase}.smpi-hero h2{margin:0 0 10px;font-size:22px;line-height:1.3;max-width:54ch}.smpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;margin:18px 0}.smpi-card,.smpi-panel{padding:18px;border:1px solid #dcdcde;border-radius:12px;background:#fff;margin:16px 0}.smpi-card h3,.smpi-panel h2{margin-top:0}.smpi-panel h2{font-size:16px;margin-bottom:14px}.smpi-ok{color:#008a20;font-weight:700}.smpi-warn{color:#996800;font-weight:700}.smpi-bad{color:#b32d2e;font-weight:700}.smpi-code,.smpi-code-panel{white-space:pre-wrap;background:#101517;color:#e6edf3;border:1px solid #1f2933;border-radius:10px;padding:14px;max-height:520px;overflow:auto}.smpi-page-select,.smpi-mapping-select{min-width:320px}.smpi-save-state{align-items:center;border-radius:999px;display:inline-flex;font-weight:800;margin-left:8px;min-height:24px;padding:3px 9px}.smpi-save-state:empty{display:none}.smpi-save-state.is-saving{background:#eef2f7;color:#475569}.smpi-save-state.is-saved{background:#e6f4ea;color:#137333}.smpi-save-state.is-error{background:#fce8e6;color:#b32d2e;white-space:normal}.smpi-user-picker{padding:14px;border:1px solid #dcdcde;border-radius:10px;background:#f9fafb;margin:12px 0}.smpi-user-results{display:grid;gap:6px;margin-top:10px;max-width:720px}.smpi-user-result{text-align:left;justify-content:flex-start}.smpi-profile-card{display:flex;gap:18px;align-items:center;padding:18px;border:1px solid #e5e7eb;border-radius:12px;background:#f9fafb;margin:14px 0}.smpi-profile-avatar img{width:96px;height:96px;border-radius:999px;background:#fff;object-fit:cover;box-shadow:0 2px 10px rgba(0,0,0,.08)}.smpi-profile-info h3{margin:0 0 6px}.smpi-profile-fields{display:grid;gap:10px;margin-top:12px}.smpi-field-preview{padding:11px 14px;border:1px solid #e5e7eb;border-radius:8px;background:#fff}.smpi-field-preview p{margin:6px 0 0}.smpi-muted{color:#646970}.smpi-alert{padding:12px 14px;border-radius:8px;border:1px solid #f0c36d;background:#fff8e5}.smpi-alert-warning{color:#664d03}.smpi-publication-author-panel{padding:0;overflow:hidden}.smpi-publication-author-panel .smpi-overview-section{padding:24px 28px;background:linear-gradient(135deg,#111827 0%,#1f3a5f 100%);color:#fff}.smpi-publication-author-panel .smpi-overview-section .smpi-kicker{color:#9bd4ff}.smpi-publication-author-panel .smpi-overview-section h2{font-size:30px;margin:0 0 8px}.smpi-publication-author-panel .smpi-overview-section p:last-child{max-width:760px;font-size:15px;color:#e5edf7}.smpi-author-binding-layout{display:grid;grid-template-columns:minmax(320px,520px) 1fr;gap:22px;padding:24px 28px}.smpi-author-search-card{padding:18px;border:1px solid #d8dee8;border-radius:14px;background:#f8fafc}.smpi-user-picker{padding:0;border:0;background:transparent;margin:12px 0 0}.smpi-user-search{width:min(100%,420px);font-size:16px;padding:8px 12px}.smpi-empty-state{padding:22px;border:1px dashed #b9c2cf;border-radius:14px;background:#fbfcfe;color:#334155}.smpi-empty-state p{margin:8px 0 0}.smpi-advanced-map{display:none}.smpi-founder-profile-panel{border-top:1px solid #e5e7eb;padding:22px 28px}.smpi-founder-header h3{margin:0 0 6px}.smpi-profile-picker{padding:18px;border:1px solid #d8dee8;border-radius:14px;background:#f8fafc}.smpi-profile-search{width:min(100%,420px);font-size:16px;padding:8px 12px}.smpi-profile-results{display:grid;gap:6px;margin-top:10px;max-width:720px}.smpi-profile-result{text-align:left;justify-content:flex-start}.smpi-founder-selected{display:grid;gap:12px;margin-top:16px}.smpi-founder-profile-card{display:flex;gap:14px;align-items:center;padding:14px;border:1px solid #e5e7eb;border-radius:12px;background:#fff}.smpi-founder-thumb img,.smpi-founder-thumb span{width:58px;height:58px;border-radius:999px;display:flex;align-items:center;justify-content:center;background:#eef2f7;object-fit:cover}.smpi-founder-info p{margin:6px 0 0}.smpi-system{margin-top:18px}.smpi-defs{margin:0}.smpi-def{display:grid;grid-template-columns:190px 1fr;gap:18px;align-items:center;padding:13px 0;border-top:1px solid #eef0f2}.smpi-def:first-child{border-top:0;padding-top:2px}.smpi-def-block{align-items:start}.smpi-defs dt{margin:0;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#646970}.smpi-defs dd{margin:0}.smpi-defs code{background:#f0f1f3;border-radius:6px;padding:4px 9px;font-size:13px;color:#1d2327;word-break:break-all}@media(max-width:782px){.smpi-def{grid-template-columns:1fr;gap:6px}}.smpi-feature-card{padding:22px;border:1px solid #d8dee8;border-radius:18px;background:#fff;margin:18px 0;box-shadow:0 10px 28px rgba(15,23,42,.05)}.smpi-feature-card.smpi-feature-card--core-collapsible{background:transparent;border:0;border-radius:0;box-shadow:none;margin:0;padding:0}.smpi-feature-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;border-bottom:1px solid #eef0f2;padding-bottom:16px;margin-bottom:16px}.smpi-feature-head h2{font-size:22px;margin:0}.smpi-feature-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}.smpi-feature-grid section,.smpi-feature-controls{border:1px solid #eef0f2;border-radius:14px;background:#f8fafc;padding:14px}.smpi-feature-report,.smpi-feature-activity{grid-column:1/-1;overflow-x:auto}.smpi-feature-report table{min-width:720px;max-width:100%}.smpi-feature-report .widefat{width:100%}.smpi-feature-grid h3,.smpi-control-group h3{margin:0 0 9px;font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:#475569}.smpi-choice-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:10px}.smpi-control-group:has(input[data-key="muckrack_verified_style"]) .smpi-choice-grid,.smpi-control-group:has(input[data-key="muckrack_icon_style"]) .smpi-choice-grid,.smpi-control-group:has(input[data-key="publication_muckrack_style"]) .smpi-choice-grid{grid-template-columns:1fr}.smpi-control-group:has(input[data-key="muckrack_verified_style"]) .smpi-choice-preview,.smpi-control-group:has(input[data-key="muckrack_icon_style"]) .smpi-choice-preview,.smpi-control-group:has(input[data-key="publication_muckrack_style"]) .smpi-choice-preview{max-width:620px}.smpi-control-group:has(input[data-key="muckrack_icon_style"]) .smpi-choice-preview{display:flex;align-items:center;gap:10px}.smpi-control-group:has(input[data-key="muckrack_icon_style"]) .smpi-choice-preview:before{content:"Jane Reporter";font-weight:700;color:#1f2937}.smpi-control-group:has(input[data-key="muckrack_icon_style"]) .smpi-choice-preview:after{content:"Verified by MuckRack editorial team";font-size:12px;color:#64748b}.smpi-choice-list{display:grid;grid-template-columns:1fr;gap:10px}.smpi-choice-card{display:flex;gap:12px;align-items:flex-start;position:relative;padding:14px 16px;border:1px solid #d8dee8;border-radius:14px;background:#fff;cursor:pointer;box-shadow:inset 0 0 0 1px transparent}.smpi-choice-card input{margin-top:3px}.smpi-choice-card strong{display:block;color:#1f2937}.smpi-choice-card small{display:block;margin-top:3px;color:#64748b;line-height:1.35}.smpi-choice-body{min-width:0;flex:1}.smpi-selected-pill{margin-left:auto;align-self:flex-start;background:#2271b1;color:#fff;border-radius:999px;padding:2px 8px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}.smpi-choice-card.is-selected,.smpi-choice-card:has(input:checked){border-color:#2271b1;background:#eef6fb;box-shadow:inset 0 0 0 1px #2271b1}.smpi-choice-preview{display:block;margin-top:10px;padding:12px;border:1px solid #e2e8f0;border-radius:10px;background:#fff}.smpi-preview-stack,.smpi-publication-preview-list{display:grid;gap:12px}.smpi-mode-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}.smpi-mode-grid>div,.smpi-shortcode-row{padding:12px;border:1px solid #d8dee8;border-radius:12px;background:#fff}.smpi-shortcode-list{display:grid;gap:10px}.smpi-shortcode-row{display:grid;grid-template-columns:minmax(180px,240px) minmax(260px,1fr);gap:8px 14px;align-items:start}.smpi-shortcode-row code{white-space:normal;word-break:break-word}.smpi-shortcode-row small{grid-column:2;color:#64748b}.smpi-shortcode-reference{margin-bottom:14px}.smpi-preview-demo,.smpi-publication-preview-item{padding:12px;border:1px solid #d8dee8;border-radius:12px;background:#fff}.smpi-tooltip-demo{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.smpi-tooltip-bubble{background:#111827;color:#fff;border-radius:8px;padding:6px 8px;font-size:12px;white-space:nowrap}.smpi-author-inline-demo{display:inline-block}.smpi-author-block-demo{display:inline-flex;align-items:center;gap:.25em;border-left:2px solid var(--smpi-muckrack-author-accent,#2d5277);background:#f5f8fb;color:#64748b;padding:6px 8px;font-size:11px;line-height:1.25}.smpi-author-block-demo strong{color:var(--smpi-muckrack-author-accent,#2d5277)}.smpi-publication-preview-block{display:block;border-left:3px solid var(--smpi-muckrack-publication-accent,#2d5277);background:#f5f8fb;padding:8px 10px;font-size:12px;line-height:1.3;max-width:520px}.smpi-publication-preview-mini_block{display:block;border-left:2px solid var(--smpi-muckrack-publication-accent,#2d5277);background:#f6f8fb;padding:6px 9px;font-size:11px;line-height:1.25;max-width:520px;color:#475569}.smpi-publication-preview-compact{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--smpi-muckrack-publication-accent,#2d5277);border-radius:999px;padding:4px 9px;background:#fff;font-size:12px;line-height:1.25}.smpi-publication-preview-minimalist{display:inline;color:#334155;font-size:12px;line-height:1.3}.smpi-publication-preview-brand{color:var(--smpi-muckrack-publication-accent,#2d5277);font-weight:700}.smpi-switch{display:inline-flex;gap:10px;align-items:center}.smpi-switch input{position:absolute;opacity:0}.smpi-switch span{width:42px;height:24px;border-radius:999px;background:#cbd5e1;position:relative;display:inline-block}.smpi-switch span:before{content:"";width:18px;height:18px;border-radius:999px;background:#fff;position:absolute;left:3px;top:3px;transition:.18s}.smpi-switch input:checked+span{background:#2271b1}.smpi-switch input:checked+span:before{transform:translateX(18px)}.smpi-control-row{margin:10px 0}.smpi-color-control{align-items:center;display:flex;gap:10px;flex-wrap:wrap}.smpi-color-control input[type=color]{height:38px;width:54px}.smpi-color-control code{background:#eef0f3;border-radius:4px;min-width:76px;padding:5px 8px;text-align:center}.smpi-color-control .hpc-button,.smpi-color-control .button{padding:7px 10px}.smpi-color-rgb{background:#eef0f3;border-radius:4px;min-width:128px;padding:5px 8px;text-align:center}.smpi-brand-color-tools .smpi-feature-grid{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}.smpi-color-swatch{display:inline-block;width:32px;height:32px;border-radius:8px;border:1px solid #cbd5e1;vertical-align:middle}.smpi-icon-preview{display:flex;gap:10px;margin-top:8px}.smpi-muckrack-preview-circle,.smpi-muckrack-preview-outline,.smpi-muckrack-preview-check{display:inline-flex;align-items:center;justify-content:center;color:var(--smpi-muckrack-author-accent,#2d5277);line-height:1}.smpi-muckrack-preview-circle svg,.smpi-muckrack-preview-outline svg,.smpi-muckrack-preview-check svg{display:block;width:1em;height:1em}.smpi-ico{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;min-width:20px;border-radius:999px;font-size:12px;font-weight:700;line-height:1;margin-right:8px;vertical-align:middle}.smpi-ico--ok{background:#e6f4ea;color:#137333}.smpi-ico--bad{background:#fce8e6;color:#c5221f}.smpi-ico--warn{background:#fef7e0;color:#9a6700}.smpi-status-line{display:flex;align-items:center;margin:8px 0}.smpi-status-line span,.smpi-status-row span{color:#1f2937}.smpi-status-rows{display:grid;gap:10px;margin:14px 0}.smpi-status-row{display:flex;align-items:center;font-weight:600}.smpi-pill{display:inline-flex;align-items:center;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}.smpi-pill--saved{background:#e6f4ea;color:#137333}.smpi-author-binding-layout{display:block;padding:24px 28px}.smpi-author-search-card{padding:18px;border:1px solid #d8dee8;border-radius:14px;background:#f8fafc;max-width:760px}.smpi-user-picker.is-locked .smpi-edit-view{display:none}.smpi-user-picker:not(.is-locked) .smpi-locked-view{display:none}.smpi-locked-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 16px;border:1px solid #cfe3d6;background:#f3faf5;border-radius:12px}.smpi-locked-label{font-weight:700;color:#0f5132}.smpi-locked-bar .smpi-change-user{margin-left:auto}.smpi-edit-actions{display:flex;align-items:center;gap:14px;margin-top:12px}.smpi-user-result{display:block;width:100%;text-align:left;padding:8px 12px;height:auto;line-height:1.5}.smpi-save-state.is-saved{color:#137333}.smpi-dashboard a[target="_blank"]::after{content:"\2197";font-size:.82em;margin-left:3px;line-height:1;opacity:.6;font-weight:700;text-decoration:none}.smpi-number-control{display:flex;align-items:center;gap:8px}.smpi-number-control input{width:90px}.smpi-context-override-list{display:grid;gap:10px}.smpi-context-override-row{display:grid;grid-template-columns:minmax(220px,1fr) minmax(180px,220px) minmax(160px,200px);gap:12px;align-items:center;padding:12px;border:1px solid #d8dee8;border-radius:12px;background:#fff}.smpi-context-override-row strong,.smpi-context-override-row small{display:block}.smpi-context-override-row small{color:#64748b;margin-top:3px;line-height:1.35}.smpi-context-override-row input[type=text]{width:100%;max-width:150px}.smpi-context-override-row input[type=color]{width:54px}.smpi-context-override-row input[type=number]{width:80px}.smpi-control-group:has(input[data-key="table_of_contents_style"]) .smpi-choice-grid,.smpi-control-group:has(input[data-key="inline_photo_treatment"]) .smpi-choice-grid,.smpi-control-group:has(input[data-key="featured_image_caption_template"]) .smpi-choice-grid,.smpi-control-group:has(input[data-key="post_summary_style"]) .smpi-choice-grid,.smpi-control-group:has(input[data-key="post_faqs_style"]) .smpi-choice-grid{grid-template-columns:1fr}.smpi-design-preview{display:block;max-width:640px;color:#334155}.smpi-design-preview ol,.smpi-design-preview ul{margin:8px 0 0;padding-left:20px}.smpi-design-photo{margin:0}.smpi-photo-block{display:block;width:100%;height:92px;background:linear-gradient(135deg,#d8dee8,#f8fafc);border-radius:10px}.smpi-design-photo figcaption{margin-top:9px;font-size:12px;line-height:1.45;color:#64748b}.smpi-design-fig1 .smpi-photo-block{box-shadow:0 14px 28px -22px #111;border-radius:14px}.smpi-design-fig1 figcaption{padding-left:12px;border-left:3px solid #d63428;font-family:Georgia,serif;font-style:italic;color:#1f2937}.smpi-design-fig2{border-radius:14px;overflow:hidden;box-shadow:0 16px 34px -28px #111}.smpi-design-fig2 .smpi-photo-block{border-radius:0}.smpi-design-fig2 figcaption{background:#fafafa;border-top:3px solid #d63428;padding:12px}.smpi-design-fig4{position:relative;border-radius:14px;overflow:hidden}.smpi-design-fig4 .smpi-photo-block{height:110px;border-radius:0}.smpi-design-fig4 figcaption{position:absolute;left:0;right:0;bottom:0;color:#fff;background:linear-gradient(transparent,rgba(0,0,0,.78));padding:38px 14px 12px}.smpi-design-fig5{border:1px solid #e5e7eb;border-radius:14px;padding:10px;box-shadow:0 14px 30px -24px #111}.smpi-plugin-registry .button{margin:0 4px 6px 0}.smpi-design-photo figcaption{color:var(--smpi-inline-photo-caption-color,#272727);font-size:var(--smpi-inline-photo-caption-size,16px);font-style:var(--smpi-inline-photo-caption-style,italic)}.smpi-design-fig1 figcaption{border-left-color:var(--smpi-inline-photo-accent,#d63428)}.smpi-design-fig2 figcaption{border-top-color:var(--smpi-inline-photo-accent,#d63428)}.smpi-design-fig5{border-color:var(--smpi-inline-photo-accent,#d63428)}.smpi-page-detail-wrap{margin-top:14px}.smpi-page-detail{border:1px solid #d8dee8;border-radius:14px;background:#f8fafc;padding:16px;margin-top:12px}.smpi-page-detail-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;border-bottom:1px solid #e5e7eb;padding-bottom:12px;margin-bottom:12px}.smpi-page-detail h3{margin:0 0 4px;font-size:16px}.smpi-page-meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px 16px;margin:0}.smpi-page-meta div{padding:10px;border:1px solid #e5e7eb;border-radius:10px;background:#fff}.smpi-page-meta dt{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#64748b;margin:0 0 4px}.smpi-page-meta dd{margin:0;word-break:break-word}.smpi-page-meta-wide{grid-column:1/-1}.smpi-page-slug-row dd{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.smpi-page-slug-input{max-width:360px}.smpi-page-actions{margin:12px 0 0}.smpi-page-detail-missing{border-color:#f0c36d;background:#fff8e5}</style>
         <style id="smpi-author-badge-spacing-admin-css">.smpi-context-overrides .smpi-context-override-row{align-items:start;grid-template-columns:minmax(190px,.8fr) minmax(460px,2fr) repeat(3,minmax(108px,132px));}.smpi-context-overrides .smpi-context-override-row>label{align-items:center;display:flex;flex-wrap:wrap;gap:6px;padding-top:26px}.smpi-context-overrides .smpi-context-override-row input[type=number]{width:82px}.smpi-context-overrides .smpi-context-color-control{min-width:0}.smpi-context-overrides .smpi-context-color-control .hpc-color-row{align-items:end}@media(max-width:1500px){.smpi-context-overrides .smpi-context-override-row{grid-template-columns:1fr repeat(3,minmax(110px,140px))}.smpi-context-overrides .smpi-context-override-copy,.smpi-context-overrides .smpi-context-color-control{grid-column:1/-1}.smpi-context-overrides .smpi-context-override-row>label{padding-top:0}}@media(max-width:900px){.smpi-context-overrides .smpi-context-override-row{grid-template-columns:1fr 1fr}.smpi-context-overrides .smpi-context-override-copy,.smpi-context-overrides .smpi-context-color-control{grid-column:1/-1}}@media(max-width:782px){.smpi-context-overrides .smpi-context-override-row{grid-template-columns:1fr}.smpi-context-overrides .smpi-context-override-row>label{padding-top:0}}</style>
         <style id="smpi-article-heading-admin-css">.smpi-control-group:has(input[data-key="article_heading_style"]) .smpi-choice-grid{grid-template-columns:1fr}.smpi-control-group:has(input[data-key="article_heading_style"]) .smpi-choice-card{min-height:0;overflow:hidden}.smpi-control-group:has(input[data-key="article_heading_style"]) .smpi-choice-body{min-width:0}.smpi-control-group:has(input[data-key="article_heading_style"]) .smpi-choice-preview{background:transparent;border:0;box-sizing:border-box;display:block;max-width:820px;overflow:hidden;padding:0;width:100%}.smpi-control-group:has(input[data-key="article_heading_style"]) .smpi-ah-preview-stack{width:100%;max-width:820px;overflow:hidden}.smpi-control-group:has(input[data-key="article_heading_style"]) .smpi-ah-preview{overflow:hidden;position:relative;width:100%}.smpi-choice-preview .smpi-ah-preview .smpi-article-heading{text-transform:none;letter-spacing:0}</style>
         <style id="smpi-feature-save-feedback-css">.smpi-feature-save-banner{display:none;border-radius:12px;font-weight:800;margin:-4px 0 16px;padding:12px 14px}.smpi-feature-save-banner.is-visible{display:block}.smpi-feature-save-banner.is-saving{background:#eef2f7;color:#334155}.smpi-feature-save-banner.is-saved{background:#e6f4ea;color:#137333}.smpi-feature-save-banner.is-error{background:#fce8e6;color:#b32d2e}.smpi-feature-card.is-saving{outline:2px solid #2271b1;outline-offset:2px}.smpi-save-toast{align-items:center;background:#111827;border:1px solid rgba(255,255,255,.16);border-radius:14px;bottom:24px;box-shadow:0 18px 45px rgba(15,23,42,.32);color:#fff;display:flex;font-size:14px;font-weight:800;gap:11px;line-height:1.35;max-width:min(420px,calc(100vw - 36px));min-width:300px;opacity:0;padding:14px 16px;pointer-events:none;position:fixed;right:24px;transform:translateY(14px);transition:opacity .18s ease,transform .18s ease,background .18s ease;z-index:999999}.smpi-save-toast.is-visible{opacity:1;transform:translateY(0)}.smpi-save-toast.is-saved{background:#0f5132}.smpi-save-toast.is-error{background:#7f1d1d}.smpi-save-toast-spinner{animation:smpi-toast-spin .8s linear infinite;border:3px solid rgba(255,255,255,.32);border-top-color:#fff;border-radius:999px;display:inline-block;height:19px;min-width:19px;width:19px}.smpi-save-toast.is-saved .smpi-save-toast-spinner,.smpi-save-toast.is-error .smpi-save-toast-spinner{animation:none;border:0;display:inline-flex;align-items:center;justify-content:center}.smpi-save-toast.is-saved .smpi-save-toast-spinner:before{content:"✓"}.smpi-save-toast.is-error .smpi-save-toast-spinner:before{content:"!"}@keyframes smpi-toast-spin{to{transform:rotate(360deg)}}.smpi-control-group:has(input[data-key="breadcrumbs_style"]) .smpi-choice-grid,.smpi-control-group:has(input[data-key="multi_authors_loop_output"]) .smpi-choice-grid{grid-template-columns:1fr}.smpi-control-group:has(input[data-key="breadcrumbs_style"]) .smpi-choice-preview,.smpi-control-group:has(input[data-key="multi_authors_loop_output"]) .smpi-choice-preview{max-width:720px}.smpi-loop-author-preview{display:inline-block;font-weight:700;letter-spacing:.05em;text-transform:uppercase}.smpi-loop-author-preview--lines{line-height:1.55}.smpi-inline-test-row{align-items:center;display:flex;gap:8px;flex-wrap:wrap}.smpi-multi-author-test-result{margin-top:12px}.smpi-multi-author-test-result .widefat{margin-top:8px}.smpi-test-proof-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:10px 0}.smpi-test-proof-grid>div{background:#fff;border:1px solid #d8dee8;border-radius:10px;padding:10px}.smpi-detected-unit-warning{border-color:#f0c36d;background:#fff8e5;color:#664d03}</style>
         <style id="smpi-font-family-preview-css">
-            <?php echo $this->typography_preview_css(); ?>
             .smpi-font-family-control{min-width:0}
             .smpi-font-family-control .hpc-font-family-select{max-width:520px}
         </style>

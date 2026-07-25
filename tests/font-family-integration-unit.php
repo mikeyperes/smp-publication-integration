@@ -64,7 +64,10 @@ require $root . "/lib/hexa-wordpress-plugin-core/src/ActivityLog/ActivityLogger.
 require $root . "/lib/hexa-wordpress-plugin-core/src/BrandColors/BrandColorProvider.php";
 require $root . "/lib/hexa-wordpress-plugin-core/src/BrandColors/FontFamilyProvider.php";
 require $root . "/lib/hexa-wordpress-plugin-core/src/BrandColors/FontWeightProvider.php";
+require $root . "/lib/hexa-wordpress-plugin-core/src/BrandColors/TemplateColorResolver.php";
 require $root . "/lib/hexa-wordpress-plugin-core/src/Typography/TypographyPreservation.php";
+require $root . "/lib/hexa-wordpress-plugin-core/src/Typography/TemplateTypography.php";
+require $root . "/src/Design/TemplateDesignRegistry.php";
 require $root . "/src/Settings/SettingsRepository.php";
 require $root . "/src/Support/Settings.php";
 require $root . "/src/Content/ArticleStyles.php";
@@ -85,6 +88,8 @@ if ( 10 !== count( $weight_keys ) ) {
     fwrite( STDERR, "FAIL: SMP must expose exactly ten shared font-weight settings.\n" );
     exit( 1 );
 }
+$mode_keys = Settings::typography_mode_setting_keys();
+Settings::update( array_fill_keys( $mode_keys, \Hexa\PluginCore\Typography\TemplateTypography::CUSTOM ) );
 $preservation_keys = Settings::typography_preservation_setting_keys();
 if ( 10 !== count( Settings::typography_preservation_surfaces() ) || 40 !== count( $preservation_keys ) || 40 !== count( array_unique( $preservation_keys ) ) ) {
     fwrite( STDERR, "FAIL: Ten typography surfaces must expose forty unique Core preservation settings.\n" );
@@ -113,15 +118,27 @@ Settings::update( [
 
 $article_css = ArticleStyles::font_overrides_css();
 $muckrack_css = MuckRackVerification::font_overrides_css();
+$muckrack_variables_method = new ReflectionMethod( MuckRackVerification::class, "design_variables_css" );
+$muckrack_variables_css = (string) $muckrack_variables_method->invoke( null, Settings::all() );
 if ( 8 !== substr_count( $article_css, "--e-global-typography-brand_body-font-family" ) ) {
     fwrite( STDERR, "FAIL: All eight article design outputs did not resolve the selected Elementor source.\n" );
     exit( 1 );
 }
-if ( 2 !== substr_count( $muckrack_css, "--e-global-typography-brand_body-font-family" ) ) {
+if (
+    2 !== substr_count( $muckrack_variables_css, "--e-global-typography-brand_body-font-family" )
+    || ! str_contains( $muckrack_css, "font-family:var(--smpi-muckrack-author-font)!important" )
+    || ! str_contains( $muckrack_css, "font-family:var(--smpi-muckrack-publication-font)!important" )
+) {
     fwrite( STDERR, "FAIL: Both MuckRack outputs did not resolve the selected Elementor source.\n" );
     exit( 1 );
 }
-if ( 8 !== substr_count( $article_css, "font-weight:700" ) || 2 !== substr_count( $muckrack_css, "font-weight:700" ) ) {
+if (
+    8 !== substr_count( $article_css, "font-weight:700" )
+    || ! str_contains( $muckrack_variables_css, "--smpi-muckrack-author-weight:700" )
+    || ! str_contains( $muckrack_variables_css, "--smpi-muckrack-publication-weight:700" )
+    || ! str_contains( $muckrack_css, "font-weight:var(--smpi-muckrack-author-weight)!important" )
+    || ! str_contains( $muckrack_css, "font-weight:var(--smpi-muckrack-publication-weight)!important" )
+) {
     fwrite( STDERR, "FAIL: All ten design outputs did not apply the selected Core font weight.\n" );
     exit( 1 );
 }
@@ -133,8 +150,15 @@ foreach ( $preservation_keys as $key ) {
         exit( 1 );
     }
 }
-if ( "" !== ArticleStyles::font_overrides_css() || "" !== MuckRackVerification::font_overrides_css() ) {
-    fwrite( STDERR, "FAIL: Preserved typography still emitted frontend override CSS.\n" );
+$preserved_muckrack_css = MuckRackVerification::font_overrides_css();
+if (
+    "" !== ArticleStyles::font_overrides_css()
+    || 2 !== substr_count( $preserved_muckrack_css, "font-family:inherit!important" )
+    || 2 !== substr_count( $preserved_muckrack_css, "font-weight:inherit!important" )
+    || 2 !== substr_count( $preserved_muckrack_css, "color:inherit!important" )
+    || 2 !== substr_count( $preserved_muckrack_css, "font-size:inherit!important" )
+) {
+    fwrite( STDERR, "FAIL: Preserved typography did not cleanly inherit site values.\n" );
     exit( 1 );
 }
 $breadcrumb_css = ArticleStyles::breadcrumbs_css();
@@ -188,8 +212,9 @@ $quick_start = (string) file_get_contents( $root . "/src/Support/QuickStartFeatu
 $core_version = trim( (string) file_get_contents( $root . "/lib/hexa-wordpress-plugin-core/VERSION" ) );
 $core_typography = (string) file_get_contents( $root . "/lib/hexa-wordpress-plugin-core/src/WpAdminComponents/TypographyControl.php" );
 $core_preservation = (string) file_get_contents( $root . "/lib/hexa-wordpress-plugin-core/src/WpAdminComponents/TypographyPreservationControl.php" );
+$registry = (string) file_get_contents( $root . "/src/Design/TemplateDesignRegistry.php" );
 
-if ( version_compare( $core_version, "0.19.73", "<" ) || ! str_contains( $dashboard, "TypographyControl::render(" ) || str_contains( $dashboard, "FontFamilyControl::render(" ) || ! str_contains( $core_typography, "FontFamilyControl::render(" ) || ! str_contains( $core_typography, '$family["weight_key"]' ) || ! str_contains( $core_preservation, '[data-hpc-color-picker],[data-hpc-color-hex-input],[data-hpc-color-value-input],[data-hpc-brand-color-import],[data-hpc-color-inherit]' ) ) {
+if ( version_compare( $core_version, "0.19.74", "<" ) || ! str_contains( $dashboard, "TypographyControl::render(" ) || str_contains( $dashboard, "FontFamilyControl::render(" ) || ! str_contains( $core_typography, "FontFamilyControl::render(" ) || ! str_contains( $core_typography, '$family["weight_key"]' ) || ! str_contains( $core_preservation, '[data-hpc-color-picker],[data-hpc-color-hex-input],[data-hpc-color-value-input],[data-hpc-brand-color-import],[data-hpc-color-inherit]' ) ) {
     fwrite( STDERR, "FAIL: SMP is not using the reusable Hexa WP Core font control.\n" );
     exit( 1 );
 }
@@ -198,7 +223,7 @@ if ( 10 !== substr_count( $dashboard, 'typography_surface_control_html( "' ) ) {
     exit( 1 );
 }
 foreach ( $font_keys as $key ) {
-    $has_ui = str_contains( $dashboard, 'font_family_setting_html( "' . $key . '"' ) || str_contains( $dashboard, '"key" => "' . $key . '"' );
+    $has_ui = str_contains( $registry, '"key" => "' . $key . '"' );
     if ( ! $has_ui || ! str_contains( $quick_start, '"' . $key . '" => "template"' ) ) {
         fwrite( STDERR, "FAIL: {$key} is missing from the Features UI or Quick Start.\n" );
         exit( 1 );
@@ -210,7 +235,7 @@ foreach ( $weight_keys as $key ) {
         exit( 1 );
     }
 }
-if ( ! str_contains( $ajax, "Settings::font_family_setting_keys()" ) || ! str_contains( $ajax, "Settings::font_weight_setting_keys()" ) || ! str_contains( $dashboard, "smpiFV" ) || ! str_contains( $dashboard, "smpiWV" ) ) {
+if ( ! str_contains( $ajax, "Settings::font_family_setting_keys()" ) || ! str_contains( $ajax, "Settings::font_weight_setting_keys()" ) || ! str_contains( $dashboard, "TemplateDesignRegistry::typography_preview_variables" ) || str_contains( $dashboard, "smpiFV" ) || str_contains( $dashboard, "smpiWV" ) ) {
     fwrite( STDERR, "FAIL: Shared AJAX persistence or live preview synchronization is missing.\n" );
     exit( 1 );
 }

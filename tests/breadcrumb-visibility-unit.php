@@ -52,7 +52,13 @@ function post_type_exists( string $post_type ): bool { return in_array( $post_ty
 require dirname( __DIR__ ) . '/lib/hexa-wordpress-plugin-core/src/ActivityLog/ActivityLogConfig.php';
 require dirname( __DIR__ ) . '/lib/hexa-wordpress-plugin-core/src/ActivityLog/ActivityLogEntry.php';
 require dirname( __DIR__ ) . '/lib/hexa-wordpress-plugin-core/src/ActivityLog/ActivityLogger.php';
+require dirname( __DIR__ ) . '/lib/hexa-wordpress-plugin-core/src/BrandColors/BrandColorProvider.php';
+require dirname( __DIR__ ) . '/lib/hexa-wordpress-plugin-core/src/BrandColors/FontFamilyProvider.php';
+require dirname( __DIR__ ) . '/lib/hexa-wordpress-plugin-core/src/BrandColors/FontWeightProvider.php';
+require dirname( __DIR__ ) . '/lib/hexa-wordpress-plugin-core/src/BrandColors/TemplateColorResolver.php';
 require dirname( __DIR__ ) . '/lib/hexa-wordpress-plugin-core/src/Typography/TypographyPreservation.php';
+require dirname( __DIR__ ) . '/lib/hexa-wordpress-plugin-core/src/Typography/TemplateTypography.php';
+require dirname( __DIR__ ) . '/src/Design/TemplateDesignRegistry.php';
 require dirname( __DIR__ ) . '/src/Settings/SettingsRepository.php';
 require dirname( __DIR__ ) . '/src/Support/Settings.php';
 require dirname( __DIR__ ) . '/src/Support/RuntimeContext.php';

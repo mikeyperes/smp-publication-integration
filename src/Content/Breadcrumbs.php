@@ -90,14 +90,12 @@ final class Breadcrumbs {
         }
 
         $crumbs = TemplateMarkup::decorate_breadcrumbs( $crumbs );
-        $vars = ArticleStyles::breadcrumb_var_values();
         $classes = TemplateMarkup::root_classes( "breadcrumbs", [ "smpi-breadcrumbs", "smpi-" . $style ] );
-        $style_attr = "--smpi-bc-accent:" . $vars["accent"] . ";--smpi-bc-tint:" . $vars["tint"] . ";--smpi-bc-background:" . $vars["background"] . ";--smpi-bc-font-size:" . $vars["size"];
         $title = self::current_title();
         $title_html = in_array( $style, [ "bc-b1", "bc-b5" ], true ) && "" !== $title ? "<div class=\"smpi-template-title smpi-breadcrumb-title\">" . esc_html( $title ) . "</div>" : "";
         $content = "bc-b5" === $style ? $crumbs . $title_html : $title_html . $crumbs;
 
-        return "<div class=\"smpi-breadcrumbs-band\" style=\"" . esc_attr( $style_attr ) . "\" data-smpi-breadcrumbs-band data-smpi-breadcrumbs-style=\"" . esc_attr( $style ) . "\"><div class=\"" . esc_attr( $classes ) . "\" style=\"" . esc_attr( $style_attr ) . "\" data-smpi-breadcrumbs data-smpi-breadcrumbs-style=\"" . esc_attr( $style ) . "\">" . self::safe_markup( $content ) . "</div></div>";
+        return "<div class=\"smpi-breadcrumbs-band\" data-smpi-breadcrumbs-band data-smpi-breadcrumbs-style=\"" . esc_attr( $style ) . "\"><div class=\"" . esc_attr( $classes ) . "\" data-smpi-breadcrumbs data-smpi-breadcrumbs-style=\"" . esc_attr( $style ) . "\">" . self::safe_markup( $content ) . "</div></div>";
     }
 
     public static function integrity_report(): array {

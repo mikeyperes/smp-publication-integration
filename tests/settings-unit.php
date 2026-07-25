@@ -19,7 +19,13 @@ function is_user_logged_in(): bool { return false; }
 require dirname( __DIR__ ) . '/lib/hexa-wordpress-plugin-core/src/ActivityLog/ActivityLogConfig.php';
 require dirname( __DIR__ ) . '/lib/hexa-wordpress-plugin-core/src/ActivityLog/ActivityLogEntry.php';
 require dirname( __DIR__ ) . '/lib/hexa-wordpress-plugin-core/src/ActivityLog/ActivityLogger.php';
+require dirname( __DIR__ ) . '/lib/hexa-wordpress-plugin-core/src/BrandColors/BrandColorProvider.php';
+require dirname( __DIR__ ) . '/lib/hexa-wordpress-plugin-core/src/BrandColors/FontFamilyProvider.php';
+require dirname( __DIR__ ) . '/lib/hexa-wordpress-plugin-core/src/BrandColors/FontWeightProvider.php';
+require dirname( __DIR__ ) . '/lib/hexa-wordpress-plugin-core/src/BrandColors/TemplateColorResolver.php';
 require dirname( __DIR__ ) . '/lib/hexa-wordpress-plugin-core/src/Typography/TypographyPreservation.php';
+require dirname( __DIR__ ) . '/lib/hexa-wordpress-plugin-core/src/Typography/TemplateTypography.php';
+require dirname( __DIR__ ) . '/src/Design/TemplateDesignRegistry.php';
 require dirname( __DIR__ ) . '/src/Settings/SettingsRepository.php';
 require dirname( __DIR__ ) . '/src/Settings/SettingsMigrations.php';
 require dirname( __DIR__ ) . '/src/Support/Settings.php';
@@ -37,23 +43,23 @@ set_error_handler(
 );
 
 $GLOBALS['smpi_test_options']['hws_brand_primary_color'] = '#bd00ff';
-if ( '#bd00ff' !== SettingsRepository::color_default( 'article_drop_cap_color' ) ) {
-    fwrite( STDERR, "FAIL: Drop-cap color did not inherit the Hexa brand primary color.\n" );
+if ( '#111111' !== SettingsRepository::color_default( 'article_drop_cap_color' ) ) {
+    fwrite( STDERR, "FAIL: Drop-cap custom fallback did not retain its template-native color.\n" );
     exit( 1 );
 }
-if ( '#bd00ff' !== SettingsRepository::color_default( 'post_summary_accent_color' ) ) {
-    fwrite( STDERR, "FAIL: Summary design color did not inherit the Hexa brand primary color.\n" );
+if ( '#2563eb' !== SettingsRepository::color_default( 'post_summary_accent_color' ) ) {
+    fwrite( STDERR, "FAIL: Summary custom fallback did not retain its template-native color.\n" );
     exit( 1 );
 }
-if ( '#bd00ff' !== SettingsRepository::color_default( 'table_of_contents_accent_color' ) ) {
-    fwrite( STDERR, "FAIL: TOC accent color did not inherit the Hexa brand primary color.\n" );
+if ( '#bd00ff' !== \smp_publication_integration\Design\TemplateDesignRegistry::effective_color( 'table_of_contents', [ 'table_of_contents_color_source' => 'site_primary', 'table_of_contents_style' => 'toc03' ] ) ) {
+    fwrite( STDERR, "FAIL: Site Primary did not resolve through Hexa brand assets.\n" );
     exit( 1 );
 }
 unset( $GLOBALS['smpi_test_options']['hws_brand_primary_color'] );
 
 $settings = Settings::update( [ 'article_heading_accent_color' => 'invalid' ] );
-if ( '#2d5277' !== $settings['article_heading_accent_color'] ) {
-    fwrite( STDERR, "FAIL: Invalid feature color did not fall back to the canonical default.\n" );
+if ( '' !== $settings['article_heading_accent_color'] ) {
+    fwrite( STDERR, "FAIL: Invalid custom color did not fall back to the selected template palette.\n" );
     exit( 1 );
 }
 
@@ -92,8 +98,8 @@ if ( 'manual' !== $settings['post_faqs_placement'] ) {
 }
 
 $settings = Settings::update( [ 'breadcrumbs_background_color' => 'invalid' ] );
-if ( '#ffffff' !== $settings[ 'breadcrumbs_background_color' ] ) {
-    fwrite( STDERR, "FAIL: Invalid breadcrumb background did not fall back to white.\n" );
+if ( '' !== $settings[ 'breadcrumbs_background_color' ] ) {
+    fwrite( STDERR, "FAIL: Invalid breadcrumb background did not restore the template background.\n" );
     exit( 1 );
 }
 
@@ -116,6 +122,12 @@ if ( 'dropcap-classic' !== $settings['article_drop_cap_style'] ) {
 }
 
 $defaults = SettingsRepository::defaults();
+foreach ( \smp_publication_integration\Design\TemplateDesignRegistry::definitions() as $surface => $definition ) {
+    if ( 'template_default' !== $defaults[ $definition['source_key'] ] || 'template_default' !== $defaults[ $surface . '_typography_mode' ] ) {
+        fwrite( STDERR, "FAIL: New installations must default every design surface to Template Default.\n" );
+        exit( 1 );
+    }
+}
 foreach ( [ 'font_family', 'font_size', 'font_color', 'font_weight' ] as $property ) {
     if ( true !== $defaults[ 'article_heading_preserve_' . $property ] || false !== $defaults[ 'article_drop_cap_preserve_' . $property ] ) {
         fwrite( STDERR, "FAIL: Core-generated typography preservation defaults are incorrect.\n" );

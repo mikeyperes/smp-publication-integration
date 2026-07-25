@@ -83,6 +83,10 @@ Use `TypographyPreservation::defaults()` and `TypographyPreservation::setting_ke
 
 Use `TypographyControl::render()` when a feature exposes the corresponding editors. Core composes `FontFamilyControl`, font weight, `ColorControl`, one or more size fields, and the preservation contract into one host-neutral interface with every toggle adjacent to its field. Hosts pass field configuration and save classes instead of concatenating separate controls. Preserving a color disables the complete Core color editor, including the native picker and import actions, while keeping the preservation toggle operable.
 
+For selectable visual templates, use `TemplateColorControl::render()` and `BrandColors\TemplateColorResolver`. The shared color modes are Template Default, Site Primary, Site Secondary, and Custom. Hosts register each template's native `accent` plus only the CSS variables for decorative surfaces that are allowed to change. Template Default emits no variables.
+
+Set `mode_control` on `TypographyControl::render()` and use `Typography\TemplateTypography` for the shared Template Default, Site Typography, and Custom Typography flow. Template Default preserves exact template declarations, Site Typography inherits the site, and Custom Typography exposes the Core fields with adjacent per-property `Leave as is` controls.
+
 ```php
 use Hexa\PluginCore\WpAdminComponents\ScopedCssOverride;
 

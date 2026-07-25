@@ -7,7 +7,7 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.6.242`
+- Version: `0.6.243`
 
 ## Architecture
 
@@ -22,6 +22,14 @@ WordPress plugin for Scale My Publication publication profiles.
 - `Support`: integration adapters and stable legacy helpers.
 
 The bundled `Hexa\PluginCore` package is registered through the shared package resolver. One selected Core root owns the namespace when multiple Hexa plugins are active.
+
+## 0.6.243 Updates
+
+- Centralized all 67 template choices across ten design surfaces in one SMP registry backed by Hexa WP Core's reusable template color and typography controls.
+- Added Template Default, Site Primary, Site Secondary, and Custom decorative color modes without recoloring text or unrelated neutral template surfaces.
+- Added Template Default, Site Typography, and Custom Typography modes with shared Elementor-aware family, weight, color, size, style, and per-property preservation controls.
+- Preserved existing installations through a one-time Custom-mode migration while new installations use exact template defaults; Quick Start continues to apply its explicit configured values.
+- Added a complete matrix for all 268 color cases, 201 typography cases, and 62 color-bearing frontend template contracts.
 
 ## 0.6.242 Updates
 

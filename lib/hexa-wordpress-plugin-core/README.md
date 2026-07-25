@@ -244,6 +244,8 @@ Version 0.19.53 also initializes collection filters after DOMContentLoaded so fi
 
 Version 0.19.54 adds an optional host-selected text selector so shared logs and diagnostics do not create false search matches.
 
+Version 0.19.74 adds the generic `TemplateColorResolver`, `TemplateColorControl`, and `TemplateTypography` contracts. Template-based hosts now share one four-mode decorative color flow and one three-mode typography flow, including reset behavior, native palette fallbacks, Elementor-aware custom typography, per-property preservation, and live preview variables.
+
 Version 0.19.73 makes typography color preservation disable the complete Core color editor, including its native picker and import actions, while leaving the preservation toggle available.
 
 Version 0.19.72 adds a shared light highlight and stronger boundary to open `CoreUi::collapsible()` sections so expanded tools remain visually distinct without host CSS.
@@ -401,7 +403,7 @@ Version 0.19.4 adds:
 
 ## Brand Color Controls
 
-`Hexa\PluginCore\BrandColors\BrandColorProvider` reads the HWS Base Tools Brand Assets primary and secondary color options and can read Elementor site-setting color/font tokens. `Hexa\PluginCore\WpAdminComponents\ColorControl` renders one reusable admin color control with picker, editable hex value, RGB value, swatch, copy button, optional HWS primary import, and optional inherited-value persistence. `Hexa\PluginCore\WpAdminComponents\DetailedColorPicker` renders the paired primary/secondary control with optional Elementor import and optional font controls.
+`Hexa\PluginCore\BrandColors\BrandColorProvider` reads the HWS Base Tools Brand Assets primary and secondary color options and can read Elementor site-setting color/font tokens. `Hexa\PluginCore\WpAdminComponents\ColorControl` renders one reusable admin color control with picker, editable hex value, RGB value, swatch, copy button, optional HWS primary import, and optional inherited-value persistence. `Hexa\PluginCore\WpAdminComponents\TemplateColorControl` renders the shared Template Default, Site Primary, Site Secondary, and Custom source flow for template-owned decorative colors. `Hexa\PluginCore\WpAdminComponents\DetailedColorPicker` renders the paired primary/secondary control with optional Elementor import and optional font controls.
 
 Host plugins should pass their own setting key and wire save/import AJAX while reusing this markup instead of recreating color pickers.
 

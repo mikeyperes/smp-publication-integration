@@ -6,23 +6,25 @@ $root = dirname( __DIR__ );
 $article = (string) file_get_contents( $root . "/src/Content/ArticleStyles.php" );
 $dashboard = (string) file_get_contents( $root . "/src/Admin/Dashboard/DashboardController.php" );
 $table = (string) file_get_contents( $root . "/src/Content/TableOfContents.php" );
+$registry = (string) file_get_contents( $root . "/src/Design/TemplateDesignRegistry.php" );
 
 $start = strpos( $article, "* Table of contents" );
 $end = strpos( $article, "* Post summary + FAQ", (int) $start );
 $toc_css = false !== $start && false !== $end ? substr( $article, $start, $end - $start ) : "";
 
 $checks = [
-    "TOC accent defaults through the brand-derived settings contract." => str_contains( $article, '$default = Settings::color_default( "table_of_contents_accent_color" );' )
-        && str_contains( $article, 'Settings::get( "table_of_contents_accent_color", $default ), $default' ),
-    "TOC CSS contains no hardcoded blue accent fallback." => "" !== $toc_css
-        && ! str_contains( $toc_css, "#2563eb" )
-        && ! str_contains( $toc_css, "37,99,235" ),
+    "TOC accent source is resolved by the shared template registry." => str_contains( $article, 'TemplateDesignRegistry::css_variables( $surface, $settings )' )
+        && str_contains( $registry, '"source_key" => "table_of_contents_color_source"' )
+        && str_contains( $registry, '"custom_key" => "table_of_contents_accent_color"' ),
+    "TOC native CSS retains the original blue template accent fallback." => "" !== $toc_css
+        && str_contains( $toc_css, "#2563eb" ),
     "Every TOC decorative accent uses the shared accent variable." => str_contains( $toc_css, ".smpi-toc-caret" )
         && str_contains( $toc_css, ".smpi-toc01" )
         && str_contains( $toc_css, ".smpi-toc02 .smpi-toc-item:before" )
         && str_contains( $toc_css, ".smpi-toc03 .smpi-toc-link:before" )
         && str_contains( $toc_css, ".smpi-toc04 .smpi-toc-link:hover" )
-        && substr_count( $toc_css, "var(--smpi-toc-accent)" ) >= 12,
+        && substr_count( $toc_css, "var(--smpi-toc-accent,#2563eb)" ) >= 12
+        && ! str_contains( $toc_css, "var(--smpi-toc-accent)" ),
     "All TOC templates fill their available content width." => str_contains( $toc_css, "box-sizing:border-box;margin:0;max-width:none;width:100%" )
         && ! str_contains( $toc_css, "max-width:560px" )
         && ! str_contains( $toc_css, "max-width:var(--content-width" ),

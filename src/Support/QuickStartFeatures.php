@@ -5,9 +5,12 @@ use Hexa\PluginCore\ContentCleanup\ArticleMediaCleanupScanner;
 use Hexa\PluginCore\GettingStartedChecklist\ChecklistReportBuilder;
 use Hexa\PluginCore\GettingStartedChecklist\GettingStartedChecklistAjaxController;
 use Hexa\PluginCore\GettingStartedChecklist\GettingStartedChecklistConfig;
+use Hexa\PluginCore\BrandColors\TemplateColorResolver;
+use Hexa\PluginCore\Typography\TemplateTypography;
 use Hexa\PluginCore\Typography\TypographyPreservation;
 use Hexa\PluginCore\WpAdminAjax\AjaxActionRegistry;
 use Hexa\PluginCore\WpAdminAjax\AjaxRequest;
+use smp_publication_integration\Design\TemplateDesignRegistry;
 
 if ( ! defined( "ABSPATH" ) ) {
     exit;
@@ -176,9 +179,16 @@ final class QuickStartFeatures {
     }
 
     private static function with_typography( string $prefix, array $settings ): array {
+        $modes = [ TemplateTypography::setting_key( $prefix ) => TemplateTypography::CUSTOM ];
+        $design = TemplateDesignRegistry::definition( $prefix );
+        if ( ! empty( $design["source_key"] ) ) {
+            $modes[ $design["source_key"] ] = TemplateColorResolver::CUSTOM;
+        }
+
         return array_merge(
             $settings,
-            TypographyPreservation::defaults( $prefix, Settings::typography_preservation_defaults( $prefix ) )
+            TypographyPreservation::defaults( $prefix, Settings::typography_preservation_defaults( $prefix ) ),
+            $modes
         );
     }
 

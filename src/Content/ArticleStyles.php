@@ -2,6 +2,8 @@
 namespace smp_publication_integration\Content;
 
 use Hexa\PluginCore\Typography\TypographyPreservation;
+use Hexa\PluginCore\Typography\TemplateTypography;
+use smp_publication_integration\Design\TemplateDesignRegistry;
 use smp_publication_integration\Support\RuntimeContext;
 use smp_publication_integration\Support\Settings;
 
@@ -38,7 +40,7 @@ final class ArticleStyles {
         $featured = self::normalize_featured_image_caption_style( (string) Settings::get( "featured_image_caption_template", "fig2" ) );
         $breadcrumb_override = Settings::bool( "breadcrumbs_enabled" ) ? Breadcrumbs::custom_css() : "";
         $drop_cap_style = self::normalize_article_drop_cap_style( (string) Settings::get( "article_drop_cap_style", "dropcap-classic" ) );
-        if ( Settings::bool( "article_drop_cap_enabled" ) && self::article_drop_cap_style_uses_script_font( $drop_cap_style ) && ! self::typography_preserves( "article_drop_cap", "font_family" ) ) {
+        if ( Settings::bool( "article_drop_cap_enabled" ) && self::article_drop_cap_uses_template_script_font( $drop_cap_style ) ) {
             echo self::script_font_link_html_for_style( $drop_cap_style );
         }
         echo "<style id=smpi-article-style-controls>" . self::frontend_vars_css() . self::breadcrumbs_css() . self::article_heading_css( $heading ) . self::article_drop_cap_css() . self::post_acf_css() . self::inline_photo_css( $photo ) . self::featured_image_caption_css( $featured ) . self::font_overrides_css() . ( "" !== $breadcrumb_override ? PHP_EOL . $breadcrumb_override : "" ) . "</style>";
@@ -104,6 +106,30 @@ final class ArticleStyles {
 
     public static function article_drop_cap_style_uses_script_font( string $style ): bool {
         return 0 === strpos( $style, "dropcap-script-" );
+    }
+
+    public static function article_drop_cap_uses_template_script_font(
+        string $style,
+        string $typography_mode = "",
+        array $preserve = [],
+        string $font_selection = ""
+    ): bool {
+        if ( ! self::article_drop_cap_style_uses_script_font( $style ) ) {
+            return false;
+        }
+
+        $typography_mode = TemplateTypography::normalize_mode(
+            "" !== $typography_mode ? $typography_mode : Settings::typography_mode( "article_drop_cap" )
+        );
+        if ( [] === $preserve ) {
+            $preserve = self::typography_preservation_settings( "article_drop_cap" );
+        }
+        $font_selection = sanitize_key(
+            "" !== $font_selection ? $font_selection : (string) Settings::get( "article_drop_cap_font_family", "template" )
+        );
+
+        return TemplateTypography::TEMPLATE_DEFAULT === $typography_mode
+            || ( TemplateTypography::CUSTOM === $typography_mode && "template" === $font_selection && empty( $preserve["font_family"] ) );
     }
 
     public static function article_drop_cap_script_fonts(): array {
@@ -254,32 +280,45 @@ final class ArticleStyles {
      * set the same variables inline so both render identically.
      * ------------------------------------------------------------------- */
     private static function frontend_vars_css(): string {
+        $settings = Settings::all();
         $css = "";
-        $bc = self::breadcrumb_var_values();
-        $css .= ".smpi-breadcrumbs-band,.smpi-breadcrumbs{--smpi-bc-accent:" . $bc["accent"] . ";--smpi-bc-tint:" . $bc["tint"] . ";--smpi-bc-background:" . $bc["background"] . ";--smpi-bc-text:" . $bc["text"] . ";--smpi-bc-font-size:" . $bc["size"] . "}";
-        $toc = self::toc_var_values();
-        $css .= ".smpi-table-of-contents{--smpi-toc-accent:" . $toc["accent"] . ";--smpi-toc-text:" . $toc["text"] . ";--smpi-toc-size:" . $toc["size"] . ";--smpi-toc-fstyle:" . $toc["fstyle"] . "}";
-        $faq = self::faq_var_values();
-        $css .= ".smpi-post-faqs{--smpi-faq-accent:" . $faq["accent"] . ";--smpi-faq-accent-soft:" . $faq["accent_soft"] . ";--smpi-faq-text:" . $faq["text"] . ";--smpi-faq-size:" . $faq["size"] . ";--smpi-faq-fstyle:" . $faq["fstyle"] . "}";
-        $summary = self::summary_var_values();
-        $css .= ".smpi-post-summary{--smpi-summary-accent:" . $summary["accent"] . ";--smpi-summary-accent-soft:" . $summary["accent_soft"] . ";--smpi-summary-accent-ink:" . $summary["accent_ink"] . ";--smpi-summary-size:" . $summary["size"] . "}";
-        if ( Settings::bool( "article_heading_styles_enabled" ) ) {
-            $h = self::article_heading_var_values();
-            $css .= "body.single-post{--smpi-heading-accent:" . $h["accent"] . ";--smpi-heading-accent-fade:" . $h["accent_fade"] . ";--smpi-heading-highlight:" . $h["highlight"] . ";--smpi-heading-line:" . $h["line"] . ";--smpi-heading-ink:" . $h["ink"] . ";--smpi-heading-h2-size:" . $h["h2_size"] . ";--smpi-heading-h3-size:" . $h["h3_size"] . "}";
-        }
-        if ( Settings::bool( "article_drop_cap_enabled" ) ) {
-            $d = self::article_drop_cap_var_values();
-            $css .= "body.single-post{--smpi-dropcap-color:" . $d["color"] . ";--smpi-dropcap-soft:" . $d["soft"] . ";--smpi-dropcap-ink:" . $d["ink"] . ";--smpi-dropcap-size:" . $d["size"] . "}";
-        }
-        if ( Settings::bool( "inline_photo_treatments_enabled" ) ) {
-            $p = self::photo_var_values();
-            $css .= "body.single-post,body.single-press-release{--smpi-photo-accent:" . $p["accent"] . ";--smpi-photo-cap-color:" . $p["color"] . ";--smpi-photo-cap-size:" . $p["size"] . ";--smpi-photo-cap-fstyle:" . $p["fstyle"] . "}";
-        }
-        if ( Settings::bool( "featured_image_caption_templates_enabled" ) ) {
-            $f = self::featured_image_var_values();
-            $css .= "body.single-post,body.single-press-release{--smpi-fi-accent:" . $f["accent"] . ";--smpi-fi-cap-color:" . $f["color"] . ";--smpi-fi-cap-size:" . $f["size"] . ";--smpi-fi-cap-fstyle:" . $f["fstyle"] . "}";
+        $selectors = [
+            "breadcrumbs" => ".smpi-breadcrumbs-band,.smpi-breadcrumbs",
+            "table_of_contents" => ".smpi-table-of-contents",
+            "article_heading" => "body.single-post",
+            "article_drop_cap" => "body.single-post",
+            "inline_photo_caption" => "body.single-post,body.single-press-release",
+            "featured_image_caption" => "body.single-post,body.single-press-release",
+            "post_summary" => ".smpi-post-summary",
+            "post_faqs" => ".smpi-post-faqs",
+        ];
+        foreach ( $selectors as $surface => $selector ) {
+            $variables = array_merge(
+                TemplateDesignRegistry::css_variables( $surface, $settings ),
+                TemplateDesignRegistry::typography_css_variables( $surface, $settings )
+            );
+            if ( "breadcrumbs" === $surface ) {
+                $background = sanitize_hex_color( (string) ( $settings["breadcrumbs_background_color"] ?? "" ) );
+                if ( $background ) {
+                    $variables["--smpi-bc-background"] = $background;
+                }
+            }
+            $css .= self::variable_rule( $selector, $variables );
         }
         return $css;
+    }
+
+    private static function variable_rule( string $selector, array $variables ): string {
+        if ( [] === $variables ) {
+            return "";
+        }
+        $declarations = [];
+        foreach ( $variables as $variable => $value ) {
+            if ( preg_match( "/^--[a-z0-9_-]+$/", (string) $variable ) && "" !== (string) $value ) {
+                $declarations[] = $variable . ":" . $value;
+            }
+        }
+        return [] === $declarations ? "" : $selector . "{" . implode( ";", $declarations ) . "}";
     }
 
     public static function font_overrides_css(): string {
@@ -353,6 +392,7 @@ final class ArticleStyles {
                 "rules" => [
                     "font_family" => [ [ ".smpi-post-summary,.smpi-post-summary .smpi-template-title,.smpi-post-summary .smpi-template-content,.smpi-post-summary .smpi-template-content *" ] ],
                     "font_weight" => [ [ ".smpi-post-summary,.smpi-post-summary .smpi-template-title,.smpi-post-summary .smpi-template-content,.smpi-post-summary .smpi-template-content *" ] ],
+                    "font_color" => [ [ ".smpi-post-summary .smpi-template-content,.smpi-post-summary .smpi-template-content *", "var(--smpi-summary-text,#1f2937)" ] ],
                     "font_size" => [ [ ".smpi-post-summary,.smpi-post-summary .smpi-template-title,.smpi-post-summary .smpi-template-content,.smpi-post-summary .smpi-template-content *", "var(--smpi-summary-size,16px)" ] ],
                 ],
             ],
@@ -368,8 +408,10 @@ final class ArticleStyles {
             ],
         ];
         $css = "";
-        $drop_cap_style = self::normalize_article_drop_cap_style( (string) Settings::get( "article_drop_cap_style", "dropcap-classic" ) );
         foreach ( $surfaces as $prefix => $surface ) {
+            if ( TemplateTypography::CUSTOM !== Settings::typography_mode( $prefix ) ) {
+                continue;
+            }
             $preservation = self::typography_preservation_settings( $prefix );
             foreach ( TypographyPreservation::PROPERTIES as $property ) {
                 $rules = $surface["rules"][ $property ] ?? [];
@@ -386,12 +428,6 @@ final class ArticleStyles {
                 } elseif ( "font_weight" === $property ) {
                     $default_value = Settings::font_weight_css( $surface["font_weight"] );
                 }
-                $template_owns_property = "article_drop_cap" === $prefix
-                    && in_array( $property, [ "font_family", "font_weight" ], true )
-                    && self::article_drop_cap_style_uses_script_font( $drop_cap_style );
-                if ( $template_owns_property ) {
-                    continue;
-                }
                 $css_property = "font_color" === $property ? "color" : str_replace( "_", "-", $property );
                 foreach ( $rules as $rule ) {
                     $value = (string) ( $rule[1] ?? $default_value );
@@ -406,101 +442,6 @@ final class ArticleStyles {
         return $css;
     }
 
-    public static function breadcrumb_var_values(): array {
-        $accent = self::hex( Settings::get( "breadcrumbs_accent_color", "#d63428" ), "#d63428" );
-        return [
-            "accent" => $accent,
-            "background" => self::hex( Settings::get( "breadcrumbs_background_color", "#ffffff" ), "#ffffff" ),
-            "text"   => self::hex( Settings::get( "breadcrumbs_text_color", "#374151" ), "#374151" ),
-            "tint"   => self::rgba( $accent, 0.07 ),
-            "size"   => self::px( Settings::get( "breadcrumbs_font_size", 13 ), 13 ),
-        ];
-    }
-
-    public static function toc_var_values(): array {
-        $default = Settings::color_default( "table_of_contents_accent_color" );
-        return [
-            "accent" => self::hex( Settings::get( "table_of_contents_accent_color", $default ), $default ),
-            "text"   => self::hex( Settings::get( "table_of_contents_text_color", "#111827" ), "#111827" ),
-            "size"   => self::px( Settings::get( "table_of_contents_text_font_size", 15 ), 15 ),
-            "fstyle" => self::fstyle( Settings::get( "table_of_contents_text_font_style", "normal" ) ),
-        ];
-    }
-
-    public static function article_heading_var_values(): array {
-        $accent = self::hex( Settings::get( "article_heading_accent_color", Settings::color_default( "article_heading_accent_color" ) ), Settings::color_default( "article_heading_accent_color" ) );
-        return [
-            "accent"  => $accent,
-            "accent_fade" => self::rgba( $accent, 0 ),
-            "highlight" => self::rgba( $accent, 0.16 ),
-            "line"    => "#e5e7eb",
-            "ink"     => self::hex( Settings::get( "article_heading_text_color", "#111827" ), "#111827" ),
-            "h2_size" => self::px( Settings::get( "article_heading_h2_font_size", 23 ), 23 ),
-            "h3_size" => self::px( Settings::get( "article_heading_h3_font_size", 20 ), 20 ),
-        ];
-    }
-
-    public static function article_drop_cap_var_values(): array {
-        $default = Settings::color_default( "article_drop_cap_color" );
-        $color = self::hex( Settings::get( "article_drop_cap_color", $default ), $default );
-        return [
-            "color" => $color,
-            "soft"  => self::rgba( $color, 0.14 ),
-            "ink"   => self::contrast_ink( $color ),
-            "size"  => self::px( Settings::get( "article_drop_cap_font_size", 96 ), 96, 48, 180 ),
-        ];
-    }
-
-    public static function faq_var_values(): array {
-        $accent = self::hex( Settings::get( "post_faqs_accent_color", "#2563eb" ), "#2563eb" );
-        return [
-            "accent" => $accent,
-            "accent_soft" => self::rgba( $accent, 0.22 ),
-            "text"   => self::hex( Settings::get( "post_faqs_text_color", "#1f2937" ), "#1f2937" ),
-            "size"   => self::px( Settings::get( "post_faqs_text_font_size", 16 ), 16 ),
-            "fstyle" => self::fstyle( Settings::get( "post_faqs_text_font_style", "normal" ) ),
-        ];
-    }
-
-    public static function summary_var_values(): array {
-        $default = Settings::color_default( "post_summary_accent_color" );
-        $accent = self::hex( Settings::get( "post_summary_accent_color", $default ), $default );
-        return [
-            "accent" => $accent,
-            "accent_soft" => self::rgba( $accent, 0.10 ),
-            "accent_ink" => self::contrast_ink( $accent ),
-            "size" => self::px( Settings::get( "post_summary_font_size", 16 ), 16 ),
-        ];
-    }
-
-    public static function photo_var_values(): array {
-        return [
-            "accent" => self::hex( Settings::get( "inline_photo_accent_color", "#d63428" ), "#d63428" ),
-            "color"  => self::hex( Settings::get( "inline_photo_caption_text_color", "#272727" ), "#272727" ),
-            "size"   => self::px( Settings::get( "inline_photo_caption_font_size", 16 ), 16 ),
-            "fstyle" => self::fstyle( Settings::get( "inline_photo_caption_font_style", "italic" ) ),
-        ];
-    }
-
-    public static function featured_image_var_values(): array {
-        return [
-            "accent" => self::hex( Settings::get( "featured_image_caption_accent_color", "#d63428" ), "#d63428" ),
-            "color"  => self::hex( Settings::get( "featured_image_caption_text_color", "#272727" ), "#272727" ),
-            "size"   => self::px( Settings::get( "featured_image_caption_font_size", 16 ), 16 ),
-            "fstyle" => self::fstyle( Settings::get( "featured_image_caption_font_style", "italic" ) ),
-        ];
-    }
-
-    private static function hex( $value, string $fallback ): string {
-        $value = sanitize_hex_color( (string) $value );
-        return $value ?: $fallback;
-    }
-
-    private static function px( $value, int $fallback, int $min = 8, int $max = 96 ): string {
-        $n = absint( $value );
-        return ( $n >= $min && $n <= $max ? $n : $fallback ) . "px";
-    }
-
     private static function remove_preserved_typography( string $css, string $prefix, array $text_selectors = [] ): string {
         $preservation = self::typography_preservation_settings( $prefix );
         if ( ! in_array( true, $preservation, true ) ) {
@@ -508,21 +449,23 @@ final class ArticleStyles {
         }
 
         $patterns = [
-            "font_family" => "/(?<![-a-z0-9_])font-family\\s*:[^;}]+;?/i",
-            "font_weight" => "/(?<![-a-z0-9_])font-weight\\s*:[^;}]+;?/i",
-            "font_color" => "/(?<![-a-z0-9_])color\\s*:[^;}]+;?/i",
-            "font_size" => "/(?<![-a-z0-9_])font-size\\s*:[^;}]+;?/i",
+            "font_family" => [ "preserve" => "font_family", "pattern" => "/(?<![-a-z0-9_])font-family\\s*:[^;}]+;?/i" ],
+            "font_style" => [ "preserve" => "font_family", "pattern" => "/(?<![-a-z0-9_])font-style\\s*:[^;}]+;?/i" ],
+            "font_weight" => [ "preserve" => "font_weight", "pattern" => "/(?<![-a-z0-9_])font-weight\\s*:[^;}]+;?/i" ],
+            "font_color" => [ "preserve" => "font_color", "pattern" => "/(?<![-a-z0-9_])color\\s*:[^;}]+;?/i" ],
+            "font_size" => [ "preserve" => "font_size", "pattern" => "/(?<![-a-z0-9_])font-size\\s*:[^;}]+;?/i" ],
         ];
         $filtered = preg_replace_callback(
             "/([^{}]+)\\{([^{}]*)\\}/",
             static function ( array $matches ) use ( $prefix, $preservation, $patterns, $text_selectors ): string {
                 $selector = trim( (string) $matches[1] );
                 $declarations = (string) $matches[2];
-                foreach ( $patterns as $property => $pattern ) {
-                    if ( empty( $preservation[ $property ] ) || ! self::is_typography_text_selector( $prefix, $property, $selector, $text_selectors ) ) {
+                foreach ( $patterns as $property => $definition ) {
+                    $preserve_property = (string) $definition["preserve"];
+                    if ( empty( $preservation[ $preserve_property ] ) || ! self::is_typography_text_selector( $prefix, $property, $selector, $text_selectors ) ) {
                         continue;
                     }
-                    $stripped = preg_replace( $pattern, "", $declarations );
+                    $stripped = preg_replace( (string) $definition["pattern"], "", $declarations );
                     if ( is_string( $stripped ) ) {
                         $declarations = $stripped;
                     }
@@ -572,48 +515,30 @@ final class ArticleStyles {
         return false;
     }
 
-    private static function rgba( string $hex, float $alpha ): string {
-        $hex = ltrim( $hex, "#" );
-        if ( 3 === strlen( $hex ) ) {
-            $hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
-        }
-        if ( 6 !== strlen( $hex ) || ! ctype_xdigit( $hex ) ) {
-            $hex = "d63428";
-        }
-        $r = hexdec( substr( $hex, 0, 2 ) );
-        $g = hexdec( substr( $hex, 2, 2 ) );
-        $b = hexdec( substr( $hex, 4, 2 ) );
-        return "rgba(" . $r . "," . $g . "," . $b . "," . max( 0, min( 1, $alpha ) ) . ")";
-    }
-
-    private static function fstyle( $value ): string {
-        return "italic" === (string) $value ? "italic" : "normal";
-    }
-
-    private static function contrast_ink( string $hex ): string {
-        $hex = ltrim( $hex, "#" );
-        if ( 6 !== strlen( $hex ) || ! ctype_xdigit( $hex ) ) {
-            return "#111111";
-        }
-        $r = hexdec( substr( $hex, 0, 2 ) );
-        $g = hexdec( substr( $hex, 2, 2 ) );
-        $b = hexdec( substr( $hex, 4, 2 ) );
-        return ( ( $r * 299 + $g * 587 + $b * 114 ) / 1000 ) >= 150 ? "#111111" : "#ffffff";
-    }
-
     /* ---------------------------------------------------------------------
      * Breadcrumbs
      * ------------------------------------------------------------------- */
     public static function breadcrumbs_css( bool $respect_preservation = true ): string {
-        $css = ".smpi-breadcrumbs-band{background:var(--smpi-bc-background,#fff);box-sizing:border-box;clear:both;margin:0;max-width:none;width:100%}.smpi-breadcrumbs{--smpi-bc-line:#e5e7eb;--smpi-bc-muted:#6b7280;--smpi-bc-ink:#111827;--smpi-bc-body:#374151;--smpi-bc-soft:#f7f8f9;background:var(--smpi-bc-background,#fff);box-sizing:border-box;max-width:var(--content-width,1120px);margin:0 auto;font-family:inherit;font-size:var(--smpi-bc-font-size,13px);clear:both}.smpi-breadcrumbs *{box-sizing:border-box}.smpi-breadcrumbs .smpi-breadcrumb-list{margin:0}.smpi-breadcrumbs .smpi-breadcrumb-link{text-decoration:none}.smpi-breadcrumbs .smpi-breadcrumb-title{font-family:Georgia,serif;font-weight:700;letter-spacing:-.01em}.smpi-bc-b1{background:var(--smpi-bc-tint,rgba(214,52,40,.07));padding:20px 24px}.smpi-bc-b1 .smpi-breadcrumb-title{font-size:25px;line-height:1.15;color:var(--smpi-bc-ink,#111827);margin:0 0 8px}.smpi-bc-b1 .smpi-breadcrumb-list{font-size:var(--smpi-bc-font-size,13px);color:var(--smpi-bc-muted,#6b7280);line-height:1.5}.smpi-bc-b1 .smpi-breadcrumb-link{color:var(--smpi-bc-accent,#d63428)}.smpi-bc-b1 .smpi-breadcrumb-link:hover{text-decoration:underline}.smpi-bc-b1 .smpi-breadcrumb-separator{color:#b9b9b9}.smpi-bc-b1 .smpi-breadcrumb-current{color:var(--smpi-bc-muted,#6b7280)}.smpi-bc-b2{padding:14px 24px;border-bottom:1px solid var(--smpi-bc-line,#e5e7eb)}.smpi-bc-b2 .smpi-breadcrumb-list{display:flex;flex-wrap:wrap;align-items:center;font-size:var(--smpi-bc-font-size,13px);color:var(--smpi-bc-muted,#6b7280)}.smpi-bc-b2 .smpi-breadcrumb-link{color:var(--smpi-bc-muted,#6b7280)}.smpi-bc-b2 .smpi-breadcrumb-link:hover{color:var(--smpi-bc-accent,#d63428)}.smpi-bc-b2 .smpi-breadcrumb-separator{font-size:0;margin:0 9px}.smpi-bc-b2 .smpi-breadcrumb-separator::after{content:\"\\203A\";font-size:14px;color:#c3c3c3}.smpi-bc-b2 .smpi-breadcrumb-current{color:var(--smpi-bc-ink,#111827);font-weight:600}.smpi-bc-b3{padding:16px 24px;border-bottom:1px solid var(--smpi-bc-line,#e5e7eb);position:relative}.smpi-bc-b3::after{content:\"\";position:absolute;left:24px;bottom:-1px;width:46px;height:2px;background:var(--smpi-bc-accent,#d63428)}.smpi-bc-b3 .smpi-breadcrumb-list{font-size:var(--smpi-bc-font-size,11px);letter-spacing:.18em;text-transform:uppercase;color:var(--smpi-bc-muted,#6b7280)}.smpi-bc-b3 .smpi-breadcrumb-link{color:var(--smpi-bc-accent,#d63428);font-weight:600}.smpi-bc-b3 .smpi-breadcrumb-separator{font-size:0;margin:0 8px}.smpi-bc-b3 .smpi-breadcrumb-separator::after{content:\"/\";font-size:11px;letter-spacing:0;color:#ccc}.smpi-bc-b3 .smpi-breadcrumb-current{color:var(--smpi-bc-ink,#111827)}.smpi-bc-b4{padding:14px 22px;background:var(--smpi-bc-soft,#f7f8f9);border-bottom:1px solid var(--smpi-bc-line,#e5e7eb)}.smpi-bc-b4 .smpi-breadcrumb-list{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.smpi-bc-b4 .smpi-breadcrumb-link,.smpi-bc-b4 .smpi-breadcrumb-current{display:inline-block;padding:5px 13px;border-radius:999px;font-size:var(--smpi-bc-font-size,12px);line-height:1.4}.smpi-bc-b4 .smpi-breadcrumb-link{background:#fff;border:1px solid var(--smpi-bc-line,#e5e7eb);color:var(--smpi-bc-body,#374151)}.smpi-bc-b4 .smpi-breadcrumb-link:hover{border-color:var(--smpi-bc-accent,#d63428);color:var(--smpi-bc-accent,#d63428)}.smpi-bc-b4 .smpi-breadcrumb-current{background:var(--smpi-bc-accent,#d63428);color:#fff;max-width:100%}.smpi-bc-b4 .smpi-breadcrumb-separator{display:none}.smpi-bc-b5{padding:24px;background:linear-gradient(180deg,var(--smpi-bc-tint,rgba(214,52,40,.07)),#fff)}.smpi-bc-b5 .smpi-breadcrumb-list{font-size:var(--smpi-bc-font-size,12px);letter-spacing:.03em;color:var(--smpi-bc-muted,#6b7280);margin:0 0 11px}.smpi-bc-b5 .smpi-breadcrumb-link{color:var(--smpi-bc-accent,#d63428)}.smpi-bc-b5 .smpi-breadcrumb-separator{font-size:0;margin:0 8px}.smpi-bc-b5 .smpi-breadcrumb-separator::after{content:\"\\2014\";font-size:12px;color:#cdcdcd}.smpi-bc-b5 .smpi-breadcrumb-current{color:var(--smpi-bc-muted,#6b7280)}.smpi-bc-b5 .smpi-breadcrumb-title{font-size:30px;line-height:1.12;color:var(--smpi-bc-ink,#111827);margin:0}.smpi-bc-b6{max-width:var(--content-width,1140px);padding:14px 0;border-bottom:0}.smpi-bc-b6 .smpi-breadcrumb-list{display:flex;flex-wrap:wrap;align-items:center;font-size:var(--smpi-bc-font-size,13px);letter-spacing:.01em;text-transform:capitalize;color:var(--smpi-bc-muted,#6b7280)}.smpi-bc-b6 .smpi-breadcrumb-link{color:var(--smpi-bc-accent,#d63428);font-weight:600}.smpi-bc-b6 .smpi-breadcrumb-link:hover{text-decoration:underline}.smpi-bc-b6 .smpi-breadcrumb-separator{font-size:0;margin:0 8px}.smpi-bc-b6 .smpi-breadcrumb-separator::after{content:\"/\";font-size:13px;letter-spacing:0;color:#cfcfcf}.smpi-bc-b6 .smpi-breadcrumb-current{color:var(--smpi-bc-ink,#111827);font-weight:500}.smpi-breadcrumbs.smpi-bc-b1,.smpi-breadcrumbs.smpi-bc-b4,.smpi-breadcrumbs.smpi-bc-b5{background:var(--smpi-bc-background,#fff)}@media(max-width:680px){.smpi-breadcrumbs{max-width:100%}.smpi-bc-b1,.smpi-bc-b2,.smpi-bc-b3,.smpi-bc-b4,.smpi-bc-b5,.smpi-bc-b6{padding-left:16px;padding-right:16px}.smpi-bc-b1 .smpi-breadcrumb-title{font-size:21px}.smpi-bc-b5 .smpi-breadcrumb-title{font-size:24px}}";
+        $css = self::breadcrumbs_css_base();
+        $css = str_replace( ".smpi-breadcrumbs-band{background:var(--smpi-bc-background,#fff)", ".smpi-breadcrumbs-band{background:var(--smpi-bc-background,transparent)", $css );
+        $css = str_replace( ".smpi-bc-b1{background:var(--smpi-bc-tint,rgba(214,52,40,.07))", ".smpi-bc-b1{background:var(--smpi-bc-background,var(--smpi-bc-tint,rgba(214,52,40,.07)))", $css );
+        $css = str_replace( ".smpi-bc-b4{padding:14px 22px;background:var(--smpi-bc-soft,#f7f8f9)", ".smpi-bc-b4{padding:14px 22px;background:var(--smpi-bc-background,var(--smpi-bc-soft,#f7f8f9))", $css );
+        $css = str_replace( ".smpi-bc-b5{padding:24px;background:linear-gradient(180deg,var(--smpi-bc-tint,rgba(214,52,40,.07)),#fff)", ".smpi-bc-b5{padding:24px;background:var(--smpi-bc-background,linear-gradient(180deg,var(--smpi-bc-tint,rgba(214,52,40,.07)),#fff))", $css );
+        $css = str_replace( ".smpi-breadcrumbs.smpi-bc-b1,.smpi-breadcrumbs.smpi-bc-b4,.smpi-breadcrumbs.smpi-bc-b5{background:var(--smpi-bc-background,#fff)}", "", $css );
         return $respect_preservation ? self::remove_preserved_typography( $css, "breadcrumbs" ) : $css;
+    }
+
+    private static function breadcrumbs_css_base(): string {
+        $css = ".smpi-breadcrumbs-band{background:var(--smpi-bc-background,#fff);box-sizing:border-box;clear:both;margin:0;max-width:none;width:100%}.smpi-breadcrumbs{--smpi-bc-line:#e5e7eb;--smpi-bc-muted:#6b7280;--smpi-bc-ink:#111827;--smpi-bc-body:#374151;--smpi-bc-soft:#f7f8f9;background:var(--smpi-bc-background,#fff);box-sizing:border-box;max-width:var(--content-width,1120px);margin:0 auto;font-family:inherit;font-size:var(--smpi-bc-font-size,13px);clear:both}.smpi-breadcrumbs *{box-sizing:border-box}.smpi-breadcrumbs .smpi-breadcrumb-list{margin:0}.smpi-breadcrumbs .smpi-breadcrumb-link{text-decoration:none}.smpi-breadcrumbs .smpi-breadcrumb-title{font-family:Georgia,serif;font-weight:700;letter-spacing:-.01em}.smpi-bc-b1{background:var(--smpi-bc-tint,rgba(214,52,40,.07));padding:20px 24px}.smpi-bc-b1 .smpi-breadcrumb-title{font-size:25px;line-height:1.15;color:var(--smpi-bc-ink,#111827);margin:0 0 8px}.smpi-bc-b1 .smpi-breadcrumb-list{font-size:var(--smpi-bc-font-size,13px);color:var(--smpi-bc-muted,#6b7280);line-height:1.5}.smpi-bc-b1 .smpi-breadcrumb-link{color:var(--smpi-bc-accent,#d63428)}.smpi-bc-b1 .smpi-breadcrumb-link:hover{text-decoration:underline}.smpi-bc-b1 .smpi-breadcrumb-separator{color:#b9b9b9}.smpi-bc-b1 .smpi-breadcrumb-current{color:var(--smpi-bc-muted,#6b7280)}.smpi-bc-b2{padding:14px 24px;border-bottom:1px solid var(--smpi-bc-line,#e5e7eb)}.smpi-bc-b2 .smpi-breadcrumb-list{display:flex;flex-wrap:wrap;align-items:center;font-size:var(--smpi-bc-font-size,13px);color:var(--smpi-bc-muted,#6b7280)}.smpi-bc-b2 .smpi-breadcrumb-link{color:var(--smpi-bc-muted,#6b7280)}.smpi-bc-b2 .smpi-breadcrumb-link:hover{color:var(--smpi-bc-accent,#d63428)}.smpi-bc-b2 .smpi-breadcrumb-separator{font-size:0;margin:0 9px}.smpi-bc-b2 .smpi-breadcrumb-separator::after{content:\"\\203A\";font-size:14px;color:#c3c3c3}.smpi-bc-b2 .smpi-breadcrumb-current{color:var(--smpi-bc-ink,#111827);font-weight:600}.smpi-bc-b3{padding:16px 24px;border-bottom:1px solid var(--smpi-bc-line,#e5e7eb);position:relative}.smpi-bc-b3::after{content:\"\";position:absolute;left:24px;bottom:-1px;width:46px;height:2px;background:var(--smpi-bc-accent,#d63428)}.smpi-bc-b3 .smpi-breadcrumb-list{font-size:var(--smpi-bc-font-size,11px);letter-spacing:.18em;text-transform:uppercase;color:var(--smpi-bc-muted,#6b7280)}.smpi-bc-b3 .smpi-breadcrumb-link{color:var(--smpi-bc-accent,#d63428);font-weight:600}.smpi-bc-b3 .smpi-breadcrumb-separator{font-size:0;margin:0 8px}.smpi-bc-b3 .smpi-breadcrumb-separator::after{content:\"/\";font-size:11px;letter-spacing:0;color:#ccc}.smpi-bc-b3 .smpi-breadcrumb-current{color:var(--smpi-bc-ink,#111827)}.smpi-bc-b4{padding:14px 22px;background:var(--smpi-bc-soft,#f7f8f9);border-bottom:1px solid var(--smpi-bc-line,#e5e7eb)}.smpi-bc-b4 .smpi-breadcrumb-list{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.smpi-bc-b4 .smpi-breadcrumb-link,.smpi-bc-b4 .smpi-breadcrumb-current{display:inline-block;padding:5px 13px;border-radius:999px;font-size:var(--smpi-bc-font-size,12px);line-height:1.4}.smpi-bc-b4 .smpi-breadcrumb-link{background:#fff;border:1px solid var(--smpi-bc-line,#e5e7eb);color:var(--smpi-bc-body,#374151)}.smpi-bc-b4 .smpi-breadcrumb-link:hover{border-color:var(--smpi-bc-accent,#d63428);color:var(--smpi-bc-accent,#d63428)}.smpi-bc-b4 .smpi-breadcrumb-current{background:var(--smpi-bc-accent,#d63428);color:#fff;max-width:100%}.smpi-bc-b4 .smpi-breadcrumb-separator{display:none}.smpi-bc-b5{padding:24px;background:linear-gradient(180deg,var(--smpi-bc-tint,rgba(214,52,40,.07)),#fff)}.smpi-bc-b5 .smpi-breadcrumb-list{font-size:var(--smpi-bc-font-size,12px);letter-spacing:.03em;color:var(--smpi-bc-muted,#6b7280);margin:0 0 11px}.smpi-bc-b5 .smpi-breadcrumb-link{color:var(--smpi-bc-accent,#d63428)}.smpi-bc-b5 .smpi-breadcrumb-separator{font-size:0;margin:0 8px}.smpi-bc-b5 .smpi-breadcrumb-separator::after{content:\"\\2014\";font-size:12px;color:#cdcdcd}.smpi-bc-b5 .smpi-breadcrumb-current{color:var(--smpi-bc-muted,#6b7280)}.smpi-bc-b5 .smpi-breadcrumb-title{font-size:30px;line-height:1.12;color:var(--smpi-bc-ink,#111827);margin:0}.smpi-bc-b6{max-width:var(--content-width,1140px);padding:14px 0;border-bottom:0}.smpi-bc-b6 .smpi-breadcrumb-list{display:flex;flex-wrap:wrap;align-items:center;font-size:var(--smpi-bc-font-size,13px);letter-spacing:.01em;text-transform:capitalize;color:var(--smpi-bc-muted,#6b7280)}.smpi-bc-b6 .smpi-breadcrumb-link{color:var(--smpi-bc-accent,#d63428);font-weight:600}.smpi-bc-b6 .smpi-breadcrumb-link:hover{text-decoration:underline}.smpi-bc-b6 .smpi-breadcrumb-separator{font-size:0;margin:0 8px}.smpi-bc-b6 .smpi-breadcrumb-separator::after{content:\"/\";font-size:13px;letter-spacing:0;color:#cfcfcf}.smpi-bc-b6 .smpi-breadcrumb-current{color:var(--smpi-bc-ink,#111827);font-weight:500}.smpi-breadcrumbs.smpi-bc-b1,.smpi-breadcrumbs.smpi-bc-b4,.smpi-breadcrumbs.smpi-bc-b5{background:var(--smpi-bc-background,#fff)}@media(max-width:680px){.smpi-breadcrumbs{max-width:100%}.smpi-bc-b1,.smpi-bc-b2,.smpi-bc-b3,.smpi-bc-b4,.smpi-bc-b5,.smpi-bc-b6{padding-left:16px;padding-right:16px}.smpi-bc-b1 .smpi-breadcrumb-title{font-size:21px}.smpi-bc-b5 .smpi-breadcrumb-title{font-size:24px}}";
+        return $css;
     }
 
     /* ---------------------------------------------------------------------
      * Table of contents
      * ------------------------------------------------------------------- */
     public static function toc_css( bool $respect_preservation = true ): string {
-        $css = ".smpi-table-of-contents,.smpi-table-of-contents.smpi-toc00,.smpi-table-of-contents.smpi-toc01,.smpi-table-of-contents.smpi-toc02,.smpi-table-of-contents.smpi-toc03,.smpi-table-of-contents.smpi-toc04{box-sizing:border-box;margin:0;max-width:none;width:100%}.smpi-table-of-contents *{box-sizing:border-box}.smpi-table-of-contents .smpi-toc-label{display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;list-style:none;user-select:none;margin:0}.smpi-table-of-contents .smpi-toc-label::-webkit-details-marker{display:none}.smpi-table-of-contents .smpi-toc-link{text-decoration:none;font-size:var(--smpi-toc-size,15px);font-style:var(--smpi-toc-fstyle,normal)}.smpi-table-of-contents .smpi-toc-list{margin:0;padding:0}.smpi-toc-caret{flex:0 0 auto;width:8px;height:8px;border-right:2px solid var(--smpi-toc-accent);border-bottom:2px solid var(--smpi-toc-accent);transform:rotate(45deg);transition:transform .2s ease;opacity:.5}.smpi-table-of-contents[open] .smpi-toc-caret{transform:rotate(-135deg)}.smpi-table-of-contents[open] .smpi-toc-list,.smpi-table-of-contents[open] .smpi-toc-panel{margin-top:14px}.smpi-toc-none{border:1px solid #ececec;border-radius:12px;padding:14px 16px}.smpi-toc-none .smpi-toc-list{padding-left:20px}.smpi-toc00{background:#fafbfc;border-radius:12px;padding:16px 18px}.smpi-toc00 .smpi-toc-label{font-size:.72rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#9ca3af}.smpi-toc00 .smpi-toc-list{list-style:none;display:grid;gap:10px}.smpi-toc00 .smpi-toc-link{color:var(--smpi-toc-text,#111827);border-bottom:1px solid transparent}.smpi-toc00 .smpi-toc-link:hover{color:var(--smpi-toc-accent);border-color:var(--smpi-toc-accent)}.smpi-toc01{background:#fafbfc;border-radius:12px;border-left:3px solid var(--smpi-toc-accent);padding:14px 18px}.smpi-toc01 .smpi-toc-label{font-size:.82rem;font-weight:800;color:#0a0a0a}.smpi-toc01 .smpi-toc-list{list-style:none;display:grid;gap:11px}.smpi-toc01 .smpi-toc-link{color:var(--smpi-toc-text,#52525b)}.smpi-toc01 .smpi-toc-link:hover{color:var(--smpi-toc-accent)}.smpi-toc02{background:#f7f8f9;border-radius:12px;padding:18px 24px}.smpi-toc02 .smpi-toc-label{font-size:.75rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#6b7280}.smpi-toc02 .smpi-toc-list{list-style:none;display:grid;gap:12px;counter-reset:t}.smpi-toc02 .smpi-toc-item{counter-increment:t;display:flex;gap:12px;align-items:baseline}.smpi-toc02 .smpi-toc-item:before{content:counter(t,decimal-leading-zero);color:var(--smpi-toc-accent);font-weight:700;font-size:.85rem}.smpi-toc02 .smpi-toc-link{color:var(--smpi-toc-text,#1f2937)}.smpi-toc02 .smpi-toc-link:hover{color:var(--smpi-toc-accent)}.smpi-toc03{background:#f8f9fb;border-radius:14px;padding:18px 22px}.smpi-toc03 .smpi-toc-label{font-size:.6rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#8a92a0}.smpi-toc03 .smpi-toc-list{list-style:none;counter-reset:t}.smpi-toc03 .smpi-toc-item{counter-increment:t}.smpi-toc03 .smpi-toc-link{display:flex;gap:13px;align-items:baseline;padding:9px 10px;margin:0 -10px;border-radius:9px;color:var(--smpi-toc-text,#1f2937);line-height:1.4;transition:background .12s ease,color .12s ease}.smpi-toc03 .smpi-toc-link:before{content:counter(t,decimal-leading-zero);color:var(--smpi-toc-accent);font-weight:800;font-size:.8rem;min-width:1.6em;flex:0 0 auto}.smpi-toc03 .smpi-toc-link:hover{background:#eef1f6;color:var(--smpi-toc-accent)}.smpi-toc04{background:#fafbfc;border-radius:12px;padding:14px 18px}.smpi-toc04 .smpi-toc-label{font-size:.72rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#9ca3af}.smpi-toc04 .smpi-toc-panel{display:flex;flex-wrap:wrap;align-items:center;gap:8px}.smpi-toc04 .smpi-toc-link{color:var(--smpi-toc-text,#374151);border:1px solid #e5e7eb;border-radius:999px;padding:6px 14px;background:#fff;line-height:1.3}.smpi-toc04 .smpi-toc-link:hover{border-color:var(--smpi-toc-accent);color:var(--smpi-toc-accent)}";
+        $css = ".smpi-table-of-contents,.smpi-table-of-contents.smpi-toc00,.smpi-table-of-contents.smpi-toc01,.smpi-table-of-contents.smpi-toc02,.smpi-table-of-contents.smpi-toc03,.smpi-table-of-contents.smpi-toc04{box-sizing:border-box;margin:0;max-width:none;width:100%}.smpi-table-of-contents *{box-sizing:border-box}.smpi-table-of-contents .smpi-toc-label{display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;list-style:none;user-select:none;margin:0}.smpi-table-of-contents .smpi-toc-label::-webkit-details-marker{display:none}.smpi-table-of-contents .smpi-toc-link{text-decoration:none;font-size:var(--smpi-toc-size,15px);font-style:var(--smpi-toc-fstyle,normal)}.smpi-table-of-contents .smpi-toc-list{margin:0;padding:0}.smpi-toc-caret{flex:0 0 auto;width:8px;height:8px;border-right:2px solid var(--smpi-toc-accent,#2563eb);border-bottom:2px solid var(--smpi-toc-accent,#2563eb);transform:rotate(45deg);transition:transform .2s ease;opacity:.5}.smpi-table-of-contents[open] .smpi-toc-caret{transform:rotate(-135deg)}.smpi-table-of-contents[open] .smpi-toc-list,.smpi-table-of-contents[open] .smpi-toc-panel{margin-top:14px}.smpi-toc-none{border:1px solid #ececec;border-radius:12px;padding:14px 16px}.smpi-toc-none .smpi-toc-list{padding-left:20px}.smpi-toc00{background:#fafbfc;border-radius:12px;padding:16px 18px}.smpi-toc00 .smpi-toc-label{font-size:.72rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#9ca3af}.smpi-toc00 .smpi-toc-list{list-style:none;display:grid;gap:10px}.smpi-toc00 .smpi-toc-link{color:var(--smpi-toc-text,#111827);border-bottom:1px solid transparent}.smpi-toc00 .smpi-toc-link:hover{color:var(--smpi-toc-accent,#2563eb);border-color:var(--smpi-toc-accent,#2563eb)}.smpi-toc01{background:#fafbfc;border-radius:12px;border-left:3px solid var(--smpi-toc-accent,#2563eb);padding:14px 18px}.smpi-toc01 .smpi-toc-label{font-size:.82rem;font-weight:800;color:#0a0a0a}.smpi-toc01 .smpi-toc-list{list-style:none;display:grid;gap:11px}.smpi-toc01 .smpi-toc-link{color:var(--smpi-toc-text,#52525b)}.smpi-toc01 .smpi-toc-link:hover{color:var(--smpi-toc-accent,#2563eb)}.smpi-toc02{background:#f7f8f9;border-radius:12px;padding:18px 24px}.smpi-toc02 .smpi-toc-label{font-size:.75rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#6b7280}.smpi-toc02 .smpi-toc-list{list-style:none;display:grid;gap:12px;counter-reset:t}.smpi-toc02 .smpi-toc-item{counter-increment:t;display:flex;gap:12px;align-items:baseline}.smpi-toc02 .smpi-toc-item:before{content:counter(t,decimal-leading-zero);color:var(--smpi-toc-accent,#2563eb);font-weight:700;font-size:.85rem}.smpi-toc02 .smpi-toc-link{color:var(--smpi-toc-text,#1f2937)}.smpi-toc02 .smpi-toc-link:hover{color:var(--smpi-toc-accent,#2563eb)}.smpi-toc03{background:#f8f9fb;border-radius:14px;padding:18px 22px}.smpi-toc03 .smpi-toc-label{font-size:.6rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#8a92a0}.smpi-toc03 .smpi-toc-list{list-style:none;counter-reset:t}.smpi-toc03 .smpi-toc-item{counter-increment:t}.smpi-toc03 .smpi-toc-link{display:flex;gap:13px;align-items:baseline;padding:9px 10px;margin:0 -10px;border-radius:9px;color:var(--smpi-toc-text,#1f2937);line-height:1.4;transition:background .12s ease,color .12s ease}.smpi-toc03 .smpi-toc-link:before{content:counter(t,decimal-leading-zero);color:var(--smpi-toc-accent,#2563eb);font-weight:800;font-size:.8rem;min-width:1.6em;flex:0 0 auto}.smpi-toc03 .smpi-toc-link:hover{background:#eef1f6;color:var(--smpi-toc-accent,#2563eb)}.smpi-toc04{background:#fafbfc;border-radius:12px;padding:14px 18px}.smpi-toc04 .smpi-toc-label{font-size:.72rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#9ca3af}.smpi-toc04 .smpi-toc-panel{display:flex;flex-wrap:wrap;align-items:center;gap:8px}.smpi-toc04 .smpi-toc-link{color:var(--smpi-toc-text,#374151);border:1px solid #e5e7eb;border-radius:999px;padding:6px 14px;background:#fff;line-height:1.3}.smpi-toc04 .smpi-toc-link:hover{border-color:var(--smpi-toc-accent,#2563eb);color:var(--smpi-toc-accent,#2563eb)}";
+        $css .= ".smpi-table-of-contents .smpi-toc-caret{border-color:var(--smpi-toc-accent,#9ca3af)}";
         return $respect_preservation ? self::remove_preserved_typography( $css, "table_of_contents" ) : $css;
     }
 
@@ -622,15 +547,15 @@ final class ArticleStyles {
      * ------------------------------------------------------------------- */
     public static function post_acf_css( bool $respect_preservation = true ): string {
         $css = ".smpi-post-summary{max-width:var(--content-width,720px);margin:0}.smpi-post-faqs{max-width:var(--content-width,720px);margin:2rem auto}";
-        $css .= ".smpi-sum00{background:#f5f6f7;padding:26px 32px}.smpi-sum00 .smpi-post-summary-title{margin:0;font-size:1.3rem;font-weight:800;color:var(--smpi-summary-accent,#2563eb);display:inline-block;padding-bottom:8px;border-bottom:3px solid var(--smpi-summary-accent,#2563eb)}.smpi-sum00 .smpi-post-summary-content{margin-top:18px}";
+        $css .= ".smpi-sum00{background:#f5f6f7;padding:26px 32px}.smpi-sum00 .smpi-post-summary-title{margin:0;font-size:1.3rem;font-weight:800;color:var(--smpi-summary-accent,#1f2937);display:inline-block;padding-bottom:8px;border-bottom:3px solid var(--smpi-summary-accent,#111827)}.smpi-sum00 .smpi-post-summary-content{margin-top:18px}";
         $css .= ".smpi-sum01{border:1px solid #e5e7eb;border-left:4px solid var(--smpi-summary-accent,#2563eb);border-radius:0 12px 12px 0;padding:16px 22px}.smpi-sum01 .smpi-post-summary-content{font-size:15px}.smpi-sum01 .smpi-post-summary-item{margin-bottom:9px;line-height:1.45}.smpi-sum01 .smpi-post-summary-item:last-child{margin-bottom:0}.smpi-sum01 .smpi-post-summary-title{margin:0 0 10px;font-size:.78rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--smpi-summary-accent,#2563eb)}";
-        $css .= ".smpi-sum02{padding:18px 0;border-top:2px solid var(--smpi-summary-accent,#2563eb);border-bottom:1px solid #e5e7eb}.smpi-sum02 .smpi-post-summary-title{margin:0 0 12px;font-size:.78rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--smpi-summary-accent,#2563eb)}";
-        $css .= ".smpi-sum03{border:1px solid #e5e7eb;border-radius:12px;overflow:hidden}.smpi-sum03 .smpi-post-summary-title{margin:0;background:var(--smpi-summary-accent,#2563eb);color:var(--smpi-summary-accent-ink,#fff);padding:12px 22px;font-size:.85rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase}.smpi-sum03 .smpi-post-summary-content{padding:18px 22px}";
-        $css .= ".smpi-sum04{background:var(--smpi-summary-accent-soft,rgba(37,99,235,.1));border-radius:14px;padding:24px 28px}.smpi-sum04 .smpi-post-summary-title{margin:0 0 14px;font-size:1.05rem;font-weight:800;color:var(--smpi-summary-accent,#2563eb);display:flex;align-items:center;gap:9px}.smpi-sum04 .smpi-post-summary-title:before{content:\"\";width:18px;height:18px;border-radius:5px;background:var(--smpi-summary-accent,#2563eb)}.smpi-post-summary-list{margin:0;padding-left:1.2rem}";
+        $css .= ".smpi-sum02{padding:18px 0;border-top:2px solid var(--smpi-summary-accent,#0a0a0a);border-bottom:1px solid #e5e7eb}.smpi-sum02 .smpi-post-summary-title{margin:0 0 12px;font-size:.78rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--smpi-summary-accent,#0a0a0a)}";
+        $css .= ".smpi-sum03{border:1px solid #e5e7eb;border-radius:12px;overflow:hidden}.smpi-sum03 .smpi-post-summary-title{margin:0;background:var(--smpi-summary-accent,#0a0a0a);color:var(--smpi-summary-accent-ink,#fff);padding:12px 22px;font-size:.85rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase}.smpi-sum03 .smpi-post-summary-content{padding:18px 22px}";
+        $css .= ".smpi-sum04{background:var(--smpi-summary-accent-soft,#eff4ff);border-radius:14px;padding:24px 28px}.smpi-sum04 .smpi-post-summary-title{margin:0 0 14px;font-size:1.05rem;font-weight:800;color:var(--smpi-summary-accent,#1e3a8a);display:flex;align-items:center;gap:9px}.smpi-sum04 .smpi-post-summary-title:before{content:\"\";width:18px;height:18px;border-radius:5px;background:var(--smpi-summary-accent,#2563eb)}.smpi-post-summary-list{margin:0;padding-left:1.2rem}";
         $css .= ".smpi-post-faqs-content{color:var(--smpi-faq-text,#1f2937);font-size:var(--smpi-faq-size,16px);font-style:var(--smpi-faq-fstyle,normal)}.smpi-post-faqs-title{font-size:1.05rem;font-weight:800;color:#0a0a0a;margin:0 0 10px}.smpi-post-faq-question{font-size:.95rem;font-weight:700;line-height:1.3;margin:0 0 4px;color:#0a0a0a}.smpi-post-faq-answer{font-size:.86em;line-height:1.5}.smpi-post-faq-text{margin:0 0 .5em}.smpi-post-faq-text:last-child{margin-bottom:0}.smpi-post-faq-list{list-style:none;margin:0;padding:0}";
-        $css .= ".smpi-faq00 .smpi-post-faqs-content,.smpi-faq01 .smpi-post-faqs-content{border-top:1px solid #e5e7eb}.smpi-faq00 .smpi-post-faq-item,.smpi-faq01 .smpi-post-faq-item{border-bottom:1px solid #e5e7eb;padding:16px 0;margin:0}.smpi-faq02 .smpi-post-faq-item{border:1px solid #e5e7eb;border-radius:12px;padding:18px 22px;margin:0 0 14px;box-shadow:0 1px 2px rgba(0,0,0,.04)}";
+        $css .= ".smpi-faq00 .smpi-post-faqs-content,.smpi-faq01 .smpi-post-faqs-content{border-top:1px solid var(--smpi-faq-accent,#e5e7eb)}.smpi-faq00 .smpi-post-faq-item,.smpi-faq01 .smpi-post-faq-item{border-bottom:1px solid var(--smpi-faq-accent,#e5e7eb);padding:16px 0;margin:0}.smpi-faq02 .smpi-post-faq-item{border:1px solid var(--smpi-faq-accent,#e5e7eb);border-radius:12px;padding:18px 22px;margin:0 0 14px;box-shadow:0 1px 2px rgba(0,0,0,.04)}";
         $css .= ".smpi-faq03 .smpi-post-faqs-content{counter-reset:f}.smpi-faq03 .smpi-post-faq-item{counter-increment:f;position:relative;padding:12px 0 12px 58px;border-bottom:1px solid #e5e7eb}.smpi-faq03 .smpi-post-faq-item:before{content:counter(f,decimal-leading-zero);position:absolute;left:0;top:7px;font-size:2rem;font-weight:800;line-height:1;color:var(--smpi-faq-accent-soft,rgba(37,99,235,.22))}.smpi-faq03 .smpi-post-faq-item:after{content:none}";
-        $css .= ".smpi-faq04 .smpi-post-faq-item{background:#f8fafc;border:1px solid #eef2f7;border-radius:12px;margin-bottom:10px;padding:16px 20px}";
+        $css .= ".smpi-faq04 .smpi-post-faq-item{background:var(--smpi-faq-accent-tint,#f8fafc);border:1px solid var(--smpi-faq-accent-soft,#eef2f7);border-radius:12px;margin-bottom:10px;padding:16px 20px}";
         if ( ! $respect_preservation ) {
             return $css;
         }
@@ -673,11 +598,11 @@ final class ArticleStyles {
             case "h2-underline":
                 return $heading . "{position:relative;padding-bottom:12px}" . $after . "{content:\"\";position:absolute;left:0;bottom:0;width:52px;height:3px;border-radius:2px;background:var(--smpi-heading-accent,#d63428)}";
             case "h2-topline":
-                return $heading . "{border-top:1px solid var(--smpi-heading-line,#e5e7eb);padding-top:18px}";
+                return $heading . "{border-top:1px solid var(--smpi-heading-accent,#e5e7eb);padding-top:18px}";
             case "h2-dot":
                 return $heading . "{display:flex;align-items:center;gap:14px}" . $before . "{content:\"\";width:10px;height:10px;border-radius:50%;background:var(--smpi-heading-accent,#d63428);flex:0 0 auto}";
             case "h2-trailingrule":
-                return $heading . "{display:flex;align-items:center;gap:20px;white-space:nowrap}" . $after . "{content:\"\";flex:1;height:1px;background:var(--smpi-heading-line,#e5e7eb)}";
+                return $heading . "{display:flex;align-items:center;gap:20px;white-space:nowrap}" . $after . "{content:\"\";flex:1;height:1px;background:var(--smpi-heading-accent,#e5e7eb)}";
             case "h2-serif":
                 $typography = [];
                 if ( empty( $preserve["font_family"] ) ) {
@@ -710,7 +635,7 @@ final class ArticleStyles {
     }
 
     private static function typography_preservation_settings( string $prefix ): array {
-        return TypographyPreservation::values( Settings::all(), $prefix, Settings::typography_preservation_defaults( $prefix ) );
+        return TemplateTypography::preservation_values( Settings::all(), $prefix, Settings::typography_preservation_defaults( $prefix ) );
     }
 
     private static function typography_preserves( string $prefix, string $property ): bool {
@@ -726,10 +651,12 @@ final class ArticleStyles {
         return self::article_heading_rules( $style, $scope, $scope . " .smpi-article-heading--h2", $scope . " .smpi-article-heading--h3", self::typography_preservation_settings( "article_heading" ) );
     }
 
-    public static function article_drop_cap_rules( string $style, string $paragraph, array $preserve = [] ): string {
+    public static function article_drop_cap_rules( string $style, string $paragraph, array $preserve = [], string $typography_mode = "", string $font_selection = "" ): string {
         $style = self::normalize_article_drop_cap_style( $style );
         $letter = $paragraph . "::first-letter";
         $script_font = self::article_drop_cap_script_font_for_style( $style );
+        $typography_mode = TemplateTypography::normalize_mode( "" !== $typography_mode ? $typography_mode : Settings::typography_mode( "article_drop_cap" ) );
+        $use_template_script_font = [] !== $script_font && self::article_drop_cap_uses_template_script_font( $style, $typography_mode, $preserve, $font_selection );
         $base_declarations = [
             "box-sizing:border-box",
             "float:left",
@@ -739,7 +666,7 @@ final class ArticleStyles {
             "letter-spacing:0",
         ];
         if ( empty( $preserve["font_family"] ) ) {
-            $base_declarations[] = [] !== $script_font
+            $base_declarations[] = $use_template_script_font
                 ? "font-family:\"" . $script_font["family"] . "\",\"Snell Roundhand\",\"Apple Chancery\",\"Segoe Script\",\"Brush Script MT\",cursive"
                 : "font-family:var(--smpi-dropcap-font,Arial,Helvetica,sans-serif)";
         }
@@ -747,7 +674,7 @@ final class ArticleStyles {
             $base_declarations[] = "font-size:var(--smpi-dropcap-size,96px)";
         }
         if ( empty( $preserve["font_weight"] ) ) {
-            $base_declarations[] = [] !== $script_font
+            $base_declarations[] = $use_template_script_font
                 ? "font-weight:" . $script_font["default_weight"]
                 : "font-weight:var(--smpi-dropcap-weight,900)";
         }
@@ -786,7 +713,7 @@ final class ArticleStyles {
         }
         $scope = "body.single-post";
         $style = self::normalize_article_drop_cap_style( (string) Settings::get( "article_drop_cap_style", "dropcap-classic" ) );
-        return self::article_drop_cap_rules( $style, $scope . " .smpi-article-lead", self::typography_preservation_settings( "article_drop_cap" ) );
+        return self::article_drop_cap_rules( $style, $scope . " .smpi-article-lead", self::typography_preservation_settings( "article_drop_cap" ), Settings::typography_mode( "article_drop_cap" ) );
     }
 
     /* ---------------------------------------------------------------------
@@ -808,9 +735,9 @@ final class ArticleStyles {
             return "%FIG%{margin:2.5rem auto;border-radius:6px;overflow:hidden}%IMG%{width:100%;display:block;margin:0}%CAP%{margin:0;background:#fafafa;border-top:3px solid var(--smpi-photo-accent,#d63428);padding:16px 20px;font-family:Georgia,serif;font-style:var(--smpi-photo-cap-fstyle,italic);font-size:var(--smpi-photo-cap-size,13px);color:var(--smpi-photo-cap-color,#272727)}";
         }
         if ( "fig4" === $style ) {
-            return "%FIG%{margin:2.5rem auto;position:relative;border-radius:16px;overflow:hidden}%IMG%{width:100%;display:block}%CAP%{position:absolute;left:0;right:0;bottom:0;padding:54px 22px 18px;color:var(--smpi-photo-cap-color-overlay,#fff);font-family:Georgia,serif;font-style:var(--smpi-photo-cap-fstyle,italic);font-size:var(--smpi-photo-cap-size,17px);background:linear-gradient(to top,rgba(10,10,12,.85),rgba(10,10,12,0))}";
+            return "%FIG%{margin:2.5rem auto;position:relative;border-radius:16px;overflow:hidden}%IMG%{width:100%;display:block}%CAP%{position:absolute;left:0;right:0;bottom:0;padding:54px 22px 18px;color:var(--smpi-photo-cap-color,#fff);font-family:Georgia,serif;font-style:var(--smpi-photo-cap-fstyle,italic);font-size:var(--smpi-photo-cap-size,17px);background:linear-gradient(to top,var(--smpi-photo-overlay,rgba(10,10,12,.85)),var(--smpi-photo-overlay-clear,rgba(10,10,12,0)))}";
         }
-        return "%FIG%{margin:2.5rem auto;border:1px solid #e9e9e9;border-radius:18px;padding:14px;background:#fff;box-shadow:0 20px 44px -30px rgba(15,15,15,.4)}%IMG%{width:100%;display:block;border-radius:10px}%CAP%{display:block;padding:16px 6px 4px;font-family:Georgia,serif;font-style:var(--smpi-photo-cap-fstyle,italic);font-size:var(--smpi-photo-cap-size,16.5px);color:var(--smpi-photo-cap-color,#272727)}";
+        return "%FIG%{margin:2.5rem auto;border:1px solid var(--smpi-photo-accent,#e9e9e9);border-radius:18px;padding:14px;background:#fff;box-shadow:0 20px 44px -30px rgba(15,15,15,.4)}%IMG%{width:100%;display:block;border-radius:10px}%CAP%{display:block;padding:16px 6px 4px;font-family:Georgia,serif;font-style:var(--smpi-photo-cap-fstyle,italic);font-size:var(--smpi-photo-cap-size,16.5px);color:var(--smpi-photo-cap-color,#272727)}";
     }
 
     public static function inline_photo_css( string $style ): string {
@@ -844,9 +771,9 @@ final class ArticleStyles {
             return "%HOST%{display:block;margin:2.5rem auto;border-radius:6px;overflow:hidden}%IMG%{width:100%;display:block;margin:0}%CAP%{display:block;margin:0;background:#fafafa;border-top:3px solid var(--smpi-fi-accent,#d63428);padding:16px 20px;font-family:Georgia,serif;font-style:var(--smpi-fi-cap-fstyle,italic);font-size:var(--smpi-fi-cap-size,13px);color:var(--smpi-fi-cap-color,#272727);line-height:1.45}";
         }
         if ( "fig4" === $style ) {
-            return "%HOST%{display:block;margin:2.5rem auto;position:relative;border-radius:16px;overflow:hidden}%IMG%{width:100%;display:block}%CAP%{display:block;position:absolute;left:0;right:0;bottom:0;padding:54px 22px 18px;color:var(--smpi-fi-cap-color-overlay,#fff);font-family:Georgia,serif;font-style:var(--smpi-fi-cap-fstyle,italic);font-size:var(--smpi-fi-cap-size,17px);line-height:1.45;background:linear-gradient(to top,rgba(10,10,12,.85),rgba(10,10,12,0))}";
+            return "%HOST%{display:block;margin:2.5rem auto;position:relative;border-radius:16px;overflow:hidden}%IMG%{width:100%;display:block}%CAP%{display:block;position:absolute;left:0;right:0;bottom:0;padding:54px 22px 18px;color:var(--smpi-fi-cap-color,#fff);font-family:Georgia,serif;font-style:var(--smpi-fi-cap-fstyle,italic);font-size:var(--smpi-fi-cap-size,17px);line-height:1.45;background:linear-gradient(to top,var(--smpi-fi-overlay,rgba(10,10,12,.85)),var(--smpi-fi-overlay-clear,rgba(10,10,12,0)))}";
         }
-        return "%HOST%{display:block;margin:2.5rem auto;border:1px solid #e9e9e9;border-radius:18px;padding:14px;background:#fff;box-shadow:0 20px 44px -30px rgba(15,15,15,.4)}%IMG%{width:100%;display:block;border-radius:10px}%CAP%{display:block;padding:16px 6px 4px;font-family:Georgia,serif;font-style:var(--smpi-fi-cap-fstyle,italic);font-size:var(--smpi-fi-cap-size,16.5px);color:var(--smpi-fi-cap-color,#272727);line-height:1.45}";
+        return "%HOST%{display:block;margin:2.5rem auto;border:1px solid var(--smpi-fi-accent,#e9e9e9);border-radius:18px;padding:14px;background:#fff;box-shadow:0 20px 44px -30px rgba(15,15,15,.4)}%IMG%{width:100%;display:block;border-radius:10px}%CAP%{display:block;padding:16px 6px 4px;font-family:Georgia,serif;font-style:var(--smpi-fi-cap-fstyle,italic);font-size:var(--smpi-fi-cap-size,16.5px);color:var(--smpi-fi-cap-color,#272727);line-height:1.45}";
     }
 
     public static function featured_image_caption_css( string $style ): string {
@@ -884,15 +811,6 @@ final class ArticleStyles {
             $sel = ".smpi-fi-preview.smpi-fi-preview-" . $style;
             $css .= self::featured_image_caption_rules( $style, $sel, $sel . " .smpi-featured-image-caption-image", $sel . " .smpi-featured-image-caption-text", false );
         }
-        $b = self::breadcrumb_var_values();
-        $t = self::toc_var_values();
-        $h = self::article_heading_var_values();
-        $d = self::article_drop_cap_var_values();
-        $s = self::summary_var_values();
-        $f = self::faq_var_values();
-        $p = self::photo_var_values();
-        $fp = self::featured_image_var_values();
-        $css .= ".smpi-design-host{--smpi-bc-accent:" . $b["accent"] . ";--smpi-bc-tint:" . $b["tint"] . ";--smpi-bc-background:" . $b["background"] . ";--smpi-bc-text:" . $b["text"] . ";--smpi-bc-font-size:" . $b["size"] . ";--smpi-toc-accent:" . $t["accent"] . ";--smpi-toc-text:" . $t["text"] . ";--smpi-toc-size:" . $t["size"] . ";--smpi-toc-fstyle:" . $t["fstyle"] . ";--smpi-heading-accent:" . $h["accent"] . ";--smpi-heading-accent-fade:" . $h["accent_fade"] . ";--smpi-heading-highlight:" . $h["highlight"] . ";--smpi-heading-line:" . $h["line"] . ";--smpi-heading-ink:" . $h["ink"] . ";--smpi-heading-h2-size:" . $h["h2_size"] . ";--smpi-heading-h3-size:" . $h["h3_size"] . ";--smpi-dropcap-color:" . $d["color"] . ";--smpi-dropcap-soft:" . $d["soft"] . ";--smpi-dropcap-ink:" . $d["ink"] . ";--smpi-dropcap-size:" . $d["size"] . ";--smpi-summary-accent:" . $s["accent"] . ";--smpi-summary-accent-soft:" . $s["accent_soft"] . ";--smpi-summary-accent-ink:" . $s["accent_ink"] . ";--smpi-summary-size:" . $s["size"] . ";--smpi-faq-accent:" . $f["accent"] . ";--smpi-faq-accent-soft:" . $f["accent_soft"] . ";--smpi-faq-text:" . $f["text"] . ";--smpi-faq-size:" . $f["size"] . ";--smpi-faq-fstyle:" . $f["fstyle"] . ";--smpi-photo-accent:" . $p["accent"] . ";--smpi-photo-cap-color:" . $p["color"] . ";--smpi-photo-cap-size:" . $p["size"] . ";--smpi-photo-cap-fstyle:" . $p["fstyle"] . ";--smpi-fi-accent:" . $fp["accent"] . ";--smpi-fi-cap-color:" . $fp["color"] . ";--smpi-fi-cap-size:" . $fp["size"] . ";--smpi-fi-cap-fstyle:" . $fp["fstyle"] . "}";
         $css .= ".smpi-choice-preview .smpi-breadcrumbs,.smpi-choice-preview .smpi-table-of-contents,.smpi-choice-preview .smpi-post-summary,.smpi-choice-preview .smpi-post-faqs,.smpi-choice-preview .smpi-pp,.smpi-choice-preview .smpi-fi-preview{max-width:100%!important;margin:0!important}.smpi-choice-preview .smpi-pp,.smpi-choice-preview .smpi-fi-preview{display:block}.smpi-choice-preview .smpi-inline-photo-image,.smpi-choice-preview .smpi-featured-image-caption-image{height:120px;width:100%;object-fit:cover}.smpi-choice-preview .smpi-toc-link,.smpi-choice-preview .smpi-post-faq-item{font-size:13px}.smpi-choice-preview .smpi-faq03>.smpi-post-faqs-content:before{content:none!important}";
         return $css;
     }

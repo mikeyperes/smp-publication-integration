@@ -22,23 +22,26 @@ $placement = (string) file_get_contents( $root . "/src/Content/PostContentBlockP
 $summary_placement = (string) file_get_contents( $root . "/src/Content/PostSummaryPlacement.php" );
 $faq_placement = (string) file_get_contents( $root . "/src/Content/PostFaqPlacement.php" );
 $shortcodes = (string) file_get_contents( $root . "/src/Content/Shortcodes.php" );
+$registry = (string) file_get_contents( $root . "/src/Design/TemplateDesignRegistry.php" );
 
 $checks = [
-    "Summary uses a dedicated brand-derived design color." => str_contains( $settings, '"post_summary_accent_color" => $brand' )
-        && str_contains( $settings, '"post_summary_accent_color" => $colors["post_summary_accent_color"]' )
-        && str_contains( $dashboard, 'color_setting_html( "post_summary_accent_color", "Summary design color"' )
-        && str_contains( $ajax, "'post_summary_accent_color'" ),
-    "Legacy Summary text color is retained but no longer rendered or applied." => str_contains( $settings, '"post_summary_text_color"' )
-        && ! str_contains( $dashboard, '"font_color" => [ "key" => "post_summary_text_color"' )
-        && ! str_contains( $article, "--smpi-summary-text" ),
-    "Every Summary template consumes the shared design color variables." => str_contains( $article, ".smpi-sum00" )
-        && str_contains( $article, ".smpi-sum01" )
-        && str_contains( $article, ".smpi-sum02" )
-        && str_contains( $article, ".smpi-sum03" )
-        && str_contains( $article, ".smpi-sum04" )
-        && substr_count( $article, "--smpi-summary-accent" ) >= 12
-        && str_contains( $article, "--smpi-summary-accent-soft" )
-        && str_contains( $article, "--smpi-summary-accent-ink" ),
+    "Summary design color uses the shared template color source contract." => str_contains( $registry, '"source_key" => "post_summary_color_source"' )
+        && str_contains( $registry, '"custom_key" => "post_summary_accent_color"' )
+        && str_contains( $dashboard, 'template_color_setting_html( "post_summary", "Summary design color"' )
+        && str_contains( $ajax, 'TemplateDesignRegistry::source_setting_keys()' ),
+    "Summary text color remains an independent shared typography control." => str_contains( $registry, '"font_color" => [ "key" => "post_summary_text_color"' )
+        && str_contains( $registry, '"--smpi-summary-text"' )
+        && str_contains( $article, "--smpi-summary-text" ),
+    "Summary sum00 maps its title and underline colors." => str_contains( $article, ".smpi-sum00 .smpi-post-summary-title{margin:0;font-size:1.3rem;font-weight:800;color:var(--smpi-summary-accent,#1f2937)" )
+        && str_contains( $article, "border-bottom:3px solid var(--smpi-summary-accent,#111827)" ),
+    "Summary sum01 maps its original blue rule and title." => str_contains( $article, ".smpi-sum01{border:1px solid #e5e7eb;border-left:4px solid var(--smpi-summary-accent,#2563eb)" )
+        && str_contains( $article, ".smpi-sum01 .smpi-post-summary-title{margin:0 0 10px;font-size:.78rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--smpi-summary-accent,#2563eb)" ),
+    "Summary sum02 maps its original top rule and title." => str_contains( $article, ".smpi-sum02{padding:18px 0;border-top:2px solid var(--smpi-summary-accent,#0a0a0a);border-bottom:1px solid #e5e7eb" )
+        && str_contains( $article, ".smpi-sum02 .smpi-post-summary-title{margin:0 0 12px;font-size:.78rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--smpi-summary-accent,#0a0a0a)" ),
+    "Summary sum03 maps its header and contrast text." => str_contains( $article, ".smpi-sum03 .smpi-post-summary-title{margin:0;background:var(--smpi-summary-accent,#0a0a0a);color:var(--smpi-summary-accent-ink,#fff)" ),
+    "Summary sum04 maps its panel tint, title, and icon." => str_contains( $article, ".smpi-sum04{background:var(--smpi-summary-accent-soft,#eff4ff)" )
+        && str_contains( $article, ".smpi-sum04 .smpi-post-summary-title{margin:0 0 14px;font-size:1.05rem;font-weight:800;color:var(--smpi-summary-accent,#1e3a8a)" )
+        && str_contains( $article, '.smpi-sum04 .smpi-post-summary-title:before{content:\"\";width:18px;height:18px;border-radius:5px;background:var(--smpi-summary-accent,#2563eb)' ),
     "Summary and FAQ are independent feature cards." => str_contains( $dashboard, '"Article Summary",' )
         && str_contains( $dashboard, '"post_summary_acf_enabled",' )
         && str_contains( $dashboard, '"Article FAQs",' )
