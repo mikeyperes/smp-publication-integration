@@ -33,6 +33,7 @@ $checks = [
         && str_contains( $registry, '"--smpi-summary-text"' )
         && str_contains( $article, "--smpi-summary-text" ),
     "Original Summary templates own canonical body typography on every surface." => str_contains( $article, '.smpi-post-summary{max-width:var(--content-width,720px);margin:0;color:var(--smpi-summary-text,#1f2937);font-family:var(--smpi-summary-font,Arial,Helvetica,sans-serif);font-size:var(--smpi-summary-size,16px);font-weight:var(--smpi-summary-weight,400);line-height:1.55}' )
+        && str_contains( $article, '.smpi-post-summary .smpi-post-summary-title{font-family:inherit;line-height:inherit}' )
         && str_contains( $article, '.smpi-post-summary .smpi-post-summary-content,.smpi-post-summary .smpi-post-summary-content *{color:inherit;font-family:inherit;font-size:inherit;font-weight:inherit}' ),
     "Site text color inheritance excludes Summary title accents." => str_contains( $article, 'false !== strpos( $selector, "smpi-post-summary-content" )' )
         && str_contains( $dashboard, "Only mapped accents and tints change; typography stays unchanged." )
