@@ -111,7 +111,8 @@ typography_control_assert( preg_match( '/data-hpc-color-control.*data-hpc-typogr
 typography_control_assert( preg_match( '/hpc-color-head.*hpc-color-head-action.*data-hpc-typography-property="font_color"/s', $markup ) === 1, "The color preservation toggle must remain attached to the color heading at narrow widths." );
 typography_control_assert( str_contains( $markup, 'data-hpc-typography-targets=""' ), "Decorative accent controls may stay active while text color is preserved." );
 typography_control_assert( str_contains( $markup, 'data-hpc-typography-targets="article_heading_h2_size,article_heading_h3_size"' ), "One size toggle must own every configured size field." );
-typography_control_assert( str_contains( $markup, 'data-hpc-typography-targets="article_heading_font_family,article_heading_font_style"' ), "Leaving the font as is must also disable every font-style field governed by that setting." );
+typography_control_assert( str_contains( $markup, 'data-hpc-typography-targets="article_heading_font_family,article_heading_font_style"' ), "Using the site font must also disable every font-style field governed by that setting." );
+typography_control_assert( str_contains( $markup, '.hpc-typography-control-action{align-items:center;display:flex;grid-row:1;justify-content:flex-start' ) && str_contains( $markup, '.hpc-font-family-field-action{grid-row:1;justify-content:flex-start' ), "Every inheritance toggle must align at the left before its value editor." );
 typography_control_assert( 2 === substr_count( $markup, 'class="hpc-typography-number-input host-save-setting"' ), "Core must render both host-saveable size fields." );
 typography_control_assert( ! str_contains( (string) file_get_contents( $root . "/src/WpAdminComponents/TypographyControl.php" ), "smpi-" ), "The combined typography component must remain host-neutral." );
 

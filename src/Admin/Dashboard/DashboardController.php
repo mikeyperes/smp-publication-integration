@@ -2017,7 +2017,7 @@ CSS;
             "variables" => $definition["variables"],
             "fallback" => $definition["fallback"],
             "title" => $label,
-            "description" => "Template Default keeps the original palette. Site and Custom modes replace only mapped design accents.",
+            "description" => "Choose the original template color, a site color, or a custom design color. Only mapped accents and tints change; typography stays unchanged.",
             "input_class" => "smpi-setting",
             "control_class" => "smpi-template-color-core-control",
             "preview_scope" => ".smpi-design-host",
@@ -2053,7 +2053,7 @@ CSS;
             return "";
         }
 
-        $args["description"] = "Use the template typography, inherit the site typography, or configure custom values.";
+        $args["description"] = "Original Template matches the preview. Use Site Typography inherits every site value. Custom Typography changes only the values you select.";
         $args["mode_control"] = true;
         foreach ( [ "font_family", "font_weight", "font_color" ] as $property ) {
             if ( empty( $args[ $property ]["key"] ) ) {

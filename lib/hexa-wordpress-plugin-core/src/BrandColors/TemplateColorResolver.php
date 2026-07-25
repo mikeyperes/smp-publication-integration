@@ -11,20 +11,20 @@ final class TemplateColorResolver {
     public static function source_options(): array {
         return [
             self::TEMPLATE_DEFAULT => [
-                "label" => "Template Default",
-                "description" => "Use the selected template's complete original palette.",
+                "label" => "Original Template Color",
+                "description" => "Keep the selected design's original mapped color.",
             ],
             self::SITE_PRIMARY => [
-                "label" => "Site Primary",
+                "label" => "Site Primary Color",
                 "description" => "Use the primary color from HWS Brand Assets.",
             ],
             self::SITE_SECONDARY => [
-                "label" => "Site Secondary",
+                "label" => "Site Secondary Color",
                 "description" => "Use the secondary color from HWS Brand Assets.",
             ],
             self::CUSTOM => [
-                "label" => "Custom",
-                "description" => "Use a custom hex color for mapped template accents.",
+                "label" => "Custom Design Color",
+                "description" => "Use a custom hex color for the design's mapped accents.",
             ],
         ];
     }

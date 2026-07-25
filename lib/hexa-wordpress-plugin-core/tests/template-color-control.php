@@ -57,7 +57,7 @@ $markup = TemplateColorControl::render(
 
 preg_match_all( '/<input[^>]+data-hpc-template-color-source-input/s', $markup, $source_inputs );
 template_color_control_assert( 4 === count( $source_inputs[0] ), "The control must render all four source modes." );
-template_color_control_assert( str_contains( $markup, '>Template Default</strong>' ) && str_contains( $markup, '>Site Primary</strong>' ) && str_contains( $markup, '>Site Secondary</strong>' ) && str_contains( $markup, '>Custom</strong>' ), "The source labels must remain explicit." );
+template_color_control_assert( str_contains( $markup, '>Original Template Color</strong>' ) && str_contains( $markup, '>Site Primary Color</strong>' ) && str_contains( $markup, '>Site Secondary Color</strong>' ) && str_contains( $markup, '>Custom Design Color</strong>' ), "The source labels must clearly distinguish template, site, and custom design colors." );
 template_color_control_assert( preg_match( '/data-hpc-template-color-option-swatch="template_default" style="background:#2563eb"/', $markup ) === 1, "The native swatch must prefer the explicit accent role." );
 template_color_control_assert( str_contains( $markup, 'data-hpc-inherited-value="#2563eb"' ) && str_contains( $markup, 'data-hpc-color-inherited="true"' ), "Blank Custom must display the template accent without persisting it." );
 template_color_control_assert( str_contains( $markup, 'class="hpc-color-value-input hpc-template-color-custom-value host-setting"' ), "The nested picker must use the host save hook." );

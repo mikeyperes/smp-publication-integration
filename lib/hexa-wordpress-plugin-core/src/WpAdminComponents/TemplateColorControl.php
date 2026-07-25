@@ -30,7 +30,7 @@ final class TemplateColorControl {
         $custom_display = "" !== $custom ? $custom : $native;
         $input_class = trim( (string) ( $args["input_class"] ?? "" ) );
         $title = (string) ( $args["title"] ?? "Template color" );
-        $description = (string) ( $args["description"] ?? "Choose which source supplies the selected template's mapped accent surfaces." );
+        $description = (string) ( $args["description"] ?? "Change only the selected design's mapped colors. Layout and typography stay unchanged." );
         $control_class = trim( "hpc-template-color-control " . (string) ( $args["control_class"] ?? "" ) );
         $preview_scope = trim( (string) ( $args["preview_scope"] ?? "" ) );
         $status_html = (string) ( $args["status_html"] ?? "" );
@@ -97,7 +97,7 @@ final class TemplateColorControl {
                 echo ColorControl::render( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
                     [
                         "key" => $custom_key,
-                        "label" => "Custom accent",
+                        "label" => "Custom design color",
                         "value" => $custom,
                         "default" => $native,
                         "allow_inherit" => true,

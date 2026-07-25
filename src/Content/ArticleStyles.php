@@ -498,7 +498,8 @@ final class ArticleStyles {
         }
         if ( "post_summary" === $prefix ) {
             if ( "font_color" === $property ) {
-                return false;
+                return 1 === preg_match( "/(?:^|,)\\s*\\.smpi-post-summary\\s*(?:,|$)/", $selector )
+                    || false !== strpos( $selector, "smpi-post-summary-content" );
             }
             return false !== strpos( $selector, "smpi-post-summary" ) || false !== strpos( $selector, "smpi-sum" );
         }
@@ -546,7 +547,7 @@ final class ArticleStyles {
      * Post summary + FAQ
      * ------------------------------------------------------------------- */
     public static function post_acf_css( bool $respect_preservation = true ): string {
-        $css = ".smpi-post-summary{max-width:var(--content-width,720px);margin:0}.smpi-post-faqs{max-width:var(--content-width,720px);margin:2rem auto}";
+        $css = ".smpi-post-summary{max-width:var(--content-width,720px);margin:0;color:var(--smpi-summary-text,#1f2937);font-family:var(--smpi-summary-font,Arial,Helvetica,sans-serif);font-size:var(--smpi-summary-size,16px);font-weight:var(--smpi-summary-weight,400);line-height:1.55}.smpi-post-summary .smpi-post-summary-title{font-family:inherit}.smpi-post-summary .smpi-post-summary-content,.smpi-post-summary .smpi-post-summary-content *{color:inherit;font-family:inherit;font-size:inherit;font-weight:inherit}.smpi-post-summary .smpi-post-summary-content strong,.smpi-post-summary .smpi-post-summary-content b{font-weight:700}.smpi-post-faqs{max-width:var(--content-width,720px);margin:2rem auto}";
         $css .= ".smpi-sum00{background:#f5f6f7;padding:26px 32px}.smpi-sum00 .smpi-post-summary-title{margin:0;font-size:1.3rem;font-weight:800;color:var(--smpi-summary-accent,#1f2937);display:inline-block;padding-bottom:8px;border-bottom:3px solid var(--smpi-summary-accent,#111827)}.smpi-sum00 .smpi-post-summary-content{margin-top:18px}";
         $css .= ".smpi-sum01{border:1px solid #e5e7eb;border-left:4px solid var(--smpi-summary-accent,#2563eb);border-radius:0 12px 12px 0;padding:16px 22px}.smpi-sum01 .smpi-post-summary-content{font-size:15px}.smpi-sum01 .smpi-post-summary-item{margin-bottom:9px;line-height:1.45}.smpi-sum01 .smpi-post-summary-item:last-child{margin-bottom:0}.smpi-sum01 .smpi-post-summary-title{margin:0 0 10px;font-size:.78rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--smpi-summary-accent,#2563eb)}";
         $css .= ".smpi-sum02{padding:18px 0;border-top:2px solid var(--smpi-summary-accent,#0a0a0a);border-bottom:1px solid #e5e7eb}.smpi-sum02 .smpi-post-summary-title{margin:0 0 12px;font-size:.78rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--smpi-summary-accent,#0a0a0a)}";

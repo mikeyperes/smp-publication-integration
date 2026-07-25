@@ -10,16 +10,16 @@ final class TemplateTypography {
     public static function options(): array {
         return [
             self::TEMPLATE_DEFAULT => [
-                "label" => "Template Default",
-                "description" => "Use the selected template's complete original typography.",
+                "label" => "Original Template",
+                "description" => "Match the selected template preview, including its font, size, color, and weight.",
             ],
             self::SITE_INHERIT => [
-                "label" => "Site Typography",
-                "description" => "Leave font, size, color, and weight to the current site design.",
+                "label" => "Use Site Typography",
+                "description" => "Use the current site's font, size, text color, and weight.",
             ],
             self::CUSTOM => [
                 "label" => "Custom Typography",
-                "description" => "Choose individual typography values below.",
+                "description" => "Change selected values below. Inherited values continue using the site.",
             ],
         ];
     }

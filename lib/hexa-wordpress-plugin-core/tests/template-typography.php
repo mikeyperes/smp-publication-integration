@@ -18,7 +18,13 @@ function template_typography_assert( bool $condition, string $message ): void {
 $options = TemplateTypography::options();
 template_typography_assert(
     [ TemplateTypography::TEMPLATE_DEFAULT, TemplateTypography::SITE_INHERIT, TemplateTypography::CUSTOM ] === array_keys( $options ),
-    "Core must expose exactly Template Default, Site Typography, and Custom Typography."
+    "Core must expose exactly Original Template, Use Site Typography, and Custom Typography."
+);
+template_typography_assert(
+    "Original Template" === $options[ TemplateTypography::TEMPLATE_DEFAULT ]["label"]
+        && "Use Site Typography" === $options[ TemplateTypography::SITE_INHERIT ]["label"]
+        && "Custom Typography" === $options[ TemplateTypography::CUSTOM ]["label"],
+    "Typography choices must use the shared plain-language labels."
 );
 template_typography_assert(
     TemplateTypography::TEMPLATE_DEFAULT === TemplateTypography::normalize_mode( "unknown" ),

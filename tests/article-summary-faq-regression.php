@@ -32,6 +32,11 @@ $checks = [
     "Summary text color remains an independent shared typography control." => str_contains( $registry, '"font_color" => [ "key" => "post_summary_text_color"' )
         && str_contains( $registry, '"--smpi-summary-text"' )
         && str_contains( $article, "--smpi-summary-text" ),
+    "Original Summary templates own canonical body typography on every surface." => str_contains( $article, '.smpi-post-summary{max-width:var(--content-width,720px);margin:0;color:var(--smpi-summary-text,#1f2937);font-family:var(--smpi-summary-font,Arial,Helvetica,sans-serif);font-size:var(--smpi-summary-size,16px);font-weight:var(--smpi-summary-weight,400);line-height:1.55}' )
+        && str_contains( $article, '.smpi-post-summary .smpi-post-summary-content,.smpi-post-summary .smpi-post-summary-content *{color:inherit;font-family:inherit;font-size:inherit;font-weight:inherit}' ),
+    "Site text color inheritance excludes Summary title accents." => str_contains( $article, 'false !== strpos( $selector, "smpi-post-summary-content" )' )
+        && str_contains( $dashboard, "Only mapped accents and tints change; typography stays unchanged." )
+        && str_contains( $dashboard, "Original Template matches the preview." ),
     "Summary sum00 maps its title and underline colors." => str_contains( $article, ".smpi-sum00 .smpi-post-summary-title{margin:0;font-size:1.3rem;font-weight:800;color:var(--smpi-summary-accent,#1f2937)" )
         && str_contains( $article, "border-bottom:3px solid var(--smpi-summary-accent,#111827)" ),
     "Summary sum01 maps its original blue rule and title." => str_contains( $article, ".smpi-sum01{border:1px solid #e5e7eb;border-left:4px solid var(--smpi-summary-accent,#2563eb)" )
