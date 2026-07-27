@@ -8,7 +8,7 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `0.6.253`
+- Version: `1.0.0`
 
 ## Ownership
 
@@ -65,7 +65,7 @@ Quick Start contains only the reusable checklist workflow and is the second tab.
 
 `smp-publication-integration.php` is the canonical plugin entry. `initialization.php` is a compatibility loader for older active-plugin records.
 
-Namespaced domain code lives under `src/`. Reusable UI, AJAX, updater, CPT, ACF, entity, FAQ, schema, taxonomy, activity-log, color, typography, and template infrastructure comes from Hexa WordPress Plugin Core 0.19.78.
+Namespaced domain code lives under `src/`. Reusable UI, AJAX, updater, CPT, ACF, entity, FAQ, schema, taxonomy, activity-log, color, typography, and template infrastructure comes from Hexa WordPress Plugin Core 1.0.0.
 
 The plugin updater targets the repository's canonical `main` branch and registers `Hexa\PluginCore\PluginUpdates\GitHubPluginUpdater` directly.
 
@@ -75,7 +75,7 @@ The plugin updater targets the repository's canonical `main` branch and register
 | --- | --- |
 | WordPress | 5.0 |
 | PHP | 8.0 |
-| Hexa WP Core bundle | 0.19.78 |
+| Hexa WP Core bundle | 1.0.0 |
 
 ACF Pro is required for publication option and content field groups. Feature-specific integrations require their corresponding plugins.
 
@@ -94,6 +94,12 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 1.0.0
+
+- Established the stable publication integration baseline for article types, authorship, editorial features, templates, CPTs, FAQs, and schema.
+- Updated all reusable registration, rendering, injection, updater, AJAX, and admin UI infrastructure to Hexa WP Core 1.0.0.
+- Preserved existing publication settings, author relationships, article output, schema graph IDs, and optional HWS canonical-entity fallback behavior.
 
 ### 0.6.253
 
