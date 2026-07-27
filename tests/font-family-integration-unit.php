@@ -79,21 +79,21 @@ use smp_publication_integration\Content\MuckRackVerification;
 use smp_publication_integration\Support\Settings;
 
 $font_keys = Settings::font_family_setting_keys();
-if ( 10 !== count( $font_keys ) ) {
-    fwrite( STDERR, "FAIL: SMP must expose exactly ten shared font-family settings.\n" );
+if ( 11 !== count( $font_keys ) ) {
+    fwrite( STDERR, "FAIL: SMP must expose exactly eleven shared font-family settings.\n" );
     exit( 1 );
 }
 
 $weight_keys = Settings::font_weight_setting_keys();
-if ( 10 !== count( $weight_keys ) ) {
-    fwrite( STDERR, "FAIL: SMP must expose exactly ten shared font-weight settings.\n" );
+if ( 11 !== count( $weight_keys ) ) {
+    fwrite( STDERR, "FAIL: SMP must expose exactly eleven shared font-weight settings.\n" );
     exit( 1 );
 }
 $mode_keys = Settings::typography_mode_setting_keys();
 Settings::update( array_fill_keys( $mode_keys, \Hexa\PluginCore\Typography\TemplateTypography::CUSTOM ) );
 $preservation_keys = Settings::typography_preservation_setting_keys();
-if ( 10 !== count( Settings::typography_preservation_surfaces() ) || 40 !== count( $preservation_keys ) || 40 !== count( array_unique( $preservation_keys ) ) ) {
-    fwrite( STDERR, "FAIL: Ten typography surfaces must expose forty unique Core preservation settings.\n" );
+if ( 11 !== count( Settings::typography_preservation_surfaces() ) || 44 !== count( $preservation_keys ) || 44 !== count( array_unique( $preservation_keys ) ) ) {
+    fwrite( STDERR, "FAIL: Eleven typography surfaces must expose forty-four unique Core preservation settings.\n" );
     exit( 1 );
 }
 
@@ -121,8 +121,8 @@ $article_css = ArticleStyles::font_overrides_css();
 $muckrack_css = MuckRackVerification::font_overrides_css();
 $muckrack_variables_method = new ReflectionMethod( MuckRackVerification::class, "design_variables_css" );
 $muckrack_variables_css = (string) $muckrack_variables_method->invoke( null, Settings::all() );
-if ( 8 !== substr_count( $article_css, "--e-global-typography-brand_body-font-family" ) ) {
-    fwrite( STDERR, "FAIL: All eight article design outputs did not resolve the selected Elementor source.\n" );
+if ( 9 !== substr_count( $article_css, "--e-global-typography-brand_body-font-family" ) ) {
+    fwrite( STDERR, "FAIL: All nine article design outputs did not resolve the selected Elementor source.\n" );
     exit( 1 );
 }
 if (
@@ -134,13 +134,13 @@ if (
     exit( 1 );
 }
 if (
-    8 !== substr_count( $article_css, "font-weight:700" )
+    9 !== substr_count( $article_css, "font-weight:700" )
     || ! str_contains( $muckrack_variables_css, "--smpi-muckrack-author-weight:700" )
     || ! str_contains( $muckrack_variables_css, "--smpi-muckrack-publication-weight:700" )
     || ! str_contains( $muckrack_css, "font-weight:var(--smpi-muckrack-author-weight)!important" )
     || ! str_contains( $muckrack_css, "font-weight:var(--smpi-muckrack-publication-weight)!important" )
 ) {
-    fwrite( STDERR, "FAIL: All ten design outputs did not apply the selected Core font weight.\n" );
+    fwrite( STDERR, "FAIL: All eleven design outputs did not apply the selected Core font weight.\n" );
     exit( 1 );
 }
 
@@ -219,7 +219,7 @@ if ( version_compare( $core_version, "0.19.74", "<" ) || ! str_contains( $dashbo
     fwrite( STDERR, "FAIL: SMP is not using the reusable Hexa WP Core font control.\n" );
     exit( 1 );
 }
-if ( 10 !== substr_count( $dashboard, 'typography_surface_control_html( "' ) ) {
+if ( 11 !== substr_count( $dashboard, 'typography_surface_control_html( "' ) ) {
     fwrite( STDERR, "FAIL: Every typography surface must render through the same centralized Dashboard helper.\n" );
     exit( 1 );
 }
@@ -241,4 +241,4 @@ if ( ! str_contains( $ajax, "Settings::font_family_setting_keys()" ) || ! str_co
     exit( 1 );
 }
 
-echo "PASS: All ten SMP design outputs use the reusable Core font family and weight contracts.\n";
+echo "PASS: All eleven SMP design outputs use the reusable Core font family and weight contracts.\n";

@@ -8,7 +8,7 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `1.0.0`
+- Version: `1.0.1`
 
 ## Ownership
 
@@ -60,7 +60,6 @@ The dashboard uses Hexa WP Core tabs, collapsible cards, dynamic controls, and a
 - Plugins, system checks, and plugin/Core update reporting.
 
 Quick Start contains only the reusable checklist workflow and is the second tab.
-
 ## Architecture
 
 `smp-publication-integration.php` is the canonical plugin entry. `initialization.php` is a compatibility loader for older active-plugin records.
@@ -94,6 +93,13 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 1.0.1
+
+- Added Numbered article list styles with five clearly labeled, one-row templates for top-level ordered lists while leaving nested and plugin-owned lists unchanged.
+- Registered numbered-list color and typography through the same Hexa WP Core controls used by the other Article Design surfaces and added the feature to Quick Start.
+- Added the bordered Summary template with a compact What to know label and diamond bullets while limiting selected-color changes to its intended accent areas.
+- Renamed affected Article Design cards and template choices with labels that state the visible treatment without changing internal setting or template keys.
 
 ### 1.0.0
 

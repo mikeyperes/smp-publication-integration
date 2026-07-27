@@ -207,6 +207,18 @@ final class QuickStartFeatures {
                 "article_heading_font_weight" => "inherit",
             ]
         );
+        $numbered_list_settings = self::with_typography(
+            "article_numbered_list",
+            [
+                "article_numbered_lists_enabled" => true,
+                "article_numbered_list_style" => "nlist01",
+                "article_numbered_list_accent_color" => "#000033",
+                "article_numbered_list_text_color" => "#1f2937",
+                "article_numbered_list_font_size" => 16,
+                "article_numbered_list_font_family" => "template",
+                "article_numbered_list_font_weight" => "inherit",
+            ]
+        );
         $drop_cap_settings = self::with_typography(
             "article_drop_cap",
             [
@@ -463,6 +475,21 @@ final class QuickStartFeatures {
                     [ "label" => "Font", "value" => "Template font" ],
                     [ "label" => "Font weight", "value" => "Font default" ],
                     [ "label" => "Leave as is", "value" => "Font, font size, font color, and font weight" ],
+                ],
+            ],
+            "article_numbered_list_styles" => [
+                "title" => "Numbered article list styles",
+                "description" => "Styles top-level numbered lists inside article content.",
+                "settings" => $numbered_list_settings,
+                "details" => [
+                    [ "label" => "Enabled", "value" => "Yes" ],
+                    [ "label" => "Design", "value" => "Editorial rows with dividers" ],
+                    [ "label" => "Design color", "value" => "#000033", "color" => "#000033" ],
+                    [ "label" => "Text color", "value" => "#1f2937", "color" => "#1f2937" ],
+                    [ "label" => "Text size", "value" => "16px" ],
+                    [ "label" => "Font", "value" => "Template font" ],
+                    [ "label" => "Font weight", "value" => "Font default" ],
+                    [ "label" => "Leave as is", "value" => "None" ],
                 ],
             ],
             "article_first_letter_drop_cap" => [

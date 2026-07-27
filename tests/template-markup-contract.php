@@ -74,6 +74,17 @@ $checks = [
         str_contains( $article, 'if(cfg.dropcap&&!root.querySelector(".smpi-article-lead"))' )
         && ! str_contains( $article, 'if(cfg.dropcap){var lead=Array.from(root.querySelectorAll("p"))' ),
 
+    "Numbered article lists share semantic classes in PHP and the dynamic-render fallback." =>
+        str_contains( $template, 'public static function decorate_article_numbered_lists(' )
+        && str_contains( $template, '"smpi-template--article-numbered-list"' )
+        && str_contains( $template, '"smpi-numbered-list-item"' )
+        && str_contains( $template, '"smpi-numbered-list-title"' )
+        && str_contains( $template, '"smpi-numbered-list-text"' )
+        && str_contains( $template, '"smpi-numbered-list-link"' )
+        && str_contains( $article, 'TemplateMarkup::decorate_article_numbered_lists( $content, $style )' )
+        && str_contains( $article, 'list.classList.add("smpi-template","smpi-template--article-numbered-list"' )
+        && str_contains( $article, 'item.classList.add("smpi-template-item","smpi-article-list-item","smpi-numbered-list-item")' ),
+
     "Inline image PHP paths expose root, link, image, and caption classes." =>
         str_contains( $inline, 'TemplateMarkup::decorate_inline_photos( $html, $style )' )
         && str_contains( $inline, 'TemplateMarkup::root_classes( "inline-photo"' )
@@ -104,6 +115,7 @@ $checks = [
     "Admin previews render the same class contract as front-end output." =>
         str_contains( $dashboard, '\\Content\\TableOfContents::build_toc(' )
         && str_contains( $dashboard, 'smpi-template-title smpi-article-heading smpi-article-heading--h2' )
+        && str_contains( $dashboard, '"article-numbered-list"' )
         && str_contains( $dashboard, 'TemplateMarkup::root_classes( "inline-photo"' )
         && str_contains( $dashboard, 'TemplateMarkup::root_classes( "featured-image-caption"' )
         && str_contains( $dashboard, 'TemplateMarkup::root_classes( "article-summary"' )

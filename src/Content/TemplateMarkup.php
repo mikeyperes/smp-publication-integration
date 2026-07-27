@@ -92,6 +92,82 @@ final class TemplateMarkup {
         );
     }
 
+    public static function decorate_article_numbered_lists( string $html, string $style ): string {
+        if ( ! class_exists( "\\WP_HTML_Processor" ) ) {
+            return $html;
+        }
+
+        $style = self::class_slug( $style );
+        $root_depth = 0;
+        $item_depth = 0;
+
+        return self::mutate(
+            $html,
+            static function ( $processor ) use ( $style, &$root_depth, &$item_depth ): array {
+                $tag = $processor->get_tag();
+                $depth = self::depth( $processor );
+
+                if ( $root_depth > 0 && $depth > 0 && $depth <= $root_depth ) {
+                    $root_depth = 0;
+                    $item_depth = 0;
+                }
+
+                if ( "OL" === $tag ) {
+                    if (
+                        $root_depth > 0
+                        || self::has_blocked_article_ancestor( $processor )
+                        || self::has_any_class( $processor, [ "smpi-table-of-contents", "smpi-post-summary-list", "smpi-post-faq-list", "smpi-numbered-list", "wp-block-footnotes" ] )
+                    ) {
+                        return [];
+                    }
+
+                    $root_depth = $depth;
+                    $item_depth = 0;
+                    return [
+                        self::ROOT,
+                        "smpi-template--article-numbered-list",
+                        self::LIST,
+                        "smpi-article-list",
+                        "smpi-numbered-list",
+                        "smpi-numbered-list--" . $style,
+                    ];
+                }
+
+                $breadcrumbs = self::breadcrumbs( $processor );
+                if (
+                    $root_depth <= 0
+                    || count( array_keys( $breadcrumbs, "OL", true ) ) !== 1
+                    || in_array( "UL", $breadcrumbs, true )
+                ) {
+                    return [];
+                }
+
+                if ( "LI" === $tag ) {
+                    if ( $depth !== $root_depth + 1 || count( array_keys( $breadcrumbs, "LI", true ) ) !== 1 ) {
+                        return [];
+                    }
+                    $item_depth = $depth;
+                    return [ self::ITEM, "smpi-article-list-item", "smpi-numbered-list-item" ];
+                }
+
+                if ( $item_depth <= 0 || $depth <= $item_depth || count( array_keys( $breadcrumbs, "LI", true ) ) !== 1 ) {
+                    return [];
+                }
+
+                if ( in_array( $tag, [ "H3", "H4", "H5" ], true ) || ( "STRONG" === $tag && $depth === $item_depth + 1 ) ) {
+                    return [ self::TITLE, "smpi-numbered-list-title" ];
+                }
+                if ( "P" === $tag ) {
+                    return [ self::TEXT, "smpi-numbered-list-text" ];
+                }
+                if ( "A" === $tag ) {
+                    return [ self::LINK, "smpi-numbered-list-link" ];
+                }
+                return [];
+            }
+        );
+    }
+
     public static function decorate_inline_photos( string $html, string $style ): string {
         $style = self::class_slug( $style );
         $active_depth = 0;
@@ -219,6 +295,15 @@ final class TemplateMarkup {
 
     private static function has_class( $processor, string $class_name ): bool {
         return true === $processor->has_class( $class_name );
+    }
+
+    private static function has_any_class( $processor, array $class_names ): bool {
+        foreach ( $class_names as $class_name ) {
+            if ( self::has_class( $processor, (string) $class_name ) ) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static function breadcrumbs( $processor ): array {

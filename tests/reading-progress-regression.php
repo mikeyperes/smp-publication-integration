@@ -63,7 +63,7 @@ $checks = [
         && str_contains( $ajax, '"reading_progress_enabled"' )
         && str_contains( $ajax, '"reading_progress_style"' )
         && str_contains( $ajax, "'reading_progress_color'" ),
-    "Article Design renders one-row design choices and the reusable Hexa Core color control." => str_contains( $dashboard, '"Article reading progress"' )
+    "Article Design renders one-row design choices and the reusable Hexa Core color control." => str_contains( $dashboard, '"Article reading progress bar"' )
         && str_contains( $dashboard, 'select_setting_html( "reading_progress_style"' )
         && str_contains( $dashboard, 'ColorControl::render( [' )
         && str_contains( $dashboard, '"--smpi-reading-progress-color" => "color"' )

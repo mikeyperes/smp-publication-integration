@@ -776,8 +776,8 @@ class DashboardController {
               "blurb" => "Structured blocks rendered inside the single-post body: summary, FAQs, and a table of contents. Each takes a style variant. Summary and FAQs read post ACF fields; the TOC is built from the post headings.",
               "register_file" => $S, "access" => "Single-post body.",
               "items" => [
-                [ "tag" => "smp_post_summary", "desc" => "The post summary (What to know) block, from the post summary ACF field. The style chooses the visual treatment.", "type" => "HTML block", "params" => "style (sum00..sum04), post_id",
-                  "variations" => [ [ "code" => "[smp_post_summary style=\"sum00\"]", "label" => "Grey card" ], [ "code" => "[smp_post_summary style=\"sum01\"]", "label" => "Blue left bar" ], [ "code" => "[smp_post_summary style=\"sum02\"]", "label" => "Top rule" ], [ "code" => "[smp_post_summary style=\"sum03\"]", "label" => "Bordered, dark header" ], [ "code" => "[smp_post_summary style=\"sum04\"]", "label" => "Blue panel" ] ],
+                [ "tag" => "smp_post_summary", "desc" => "The post summary (What to know) block, from the post summary ACF field. The style chooses the visual treatment.", "type" => "HTML block", "params" => "style (sum00..sum05), post_id",
+                  "variations" => [ [ "code" => "[smp_post_summary style=\"sum00\"]", "label" => "Grey card" ], [ "code" => "[smp_post_summary style=\"sum01\"]", "label" => "Left accent card" ], [ "code" => "[smp_post_summary style=\"sum02\"]", "label" => "Top rule" ], [ "code" => "[smp_post_summary style=\"sum03\"]", "label" => "Bordered header" ], [ "code" => "[smp_post_summary style=\"sum04\"]", "label" => "Highlight panel" ], [ "code" => "[smp_post_summary style=\"sum05\"]", "label" => "Diamond briefing" ] ],
                   "detail" => [ "field" => "post_summary", "group" => "Post - Header", "source" => "ACF post field post_summary", "file" => $S, "plugin" => "SMP Publication Integration", "type" => "HTML", "edit" => "post" ] ],
                 [ "tag" => "smp_post_faqs", "desc" => "The post FAQ accordion, from the FAQ items ACF repeater. The style chooses the visual treatment.", "type" => "HTML block", "params" => "style (faq00..faq04), post_id",
                   "variations" => [ [ "code" => "[smp_post_faqs style=\"faq00\"]", "label" => "Plain dividers" ], [ "code" => "[smp_post_faqs style=\"faq02\"]", "label" => "Cards" ], [ "code" => "[smp_post_faqs style=\"faq03\"]", "label" => "Numbered" ], [ "code" => "[smp_post_faqs style=\"faq04\"]", "label" => "Soft cards" ] ],
@@ -1417,7 +1417,7 @@ class DashboardController {
 
         $breadcrumb_controls = $this->breadcrumb_controls_html( $settings );
         $this->feature_card(
-            "Breadcrumbs",
+            "Breadcrumb navigation",
             "breadcrumbs_enabled",
             "Registers a Hexa core-generated ACF multi post selector on Publication Theme Options: <code>smpi_breadcrumb_disabled_objects</code>. No repeater.",
             "Adds breadcrumbs below the site header on posts, pages, custom post types, and category or tag archives. Rank Math markup is used when available; SMP provides the fallback.",
@@ -1443,7 +1443,7 @@ class DashboardController {
                 ]
             );
         $this->feature_card(
-            "Table of contents",
+            "Article table of contents",
             "table_of_contents_enabled",
             "No ACF changes. Parses post headings from post_content.",
             "Builds a table of contents from post headings. Place it by shortcode or automatically above single-post content.",
@@ -1456,7 +1456,7 @@ class DashboardController {
         $reading_progress_controls = $this->select_setting_html( "reading_progress_style", $this->reading_progress_style_options(), $settings, "Progress design" )
             . $this->color_setting_html( ReadingProgress::COLOR_SETTING, "Progress color", $settings, ReadingProgress::DEFAULT_COLOR );
         $this->feature_card(
-            "Article reading progress",
+            "Article reading progress bar",
             "reading_progress_enabled",
             "No ACF changes. Runs only on public single-post pages.",
             "Shows a fixed page-progress indicator at the top of single articles and updates it as the reader scrolls.",
@@ -1470,7 +1470,7 @@ class DashboardController {
             . $this->template_color_setting_html( "article_heading", "Heading design color", $settings )
             . $this->typography_surface_control_html( "article_heading", $settings );
         $this->feature_card(
-            "Article H2/H3 styles",
+            "Article H2/H3 heading styles",
             "article_heading_styles_enabled",
             "No ACF changes. Applies selected CSS to H2 and H3 tags inside single post content only.",
             "Styles H2 and H3 headings inside single-post content with one template, one accent color, and separate font sizes.",
@@ -1480,11 +1480,25 @@ class DashboardController {
             $article_heading_controls
         );
 
+        $numbered_list_controls = $this->select_setting_html( "article_numbered_list_style", $this->article_numbered_list_style_options(), $settings, "Numbered list design" )
+            . $this->template_color_setting_html( "article_numbered_list", "Numbered list design color", $settings )
+            . $this->typography_surface_control_html( "article_numbered_list", $settings );
+        $this->feature_card(
+            "Numbered article list styles",
+            "article_numbered_lists_enabled",
+            "No ACF changes. Styles top-level ordered lists inside single post content and leaves nested lists unchanged.",
+            "Turns standard numbered article lists into structured editorial rows with selectable number, divider, rail, card, and index treatments.",
+            "Use a normal ordered list (<ol>) in post content. Each top-level list item becomes one numbered row; optional H3/H4 headings and paragraphs receive semantic SMP classes.",
+            $this->article_numbered_list_report_html(),
+            $this->activity_log_html(),
+            $numbered_list_controls
+        );
+
         $drop_cap_controls = $this->select_setting_html( "article_drop_cap_style", $this->article_drop_cap_style_options(), $settings, "First-letter template" )
             . $this->template_color_setting_html( "article_drop_cap", "Drop cap design color", $settings )
             . $this->typography_surface_control_html( "article_drop_cap", $settings );
         $this->feature_card(
-            "Article first-letter drop cap",
+            "First-letter drop cap",
             "article_drop_cap_enabled",
             "No ACF changes. Applies CSS to the first letter of the first paragraph inside single post content.",
             "Styles the first letter of the first paragraph in single-post content with one of ten selectable templates.",
@@ -1498,7 +1512,7 @@ class DashboardController {
             . $this->template_color_setting_html( "inline_photo_caption", "Inline photo design color", $settings )
             . $this->typography_surface_control_html( "inline_photo_caption", $settings );
         $this->feature_card(
-            "Inline photo treatments",
+            "Inline article image styles",
             "inline_photo_treatments_enabled",
             "No ACF changes. Applies selected treatment to inline figures in posts and press-release articles.",
             "Styles inline figures and captions in posts and press releases.",
@@ -1512,7 +1526,7 @@ class DashboardController {
             . $this->template_color_setting_html( "featured_image_caption", "Featured caption design color", $settings )
             . $this->typography_surface_control_html( "featured_image_caption", $settings );
         $this->feature_card(
-            "Featured image caption templates",
+            "Featured image caption styles",
             "featured_image_caption_templates_enabled",
             "No ACF changes. Reads the caption from the media attachment used as the post featured image.",
             "Styles captions attached to featured images on posts and press releases.",
@@ -1537,7 +1551,7 @@ class DashboardController {
                 ]
             );
         $this->feature_card(
-            "Article Summary",
+            "Article summary block",
             "post_summary_acf_enabled",
             "Registers and reads the existing <code>post_summary</code> editor field. The feature toggle and Custom Fields tab update the same setting.",
             "Displays the article summary with a selectable design, color, typography, and manual or automatic placement.",
@@ -1561,7 +1575,7 @@ class DashboardController {
                 ]
             );
         $this->feature_card(
-            "Article FAQs",
+            "Article FAQ block",
             "post_faqs_acf_enabled",
             "Registers and reads the existing <code>post_faq_items</code> editor fields. FAQPage schema continues to use the same rows.",
             "Displays structured article FAQs with a selectable design, color, typography, and manual or automatic placement.",
@@ -1751,6 +1765,8 @@ class DashboardController {
 .smpi-feature-card pre,.smpi-feature-card code{max-width:100%}
 .smpi-control-group:has(input[data-key="reading_progress_style"]) .smpi-choice-grid{grid-template-columns:minmax(0,1fr)}
 .smpi-control-group:has(input[data-key="reading_progress_style"]) .smpi-choice-preview{max-width:720px}
+.smpi-control-group:has(input[data-key="article_numbered_list_style"]) .smpi-choice-grid{grid-template-columns:minmax(0,1fr)}
+.smpi-control-group:has(input[data-key="article_numbered_list_style"]) .smpi-choice-preview{max-width:760px}
 @media(max-width:782px){
 .smpi-feature-groups{gap:26px;margin-top:22px}
 .smpi-feature-group-head h2{font-size:17px}
@@ -2416,6 +2432,17 @@ HTML;
         return $samples[ $style ] ?? [ "Where the method began", "This section walks through how the idea first took shape and why it connected with early customers." ];
     }
 
+    private function article_numbered_list_style_options(): array {
+        return [
+            "none" => [ "label" => "Site default ordered list", "description" => "Use the active theme's existing ordered-list styling without an SMP design.", "preview" => $this->article_numbered_list_preview_html( "none" ) ],
+            "nlist01" => [ "label" => "Editorial rows with dividers", "description" => "Large left-aligned numbers and fine horizontal dividers, matching the supplied reference design.", "preview" => $this->article_numbered_list_preview_html( "nlist01" ) ],
+            "nlist02" => [ "label" => "Bordered rows with number tiles", "description" => "Each item sits in a bordered row with a solid accent number tile.", "preview" => $this->article_numbered_list_preview_html( "nlist02" ) ],
+            "nlist03" => [ "label" => "Left accent rail with index", "description" => "A vertical accent rail groups each item with a compact number above the text.", "preview" => $this->article_numbered_list_preview_html( "nlist03" ) ],
+            "nlist04" => [ "label" => "Oversized background numbers", "description" => "Large low-contrast numbers sit behind spacious editorial rows.", "preview" => $this->article_numbered_list_preview_html( "nlist04" ) ],
+            "nlist05" => [ "label" => "Circular number markers", "description" => "Small outlined number circles lead compact rows separated by restrained dividers.", "preview" => $this->article_numbered_list_preview_html( "nlist05" ) ],
+        ];
+    }
+
     private function inline_photo_treatment_options(): array {
         return [
             "none" => [ "label" => "No style", "description" => "Leave theme figure styles untouched.", "preview" => $this->inline_photo_preview_html( "none" ) ],
@@ -2444,6 +2471,7 @@ HTML;
             "sum02" => [ "label" => "Eyebrow Bullets", "description" => "Minimal rules and compact bullets.", "preview" => $this->summary_design_preview_html( "sum02" ) ],
             "sum03" => [ "label" => "Numbered Brief", "description" => "Selected-color header and briefing structure.", "preview" => $this->summary_design_preview_html( "sum03" ) ],
             "sum04" => [ "label" => "Highlight Callout", "description" => "Soft selected-color callout box.", "preview" => $this->summary_design_preview_html( "sum04" ) ],
+            "sum05" => [ "label" => "Bordered summary with diamond bullets", "description" => "A thin bordered block with a compact What to know label and outlined diamond bullets.", "preview" => $this->summary_design_preview_html( "sum05" ) ],
         ];
     }
 
@@ -2527,6 +2555,23 @@ HTML;
         return "<div class=\"smpi-ah-preview-stack\"><div class=\"" . esc_attr( $class ) . "\"><h2 class=\"smpi-template-title smpi-article-heading smpi-article-heading--h2\">" . esc_html( $sample[0] ) . "</h2><p class=\"smpi-template-text smpi-article-paragraph\">" . esc_html( $sample[1] ) . "</p></div><div class=\"" . esc_attr( $class ) . "\"><h3 class=\"smpi-template-title smpi-article-heading smpi-article-heading--h3\">What changed next</h3><p class=\"smpi-template-text smpi-article-paragraph\">The same selected treatment applies to article H3 subheadings inside post content.</p></div></div>";
     }
 
+    private function article_numbered_list_preview_html( string $style ): string {
+        $style = \smp_publication_integration\Content\ArticleStyles::normalize_article_numbered_list_style( $style );
+        $classes = \smp_publication_integration\Content\TemplateMarkup::root_classes(
+            "article-numbered-list",
+            [ "smpi-article-list", "smpi-numbered-list", "smpi-numbered-list--" . $style ]
+        );
+        $items = [
+            [ "CSS and JavaScript minification", "Reduce transfer size while keeping the article's critical rendering path predictable." ],
+            [ "Image optimization", "Serve efficient formats and dimensions without changing the editorial source image." ],
+        ];
+        $html = "";
+        foreach ( $items as $item ) {
+            $html .= "<li class=\"smpi-template-item smpi-article-list-item smpi-numbered-list-item\"><h3 class=\"smpi-template-title smpi-numbered-list-title\">" . esc_html( $item[0] ) . "</h3><p class=\"smpi-template-text smpi-numbered-list-text\">" . esc_html( $item[1] ) . "</p></li>";
+        }
+        return "<ol class=\"" . esc_attr( $classes ) . "\">" . $html . "</ol>";
+    }
+
     private function article_drop_cap_preview_html( string $style ): string {
         $style = \smp_publication_integration\Content\ArticleStyles::normalize_article_drop_cap_style( $style );
         return "<div class=\"smpi-template smpi-template--article-content smpi-dropcap-preview smpi-dropcap-preview--" . esc_attr( $style ) . "\"><p class=\"smpi-template-text smpi-article-paragraph smpi-article-lead\">Female founders are reshaping how modern publications tell important stories.</p></div>";
@@ -2546,6 +2591,16 @@ HTML;
         }
         $preserve_text = empty( $preserved ) ? "No theme typography is preserved." : "Preserving theme " . implode( ", ", $preserved ) . ".";
         return $this->simple_status_html( $enabled, "Current template: " . $style . ". " . $preserve_text . " Font: " . Settings::font_family_label( "article_heading_font_family" ) . ". H2: " . $h2 . "px. H3: " . $h3 . "px. Applies only to single post content." );
+    }
+
+    private function article_numbered_list_report_html(): string {
+        $enabled = Settings::bool( "article_numbered_lists_enabled" );
+        $style = \smp_publication_integration\Content\ArticleStyles::normalize_article_numbered_list_style( (string) Settings::get( "article_numbered_list_style", "nlist01" ) );
+        $size = (int) Settings::get( "article_numbered_list_font_size", 16 );
+        return $this->simple_status_html(
+            $enabled,
+            "Current design: " . $style . ". Font: " . Settings::font_family_label( "article_numbered_list_font_family" ) . ". Text size: " . $size . "px. Applies to top-level ordered lists on single posts."
+        );
     }
 
     private function article_drop_cap_report_html(): string {

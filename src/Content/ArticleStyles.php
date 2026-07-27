@@ -32,11 +32,12 @@ final class ArticleStyles {
         if ( ! RuntimeContext::is_public_dom_context() ) {
             return;
         }
-        $needs = Settings::bool( "breadcrumbs_enabled" ) || Settings::bool( "article_heading_styles_enabled" ) || Settings::bool( "article_drop_cap_enabled" ) || Settings::bool( "inline_photo_treatments_enabled" ) || Settings::bool( "featured_image_caption_templates_enabled" ) || Settings::bool( "post_summary_acf_enabled" ) || Settings::bool( "post_faqs_acf_enabled" ) || Settings::bool( "table_of_contents_enabled" );
+        $needs = Settings::bool( "breadcrumbs_enabled" ) || Settings::bool( "article_heading_styles_enabled" ) || Settings::bool( "article_numbered_lists_enabled" ) || Settings::bool( "article_drop_cap_enabled" ) || Settings::bool( "inline_photo_treatments_enabled" ) || Settings::bool( "featured_image_caption_templates_enabled" ) || Settings::bool( "post_summary_acf_enabled" ) || Settings::bool( "post_faqs_acf_enabled" ) || Settings::bool( "table_of_contents_enabled" );
         if ( ! $needs ) {
             return;
         }
         $heading = self::normalize_article_heading_style( (string) Settings::get( "article_heading_style", "h2-tick" ) );
+        $numbered_list = self::normalize_article_numbered_list_style( (string) Settings::get( "article_numbered_list_style", "nlist01" ) );
         $photo = self::normalize_inline_photo_style( (string) Settings::get( "inline_photo_treatment", "none" ) );
         $featured = self::normalize_featured_image_caption_style( (string) Settings::get( "featured_image_caption_template", "fig2" ) );
         $breadcrumb_override = Settings::bool( "breadcrumbs_enabled" ) ? Breadcrumbs::custom_css() : "";
@@ -44,7 +45,7 @@ final class ArticleStyles {
         if ( Settings::bool( "article_drop_cap_enabled" ) && self::article_drop_cap_uses_template_script_font( $drop_cap_style ) ) {
             echo self::script_font_link_html_for_style( $drop_cap_style );
         }
-        echo "<style id=smpi-article-style-controls>" . self::frontend_vars_css() . self::breadcrumbs_css() . self::article_heading_css( $heading ) . self::article_drop_cap_css() . self::post_acf_css() . self::inline_photo_css( $photo ) . self::featured_image_caption_css( $featured ) . self::font_overrides_css() . ( "" !== $breadcrumb_override ? PHP_EOL . $breadcrumb_override : "" ) . "</style>";
+        echo "<style id=smpi-article-style-controls>" . self::frontend_vars_css() . self::breadcrumbs_css() . self::article_heading_css( $heading ) . self::article_numbered_list_css( $numbered_list ) . self::article_drop_cap_css() . self::post_acf_css() . self::inline_photo_css( $photo ) . self::featured_image_caption_css( $featured ) . self::font_overrides_css() . ( "" !== $breadcrumb_override ? PHP_EOL . $breadcrumb_override : "" ) . "</style>";
     }
 
     public function decorate_article_content( string $content ): string {
@@ -54,7 +55,14 @@ final class ArticleStyles {
         if ( ! $this->article_markup_enabled() ) {
             return $content;
         }
-        return TemplateMarkup::decorate_article_content( $content );
+        $content = TemplateMarkup::decorate_article_content( $content );
+        if ( Settings::bool( "article_numbered_lists_enabled" ) ) {
+            $style = self::normalize_article_numbered_list_style( (string) Settings::get( "article_numbered_list_style", "nlist01" ) );
+            if ( "none" !== $style ) {
+                $content = TemplateMarkup::decorate_article_numbered_lists( $content, $style );
+            }
+        }
+        return $content;
     }
 
     public function print_markup_fallback_script(): void {
@@ -65,11 +73,41 @@ final class ArticleStyles {
             [
                 "headings" => Settings::bool( "article_heading_styles_enabled" ),
                 "dropcap"  => Settings::bool( "article_drop_cap_enabled" ),
+                "numberedLists" => Settings::bool( "article_numbered_lists_enabled" ),
+                "numberedListStyle" => self::normalize_article_numbered_list_style( (string) Settings::get( "article_numbered_list_style", "nlist01" ) ),
             ]
         );
         ?>
         <script id="smpi-article-markup-normalizer">
-        (function(cfg){if(!cfg)return;var selectors=[".elementor-widget-theme-post-content .elementor-widget-container",".elementor-widget-theme-post-content",".elementor-widget-post-content .elementor-widget-container",".elementor-widget-post-content","article .entry-content",".entry-content",".post-content"];var root=null;for(var i=0;i<selectors.length;i++){root=document.querySelector(selectors[i]);if(root)break;}if(!root)return;root.classList.add("smpi-template","smpi-template--article-content","smpi-template-content","smpi-article-content");function owned(el){return !el.closest(".smpi-post-summary,.smpi-post-faqs,.smpi-table-of-contents,.smpi-breadcrumbs");}root.querySelectorAll("a").forEach(function(el){if(owned(el))el.classList.add("smpi-template-link","smpi-article-link");});root.querySelectorAll("ol,ul").forEach(function(el){if(owned(el))el.classList.add("smpi-template-list","smpi-article-list");});root.querySelectorAll("li").forEach(function(el){if(owned(el))el.classList.add("smpi-template-item","smpi-article-list-item");});root.querySelectorAll("p").forEach(function(el){if(owned(el))el.classList.add("smpi-template-text","smpi-article-paragraph");});root.querySelectorAll("img").forEach(function(el){if(owned(el))el.classList.add("smpi-template-image","smpi-article-image");});if(cfg.headings){root.querySelectorAll("h2,h3,h4").forEach(function(el){if(owned(el))el.classList.add("smpi-template-title","smpi-article-heading","smpi-article-heading--"+el.tagName.toLowerCase());});}if(cfg.dropcap&&!root.querySelector(".smpi-article-lead")){var lead=Array.from(root.querySelectorAll("p")).find(function(el){return owned(el)&&!el.closest("aside,blockquote,figure,nav");});if(lead)lead.classList.add("smpi-article-lead");}})(<?php echo $payload ? $payload : "{}"; ?>);
+        (function(cfg){
+            if(!cfg)return;
+            var selectors=[".elementor-widget-theme-post-content .elementor-widget-container",".elementor-widget-theme-post-content",".elementor-widget-post-content .elementor-widget-container",".elementor-widget-post-content","article .entry-content",".entry-content",".post-content"];
+            var root=null;
+            for(var i=0;i<selectors.length;i++){root=document.querySelector(selectors[i]);if(root)break;}
+            if(!root)return;
+            root.classList.add("smpi-template","smpi-template--article-content","smpi-template-content","smpi-article-content");
+            function owned(el){return !el.closest(".smpi-post-summary,.smpi-post-faqs,.smpi-table-of-contents,.smpi-breadcrumbs");}
+            root.querySelectorAll("a").forEach(function(el){if(owned(el))el.classList.add("smpi-template-link","smpi-article-link");});
+            root.querySelectorAll("ol,ul").forEach(function(el){if(owned(el))el.classList.add("smpi-template-list","smpi-article-list");});
+            root.querySelectorAll("li").forEach(function(el){if(owned(el))el.classList.add("smpi-template-item","smpi-article-list-item");});
+            root.querySelectorAll("p").forEach(function(el){if(owned(el))el.classList.add("smpi-template-text","smpi-article-paragraph");});
+            root.querySelectorAll("img").forEach(function(el){if(owned(el))el.classList.add("smpi-template-image","smpi-article-image");});
+            if(cfg.headings){root.querySelectorAll("h2,h3,h4").forEach(function(el){if(owned(el))el.classList.add("smpi-template-title","smpi-article-heading","smpi-article-heading--"+el.tagName.toLowerCase());});}
+            if(cfg.numberedLists&&cfg.numberedListStyle!=="none"){
+                root.querySelectorAll("ol").forEach(function(list){
+                    if(!owned(list)||(list.parentElement&&list.parentElement.closest("ol"))||list.matches(".smpi-post-summary-list,.smpi-post-faq-list,.smpi-toc-list,.wp-block-footnotes"))return;
+                    list.classList.add("smpi-template","smpi-template--article-numbered-list","smpi-template-list","smpi-article-list","smpi-numbered-list","smpi-numbered-list--"+cfg.numberedListStyle);
+                    Array.from(list.children).forEach(function(item){
+                        if(item.tagName!=="LI")return;
+                        item.classList.add("smpi-template-item","smpi-article-list-item","smpi-numbered-list-item");
+                        item.querySelectorAll(":scope > h3,:scope > h4,:scope > h5,:scope > strong").forEach(function(title){title.classList.add("smpi-template-title","smpi-numbered-list-title");});
+                        item.querySelectorAll(":scope > p").forEach(function(text){text.classList.add("smpi-template-text","smpi-numbered-list-text");});
+                        item.querySelectorAll("a").forEach(function(link){link.classList.add("smpi-template-link","smpi-numbered-list-link");});
+                    });
+                });
+            }
+            if(cfg.dropcap&&!root.querySelector(".smpi-article-lead")){var lead=Array.from(root.querySelectorAll("p")).find(function(el){return owned(el)&&!el.closest("aside,blockquote,figure,nav");});if(lead)lead.classList.add("smpi-article-lead");}
+        })(<?php echo $payload ? $payload : "{}"; ?>);
         </script>
         <?php
     }
@@ -77,6 +115,7 @@ final class ArticleStyles {
     private function article_markup_enabled(): bool {
         return Settings::bool( "article_heading_styles_enabled" )
             || Settings::bool( "article_drop_cap_enabled" )
+            || Settings::bool( "article_numbered_lists_enabled" )
             || Settings::bool( "inline_photo_treatments_enabled" )
             || Settings::bool( "table_of_contents_enabled" );
     }
@@ -98,6 +137,15 @@ final class ArticleStyles {
 
     public static function article_heading_style_keys(): array {
         return [ "none", "h2-tick", "h2-leftrule", "h2-underline", "h2-topline", "h2-dot", "h2-trailingrule", "h2-serif", "h2-uppercase", "h2-gradient", "h2-bracket", "h2-number", "h2-square", "h2-highlight", "h2-double", "h2-corner_tick" ];
+    }
+
+    public static function normalize_article_numbered_list_style( string $style = "" ): string {
+        $style = sanitize_key( "" !== $style ? $style : (string) Settings::get( "article_numbered_list_style", "nlist01" ) );
+        return in_array( $style, self::article_numbered_list_style_keys(), true ) ? $style : "nlist01";
+    }
+
+    public static function article_numbered_list_style_keys(): array {
+        return [ "none", "nlist01", "nlist02", "nlist03", "nlist04", "nlist05" ];
     }
 
     public static function normalize_article_drop_cap_style( string $style = "" ): string {
@@ -234,7 +282,7 @@ final class ArticleStyles {
 
     public static function normalize_summary_style( string $style = "" ): string {
         $style = sanitize_key( "" !== $style ? $style : (string) Settings::get( "post_summary_style", "none" ) );
-        return in_array( $style, [ "none", "sum00", "sum01", "sum02", "sum03", "sum04" ], true ) ? $style : "none";
+        return in_array( $style, [ "none", "sum00", "sum01", "sum02", "sum03", "sum04", "sum05" ], true ) ? $style : "none";
     }
 
     public static function normalize_faq_style( string $style = "" ): string {
@@ -269,7 +317,7 @@ final class ArticleStyles {
     }
 
     public static function summary_title( string $style ): string {
-        return "sum03" === $style ? "The Brief" : ( in_array( $style, [ "sum01", "sum02", "sum04" ], true ) ? "What to know" : "Summary" );
+        return "sum03" === $style ? "The Brief" : ( in_array( $style, [ "sum01", "sum02", "sum04", "sum05" ], true ) ? "What to know" : "Summary" );
     }
 
     public static function faq_title( string $style ): string {
@@ -287,6 +335,7 @@ final class ArticleStyles {
             "breadcrumbs" => ".smpi-breadcrumbs-band,.smpi-breadcrumbs",
             "table_of_contents" => ".smpi-table-of-contents",
             "article_heading" => "body.single-post",
+            "article_numbered_list" => "body.single-post",
             "article_drop_cap" => "body.single-post",
             "inline_photo_caption" => "body.single-post,body.single-press-release",
             "featured_image_caption" => "body.single-post,body.single-press-release",
@@ -364,6 +413,16 @@ final class ArticleStyles {
                         [ "body.single-post .smpi-article-heading--h2", "var(--smpi-heading-h2-size,23px)" ],
                         [ "body.single-post .smpi-article-heading--h3", "var(--smpi-heading-h3-size,20px)" ],
                     ],
+                ],
+            ],
+            "article_numbered_list" => [
+                "font_family" => "article_numbered_list_font_family",
+                "font_weight" => "article_numbered_list_font_weight",
+                "rules" => [
+                    "font_family" => [ [ "body.single-post .smpi-numbered-list,body.single-post .smpi-numbered-list .smpi-numbered-list-title,body.single-post .smpi-numbered-list .smpi-numbered-list-text" ] ],
+                    "font_weight" => [ [ "body.single-post .smpi-numbered-list,body.single-post .smpi-numbered-list .smpi-numbered-list-title,body.single-post .smpi-numbered-list .smpi-numbered-list-text" ] ],
+                    "font_color" => [ [ "body.single-post .smpi-numbered-list .smpi-numbered-list-title,body.single-post .smpi-numbered-list .smpi-numbered-list-text", "var(--smpi-numbered-list-text,#1f2937)" ] ],
+                    "font_size" => [ [ "body.single-post .smpi-numbered-list .smpi-numbered-list-title,body.single-post .smpi-numbered-list .smpi-numbered-list-text", "var(--smpi-numbered-list-size,16px)" ] ],
                 ],
             ],
             "article_drop_cap" => [
@@ -516,6 +575,9 @@ final class ArticleStyles {
         if ( "post_faqs" === $prefix ) {
             return false !== strpos( $selector, "smpi-post-faq" ) || false !== strpos( $selector, "smpi-faq" );
         }
+        if ( "article_numbered_list" === $prefix ) {
+            return false !== strpos( $selector, "smpi-numbered-list" );
+        }
         if ( "inline_photo_caption" === $prefix ) {
             return false !== strpos( $selector, "smpi-inline-photo-caption" );
         }
@@ -563,6 +625,7 @@ final class ArticleStyles {
         $css .= ".smpi-sum02{background:var(--smpi-summary-background,transparent);border:1px solid var(--smpi-summary-accent-soft,rgba(10,10,10,.12));border-top:3px solid var(--smpi-summary-accent,#0a0a0a);border-radius:4px;box-shadow:0 1px 2px rgba(15,23,42,.04);font-family:var(--smpi-summary-font,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif);font-size:14px;line-height:1.5;padding:17px 20px 15px}.smpi-sum02 .smpi-post-summary-title{margin:0 0 10px;font-size:11px;font-weight:800;letter-spacing:.08em;line-height:1.3;text-transform:uppercase;color:var(--smpi-summary-accent,#0a0a0a)}.smpi-sum02 .smpi-post-summary-list{padding-left:1.15rem}.smpi-sum02 .smpi-post-summary-item{line-height:1.45;margin:0 0 5px;padding-left:2px}.smpi-sum02 .smpi-post-summary-item:last-child{margin-bottom:0}.smpi-sum02 .smpi-post-summary-item::marker{color:var(--smpi-summary-accent,#0a0a0a)}";
         $css .= ".smpi-sum03{background:var(--smpi-summary-background,#fff);border:1px solid #e5e7eb;border-radius:12px;overflow:hidden}.smpi-sum03 .smpi-post-summary-title{margin:0;background:var(--smpi-summary-accent,#0a0a0a);color:var(--smpi-summary-accent-ink,#fff);padding:12px 22px;font-size:.85rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase}.smpi-sum03 .smpi-post-summary-content{padding:18px 22px}";
         $css .= ".smpi-sum04{background:var(--smpi-summary-background,var(--smpi-summary-accent-soft,#eff4ff));border-radius:14px;padding:24px 28px}.smpi-sum04 .smpi-post-summary-title{margin:0 0 14px;font-size:1.05rem;font-weight:800;color:var(--smpi-summary-accent,#1e3a8a);display:flex;align-items:center;gap:9px}.smpi-sum04 .smpi-post-summary-title:before{content:\"\";width:18px;height:18px;border-radius:5px;background:var(--smpi-summary-accent,#2563eb)}.smpi-post-summary-list{margin:0;padding-left:1.2rem}";
+        $css .= ".smpi-sum05{background:var(--smpi-summary-background,#fff);border:1px solid #d8dee8;padding:24px 28px}.smpi-sum05 .smpi-post-summary-title{align-items:center;color:var(--smpi-summary-accent,#00ff41);display:flex;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:11px;font-weight:700;gap:9px;letter-spacing:.16em;line-height:1.4;margin:0 0 16px;text-transform:uppercase}.smpi-sum05 .smpi-post-summary-title::after{background:#e5e7eb;content:\"\";flex:1;height:1px}.smpi-sum05 .smpi-post-summary-list{display:grid;gap:13px;list-style:none;margin:0;padding:0}.smpi-sum05 .smpi-post-summary-item{line-height:1.65;margin:0;padding-left:26px;position:relative}.smpi-sum05 .smpi-post-summary-item::before{border:1px solid var(--smpi-summary-accent,#00ff41);content:\"\";height:9px;left:0;position:absolute;top:.62em;transform:rotate(45deg);width:9px}";
         $css .= ".smpi-post-faqs-content{color:var(--smpi-faq-text,#1f2937);font-size:var(--smpi-faq-size,16px);font-style:var(--smpi-faq-fstyle,normal)}.smpi-post-faqs-title{font-size:1.05rem;font-weight:800;color:#0a0a0a;margin:0 0 10px}.smpi-post-faq-question{font-size:.95rem;font-weight:700;line-height:1.3;margin:0 0 4px;color:#0a0a0a}.smpi-post-faq-answer{font-size:.86em;line-height:1.5}.smpi-post-faq-text{margin:0 0 .5em}.smpi-post-faq-text:last-child{margin-bottom:0}.smpi-post-faq-list{list-style:none;margin:0;padding:0}";
         $css .= ".smpi-faq00 .smpi-post-faqs-content,.smpi-faq01 .smpi-post-faqs-content{border-top:1px solid var(--smpi-faq-accent,#e5e7eb)}.smpi-faq00 .smpi-post-faq-item,.smpi-faq01 .smpi-post-faq-item{border-bottom:1px solid var(--smpi-faq-accent,#e5e7eb);padding:16px 0;margin:0}.smpi-faq02 .smpi-post-faq-item{border:1px solid var(--smpi-faq-accent,#e5e7eb);border-radius:12px;padding:18px 22px;margin:0 0 14px;box-shadow:0 1px 2px rgba(0,0,0,.04)}";
         $css .= ".smpi-faq03 .smpi-post-faqs-content{counter-reset:f}.smpi-faq03 .smpi-post-faq-item{counter-increment:f;position:relative;padding:12px 0 12px 58px;border-bottom:1px solid #e5e7eb}.smpi-faq03 .smpi-post-faq-item:before{content:counter(f,decimal-leading-zero);position:absolute;left:0;top:7px;font-size:2rem;font-weight:800;line-height:1;color:var(--smpi-faq-accent-soft,rgba(37,99,235,.22))}.smpi-faq03 .smpi-post-faq-item:after{content:none}";
@@ -660,6 +723,64 @@ final class ArticleStyles {
         }
         $scope = "body.single-post";
         return self::article_heading_rules( $style, $scope, $scope . " .smpi-article-heading--h2", $scope . " .smpi-article-heading--h3", self::typography_preservation_settings( "article_heading" ) );
+    }
+
+    public static function article_numbered_list_rules( string $style, string $list, bool $respect_preservation = true ): string {
+        $style = self::normalize_article_numbered_list_style( $style );
+        if ( "none" === $style ) {
+            return "";
+        }
+
+        $item = $list . " > .smpi-numbered-list-item";
+        $title = $item . " > .smpi-numbered-list-title";
+        $text = $item . " > .smpi-numbered-list-text";
+        $link = $item . " .smpi-numbered-list-link";
+        $css = $list . "{box-sizing:border-box;counter-reset:smpi-numbered-list;list-style:none;font-family:var(--smpi-numbered-list-font,Arial,Helvetica,sans-serif);font-size:var(--smpi-numbered-list-size,16px);font-weight:var(--smpi-numbered-list-weight,400);color:var(--smpi-numbered-list-text,#1f2937)}";
+        $css .= $list . " *{box-sizing:border-box}" . $item . "{counter-increment:smpi-numbered-list;list-style:none;color:var(--smpi-numbered-list-text,#1f2937)}" . $item . "::marker{content:\"\"}";
+        $css .= $title . "{color:var(--smpi-numbered-list-text,#1f2937);font-family:inherit;font-size:1.14em;font-weight:700;line-height:1.3;margin:0}";
+        $css .= $text . "{color:var(--smpi-numbered-list-text,#1f2937);font-family:inherit;font-size:1em;font-weight:inherit;line-height:1.7;margin:0}";
+        $css .= $link . "{color:inherit}";
+
+        if ( "nlist01" === $style ) {
+            $css .= $list . "{border-top:1px solid #d8dee8;margin:34px 0 8px;padding:0}";
+            $css .= $item . "{display:grid;grid-template-columns:52px minmax(0,1fr);gap:8px 18px;padding:25px 0;border-bottom:1px solid #e5e7eb}";
+            $css .= $item . "::before{content:counter(smpi-numbered-list,decimal-leading-zero);grid-column:1;grid-row:1 / span 20;color:var(--smpi-numbered-list-accent,#00ff41);font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:11px;font-weight:600;letter-spacing:.14em;line-height:1.4;padding-top:5px}";
+            $css .= $title . "," . $text . "{grid-column:2}";
+            $css .= "@media(max-width:680px){" . $item . "{grid-template-columns:38px minmax(0,1fr);column-gap:11px}}";
+        } elseif ( "nlist02" === $style ) {
+            $css .= $list . "{display:grid;gap:12px;margin:30px 0;padding:0}";
+            $css .= $item . "{display:grid;grid-template-columns:42px minmax(0,1fr);gap:7px 16px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;padding:18px 20px}";
+            $css .= $item . "::before{align-items:center;background:var(--smpi-numbered-list-accent,#2563eb);border-radius:5px;color:var(--smpi-numbered-list-accent-ink,#fff);content:counter(smpi-numbered-list,decimal-leading-zero);display:flex;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:11px;font-weight:800;grid-column:1;grid-row:1 / span 20;height:34px;justify-content:center;letter-spacing:.06em;width:34px}";
+            $css .= $title . "," . $text . "{grid-column:2}";
+            $css .= "@media(max-width:680px){" . $item . "{grid-template-columns:38px minmax(0,1fr);column-gap:11px;padding:16px}}";
+        } elseif ( "nlist03" === $style ) {
+            $css .= $list . "{display:grid;margin:30px 0;padding:0}";
+            $css .= $item . "{border-bottom:1px solid #e5e7eb;border-left:3px solid var(--smpi-numbered-list-accent,#d63428);padding:19px 20px 19px 68px;position:relative}";
+            $css .= $item . "::before{content:counter(smpi-numbered-list,decimal-leading-zero);color:var(--smpi-numbered-list-accent,#d63428);font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:12px;font-weight:800;left:20px;letter-spacing:.08em;position:absolute;top:23px}";
+            $css .= $text . "{margin-top:7px}";
+            $css .= "@media(max-width:680px){" . $item . "{padding-left:58px}}";
+        } elseif ( "nlist04" === $style ) {
+            $css .= $list . "{display:grid;gap:16px;margin:30px 0;padding:0}";
+            $css .= $item . "{background:#f8fafc;border-top:3px solid var(--smpi-numbered-list-accent,#111827);min-height:112px;padding:24px 24px 22px 94px;position:relative}";
+            $css .= $item . "::before{color:var(--smpi-numbered-list-accent-soft,rgba(17,24,39,.10));content:counter(smpi-numbered-list,decimal-leading-zero);font-family:Georgia,\"Times New Roman\",serif;font-size:58px;font-weight:800;left:18px;letter-spacing:-.04em;line-height:1;position:absolute;top:20px}";
+            $css .= $text . "{margin-top:8px}";
+            $css .= "@media(max-width:680px){" . $item . "{padding-left:76px}" . $item . "::before{font-size:46px;left:14px}}";
+        } else {
+            $css .= $list . "{border-bottom:1px solid #d8dee8;border-top:1px solid #d8dee8;margin:30px 0;padding:0}";
+            $css .= $item . "{display:grid;grid-template-columns:38px minmax(0,1fr);gap:6px 14px;padding:17px 0;border-bottom:1px solid #e5e7eb}" . $item . ":last-child{border-bottom:0}";
+            $css .= $item . "::before{align-items:center;border:1px solid var(--smpi-numbered-list-accent,#a16207);border-radius:999px;color:var(--smpi-numbered-list-accent,#a16207);content:counter(smpi-numbered-list);display:flex;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:11px;font-weight:800;grid-column:1;grid-row:1 / span 20;height:28px;justify-content:center;width:28px}";
+            $css .= $title . "," . $text . "{grid-column:2}";
+            $css .= "@media(max-width:680px){" . $item . "{grid-template-columns:34px minmax(0,1fr);column-gap:10px}}";
+        }
+        return $respect_preservation ? self::remove_preserved_typography( $css, "article_numbered_list", [ $list, $item, $title, $text ] ) : $css;
+    }
+
+    public static function article_numbered_list_css( string $style = "" ): string {
+        if ( ! Settings::bool( "article_numbered_lists_enabled" ) ) {
+            return "";
+        }
+        $style = self::normalize_article_numbered_list_style( $style );
+        return self::article_numbered_list_rules( $style, "body.single-post .smpi-numbered-list--" . $style );
     }
 
     public static function article_drop_cap_rules( string $style, string $paragraph, array $preserve = [], string $typography_mode = "", string $font_selection = "" ): string {
@@ -814,6 +935,10 @@ final class ArticleStyles {
             $sel = ".smpi-choice-preview .smpi-dropcap-preview--" . $style . " .smpi-article-lead";
             $css .= self::article_drop_cap_rules( $style, $sel );
         }
+        foreach ( array_diff( self::article_numbered_list_style_keys(), [ "none" ] ) as $style ) {
+            $sel = ".smpi-choice-preview .smpi-numbered-list--" . $style;
+            $css .= self::article_numbered_list_rules( $style, $sel, false );
+        }
         foreach ( [ "fig1", "fig2", "fig4", "fig5" ] as $style ) {
             $sel = ".smpi-pp.smpi-pp-" . $style;
             $css .= self::inline_photo_rules( $style, $sel, $sel . " .smpi-inline-photo-image", $sel . " .smpi-inline-photo-caption", false );
@@ -822,7 +947,7 @@ final class ArticleStyles {
             $sel = ".smpi-fi-preview.smpi-fi-preview-" . $style;
             $css .= self::featured_image_caption_rules( $style, $sel, $sel . " .smpi-featured-image-caption-image", $sel . " .smpi-featured-image-caption-text", false );
         }
-        $css .= ".smpi-choice-preview .smpi-breadcrumbs,.smpi-choice-preview .smpi-table-of-contents,.smpi-choice-preview .smpi-post-summary,.smpi-choice-preview .smpi-post-faqs,.smpi-choice-preview .smpi-pp,.smpi-choice-preview .smpi-fi-preview{max-width:100%!important;margin:0!important}.smpi-choice-preview .smpi-pp,.smpi-choice-preview .smpi-fi-preview{display:block}.smpi-choice-preview .smpi-inline-photo-image,.smpi-choice-preview .smpi-featured-image-caption-image{height:120px;width:100%;object-fit:cover}.smpi-choice-preview .smpi-toc-link,.smpi-choice-preview .smpi-post-faq-item{font-size:13px}.smpi-choice-preview .smpi-faq03>.smpi-post-faqs-content:before{content:none!important}";
+        $css .= ".smpi-choice-preview .smpi-breadcrumbs,.smpi-choice-preview .smpi-table-of-contents,.smpi-choice-preview .smpi-numbered-list,.smpi-choice-preview .smpi-post-summary,.smpi-choice-preview .smpi-post-faqs,.smpi-choice-preview .smpi-pp,.smpi-choice-preview .smpi-fi-preview{max-width:100%!important;margin:0!important}.smpi-choice-preview .smpi-pp,.smpi-choice-preview .smpi-fi-preview{display:block}.smpi-choice-preview .smpi-inline-photo-image,.smpi-choice-preview .smpi-featured-image-caption-image{height:120px;width:100%;object-fit:cover}.smpi-choice-preview .smpi-toc-link,.smpi-choice-preview .smpi-post-faq-item{font-size:13px}.smpi-choice-preview .smpi-faq03>.smpi-post-faqs-content:before{content:none!important}";
         return $css;
     }
 
