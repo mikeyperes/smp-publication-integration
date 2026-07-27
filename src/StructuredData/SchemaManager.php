@@ -665,22 +665,43 @@ class SchemaManager {
         $url = "";
         $width = null;
         $height = null;
+        $attachment_id = 0;
         if ( is_array( $logo ) && ! empty( $logo["url"] ) ) {
             $url = esc_url_raw( (string) $logo["url"] );
             $width = isset( $logo["width"] ) ? (int) $logo["width"] : null;
             $height = isset( $logo["height"] ) ? (int) $logo["height"] : null;
+            $attachment_id = absint( $logo["ID"] ?? $logo["id"] ?? 0 );
         } elseif ( is_numeric( $logo ) ) {
-            $src = wp_get_attachment_image_src( (int) $logo, "full" );
+            $attachment_id = absint( $logo );
+        } elseif ( is_string( $logo ) ) {
+            $url = esc_url_raw( $logo );
+        }
+
+        if ( ! $attachment_id && $url && function_exists( "attachment_url_to_postid" ) ) {
+            $attachment_id = absint( attachment_url_to_postid( $url ) );
+        }
+        if ( $attachment_id && ( ! $url || ! $width || ! $height ) ) {
+            $src = wp_get_attachment_image_src( $attachment_id, "full" );
+            if ( $src ) {
+                $url = $url ?: esc_url_raw( (string) $src[0] );
+                $width = $width ?: ( isset( $src[1] ) ? (int) $src[1] : null );
+                $height = $height ?: ( isset( $src[2] ) ? (int) $src[2] : null );
+            }
+        }
+        if ( ! $url ) {
+            $site_icon_id = absint( get_option( "site_icon" ) );
+            $src = $site_icon_id ? wp_get_attachment_image_src( $site_icon_id, "full" ) : false;
             if ( $src ) {
                 $url = esc_url_raw( (string) $src[0] );
                 $width = isset( $src[1] ) ? (int) $src[1] : null;
                 $height = isset( $src[2] ) ? (int) $src[2] : null;
+            } else {
+                $url = get_site_icon_url( 512 );
+                if ( $url ) {
+                    $width = 512;
+                    $height = 512;
+                }
             }
-        } elseif ( is_string( $logo ) ) {
-            $url = esc_url_raw( $logo );
-        }
-        if ( ! $url ) {
-            $url = get_site_icon_url( 512 );
         }
         return $url ? $this->clean_schema( [ "@type" => "ImageObject", "url" => $url, "width" => $width, "height" => $height ] ) : null;
     }
