@@ -34,13 +34,11 @@ $checks = [
         && str_contains( $dashboard, "Turn off automatic placement when positioning it manually." ),
     "TOC template CSS has one frontend owner." => str_contains( $table, 'ArticleStyles::toc_css()' )
         && ! str_contains( substr( $article, 0, (int) strpos( $article, "public function decorate_article_content" ) ), 'self::toc_css()' ),
-    "Elementor TOC loading is compact and never creates a nested scroll area." => str_contains( $table, '.elementor-widget-table-of-contents .elementor-toc__body{max-height:none!important;overflow-x:visible!important;overflow-y:visible!important' )
-        && str_contains( $table, '.elementor-widget-table-of-contents .elementor-toc__spinner{display:none!important}' )
-        && str_contains( $table, 'box-shadow:0 14px 0 #e5e7eb,0 28px 0 #e5e7eb' ),
-    "Elementor TOC has a non-optimized heading fallback when its delayed chunk does not finish." => str_contains( $table, 'print_elementor_compatibility_script' )
-        && str_contains( $table, 'data-no-optimize="1"' )
-        && str_contains( $table, 'smpi-elementor-toc-fallback' )
-        && str_contains( $table, 'setTimeout(function(){populate(widget);},800)' ),
+    "Native Elementor TOC markup, loading state, and anchors remain owned by Elementor." => ! str_contains( $table, '.elementor-widget-table-of-contents' )
+        && ! str_contains( $table, 'print_elementor_compatibility_script' )
+        && ! str_contains( $table, 'smpi-elementor-toc-bridge' )
+        && ! str_contains( $table, 'smpi-elementor-toc-fallback' )
+        && ! str_contains( $table, 'smpi-elementor-toc-' ),
 ];
 
 foreach ( $checks as $message => $passed ) {
