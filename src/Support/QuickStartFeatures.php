@@ -5,8 +5,12 @@ use Hexa\PluginCore\ContentCleanup\ArticleMediaCleanupScanner;
 use Hexa\PluginCore\GettingStartedChecklist\ChecklistReportBuilder;
 use Hexa\PluginCore\GettingStartedChecklist\GettingStartedChecklistAjaxController;
 use Hexa\PluginCore\GettingStartedChecklist\GettingStartedChecklistConfig;
+use Hexa\PluginCore\BrandColors\TemplateColorResolver;
+use Hexa\PluginCore\Typography\TemplateTypography;
+use Hexa\PluginCore\Typography\TypographyPreservation;
 use Hexa\PluginCore\WpAdminAjax\AjaxActionRegistry;
 use Hexa\PluginCore\WpAdminAjax\AjaxRequest;
+use smp_publication_integration\Design\TemplateDesignRegistry;
 
 if ( ! defined( "ABSPATH" ) ) {
     exit;
@@ -174,7 +178,46 @@ final class QuickStartFeatures {
         return $steps;
     }
 
+    private static function with_typography( string $prefix, array $settings ): array {
+        $modes = [ TemplateTypography::setting_key( $prefix ) => TemplateTypography::CUSTOM ];
+        $design = TemplateDesignRegistry::definition( $prefix );
+        if ( ! empty( $design["source_key"] ) ) {
+            $modes[ $design["source_key"] ] = TemplateColorResolver::CUSTOM;
+        }
+
+        return array_merge(
+            $settings,
+            TypographyPreservation::defaults( $prefix, Settings::typography_preservation_defaults( $prefix ) ),
+            $modes
+        );
+    }
+
     public static function items(): array {
+        $drop_cap_color = \smp_publication_integration\Settings\SettingsRepository::color_default( "article_drop_cap_color" );
+        $heading_settings = self::with_typography(
+            "article_heading",
+            [
+                "article_heading_styles_enabled" => true,
+                "article_heading_style" => "h2-tick",
+                "article_heading_accent_color" => "#000033",
+                "article_heading_text_color" => "#111827",
+                "article_heading_h2_font_size" => 23,
+                "article_heading_h3_font_size" => 20,
+                "article_heading_font_family" => "template",
+                "article_heading_font_weight" => "inherit",
+            ]
+        );
+        $drop_cap_settings = self::with_typography(
+            "article_drop_cap",
+            [
+                "article_drop_cap_enabled" => true,
+                "article_drop_cap_style" => "dropcap-classic",
+                "article_drop_cap_color" => $drop_cap_color,
+                "article_drop_cap_font_size" => 96,
+                "article_drop_cap_font_family" => "template",
+                "article_drop_cap_font_weight" => "inherit",
+            ]
+        );
         return [
             "delete_old_posts_keep_latest_10" => [
                 "title" => "Delete Old Posts, Keep Latest 10",
@@ -219,29 +262,46 @@ final class QuickStartFeatures {
                     [ "label" => "Scope", "value" => "/wp-content/uploads/elementor/css/ only" ],
                 ],
             ],
+            "elementor_primary_category" => [
+                "title" => "Elementor primary category",
+                "description" => "Adds an Elementor dynamic tag that shows one category and suppresses the WordPress default category.",
+                "settings" => [
+                    "elementor_primary_category_enabled" => true,
+                    "elementor_primary_category_exclude_default" => true,
+                ],
+                "details" => [
+                    [ "label" => "Dynamic tag", "value" => "SMP Publication > Primary Category" ],
+                    [ "label" => "Maximum categories", "value" => "1" ],
+                    [ "label" => "Default category", "value" => "Excluded" ],
+                ],
+            ],
             "muckrack_verified_authors" => [
                 "title" => "MuckRack verified authors",
                 "description" => "Shows MuckRack verification badges for authors.",
-                "settings" => [
+                "settings" => self::with_typography( "muckrack_verified", [
                     "muckrack_verified_enabled" => true,
                     "muckrack_author_always_show" => true,
                     "muckrack_verified_contexts" => [ "single_author", "single_footer", "author", "home", "loop_cards" ],
                     "muckrack_verified_style" => "tooltip",
+                    "muckrack_verified_font_family" => "template",
+                    "muckrack_verified_font_weight" => "inherit",
+                    "muckrack_verified_text_color" => "#64748b",
+                    "muckrack_verified_font_size" => 14,
                     "muckrack_icon_color" => "#000033",
                     "muckrack_icon_style" => "circle_check",
-                    "muckrack_icon_size" => 24,
+                    "muckrack_icon_size" => 16,
                     "muckrack_icon_margin_left" => 2,
                     "muckrack_icon_margin_top" => 0,
                     "muckrack_icon_color_single_author" => "#2f55ff",
-                    "muckrack_icon_size_single_author" => 22,
+                    "muckrack_icon_size_single_author" => 0,
                     "muckrack_icon_margin_left_single_author" => "",
                     "muckrack_icon_margin_top_single_author" => "",
                     "muckrack_icon_color_single_footer" => "#2f55ff",
-                    "muckrack_icon_size_single_footer" => 28,
+                    "muckrack_icon_size_single_footer" => 0,
                     "muckrack_icon_margin_left_single_footer" => "",
                     "muckrack_icon_margin_top_single_footer" => "",
                     "muckrack_icon_color_loop_cards" => "#2f55ff",
-                    "muckrack_icon_size_loop_cards" => 24,
+                    "muckrack_icon_size_loop_cards" => 0,
                     "muckrack_icon_margin_left_loop_cards" => "",
                     "muckrack_icon_margin_top_loop_cards" => "",
                     "muckrack_icon_color_home" => "",
@@ -252,14 +312,19 @@ final class QuickStartFeatures {
                     "muckrack_icon_size_author" => 0,
                     "muckrack_icon_margin_left_author" => "",
                     "muckrack_icon_margin_top_author" => "",
-                ],
+                ] ),
                 "details" => [
                     [ "label" => "Enabled", "value" => "Yes" ],
                     [ "label" => "Always show", "value" => "Yes" ],
                     [ "label" => "Display style", "value" => "Tooltip" ],
+                    [ "label" => "Font", "value" => "Template font" ],
+                    [ "label" => "Font weight", "value" => "Font default" ],
+                    [ "label" => "Text color", "value" => "#64748b", "color" => "#64748b" ],
+                    [ "label" => "Text size", "value" => "14px" ],
+                    [ "label" => "Leave as is", "value" => "Font color and font size" ],
                     [ "label" => "Icon style", "value" => "Circle check" ],
                     [ "label" => "Default icon color", "value" => "#000033", "color" => "#000033" ],
-                    [ "label" => "Default icon size", "value" => "24px" ],
+                    [ "label" => "Default icon size", "value" => "16px" ],
                     [ "label" => "Author/header/footer/loop color", "value" => "#2f55ff", "color" => "#2f55ff" ],
                     [ "label" => "Contexts", "value" => "single_author, single_footer, author, home, loop_cards" ],
                 ],
@@ -281,20 +346,27 @@ final class QuickStartFeatures {
             "muckrack_verified_publication" => [
                 "title" => "MuckRack verified publication",
                 "description" => "Shows the publication MuckRack verification block.",
-                "settings" => [
+                "settings" => self::with_typography( "publication_muckrack", [
                     "publication_muckrack_verified_enabled" => true,
                     "publication_muckrack_text_mode" => "news_outlet",
                     "publication_muckrack_style" => "mini_block",
+                    "publication_muckrack_font_family" => "template",
+                    "publication_muckrack_font_weight" => "inherit",
                     "publication_muckrack_color" => "#000033",
+                    "publication_muckrack_text_color" => "#334155",
                     "publication_muckrack_font_size" => 13,
                     "publication_muckrack_placements" => [ "bottom_article" ],
-                ],
+                ] ),
                 "details" => [
                     [ "label" => "Enabled", "value" => "Yes" ],
                     [ "label" => "Text mode", "value" => "News outlet" ],
                     [ "label" => "Display style", "value" => "Mini editorial block" ],
+                    [ "label" => "Font", "value" => "Template font" ],
+                    [ "label" => "Font weight", "value" => "Font default" ],
                     [ "label" => "Accent color", "value" => "#000033", "color" => "#000033" ],
+                    [ "label" => "Text color", "value" => "#334155", "color" => "#334155" ],
                     [ "label" => "Font size", "value" => "13px" ],
+                    [ "label" => "Leave as is", "value" => "Font color" ],
                     [ "label" => "Placement", "value" => "Bottom of article" ],
                 ],
             ],
@@ -324,28 +396,36 @@ final class QuickStartFeatures {
             "breadcrumbs" => [
                 "title" => "Breadcrumbs",
                 "description" => "Shows breadcrumb navigation on article and archive pages.",
-                "settings" => [
+                "settings" => self::with_typography( "breadcrumbs", [
                     "breadcrumbs_enabled" => true,
                     "breadcrumbs_style" => "bc-b6",
                     "breadcrumbs_accent_color" => "#000033",
+                    "breadcrumbs_text_color" => "#374151",
                     "breadcrumbs_font_size" => 11,
+                    "breadcrumbs_font_family" => "template",
+                    "breadcrumbs_font_weight" => "inherit",
                     "breadcrumbs_hide_home" => true,
                     "breadcrumbs_hide_term_archives" => false,
                     "breadcrumbs_disabled_post_types" => [],
-                ],
+                ] ),
                 "details" => [
                     [ "label" => "Enabled", "value" => "Yes" ],
                     [ "label" => "Template", "value" => "bc-b6" ],
                     [ "label" => "Accent color", "value" => "#000033", "color" => "#000033" ],
+                    [ "label" => "Text color", "value" => "#374151", "color" => "#374151" ],
                     [ "label" => "Font size", "value" => "11px" ],
+                    [ "label" => "Font", "value" => "Template font" ],
+                    [ "label" => "Font weight", "value" => "Font default" ],
+                    [ "label" => "Leave as is", "value" => "Font color" ],
                     [ "label" => "Hide home", "value" => "Yes" ],
+                    [ "label" => "Hidden post types", "value" => "None" ],
                     [ "label" => "Hide term archives", "value" => "No" ],
                 ],
             ],
             "table_of_contents" => [
                 "title" => "Table of contents",
                 "description" => "Adds a table of contents for article headings.",
-                "settings" => [
+                "settings" => self::with_typography( "table_of_contents", [
                     "table_of_contents_enabled" => true,
                     "table_of_contents_auto_single" => false,
                     "table_of_contents_style" => "toc03",
@@ -354,7 +434,9 @@ final class QuickStartFeatures {
                     "table_of_contents_text_font_style" => "normal",
                     "table_of_contents_text_font_size" => 12,
                     "table_of_contents_text_color" => "#000000",
-                ],
+                    "table_of_contents_font_family" => "template",
+                    "table_of_contents_font_weight" => "inherit",
+                ] ),
                 "details" => [
                     [ "label" => "Enabled", "value" => "Yes" ],
                     [ "label" => "Auto single placement", "value" => "No" ],
@@ -363,76 +445,86 @@ final class QuickStartFeatures {
                     [ "label" => "Accent color", "value" => "#000033", "color" => "#000033" ],
                     [ "label" => "Text color", "value" => "#000000", "color" => "#000000" ],
                     [ "label" => "Text size/style", "value" => "12px normal" ],
+                    [ "label" => "Font", "value" => "Template font" ],
+                    [ "label" => "Font weight", "value" => "Font default" ],
+                    [ "label" => "Leave as is", "value" => "None" ],
                 ],
             ],
             "article_h2_h3_styles" => [
                 "title" => "Article H2/H3 styles",
                 "description" => "Styles H2 and H3 headings inside article content.",
-                "settings" => [
-                    "article_heading_styles_enabled" => false,
-                    "article_heading_style" => "h2-tick",
-                    "article_heading_accent_color" => "#000033",
-                    "article_heading_h2_font_size" => 23,
-                    "article_heading_h3_font_size" => 20,
-                ],
+                "settings" => $heading_settings,
                 "details" => [
-                    [ "label" => "Enabled", "value" => "No" ],
+                    [ "label" => "Enabled", "value" => "Yes" ],
                     [ "label" => "Template", "value" => "h2-tick" ],
                     [ "label" => "Accent color", "value" => "#000033", "color" => "#000033" ],
                     [ "label" => "H2 size", "value" => "23px" ],
                     [ "label" => "H3 size", "value" => "20px" ],
+                    [ "label" => "Font", "value" => "Template font" ],
+                    [ "label" => "Font weight", "value" => "Font default" ],
+                    [ "label" => "Leave as is", "value" => "Font, font size, font color, and font weight" ],
                 ],
             ],
             "article_first_letter_drop_cap" => [
                 "title" => "Article first-letter drop cap",
                 "description" => "Adds a large first-letter treatment to article intros.",
-                "settings" => [
-                    "article_drop_cap_enabled" => true,
-                    "article_drop_cap_color" => "#111111",
-                    "article_drop_cap_font_size" => 96,
-                ],
+                "settings" => $drop_cap_settings,
                 "details" => [
                     [ "label" => "Enabled", "value" => "Yes" ],
-                    [ "label" => "Drop cap color", "value" => "#111111", "color" => "#111111" ],
-                    [ "label" => "Drop cap size", "value" => "96px" ],
+                    [ "label" => "Template", "value" => "Classic editorial" ],
+                    [ "label" => "Accent color", "value" => $drop_cap_color, "color" => $drop_cap_color ],
+                    [ "label" => "Size", "value" => "96px" ],
+                    [ "label" => "Font", "value" => "Template font" ],
+                    [ "label" => "Font weight", "value" => "Font default" ],
+                    [ "label" => "Leave as is", "value" => "None" ],
                 ],
             ],
             "inline_photo_treatments" => [
                 "title" => "Inline photo treatments",
                 "description" => "Styles inline article images and captions.",
-                "settings" => [
+                "settings" => self::with_typography( "inline_photo_caption", [
                     "inline_photo_treatments_enabled" => true,
                     "inline_photo_treatment" => "fig2",
                     "inline_photo_accent_color" => "#000033",
                     "inline_photo_caption_font_style" => "italic",
                     "inline_photo_caption_font_size" => 12,
                     "inline_photo_caption_text_color" => "#000000",
-                ],
+                    "inline_photo_caption_font_family" => "template",
+                    "inline_photo_caption_font_weight" => "inherit",
+                ] ),
                 "details" => [
                     [ "label" => "Enabled", "value" => "Yes" ],
                     [ "label" => "Template", "value" => "fig2" ],
                     [ "label" => "Accent color", "value" => "#000033", "color" => "#000033" ],
                     [ "label" => "Caption color", "value" => "#000000", "color" => "#000000" ],
                     [ "label" => "Caption size/style", "value" => "12px italic" ],
+                    [ "label" => "Caption font", "value" => "Template font" ],
+                    [ "label" => "Caption weight", "value" => "Font default" ],
+                    [ "label" => "Leave as is", "value" => "None" ],
                 ],
             ],
             "featured_image_caption_templates" => [
                 "title" => "Featured image caption templates",
                 "description" => "Styles captions for featured images.",
-                "settings" => [
+                "settings" => self::with_typography( "featured_image_caption", [
                     "featured_image_caption_templates_enabled" => true,
                     "featured_image_caption_template" => "fig2",
                     "featured_image_caption_accent_color" => "#000033",
                     "featured_image_caption_font_style" => "italic",
                     "featured_image_caption_font_size" => 10,
                     "featured_image_caption_text_color" => "#272727",
-                ],
+                    "featured_image_caption_font_family" => "template",
+                    "featured_image_caption_font_weight" => "inherit",
+                ] ),
                 "details" => [
                     [ "label" => "Enabled", "value" => "Yes" ],
                     [ "label" => "Template", "value" => "fig2" ],
                     [ "label" => "Accent color", "value" => "#000033", "color" => "#000033" ],
                     [ "label" => "Caption color", "value" => "#272727", "color" => "#272727" ],
                     [ "label" => "Caption size/style", "value" => "10px italic" ],
+                    [ "label" => "Caption font", "value" => "Template font" ],
+                    [ "label" => "Caption weight", "value" => "Font default" ],
+                    [ "label" => "Leave as is", "value" => "None" ],
                 ],
             ],
             "hide_home_posts_without_featured_image" => [
@@ -459,27 +551,55 @@ final class QuickStartFeatures {
                     [ "label" => "Guarded states", "value" => "publish, future, pending" ],
                 ],
             ],
-            "article_summary_faq_blocks" => [
-                "title" => "Article Summary & FAQ Blocks",
-                "description" => "Enables article summary and FAQ blocks.",
-                "settings" => [
+            "article_summary" => [
+                "title" => "Article Summary",
+                "description" => "Enables the article Summary editor field and display design.",
+                "settings" => self::with_typography( "post_summary", [
                     "post_summary_acf_enabled" => true,
-                    "post_faqs_acf_enabled" => true,
                     "post_summary_style" => "sum01",
+                    "post_summary_placement" => "manual",
+                    "post_summary_font_family" => "template",
+                    "post_summary_font_weight" => "inherit",
+                    "post_summary_accent_color" => "#000033",
+                    "post_summary_font_size" => 16,
+                ] ),
+                "details" => [
+                    [ "label" => "Editor field", "value" => "Enabled" ],
+                    [ "label" => "Style", "value" => "sum01" ],
+                    [ "label" => "Placement", "value" => "Manual shortcode" ],
+                    [ "label" => "Shortcode", "value" => "[smp_post_summary]" ],
+                    [ "label" => "Font", "value" => "Template font" ],
+                    [ "label" => "Weight", "value" => "Font default" ],
+                    [ "label" => "Design color", "value" => "#000033", "color" => "#000033" ],
+                    [ "label" => "Text size", "value" => "16px" ],
+                    [ "label" => "Leave as is", "value" => "Font color and font size" ],
+                ],
+            ],
+            "article_faqs" => [
+                "title" => "Article FAQs",
+                "description" => "Enables structured FAQ editor fields, display design, and placement.",
+                "settings" => self::with_typography( "post_faqs", [
+                    "post_faqs_acf_enabled" => true,
                     "post_faqs_style" => "faq03",
+                    "post_faqs_placement" => "manual",
+                    "post_faqs_font_family" => "template",
+                    "post_faqs_font_weight" => "inherit",
                     "post_faqs_accent_color" => "#000033",
                     "post_faqs_text_font_style" => "normal",
                     "post_faqs_text_font_size" => 16,
                     "post_faqs_text_color" => "#1f2937",
-                ],
+                ] ),
                 "details" => [
-                    [ "label" => "Summary field", "value" => "Enabled" ],
-                    [ "label" => "FAQ field", "value" => "Enabled" ],
-                    [ "label" => "Summary style", "value" => "sum01" ],
-                    [ "label" => "FAQ style", "value" => "faq03" ],
-                    [ "label" => "FAQ accent color", "value" => "#000033", "color" => "#000033" ],
-                    [ "label" => "FAQ text color", "value" => "#1f2937", "color" => "#1f2937" ],
-                    [ "label" => "FAQ size/style", "value" => "16px normal" ],
+                    [ "label" => "Editor fields", "value" => "Enabled" ],
+                    [ "label" => "Style", "value" => "faq03" ],
+                    [ "label" => "Placement", "value" => "Manual shortcode" ],
+                    [ "label" => "Shortcode", "value" => "[smp_post_faqs]" ],
+                    [ "label" => "Font", "value" => "Template font" ],
+                    [ "label" => "Weight", "value" => "Font default" ],
+                    [ "label" => "Accent color", "value" => "#000033", "color" => "#000033" ],
+                    [ "label" => "Text color", "value" => "#1f2937", "color" => "#1f2937" ],
+                    [ "label" => "Size/style", "value" => "16px normal" ],
+                    [ "label" => "Leave as is", "value" => "None" ],
                 ],
             ],
             "publication_social_link_cleanup" => [

@@ -1,10 +1,16 @@
 <?php
 namespace smp_publication_integration\StructuredData;
 
+use Hexa\PluginCore\FaqSets\FaqSetManager;
+use Hexa\PluginCore\FaqSets\FaqSourceResolver;
+use Hexa\PluginCore\SchemaTools\SchemaDocumentRenderer;
+use Hexa\PluginCore\SchemaTools\SchemaGraph;
+use Hexa\PluginCore\SchemaTools\SchemaInjector as CoreSchemaInjector;
 use Hexa\PluginCore\WpAdminAjax\AjaxActionRegistry;
 use Hexa\PluginCore\WpAdminAjax\AjaxRequest;
 use smp_publication_integration\Content\ArticleTypes;
 use smp_publication_integration\Content\MultiAuthors;
+use smp_publication_integration\Content\PublicationContentTypes;
 use smp_publication_integration\Support\Fields;
 use smp_publication_integration\Support\RuntimeContext;
 use smp_publication_integration\Support\Settings;
@@ -17,7 +23,10 @@ class SchemaManager {
     private const REST_NS = "smpi/v1";
 
     public function register(): void {
-        add_action( "wp_head", [ $this, "inject_schema" ], 1 );
+        ( new CoreSchemaInjector(
+            [ $this, 'current_schema' ],
+            [ 'hook' => 'wp_head', 'priority' => 1, 'script_id' => 'smpi-schema-jsonld' ]
+        ) )->register();
         ( new AjaxActionRegistry(
             [
                 'capability'   => 'manage_options',
@@ -62,23 +71,20 @@ class SchemaManager {
         return current_user_can( "manage_options" );
     }
 
-    public function inject_schema(): void {
+    public function current_schema(): array {
         if ( ! RuntimeContext::is_public_frontend() ) {
-            return;
+            return [];
         }
-        $schema = "";
         if ( is_front_page() || is_home() ) {
-            $schema = $this->generate_home_schema_json();
-        } elseif ( is_singular( [ "post", "press-release", "imported-news" ] ) ) {
+            return $this->generate_home_schema_array();
+        }
+        if ( is_singular( PublicationContentTypes::active_article_post_types() ) ) {
             $post = get_queried_object();
             if ( $post instanceof \WP_Post ) {
-                $schema = $this->generate_single_schema_json( (int) $post->ID );
+                return $this->generate_single_schema_array( (int) $post->ID );
             }
         }
-
-        if ( "" !== $schema ) {
-            echo "\n<script type=\"application/ld+json\" id=\"smpi-schema-jsonld\">" . $schema . "</script>\n";
-        }
+        return [];
     }
 
     public function filter_rank_math_schema( $data, $jsonld = null ) {
@@ -181,11 +187,11 @@ class SchemaManager {
     }
 
     public function generate_home_schema_json(): string {
-        return wp_json_encode( $this->generate_home_schema_array(), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT );
+        return ( new SchemaDocumentRenderer() )->json( $this->generate_home_schema_array() );
     }
 
     public function generate_single_schema_json( int $post_id ): string {
-        return wp_json_encode( $this->generate_single_schema_array( $post_id ), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT );
+        return ( new SchemaDocumentRenderer() )->json( $this->generate_single_schema_array( $post_id ) );
     }
 
     public function generate_home_schema_array(): array {
@@ -338,18 +344,7 @@ class SchemaManager {
     }
 
     public static function schema_types( array $schema ): array {
-        $nodes = isset( $schema["@graph"] ) && is_array( $schema["@graph"] ) ? $schema["@graph"] : [ $schema ];
-        $types = [];
-        foreach ( $nodes as $node ) {
-            if ( ! is_array( $node ) || empty( $node["@type"] ) ) {
-                continue;
-            }
-            $node_types = is_array( $node["@type"] ) ? $node["@type"] : [ $node["@type"] ];
-            foreach ( $node_types as $type ) {
-                $types[] = (string) $type;
-            }
-        }
-        return array_values( array_unique( $types ) );
+        return SchemaGraph::types( $schema );
     }
 
     public static function integrity_report( int $post_id = 0 ): array {
@@ -392,24 +387,10 @@ class SchemaManager {
             return [];
         }
 
-        $rows = Fields::get( $post_id, "post_faq_items", [] );
-        if ( ! is_array( $rows ) ) {
-            return [];
-        }
-
-        $out = [];
-        foreach ( $rows as $row ) {
-            if ( ! is_array( $row ) ) {
-                continue;
-            }
-            $question = trim( wp_strip_all_tags( (string) ( $row["question"] ?? "" ) ) );
-            $answer   = trim( (string) ( $row["answer"] ?? "" ) );
-            if ( "" === $question || "" === wp_strip_all_tags( $answer ) ) {
-                continue;
-            }
-            $out[] = [ "question" => $question, "answer" => wp_kses_post( $answer ), "enabled_for_schema" => true ];
-        }
-        return $out;
+        return array_map(
+            static fn( array $row ): array => $row + [ 'enabled_for_schema' => true ],
+            ( new FaqSourceResolver() )->rows( Fields::get( $post_id, "post_faq_items", [] ) )
+        );
     }
 
     private static function faq_schema_enabled_for_post( int $post_id ): bool {
@@ -422,6 +403,7 @@ class SchemaManager {
     }
 
     private function publication_entity(): array {
+        $canonical = Fields::canonical_entity();
         $website = Fields::option( "website", home_url( "/" ) );
         $summary = Fields::raw_option( "smpi_publication_summary" );
         if ( ! Fields::has_value( $summary ) ) {
@@ -433,8 +415,11 @@ class SchemaManager {
         }
         $logo = $this->normalize_logo( Fields::option( "logo" ) );
         $org_id = trailingslashit( home_url( "/" ) ) . "#organization";
-        $publication_user_id = absint( Fields::option( "publication_user", Settings::get( "system_publication_user_id", 0 ) ) );
-        $same_as = $this->publication_same_as( $publication_user_id );
+        $publication_user_id = $canonical ? absint( $canonical['attached_user_id'] ?? 0 ) : 0;
+        if ( ! $publication_user_id ) {
+            $publication_user_id = absint( Fields::option( "publication_user", Settings::get( "system_publication_user_id", 0 ) ) );
+        }
+        $same_as = array_values( array_unique( array_merge( $this->publication_same_as( $publication_user_id ), $this->canonical_same_as( $canonical ) ) ) );
         $policy_map = [
             "publishingPrinciples" => [ "publishing_principles", "publishing_principles" ],
             "verificationFactCheckingPolicy" => [ "verification_fact_checking_policy", "verification_fact_checking_policy" ],
@@ -452,7 +437,7 @@ class SchemaManager {
         $schema = [
             "@type" => "NewsMediaOrganization",
             "@id" => $org_id,
-            "name" => get_bloginfo( "name" ),
+            "name" => $canonical ? (string) $canonical['name'] : get_bloginfo( "name" ),
             "legalName" => $this->text_field( "legal_name" ),
             "alternateName" => $this->csv_field( "alternate_name" ),
             "url" => $website ?: home_url( "/" ),
@@ -601,12 +586,14 @@ class SchemaManager {
     }
 
     private function faq_entity( int $post_id, string $id, array $rows, string $webpage_id = "" ): array {
-        $items = [];
-        foreach ( $rows as $row ) {
-            $items[] = [ "@type" => "Question", "name" => $row["question"], "acceptedAnswer" => [ "@type" => "Answer", "text" => wp_strip_all_tags( (string) $row["answer"] ) ] ];
+        $node = ( new FaqSetManager() )->buildSchemaNode(
+            $rows,
+            [ 'id' => $id, 'url' => get_permalink( $post_id ) . '#faq', 'is_part_of' => $webpage_id ]
+        );
+        if ( '' !== $webpage_id ) {
+            $node['mainEntityOfPage'] = [ '@id' => $webpage_id ];
         }
-        $webpage_ref = "" !== $webpage_id ? [ "@id" => $webpage_id ] : null;
-        return $this->clean_schema( [ "@type" => "FAQPage", "@id" => $id, "url" => get_permalink( $post_id ) . "#faq", "isPartOf" => $webpage_ref, "mainEntityOfPage" => $webpage_ref, "mainEntity" => $items ] );
+        return $this->clean_schema( $node );
     }
 
     private function post_article_body( \WP_Post $post ): string {
@@ -665,22 +652,43 @@ class SchemaManager {
         $url = "";
         $width = null;
         $height = null;
+        $attachment_id = 0;
         if ( is_array( $logo ) && ! empty( $logo["url"] ) ) {
             $url = esc_url_raw( (string) $logo["url"] );
             $width = isset( $logo["width"] ) ? (int) $logo["width"] : null;
             $height = isset( $logo["height"] ) ? (int) $logo["height"] : null;
+            $attachment_id = absint( $logo["ID"] ?? $logo["id"] ?? 0 );
         } elseif ( is_numeric( $logo ) ) {
-            $src = wp_get_attachment_image_src( (int) $logo, "full" );
+            $attachment_id = absint( $logo );
+        } elseif ( is_string( $logo ) ) {
+            $url = esc_url_raw( $logo );
+        }
+
+        if ( ! $attachment_id && $url && function_exists( "attachment_url_to_postid" ) ) {
+            $attachment_id = absint( attachment_url_to_postid( $url ) );
+        }
+        if ( $attachment_id && ( ! $url || ! $width || ! $height ) ) {
+            $src = wp_get_attachment_image_src( $attachment_id, "full" );
+            if ( $src ) {
+                $url = $url ?: esc_url_raw( (string) $src[0] );
+                $width = $width ?: ( isset( $src[1] ) ? (int) $src[1] : null );
+                $height = $height ?: ( isset( $src[2] ) ? (int) $src[2] : null );
+            }
+        }
+        if ( ! $url ) {
+            $site_icon_id = absint( get_option( "site_icon" ) );
+            $src = $site_icon_id ? wp_get_attachment_image_src( $site_icon_id, "full" ) : false;
             if ( $src ) {
                 $url = esc_url_raw( (string) $src[0] );
                 $width = isset( $src[1] ) ? (int) $src[1] : null;
                 $height = isset( $src[2] ) ? (int) $src[2] : null;
+            } else {
+                $url = get_site_icon_url( 512 );
+                if ( $url ) {
+                    $width = 512;
+                    $height = 512;
+                }
             }
-        } elseif ( is_string( $logo ) ) {
-            $url = esc_url_raw( $logo );
-        }
-        if ( ! $url ) {
-            $url = get_site_icon_url( 512 );
         }
         return $url ? $this->clean_schema( [ "@type" => "ImageObject", "url" => $url, "width" => $width, "height" => $height ] ) : null;
     }
@@ -826,6 +834,23 @@ class SchemaManager {
         return array_values( array_unique( array_merge( $items, $this->user_same_as( $user_id ) ) ) );
     }
 
+    private function canonical_same_as( ?array $entity ): array {
+        if ( ! $entity ) {
+            return [];
+        }
+        $items = [];
+        foreach ( [ 'same_as', 'identity_links' ] as $field ) {
+            $value = \Hexa\PluginCore\EntitySources\CanonicalEntityResolver::field( $entity, $field, [] );
+            foreach ( is_array( $value ) ? $value : [ $value ] as $item ) {
+                $url = is_array( $item ) ? (string) ( $item['url'] ?? $item['same_as'] ?? '' ) : (string) $item;
+                if ( filter_var( $url, FILTER_VALIDATE_URL ) ) {
+                    $items[] = esc_url_raw( $url );
+                }
+            }
+        }
+        return array_values( array_unique( $items ) );
+    }
+
     private function user_same_as( int $user_id ): array {
         if ( ! $user_id ) {
             return [];
@@ -852,16 +877,6 @@ class SchemaManager {
     }
 
     private function clean_schema( array $schema ): array {
-        foreach ( $schema as $key => $value ) {
-            if ( is_array( $value ) ) {
-                $value = $this->clean_schema( $value );
-            }
-            if ( null === $value || false === $value || "" === $value || [] === $value ) {
-                unset( $schema[ $key ] );
-            } else {
-                $schema[ $key ] = $value;
-            }
-        }
-        return $schema;
+        return SchemaGraph::clean( $schema );
     }
 }

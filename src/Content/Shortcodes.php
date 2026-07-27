@@ -1,6 +1,7 @@
 <?php
 namespace smp_publication_integration\Content;
 
+use Hexa\PluginCore\FaqSets\FaqSetManager;
 use smp_publication_integration\Support\Fields;
 use smp_publication_integration\Support\Settings;
 
@@ -73,6 +74,7 @@ final class Shortcodes {
                 "field" => "",
                 "post_id" => 0,
                 "format" => "html",
+                "style" => "",
                 "separator" => ", ",
             ],
             $atts,
@@ -86,14 +88,29 @@ final class Shortcodes {
         if ( ! $post_id ) {
             return "";
         }
-        return $this->format_value( Fields::get( $post_id, $field ), sanitize_key( (string) $atts["format"] ), (string) $atts["separator"] );
+
+        $format = sanitize_key( (string) $atts["format"] );
+        if ( "html" === $format ) {
+            if ( "post_summary" === $field ) {
+                return $this->render_post_summary( [ "post_id" => $post_id, "style" => (string) $atts["style"] ] );
+            }
+            if ( "post_faq_items" === $field ) {
+                return $this->render_post_faqs( [ "post_id" => $post_id, "style" => (string) $atts["style"] ] );
+            }
+        }
+
+        return $this->render_post_field_value( $field, $post_id, $format, (string) $atts["separator"] );
     }
 
     public function render_post_summary( array $atts = [] ): string {
         $atts = shortcode_atts( [ "post_id" => 0, "format" => "html", "style" => "" ], $atts, "smp_post_summary" );
-        $atts["field"] = "post_summary";
-        $html = $this->render_post_acf( $atts );
-        return "html" === sanitize_key( (string) $atts["format"] ) ? ArticleStyles::wrap_post_summary( $html, sanitize_key( (string) $atts["style"] ) ) : $html;
+        $post_id = $this->resolve_post_id( (int) $atts["post_id"] );
+        if ( ! $post_id ) {
+            return "";
+        }
+        $format = sanitize_key( (string) $atts["format"] );
+        $html = $this->render_post_field_value( "post_summary", $post_id, $format, ", " );
+        return "html" === $format ? ArticleStyles::wrap_post_summary( $html, sanitize_key( (string) $atts["style"] ) ) : $html;
     }
 
     public function render_post_faqs( array $atts = [] ): string {
@@ -108,7 +125,8 @@ final class Shortcodes {
             return "";
         }
 
-        $items = $this->normalize_post_faq_items( $rows );
+        $manager = new FaqSetManager();
+        $items = $manager->normalizeItems( $rows );
         if ( empty( $items ) ) {
             return "";
         }
@@ -121,37 +139,21 @@ final class Shortcodes {
             return esc_html( implode( " ", $text ) );
         }
 
-        return ArticleStyles::wrap_post_faqs( $this->render_post_faq_items( $items ), sanitize_key( (string) $atts["style"] ) );
+        $html = $manager->renderItems(
+            $items,
+            [
+                'wrapper_tag' => 'ul', 'wrapper_class' => 'smpi-template-list smpi-post-faq-list',
+                'item_tag' => 'li', 'item_class' => 'smpi-template-item smpi-post-faq-item',
+                'question_tag' => 'h3', 'question_class' => 'smpi-template-title smpi-post-faq-question',
+                'answer_tag' => 'div', 'answer_class' => 'smpi-template-content smpi-post-faq-answer',
+                'answer_renderer' => static fn( string $answer ): string => TemplateMarkup::decorate_rich_text( wpautop( $answer ), 'post-faq' ),
+            ]
+        );
+        return ArticleStyles::wrap_post_faqs( $html, sanitize_key( (string) $atts["style"] ) );
     }
 
-    private function normalize_post_faq_items( array $rows ): array {
-        $items = [];
-        foreach ( $rows as $row ) {
-            if ( ! is_array( $row ) ) {
-                continue;
-            }
-            $question = trim( wp_strip_all_tags( (string) ( $row["question"] ?? "" ) ) );
-            $answer = $this->sanitize_post_faq_answer( (string) ( $row["answer"] ?? "" ) );
-            if ( "" === $question || "" === trim( wp_strip_all_tags( $answer ) ) ) {
-                continue;
-            }
-            $items[] = [ "question" => $question, "answer" => $answer ];
-        }
-        return $items;
-    }
-
-    private function render_post_faq_items( array $items ): string {
-        $html = "<ul class=\"smpi-post-faq-list\">";
-        foreach ( $items as $item ) {
-            $html .= "<li class=\"smpi-post-faq-item\"><h3 class=\"smpi-post-faq-question\">" . esc_html( (string) $item["question"] ) . "</h3><div class=\"smpi-post-faq-answer\">" . $item["answer"] . "</div></li>";
-        }
-        return $html . "</ul>";
-    }
-
-    private function sanitize_post_faq_answer( string $answer ): string {
-        $answer = preg_replace( "#<style[^>]*>.*?</style>#is", "", $answer ) ?? $answer;
-        $answer = preg_replace( "#<script[^>]*>.*?</script>#is", "", $answer ) ?? $answer;
-        return wp_kses_post( wpautop( $answer ) );
+    private function render_post_field_value( string $field, int $post_id, string $format, string $separator ): string {
+        return $this->format_value( Fields::get( $post_id, $field ), $format, $separator );
     }
 
     public function render_mission_statement( array $atts = [] ): string {
@@ -173,7 +175,11 @@ final class Shortcodes {
     }
 
     public function render_publication_user( array $atts = [] ): string {
-        $user_id = (int) Fields::option( "publication_user", Settings::get( "system_publication_user_id", 0 ) );
+        $entity = Fields::canonical_entity();
+        $user_id = $entity ? (int) ( $entity['attached_user_id'] ?? 0 ) : 0;
+        if ( ! $user_id ) {
+            $user_id = (int) Fields::option( "publication_user", Settings::get( "system_publication_user_id", 0 ) );
+        }
         $user = $user_id ? get_userdata( $user_id ) : false;
         return $user ? "<span class=\"smpi-publication-user\">" . esc_html( $user->display_name ) . "</span>" : "";
     }

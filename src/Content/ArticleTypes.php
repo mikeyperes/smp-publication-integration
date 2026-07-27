@@ -15,20 +15,13 @@ final class ArticleTypes {
     private const NONCE_ACTION = "smpi_article_type_radio";
 
     public function register(): void {
-        add_action( "init", [ $this, "register_taxonomy" ], 8 );
         add_action( "init", [ $this, "ensure_terms" ], 20 );
         add_action( "save_post", [ $this, "save_radio_selection" ], 20, 2 );
     }
 
-    public function register_taxonomy(): void {
-        if ( ! self::is_enabled() ) {
-            return;
-        }
-
-        register_taxonomy(
-            self::TAXONOMY,
-            self::supported_post_types(),
-            [
+    /** @return array<string,mixed> */
+    public static function taxonomy_args(): array {
+        return [
                 "labels" => [
                     "name" => "Article Types",
                     "singular_name" => "Article Type",
@@ -48,7 +41,7 @@ final class ArticleTypes {
                 "show_tagcloud" => false,
                 "show_in_rest" => true,
                 "hierarchical" => true,
-                "meta_box_cb" => [ $this, "render_radio_metabox" ],
+                "meta_box_cb" => [ self::class, "render_radio_metabox" ],
                 "rewrite" => false,
                 "query_var" => true,
                 "capabilities" => [
@@ -57,8 +50,7 @@ final class ArticleTypes {
                     "delete_terms" => "manage_options",
                     "assign_terms" => "edit_posts",
                 ],
-            ]
-        );
+            ];
     }
 
     public function ensure_terms(): void {
@@ -102,7 +94,7 @@ final class ArticleTypes {
         }
     }
 
-    public function render_radio_metabox( \WP_Post $post, array $box = [] ): void {
+    public static function render_radio_metabox( \WP_Post $post, array $box = [] ): void {
         if ( ! self::is_supported_post_type( (string) $post->post_type ) ) {
             return;
         }
@@ -174,13 +166,7 @@ final class ArticleTypes {
     }
 
     public static function supported_post_types(): array {
-        $post_types = [ "post" ];
-        foreach ( [ "press-release", "imported-news" ] as $post_type ) {
-            if ( post_type_exists( $post_type ) ) {
-                $post_types[] = $post_type;
-            }
-        }
-        return array_values( array_unique( $post_types ) );
+        return PublicationContentTypes::active_article_post_types();
     }
 
     public static function is_supported_post_type( string $post_type ): bool {

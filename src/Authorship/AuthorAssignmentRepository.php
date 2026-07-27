@@ -1,6 +1,7 @@
 <?php
 namespace smp_publication_integration\Authorship;
 
+use smp_publication_integration\Content\PublicationContentTypes;
 use smp_publication_integration\Support\Settings;
 
 if ( ! defined( "ABSPATH" ) ) {
@@ -14,11 +15,9 @@ final class AuthorAssignmentRepository {
 
     private array $cache = [];
 
-    public function register_taxonomy(): void {
-        register_taxonomy(
-            self::TAXONOMY,
-            $this->supported_post_types(),
-            [
+    /** @return array<string,mixed> */
+    public static function taxonomy_args(): array {
+        return [
                 "hierarchical" => false,
                 "public" => false,
                 "show_ui" => false,
@@ -28,12 +27,11 @@ final class AuthorAssignmentRepository {
                 "sort" => true,
                 "args" => [ "orderby" => "term_order" ],
                 "labels" => [ "name" => "SMP Authors" ],
-            ]
-        );
+            ];
     }
 
-    public function supported_post_types(): array {
-        $types = apply_filters( "smpi_multi_author_post_types", [ "post", "press-release", "imported-news" ] );
+    public static function supported_post_types(): array {
+        $types = apply_filters( "smpi_multi_author_post_types", PublicationContentTypes::active_article_post_types() );
         if ( ! is_array( $types ) ) {
             return [ "post" ];
         }

@@ -2,6 +2,7 @@
 namespace smp_publication_integration\Admin\Ajax;
 
 use Hexa\PluginCore\BrandColors\BrandColorProvider;
+use Hexa\PluginCore\BrandColors\TemplateColorResolver;
 use Hexa\PluginCore\PluginChecks\PluginInventoryAjaxController;
 use Hexa\PluginCore\SiteStructure\SiteStructureAjaxController;
 use Hexa\PluginCore\WpAdminAjax\AjaxActionRegistry;
@@ -9,8 +10,12 @@ use Hexa\PluginCore\WpAdminAjax\AjaxFailure;
 use Hexa\PluginCore\WpAdminAjax\AjaxGuard;
 use Hexa\PluginCore\WpAdminAjax\AjaxRequest;
 use smp_publication_integration\Admin\Dashboard;
+use smp_publication_integration\Content\AcfFields;
+use smp_publication_integration\Content\Breadcrumbs;
+use smp_publication_integration\Content\MuckRackVerification;
 use smp_publication_integration\Content\MultiAuthors;
 use smp_publication_integration\Content\Schema;
+use smp_publication_integration\Design\TemplateDesignRegistry;
 use smp_publication_integration\Support\Dependencies;
 use smp_publication_integration\Support\PageStructure;
 use smp_publication_integration\Support\PluginInventory;
@@ -39,6 +44,7 @@ class AjaxController {
             [
                 'smpi_load_tab'                => [ 'callback' => [ $this, 'load_tab' ] ],
                 'smpi_save_settings'           => [ 'callback' => [ $this, 'save_settings' ] ],
+                'smpi_save_publication_muckrack_source' => [ 'callback' => [ $this, 'save_publication_muckrack_source' ] ],
                 'smpi_import_brand_primary_color' => [ 'callback' => [ $this, 'import_brand_primary_color' ] ],
                 'smpi_search_users'            => [ 'callback' => [ $this, 'search_users' ] ],
                 'smpi_shortcode_user_preview'  => [ 'callback' => [ $this, 'shortcode_user_preview' ] ],
@@ -128,7 +134,11 @@ class AjaxController {
 
     public function save_settings( AjaxRequest $request ): array {
         $changes = [];
-        foreach ( [ "founders_enabled", "shadow_posts_enabled", "shadow_press_releases", "post_list_defaults_enabled", "author_social_cleanup", "public_debug_enabled", "estimated_read_time_enabled", "elementor_css_cache_busting", "publication_social_cleanup", "muckrack_verified_enabled", "muckrack_author_always_show", "publication_muckrack_verified_enabled", "multi_authors_enabled", "multi_authors_disable_loop_cards", "press_release_include_enabled", "post_summary_acf_enabled", "post_faqs_acf_enabled", "article_types_enabled", "breadcrumbs_enabled", "breadcrumbs_hide_home", "breadcrumbs_hide_term_archives", "table_of_contents_enabled", "table_of_contents_auto_single", "table_of_contents_include_summary", "article_heading_styles_enabled", "article_drop_cap_enabled", "inline_photo_treatments_enabled", "featured_image_caption_templates_enabled", "rank_math_breadcrumb_check_enabled", "hws_masked_admin_report_enabled", "content_generation_enabled", "post_hygiene_enabled", "post_hygiene_strip_inline_styles", "post_hygiene_unwrap_spans", "post_hygiene_remove_font_tags", "post_hygiene_strip_classes_ids", "post_hygiene_strip_empty_tags", "post_hygiene_clean_heading_children" ] as $key ) {
+        $boolean_keys = array_merge(
+            [ "founders_enabled", "shadow_posts_enabled", "shadow_press_releases", "post_list_defaults_enabled", "author_social_cleanup", "public_debug_enabled", "estimated_read_time_enabled", "elementor_css_cache_busting", "elementor_primary_category_enabled", "elementor_primary_category_exclude_default", "publication_social_cleanup", "muckrack_verified_enabled", "muckrack_author_always_show", "publication_muckrack_verified_enabled", "multi_authors_enabled", "multi_authors_disable_loop_cards", "press_release_include_enabled", "post_summary_acf_enabled", "post_faqs_acf_enabled", "article_types_enabled", "breadcrumbs_enabled", "breadcrumbs_hide_home", "breadcrumbs_hide_term_archives", "table_of_contents_enabled", "table_of_contents_auto_single", "table_of_contents_include_summary", "article_heading_styles_enabled", "article_drop_cap_enabled", "inline_photo_treatments_enabled", "featured_image_caption_templates_enabled", "rank_math_breadcrumb_check_enabled", "hws_masked_admin_report_enabled", "content_generation_enabled", "post_hygiene_enabled", "post_hygiene_strip_inline_styles", "post_hygiene_unwrap_spans", "post_hygiene_remove_font_tags", "post_hygiene_strip_classes_ids", "post_hygiene_strip_empty_tags", "post_hygiene_clean_heading_children" ],
+            Settings::typography_preservation_setting_keys()
+        );
+        foreach ( $boolean_keys as $key ) {
             if ( $request->has( $key, "post" ) ) {
                 $changes[ $key ] = $request->bool( $key, false, "post" );
             }
@@ -141,7 +151,14 @@ class AjaxController {
         if ( $request->has( "content_generation_api_base", "post" ) ) {
             $changes["content_generation_api_base"] = esc_url_raw( (string) $request->raw( "content_generation_api_base", "", "post" ) );
         }
-        foreach ( [ "muckrack_icon_size" => [ 8, 64, 22 ], "publication_muckrack_font_size" => [ 8, 64, 14 ], "breadcrumbs_font_size" => [ 8, 64, 13 ], "table_of_contents_text_font_size" => [ 8, 64, 15 ], "article_heading_h2_font_size" => [ 8, 64, 23 ], "article_heading_h3_font_size" => [ 8, 64, 20 ], "article_drop_cap_font_size" => [ 48, 180, 96 ], "inline_photo_caption_font_size" => [ 8, 64, 16 ], "featured_image_caption_font_size" => [ 8, 64, 16 ], "post_faqs_text_font_size" => [ 8, 64, 16 ], "muckrack_icon_size_single_author" => [ 0, 64, 0 ], "muckrack_icon_size_single_footer" => [ 0, 64, 0 ], "muckrack_icon_size_loop_cards" => [ 0, 64, 0 ], "muckrack_icon_size_home" => [ 0, 64, 0 ], "muckrack_icon_size_author" => [ 0, 64, 0 ] ] as $key => $limits ) {
+        if ( $request->has( Breadcrumbs::CSS_SETTING, "post" ) ) {
+            $validation = Breadcrumbs::validate_custom_css( (string) $request->raw( Breadcrumbs::CSS_SETTING, "", "post" ) );
+            if ( empty( $validation["valid"] ) ) {
+                throw AjaxFailure::bad_request( (string) ( $validation["message"] ?? "Invalid breadcrumb CSS." ) );
+            }
+            $changes[ Breadcrumbs::CSS_SETTING ] = (string) $validation["css"];
+        }
+        foreach ( [ "muckrack_icon_size" => [ 8, 64, 16 ], "muckrack_verified_font_size" => [ 8, 64, 14 ], "publication_muckrack_font_size" => [ 8, 64, 14 ], "breadcrumbs_font_size" => [ 8, 64, 13 ], "table_of_contents_text_font_size" => [ 8, 64, 15 ], "article_heading_h2_font_size" => [ 8, 64, 23 ], "article_heading_h3_font_size" => [ 8, 64, 20 ], "article_drop_cap_font_size" => [ 48, 180, 96 ], "inline_photo_caption_font_size" => [ 8, 64, 16 ], "featured_image_caption_font_size" => [ 8, 64, 16 ], "post_summary_font_size" => [ 8, 64, 16 ], "post_faqs_text_font_size" => [ 8, 64, 16 ], "muckrack_icon_size_single_author" => [ 0, 64, 0 ], "muckrack_icon_size_single_footer" => [ 0, 64, 0 ], "muckrack_icon_size_loop_cards" => [ 0, 64, 0 ], "muckrack_icon_size_home" => [ 0, 64, 0 ], "muckrack_icon_size_author" => [ 0, 64, 0 ] ] as $key => $limits ) {
             if ( $request->has( $key, 'post' ) ) {
                 $value = $request->int( $key, 0, 'post' );
                 $changes[ $key ] = 0 === strpos( $key, "muckrack_icon_size_" ) && 0 === $value ? 0 : max( $limits[0], min( $limits[1], $value ?: $limits[2] ) );
@@ -163,12 +180,27 @@ class AjaxController {
                 }
             }
         }
-        foreach ( [ "breadcrumbs_style", "table_of_contents_style", "article_heading_style", "inline_photo_treatment", "featured_image_caption_template", "post_summary_style", "post_faqs_style", "multi_authors_loop_output", "table_of_contents_text_font_style", "inline_photo_caption_font_style", "featured_image_caption_font_style", "post_faqs_text_font_style", 'post_time_mode', 'muckrack_verified_style', 'muckrack_icon_style', 'publication_muckrack_text_mode', 'publication_muckrack_style' ] as $key ) {
+        foreach ( Settings::font_family_setting_keys() as $key ) {
+            if ( $request->has( $key, "post" ) ) {
+                $changes[ $key ] = $request->key( $key, "template", "post" );
+            }
+        }
+        foreach ( Settings::font_weight_setting_keys() as $key ) {
+            if ( $request->has( $key, "post" ) ) {
+                $changes[ $key ] = $request->key( $key, "inherit", "post" );
+            }
+        }
+        foreach ( array_merge( TemplateDesignRegistry::source_setting_keys(), Settings::typography_mode_setting_keys() ) as $key ) {
+            if ( $request->has( $key, "post" ) ) {
+                $changes[ $key ] = $request->key( $key, "", "post" );
+            }
+        }
+        foreach ( [ "breadcrumbs_style", "table_of_contents_style", "article_heading_style", "article_drop_cap_style", "inline_photo_treatment", "featured_image_caption_template", "post_summary_style", "post_summary_placement", "post_faqs_style", "post_faqs_placement", "multi_authors_loop_output", "table_of_contents_text_font_style", "inline_photo_caption_font_style", "featured_image_caption_font_style", "post_faqs_text_font_style", 'post_time_mode', 'muckrack_verified_style', 'muckrack_icon_style', 'publication_muckrack_text_mode', 'publication_muckrack_style' ] as $key ) {
             if ( $request->has( $key, 'post' ) ) {
                 $changes[ $key ] = $request->key( $key, '', 'post' );
             }
         }
-        foreach ( [ 'muckrack_icon_color', 'muckrack_icon_color_single_author', 'muckrack_icon_color_single_footer', 'muckrack_icon_color_loop_cards', 'muckrack_icon_color_home', 'muckrack_icon_color_author', 'breadcrumbs_accent_color', 'table_of_contents_accent_color', 'table_of_contents_text_color', 'article_heading_accent_color', 'article_drop_cap_color', 'inline_photo_accent_color', 'inline_photo_caption_text_color', 'featured_image_caption_accent_color', 'featured_image_caption_text_color', 'post_faqs_accent_color', 'post_faqs_text_color', 'publication_muckrack_color' ] as $color_key ) {
+        foreach ( [ 'muckrack_icon_color', 'muckrack_icon_color_single_author', 'muckrack_icon_color_single_footer', 'muckrack_icon_color_loop_cards', 'muckrack_icon_color_home', 'muckrack_icon_color_author', 'muckrack_verified_text_color', 'breadcrumbs_accent_color', 'breadcrumbs_background_color', 'breadcrumbs_text_color', 'table_of_contents_accent_color', 'table_of_contents_text_color', 'article_heading_accent_color', 'article_heading_text_color', 'article_drop_cap_color', 'inline_photo_accent_color', 'inline_photo_caption_text_color', 'featured_image_caption_accent_color', 'featured_image_caption_text_color', 'post_summary_accent_color', 'post_summary_text_color', 'post_faqs_accent_color', 'post_faqs_text_color', 'publication_muckrack_color', 'publication_muckrack_text_color' ] as $color_key ) {
             if ( $request->has( $color_key, 'post' ) ) {
                 $raw = trim( (string) $request->raw( $color_key, '', 'post' ) );
                 $changes[ $color_key ] = '' === $raw ? '' : sanitize_hex_color( $raw );
@@ -188,20 +220,61 @@ class AjaxController {
         return $response;
     }
 
+    public function save_publication_muckrack_source( AjaxRequest $request ): array {
+        if ( ! function_exists( 'update_field' ) || ! function_exists( 'get_field' ) ) {
+            throw AjaxFailure::server_error( 'Advanced Custom Fields must be active to update the publication source.' );
+        }
+
+        $verified = $request->bool( 'verified', false, 'post' );
+        $raw_url = trim( (string) $request->raw( 'url', '', 'post' ) );
+        $url = '' === $raw_url ? '' : esc_url_raw( $raw_url, [ 'http', 'https' ] );
+
+        if ( '' !== $raw_url && '' === $url ) {
+            throw AjaxFailure::bad_request( 'Enter a valid http or https MuckRack URL.' );
+        }
+        if ( $verified && '' === $url ) {
+            throw AjaxFailure::bad_request( 'Enter the publication MuckRack URL before enabling verification.' );
+        }
+
+        update_field( AcfFields::PUBLICATION_MUCKRACK_VERIFIED_FIELD_KEY, $verified ? 1 : 0, 'option' );
+        update_field( AcfFields::PUBLICATION_MUCKRACK_URL_FIELD_KEY, $url, 'option' );
+
+        $saved_verified = (bool) get_field( AcfFields::PUBLICATION_MUCKRACK_VERIFIED_FIELD_KEY, 'option' );
+        $saved_url = trim( (string) get_field( AcfFields::PUBLICATION_MUCKRACK_URL_FIELD_KEY, 'option' ) );
+        if ( $saved_verified !== $verified || $saved_url !== $url ) {
+            throw AjaxFailure::server_error( 'The publication ACF source values could not be confirmed after saving.' );
+        }
+
+        $this->purge_frontend_cache();
+
+        return [
+            'verified'       => $saved_verified,
+            'url'            => $saved_url,
+            'url_available'  => '' !== $saved_url,
+            'feature_enabled' => Settings::bool( 'publication_muckrack_verified_enabled' ),
+            'effective'      => MuckRackVerification::publication_enabled(),
+            'message'        => 'Saved the publication MuckRack source in Publication Options.',
+        ];
+    }
+
     public function import_brand_primary_color( AjaxRequest $request ): array {
         $key = $request->key( "key", "", "post" );
         $brand = Settings::brand_primary_color( "#2d5277" );
 
         if ( "_all_feature_primary_colors" === $key ) {
-            $keys = Settings::brand_primary_color_keys();
+            $source_keys = TemplateDesignRegistry::source_setting_keys();
         } elseif ( in_array( $key, Settings::color_setting_keys(), true ) ) {
+            $source_keys = [];
             $keys = [ $key ];
         } else {
             throw AjaxFailure::bad_request( "Invalid color setting." );
         }
 
         $changes = [];
-        foreach ( $keys as $setting_key ) {
+        foreach ( $source_keys ?? [] as $setting_key ) {
+            $changes[ $setting_key ] = TemplateColorResolver::SITE_PRIMARY;
+        }
+        foreach ( $keys ?? [] as $setting_key ) {
             $changes[ $setting_key ] = $brand;
         }
 
@@ -210,8 +283,12 @@ class AjaxController {
         $this->purge_frontend_cache();
 
         $colors = [];
-        foreach ( $keys as $setting_key ) {
+        foreach ( $keys ?? [] as $setting_key ) {
             $colors[ $setting_key ] = $brand;
+        }
+        $sources = [];
+        foreach ( $source_keys ?? [] as $setting_key ) {
+            $sources[ $setting_key ] = TemplateColorResolver::SITE_PRIMARY;
         }
 
         return [
@@ -219,7 +296,8 @@ class AjaxController {
             "color" => $brand,
             "rgb" => BrandColorProvider::rgb_string( $brand ),
             "colors" => $colors,
-            "message" => "_all_feature_primary_colors" === $key ? "Imported HWS primary color into feature accent colors." : "Imported HWS primary color into " . $key . ".",
+            "sources" => $sources,
+            "message" => "_all_feature_primary_colors" === $key ? "Set every template design color to Site Primary." : "Imported HWS primary color into " . $key . ".",
         ];
     }
 
@@ -274,7 +352,7 @@ class AjaxController {
         $target = trim( (string) $request->text( "target", "", "post" ) );
         $post_id = $this->resolve_multi_author_test_post_id( $target );
         if ( $post_id <= 0 ) {
-            throw AjaxFailure::not_found( "No published post, press release, or imported-news item was found for the test." );
+            throw AjaxFailure::not_found( "No published article from a supported publication post type was found for the test." );
         }
 
         $post = get_post( $post_id );

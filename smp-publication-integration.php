@@ -4,12 +4,12 @@
  * Description: Publication profile integration for Scale My Publication systems.
  * Author: Michael Peres
  * Plugin URI: https://github.com/mikeyperes/smp-publication-integration
- * Version: 0.6.183
+ * Version: 0.6.250
  * Text Domain: smp-publication-integration
  * Domain Path: /languages
  * Author URI: https://michaelperes.com
  * GitHub Plugin URI: https://github.com/mikeyperes/smp-publication-integration/
- * GitHub Branch: block-editorial
+ * GitHub Branch: main
  * Requires PHP: 8.0
  */
 
@@ -41,11 +41,15 @@ require_once __DIR__ . "/src/Content/EstimatedReadTime.php";
 require_once __DIR__ . "/src/Content/ElementorCssCacheBusting.php";
 require_once __DIR__ . "/src/Content/MuckRackVerification.php";
 require_once __DIR__ . "/src/Content/AuthorSocialCleanup.php";
+require_once __DIR__ . "/src/Content/TemplateMarkup.php";
 require_once __DIR__ . "/src/Content/Breadcrumbs.php";
 require_once __DIR__ . "/src/Content/TableOfContents.php";
 require_once __DIR__ . "/src/Content/InlinePhotoTreatments.php";
 require_once __DIR__ . "/src/Content/FeaturedImageCaptions.php";
 require_once __DIR__ . "/src/Content/ArticleStyles.php";
+require_once __DIR__ . "/src/Content/PostContentBlockPlacement.php";
+require_once __DIR__ . "/src/Content/PostSummaryPlacement.php";
+require_once __DIR__ . "/src/Content/PostFaqPlacement.php";
 require_once __DIR__ . "/src/Content/PostHygiene.php";
 require_once __DIR__ . "/src/Content/ContentGeneration.php";
 require_once __DIR__ . "/src/Content/GoingLiveChecklist.php";
@@ -57,7 +61,7 @@ require_once __DIR__ . "/src/Admin/UiCleanup.php";
 require_once __DIR__ . "/src/Admin/Dashboard.php";
 
 final class Config {
-    public const VERSION = "0.6.183";
+    public const VERSION = "0.6.250";
 
     public static string $plugin_name        = 'SMP Publication Integration';
     public static string $plugin_slug        = 'smp-publication-integration';
@@ -70,7 +74,7 @@ final class Config {
     public static string $settings_page_display_title = 'SMP Publication Integration';
 
     public static string $github_repo   = 'mikeyperes/smp-publication-integration';
-    public static string $github_branch = 'block-editorial';
+    public static string $github_branch = 'main';
 
     public static function plugin_basename(): string {
         return plugin_basename( __FILE__ );
@@ -138,19 +142,7 @@ function boot_github_updater(): void {
         return;
     }
 
-    require_once __DIR__ . '/GitHub_Updater.php';
-
-    init_github_updater(
-        [
-            'plugin_file'        => __FILE__,
-            'github_repo'        => Config::$github_repo,
-            'github_branch'      => Config::$github_branch,
-            'proper_folder_name' => Config::$plugin_folder_name,
-            'requires'           => '5.0',
-            'tested'             => '7.0',
-            'timeout'            => 5,
-        ]
-    );
+    ( new \Hexa\PluginCore\PluginUpdates\GitHubPluginUpdater( hexa_plugin_core_updater_config() ) )->register();
 }
 add_action( 'plugins_loaded', __NAMESPACE__ . '\\boot_github_updater', 20 );
 

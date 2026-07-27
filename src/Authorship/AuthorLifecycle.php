@@ -18,7 +18,6 @@ final class AuthorLifecycle {
     }
 
     public function register(): void {
-        add_action( "init", [ $this->repository, "register_taxonomy" ], 9 );
         add_filter( "acf/update_value/name=" . AuthorAssignmentRepository::LEGACY_META_KEY, [ $this, "sync_acf_value" ], 20, 3 );
         add_action( "updated_post_meta", [ $this, "sync_meta_change" ], 20, 4 );
         add_action( "added_post_meta", [ $this, "sync_meta_change" ], 20, 4 );

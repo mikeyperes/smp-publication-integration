@@ -1,17 +1,55 @@
-.smpi-dashboard .smpi-section-tabs{align-items:center;background:#f6f7f7;border:1px solid #dcdcde;border-left:0;border-right:0;display:flex;gap:2px;margin:0 0 18px;max-width:100%;overflow-x:auto;padding:7px 8px}
-.smpi-dashboard .smpi-section-tab{border-bottom:2px solid transparent;color:#3c434a;font-size:13px;font-weight:600;padding:8px 10px;text-decoration:none;white-space:nowrap}
-.smpi-dashboard .smpi-section-tab:hover,.smpi-dashboard .smpi-section-tab:focus{background:#fff;color:#135e96;outline:0}
-.smpi-dashboard .smpi-section-tab.is-active{background:#fff;border-bottom-color:#2271b1;color:#1d2327}
 .smpi-dashboard .smpi-section-intro{border-bottom:1px solid #dcdcde;margin:0 0 16px;padding:2px 0 14px}
 .smpi-dashboard .smpi-section-intro h2{font-size:20px;margin:0 0 5px}
 .smpi-dashboard .smpi-section-intro p{color:#646970;margin:0}
 .smpi-dashboard .smpi-feature-card,.smpi-dashboard .smpi-feature-controls,.smpi-dashboard .smpi-feature-grid,.smpi-dashboard .smpi-feature-grid>*{max-width:100%;min-width:0}
+.smpi-dashboard .smpi-feature-before-activity{grid-column:1/-1;min-width:0}
 .smpi-dashboard .smpi-table-scroll{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
 .smpi-dashboard .smpi-table-scroll>table{margin:0;min-width:640px}
+.smpi-dashboard .smpi-breadcrumb-flow{display:grid}
+.smpi-dashboard .smpi-breadcrumb-section{border-top:1px solid #dcdcde;padding:22px 0}
+.smpi-dashboard .smpi-breadcrumb-section:first-child{border-top:0;padding-top:2px}
+.smpi-dashboard .smpi-breadcrumb-section:last-child{padding-bottom:2px}
+.smpi-dashboard .smpi-breadcrumb-section-head{align-items:baseline;display:flex;gap:10px;margin:0 0 14px}
+.smpi-dashboard .smpi-breadcrumb-section-head h3{color:#1d2327;font-size:16px;letter-spacing:0;line-height:1.35;margin:0;text-transform:none}
+.smpi-dashboard .smpi-breadcrumb-step{color:#2271b1;font-size:12px;font-weight:700;line-height:1}
+.smpi-dashboard .smpi-breadcrumb-section--template .smpi-control-group:has(input[data-key="breadcrumbs_style"]) .smpi-choice-grid{grid-template-columns:minmax(0,1fr)}
+.smpi-dashboard .smpi-breadcrumb-section--template .smpi-choice-card{border-radius:6px;box-sizing:border-box;height:100%;min-width:0}
+.smpi-dashboard .smpi-breadcrumb-section--template .smpi-choice-preview{box-sizing:border-box;max-width:none;overflow:hidden;width:100%}
+.smpi-dashboard .smpi-control-group:has(input[data-key="article_drop_cap_style"]) .smpi-choice-grid{grid-template-columns:minmax(0,1fr)}
+.smpi-dashboard .smpi-control-group:has(input[data-key="article_drop_cap_style"]) .smpi-choice-card{box-sizing:border-box;min-width:0;overflow:hidden}
+.smpi-dashboard .smpi-control-group:has(input[data-key="article_drop_cap_style"]) .smpi-choice-preview{box-sizing:border-box;max-width:760px;overflow:hidden;width:100%}
+.smpi-dashboard .smpi-control-group:has(input[data-key="article_drop_cap_style"]) .smpi-dropcap-preview{max-width:100%;min-width:0;width:100%}
+.smpi-dashboard .smpi-breadcrumb-appearance-grid{display:grid;gap:18px;grid-template-columns:repeat(3,minmax(0,1fr))}
+.smpi-dashboard .smpi-breadcrumb-appearance-grid>.smpi-control-group{min-width:0}
+.smpi-dashboard .smpi-breadcrumb-visibility-grid{display:grid;gap:10px;grid-template-columns:repeat(2,minmax(0,1fr));margin-bottom:18px}
+.smpi-dashboard .smpi-breadcrumb-visibility-grid .smpi-control-row{align-items:center;background:#fff;border:1px solid #d8dee8;border-radius:6px;box-sizing:border-box;display:flex;margin:0;min-height:52px;padding:12px 14px}
+.smpi-dashboard .smpi-breadcrumb-section--visibility .smpi-context-control{margin-top:0}
+.smpi-dashboard .smpi-breadcrumb-toggle-grid{display:grid;gap:10px;grid-template-columns:repeat(2,minmax(0,1fr))}
+.smpi-dashboard .smpi-breadcrumb-toggle-item{align-items:center;background:#fff;border:1px solid #d8dee8;border-radius:6px;box-sizing:border-box;display:flex;min-height:52px;padding:12px 14px}
+.smpi-dashboard .smpi-breadcrumb-toggle-item .hpc-toggle{box-sizing:border-box;width:100%}
+.smpi-dashboard .smpi-publication-muckrack-source-status{display:grid;gap:10px;grid-template-columns:repeat(3,minmax(0,1fr));margin:16px 0}
+.smpi-dashboard .smpi-publication-muckrack-source-status .smpi-status-row{margin:0;min-width:0}
+.smpi-dashboard .smpi-publication-muckrack-source-fields{align-items:end;display:grid;gap:18px;grid-template-columns:minmax(240px,.65fr) minmax(320px,1.35fr);margin-top:16px}
+.smpi-dashboard .smpi-publication-muckrack-source-fields .smpi-control-row{margin:0;padding:8px 0}
+.smpi-dashboard .smpi-publication-muckrack-source-url-field{display:grid;font-weight:400;gap:7px;min-width:0}
+.smpi-dashboard .smpi-publication-muckrack-source-url{box-sizing:border-box;max-width:none;width:100%}
+.smpi-dashboard .smpi-publication-muckrack-source-actions{align-items:center;display:flex;gap:8px;margin-top:16px}
+.smpi-dashboard .smpi-publication-muckrack-source-actions .spinner{float:none;margin:0}
+.smpi-dashboard .smpi-publication-muckrack-source-edit{border-top:1px solid #e1e6ed;margin:18px 0 0;padding-top:14px}
+.smpi-dashboard .smpi-publication-muckrack-source-link{overflow-wrap:anywhere;word-break:break-word}
+@media(max-width:1050px){
+    .smpi-dashboard .smpi-breadcrumb-appearance-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .smpi-dashboard .smpi-breadcrumb-appearance-grid>.smpi-control-group:last-child{grid-column:1/-1}
+    .smpi-dashboard .smpi-breadcrumb-visibility-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
 @media(max-width:782px){
     .smpi-dashboard .smpi-feature-grid,.smpi-dashboard .smpi-choice-grid,.smpi-dashboard .smpi-brand-color-tools .smpi-feature-grid,.smpi-dashboard .smpi-shortcode-row,.smpi-dashboard .smpi-context-override-row{grid-template-columns:minmax(0,1fr)!important}
     .smpi-dashboard .smpi-feature-head{display:grid}
     .smpi-dashboard .smpi-feature-report table{max-width:none}
     .smpi-dashboard .smpi-shortcode-row small{grid-column:1}
     .smpi-dashboard .smpi-shortcode-row>*,.smpi-dashboard .smpi-context-override-row>*{min-width:0}
+    .smpi-dashboard .smpi-breadcrumb-appearance-grid,.smpi-dashboard .smpi-breadcrumb-visibility-grid,.smpi-dashboard .smpi-breadcrumb-toggle-grid{grid-template-columns:minmax(0,1fr)}
+    .smpi-dashboard .smpi-breadcrumb-appearance-grid>.smpi-control-group:last-child{grid-column:auto}
+    .smpi-dashboard .smpi-breadcrumb-section{padding:18px 0}
+    .smpi-dashboard .smpi-publication-muckrack-source-status,.smpi-dashboard .smpi-publication-muckrack-source-fields{grid-template-columns:minmax(0,1fr)}
 }

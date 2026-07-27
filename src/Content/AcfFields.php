@@ -10,25 +10,20 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 final class AcfFields {
+    public const PUBLICATION_MUCKRACK_VERIFIED_FIELD_KEY = 'field_smpi_publication_muckrack_verified';
+    public const PUBLICATION_MUCKRACK_VERIFIED_FIELD_NAME = 'smpi_publication_muckrack_verified';
+    public const PUBLICATION_MUCKRACK_URL_FIELD_KEY = 'field_smpi_publication_muckrack_url';
+    public const PUBLICATION_MUCKRACK_URL_FIELD_NAME = 'smpi_publication_muckrack_url';
+
     public function register(): void {
-        add_action( "acf/init", [ $this, "register_fields" ] );
         add_action( "acf/input/admin_head", [ $this, "admin_faq_styles" ] );
         add_action( "acf/input/admin_footer", [ $this, "admin_faq_scripts" ] );
         add_action( "acf/input/admin_footer", [ $this, "admin_multi_author_scripts" ] );
     }
 
-    public function register_fields(): void {
-        if ( ! Dependencies::acf_active() ) {
-            return;
-        }
-        $this->register_publication_profile_fields();
-        $this->register_post_header_fields();
-        $this->register_visibility_fields();
-    }
-
-    private function register_publication_profile_fields(): void {
+    public static function publication_profile_group(): array {
         $fields = [
-            [ 'key' => 'field_smpi_publication_user', 'label' => 'Publication User', 'name' => 'smpi_publication_user', 'type' => 'user', 'instructions' => 'Select the WordPress author profile that represents this publication on the front end.', 'return_format' => 'id', 'multiple' => 0 ],
+            [ 'key' => 'field_smpi_publication_user', 'label' => 'Legacy Publication User Fallback', 'name' => 'smpi_publication_user', 'type' => 'user', 'instructions' => 'Used only when HWS Base Tools has no primary entity enabled. Canonical publication and attached-author selection is managed in HWS Base Tools.', 'return_format' => 'id', 'multiple' => 0 ],
             [ "key" => "field_smpi_founder_profiles_notice", "label" => "Founder Profiles Setup", "name" => "", "type" => "message", "message" => self::founder_profiles_message(), "esc_html" => 0, "new_lines" => "wpautop" ],
             [ "key" => "field_smpi_brand_assets", "label" => "Brand Assets Gallery", "name" => "smpi_brand_assets", "type" => "gallery", "instructions" => "Upload approved logos, marks, screenshots, media kit artwork, and press-use brand assets for the Brand Assets page.", "return_format" => "array", "preview_size" => "medium", "insert" => "append", "library" => "all", "mime_types" => "jpg,jpeg,png,gif,webp,svg" ],
 
@@ -82,24 +77,21 @@ final class AcfFields {
             [ "key" => "field_smpi_founding_location_url", "label" => "foundingLocation URL", "name" => "smpi_founding_location_url", "type" => "url", "instructions" => "Optional reference URL for the founding place. Example: https://en.wikipedia.org/wiki/New_York_City" ],
             [ "key" => "field_smpi_area_served", "label" => "areaServed", "name" => "smpi_area_served", "type" => "text", "instructions" => "Geography or audience served, comma separated. Example: United States, Canada, Global English speaking readers." ],
             [ "key" => "field_smpi_knows_about", "label" => "knowsAbout or keywords", "name" => "smpi_knows_about", "type" => "textarea", "instructions" => "Editorial coverage topics, comma or line separated. Example: technology, startups, sports business, venture capital, digital media.", "rows" => 3, "new_lines" => "br" ],
-            [ "key" => "field_smpi_publication_muckrack_verified", "label" => "Publication Verified by MuckRack", "name" => "smpi_publication_muckrack_verified", "type" => "true_false", "ui" => 1, "instructions" => "Marks this news outlet as verified by the MuckRack editorial team. Display placement is controlled in Settings > SMP Publication Integration > Features." ],
-            [ "key" => "field_smpi_publication_muckrack_url", "label" => "Publication MuckRack URL", "name" => "smpi_publication_muckrack_url", "type" => "url", "instructions" => "Public MuckRack outlet/profile URL used by the publication verification text." ],
+            [ "key" => self::PUBLICATION_MUCKRACK_VERIFIED_FIELD_KEY, "label" => "Publication Verified by MuckRack", "name" => self::PUBLICATION_MUCKRACK_VERIFIED_FIELD_NAME, "type" => "true_false", "ui" => 1, "instructions" => "Marks this news outlet as verified by the MuckRack editorial team. Display placement is controlled in Settings > SMP Publication Integration > Features." ],
+            [ "key" => self::PUBLICATION_MUCKRACK_URL_FIELD_KEY, "label" => "Publication MuckRack URL", "name" => self::PUBLICATION_MUCKRACK_URL_FIELD_NAME, "type" => "url", "instructions" => "Public MuckRack outlet/profile URL used by the publication verification text." ],
             AcfFieldFactory::multiPostObject( [ "key" => "field_smpi_breadcrumb_disabled_objects", "label" => "Disable SMP Breadcrumbs On Specific Posts Or Pages", "name" => "smpi_breadcrumb_disabled_objects", "instructions" => "Select any posts, pages, or public custom post type entries where SMP breadcrumbs should not render. This is one multi-select field, not a repeater.", "post_types" => self::breadcrumb_disable_post_types() ] ),
-            [ 'key' => 'field_smpi_imported_source_url', 'label' => 'Imported Source URL', 'name' => 'smpi_imported_source_url', 'type' => 'url', 'instructions' => 'Reference-only source URL for imported publication records.' ],
             [ 'key' => 'field_smpi_schema_markup', 'label' => 'Publication Schema Markup', 'name' => 'smpi_schema_markup', 'type' => 'textarea', 'instructions' => 'Generated JSON-LD for the current site publication. Refresh from the Schema tab.', 'rows' => 10, 'readonly' => 1 ],
         ];
         self::add_publication_shortcode_instructions( $fields );
 
-        acf_add_local_field_group(
-            [
-                'key' => 'group_smpi_publication_profile',
-                'title' => 'SMP Publication Theme Options',
-                'fields' => $fields,
-                "location" => [ [ [ "param" => "options_page", "operator" => "==", "value" => "smp-publication-integration" ] ] ],
-                'position' => 'normal',
-                'style' => 'default',
-            ]
-        );
+        return [
+            'key' => 'group_smpi_publication_profile',
+            'title' => 'SMP Publication Theme Options',
+            'fields' => $fields,
+            "location" => [ [ [ "param" => "options_page", "operator" => "==", "value" => "smp-publication-integration" ] ] ],
+            'position' => 'normal',
+            'style' => 'default',
+        ];
     }
 
     private static function add_publication_shortcode_instructions( array &$fields ): void {
@@ -153,7 +145,7 @@ final class AcfFields {
         return array_values( $types );
     }
 
-    private function register_post_header_fields(): void {
+    public static function article_fields_group(): array {
         $fields = [
             [
                 "key" => "field_64a7290bc7625",
@@ -215,30 +207,27 @@ final class AcfFields {
 
 
         if ( 1 === count( $fields ) ) {
-            return;
+            return [];
         }
 
-        acf_add_local_field_group(
-            [
-                "key" => "group_64a7290b61191",
-                "title" => "Post - Header",
-                "fields" => $fields,
-                "location" => [
-                    [ [ "param" => "post_type", "operator" => "==", "value" => "post" ] ],
-                    [ [ "param" => "post_type", "operator" => "==", "value" => "press-release" ] ],
-                    [ [ "param" => "post_type", "operator" => "==", "value" => "imported-news" ] ],
-                ],
-                "menu_order" => 0,
-                "position" => "normal",
-                "style" => "default",
-                "label_placement" => "top",
-                "instruction_placement" => "label",
-                "hide_on_screen" => "",
-                "active" => true,
-                "description" => "",
-                "show_in_rest" => 0,
-            ]
-        );
+        return [
+            "key" => "group_64a7290b61191",
+            "title" => "Article Fields",
+            "fields" => $fields,
+            "location" => array_map(
+                static fn( string $post_type ): array => [ [ "param" => "post_type", "operator" => "==", "value" => $post_type ] ],
+                PublicationContentTypes::article_post_types()
+            ),
+            "menu_order" => 0,
+            "position" => "normal",
+            "style" => "default",
+            "label_placement" => "top",
+            "instruction_placement" => "label",
+            "hide_on_screen" => "",
+            "active" => true,
+            "description" => "",
+            "show_in_rest" => 0,
+        ];
     }
 
 
@@ -253,7 +242,7 @@ final class AcfFields {
         if ( ! $screen || "post" !== $screen->base ) {
             return false;
         }
-        return in_array( (string) $screen->post_type, [ "post", "press-release", "imported-news" ], true );
+        return in_array( (string) $screen->post_type, PublicationContentTypes::article_post_types(), true );
     }
 
     public function admin_faq_styles(): void {
@@ -350,8 +339,4 @@ final class AcfFields {
         return in_array( (string) $screen->post_type, MultiAuthors::supported_post_types(), true );
     }
 
-    private function register_visibility_fields(): void {
-        // Visibility controls are owned by src/Content/Visibility.php.
-        // Do not register an ACF side box here; it duplicates the custom metabox.
-    }
 }

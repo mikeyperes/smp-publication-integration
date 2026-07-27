@@ -2,17 +2,30 @@
 namespace smp_publication_integration\Admin\Dashboard;
 
 use Hexa\PluginCore\BrandColors\BrandColorProvider;
+use Hexa\PluginCore\ActivityLog\ActivityLogConfig;
+use Hexa\PluginCore\ActivityLog\ActivityLogRenderer;
 use Hexa\PluginCore\PluginChecks\PluginInventoryRenderer;
-use Hexa\PluginCore\ShortcodeRegistry\ShortcodeDisplayRenderer;
 use Hexa\PluginCore\SmartSearch\SmartSearchRenderer;
 use Hexa\PluginCore\FieldStructures\FieldStructureRenderer;
+use Hexa\PluginCore\FieldStructures\AcfFieldGroupRenderer;
+use Hexa\PluginCore\ContentTypes\ContentTypeRenderer;
+use Hexa\PluginCore\Taxonomies\TaxonomyRenderer;
 use Hexa\PluginCore\GettingStartedChecklist\GettingStartedChecklistRenderer;
 use Hexa\PluginCore\SnippetRegistry\SnippetRegistry;
 use Hexa\PluginCore\SnippetRegistry\SnippetsTableRenderer;
 use Hexa\PluginCore\WpAdminTabs\HostTabsRenderer;
+use Hexa\PluginCore\PluginUpdates\PluginUpdateStatus;
+use Hexa\PluginCore\CorePackageUpdates\CorePackageStatus;
+use Hexa\PluginCore\WpAdminTabs\TabDefinition;
+use Hexa\PluginCore\WpAdminTabs\TabRegistry;
 use Hexa\PluginCore\WpAdminComponents\ColorControl;
 use Hexa\PluginCore\WpAdminComponents\CoreUi;
+use Hexa\PluginCore\WpAdminComponents\TypographyControl;
+use Hexa\PluginCore\WpAdminComponents\TemplateColorControl;
+use Hexa\PluginCore\WpAdminComponents\ScopedCssOverride;
 use Hexa\PluginCore\WpAdminComponents\DynamicButton;
+use Hexa\PluginCore\Typography\TypographyPreservation;
+use Hexa\PluginCore\Typography\TemplateTypography;
 use Hexa\PluginCore\SiteStructure\SiteStructureRenderer;
 use Hexa\PluginCore\SchemaDetection\SchemaPageScanner;
 use Hexa\PluginCore\SchemaDetection\SchemaScanRenderer;
@@ -20,15 +33,17 @@ use smp_publication_integration\Admin\Ajax;
 use smp_publication_integration\Admin\QuickStartCleanupWorkflow;
 use smp_publication_integration\Admin\UiCleanup;
 use smp_publication_integration\Admin\Navigation\AdminNavigation;
-use smp_publication_integration\Admin\Navigation\AdminRoute;
-use smp_publication_integration\Admin\Navigation\SectionNavigation;
 use smp_publication_integration\Config;
-use smp_publication_integration\Content\AuthorShortcodes;
+use smp_publication_integration\Content\AcfFields;
+use smp_publication_integration\Content\Breadcrumbs;
+use smp_publication_integration\Content\MuckRackVerification;
 use smp_publication_integration\Content\MultiAuthors;
+use smp_publication_integration\Content\PublicationContentTypes;
 use smp_publication_integration\Content\Schema;
-use smp_publication_integration\Content\Shortcodes;
+use smp_publication_integration\Design\TemplateDesignRegistry;
 use smp_publication_integration\Support\Dependencies;
 use smp_publication_integration\Support\ArticleCleanup;
+use smp_publication_integration\Support\Fields;
 use smp_publication_integration\Support\PageStructure;
 use smp_publication_integration\Support\PluginInventory;
 use smp_publication_integration\Support\PluginRegistry;
@@ -79,11 +94,13 @@ class DashboardController {
             wp_die( esc_html__( 'You do not have permission to access this page.', 'smp-publication-integration' ) );
         }
         $navigation = $this->navigation();
-        $tabs       = $navigation->areas();
+        $registry   = $this->tab_registry( $navigation );
+        $tabs       = $registry->all();
         $requested  = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'overview';
         $section    = isset( $_GET['section'] ) ? sanitize_key( wp_unslash( $_GET['section'] ) ) : '';
         $route      = $navigation->resolve( $requested, $section );
-        $active     = $route->area();
+        $active     = $route->section();
+        $sidebar_identity = $this->sidebar_identity();
         if ( Dependencies::acf_active() && function_exists( "acf_form_head" ) ) {
             acf_form_head();
         }
@@ -105,9 +122,14 @@ class DashboardController {
                     "root_id"         => "smpi-core-tabs",
                     "panel_id"        => "smpi-tab-panel",
                     "label"           => "SMP Publication Integration sections",
-                    "render_callback" => function( string $area ) use ( $route ): void {
-                        $section = $area === $route->area() ? $route->section() : '';
-                        $this->area( $area, $section );
+                    "layout"          => "sidebar",
+                    "groups"          => $navigation->groups(),
+                    "sidebar_identity" => $sidebar_identity,
+                    "sidebar_collapsible" => true,
+                    "sidebar_collapsed"   => false,
+                    "sidebar_persist"     => true,
+                    "render_callback" => function( string $tab ) use ( $registry ): void {
+                        $this->render_registered_tab( $registry, $tab );
                     },
                 ]
             );
@@ -117,42 +139,92 @@ class DashboardController {
         <?php
     }
 
-    public function tab_fragment( string $id ): array {
-        $navigation = $this->navigation();
-        $tabs       = $navigation->areas();
-        $route      = $navigation->resolve( $id );
-
-        ob_start();
-        if ( "publication_options" === $route->section() && Dependencies::acf_active() && function_exists( "acf_form_head" ) ) {
-            acf_form_head();
-        }
-        $this->area( $route->area(), $route->section() );
-        $html = ob_get_clean();
+    /**
+     * @return array<string,string>
+     */
+    private function sidebar_identity(): array {
+        $plugin_status = ( new PluginUpdateStatus( \smp_publication_integration\hexa_plugin_core_updater_config() ) )->get();
+        $core_status   = ( new CorePackageStatus( \smp_publication_integration\hexa_plugin_core_package_config() ) )->get();
 
         return [
-            "tab" => $route->area(),
-            "label" => $tabs[ $route->area() ],
-            "html" => is_string( $html ) ? $html : "",
+            "plugin_name"     => (string) ( $plugin_status["plugin_name"] ?? Config::$plugin_name ),
+            "current_version" => (string) ( $plugin_status["current_version"] ?? Config::VERSION ),
+            "github_version"  => (string) ( $plugin_status["latest_version"] ?? "Unknown" ),
+            "github_url"      => (string) ( $plugin_status["github_url"] ?? "https://github.com/" . Config::$github_repo ),
+            "core_name"       => "Hexa WP Core",
+            "core_version"    => (string) ( $core_status["current_version"] ?? "Unknown" ),
+            "core_github_url" => (string) ( $core_status["github_url"] ?? "https://github.com/mikeyperes/hexa-wordpress-plugin-core" ),
         ];
     }
 
-    private function tabs(): array {
-        return $this->navigation()->areas();
+    public function tab_fragment( string $id ): array {
+        $navigation = $this->navigation();
+        $registry   = $this->tab_registry( $navigation );
+        $route      = $navigation->resolve( $id );
+        $tab_id     = $route->section();
+        $definition = $registry->get( $tab_id ) ?? $registry->get( 'overview' );
+
+        if ( ! $definition instanceof TabDefinition ) {
+            return [
+                'tab'   => 'overview',
+                'label' => 'Dashboard',
+                'html'  => '',
+            ];
+        }
+
+        $tab_id = $definition->id;
+
+        ob_start();
+        if ( 'publication_options' === $tab_id && Dependencies::acf_active() && function_exists( 'acf_form_head' ) ) {
+            acf_form_head();
+        }
+        $this->render_registered_tab( $registry, $tab_id );
+        $html = ob_get_clean();
+
+        return [
+            'tab'   => $tab_id,
+            'label' => $this->tab_label( $definition ),
+            'html'  => is_string( $html ) ? $html : '',
+        ];
     }
 
     private function navigation(): AdminNavigation {
         return new AdminNavigation();
     }
 
-    private function area( string $area, string $section = '' ): void {
-        $navigation = $this->navigation();
-        $route      = $navigation->resolve( $area, $section );
+    private function tab_registry( ?AdminNavigation $navigation = null ): TabRegistry {
+        $navigation = $navigation ?? $this->navigation();
 
-        ( new SectionNavigation( $navigation ) )->render(
-            $route,
-            admin_url( 'options-general.php?page=' . Config::$settings_page_slug )
+        return $navigation->registry(
+            function ( string $id ): void {
+                $this->tab( $id );
+            },
+            Config::$settings_page_capability
         );
-        $this->tab( $route->section() );
+    }
+
+    private function render_registered_tab( TabRegistry $registry, string $id ): void {
+        $definition = $registry->get( $id ) ?? $registry->get( 'overview' );
+        if ( ! $definition instanceof TabDefinition ) {
+            return;
+        }
+
+        if (
+            null !== $definition->capability
+            && '' !== $definition->capability
+            && ! current_user_can( $definition->capability )
+        ) {
+            echo '<div class="notice notice-error"><p>You do not have permission to view this section.</p></div>';
+            return;
+        }
+
+        if ( is_callable( $definition->renderer ) ) {
+            call_user_func( $definition->renderer );
+        }
+    }
+
+    private function tab_label( TabDefinition $definition ): string {
+        return $definition->label . ( $definition->deprecated ? ' (Deprecated)' : '' );
     }
 
     private function tab( string $id ): void {
@@ -167,6 +239,7 @@ class DashboardController {
         if ( 'schema' === $id ) { $this->schema(); return; }
         if ( 'reports' === $id ) { $this->reports(); return; }
         if ( "custom_fields" === $id ) { $this->custom_fields(); return; }
+        if ( 'custom_post_types' === $id ) { $this->custom_post_types(); return; }
         if ( 'features' === $id ) { $this->features(); return; }
         if ( 'multiple_authors' === $id ) { $this->multiple_authors(); return; }
         if ( 'snippets' === $id ) { $this->snippets(); return; }
@@ -217,6 +290,31 @@ class DashboardController {
 
 
     private function publication_mapping_panel( array $settings ): void {
+        $canonical = Fields::canonical_entity();
+        if ( $canonical ) {
+            echo '<div class="smpi-panel smpi-publication-map smpi-publication-author-panel">';
+            echo '<div class="smpi-overview-section"><p class="smpi-kicker">Current Publication</p><h2>' . esc_html( (string) $canonical['name'] ) . '</h2><p>This publication identity is managed by HWS Base Tools and consumed here without a duplicate SMP selection.</p></div>';
+            echo '<div class="smpi-author-binding-layout"><div class="smpi-author-search-card"><h3>Canonical source</h3><dl class="smpi-defs">';
+            echo '<div class="smpi-def"><dt>Entity type</dt><dd><code>' . esc_html( (string) $canonical['entity_type'] ) . '</code></dd></div>';
+            echo '<div class="smpi-def"><dt>Source</dt><dd><code>' . esc_html( (string) $canonical['source'] ) . '</code></dd></div>';
+            echo '<div class="smpi-def"><dt>Object</dt><dd><code>' . esc_html( (string) $canonical['kind'] . ( ! empty( $canonical['post_type'] ) ? ':' . (string) $canonical['post_type'] : '' ) . ' #' . (string) $canonical['id'] ) . '</code></dd></div>';
+            if ( ! empty( $canonical['attached_user_id'] ) ) {
+                $author = (string) ( $canonical['attached_user_name'] ?? 'WordPress user #' . (int) $canonical['attached_user_id'] );
+                $author_link = ! empty( $canonical['attached_user_edit_url'] ) ? '<a href="' . esc_url( (string) $canonical['attached_user_edit_url'] ) . '">' . esc_html( $author ) . '</a>' : esc_html( $author );
+                echo '<div class="smpi-def"><dt>Attached author</dt><dd>' . $author_link . ' <code>#' . esc_html( (string) $canonical['attached_user_id'] ) . '</code></dd></div>';
+            } else {
+                echo '<div class="smpi-def"><dt>Attached author</dt><dd>Not set. SMP does not require one.</dd></div>';
+            }
+            echo '</dl><p class="smpi-action-row"><a class="button button-primary" href="' . esc_url( admin_url( 'options-general.php?page=hws-core-tools&tab=website-types' ) ) . '">Manage in HWS Base Tools</a>';
+            if ( ! empty( $canonical['edit_url'] ) ) {
+                echo ' <a class="button" href="' . esc_url( (string) $canonical['edit_url'] ) . '">Edit source record</a>';
+            }
+            echo '</p></div></div>';
+            $this->founder_profiles_panel();
+            echo '</div>';
+            return;
+        }
+
         $user_id = isset( $settings["system_publication_user_id"] ) ? absint( $settings["system_publication_user_id"] ) : 0;
 
         $locked = $user_id > 0;
@@ -225,7 +323,7 @@ class DashboardController {
         echo "<div class=\"smpi-author-binding-layout\">";
         echo "<div class=\"smpi-user-picker" . ( $locked ? " is-locked" : "" ) . "\" data-selected-user=\"" . esc_attr( (string) $user_id ) . "\">";
         echo "<input type=\"hidden\" class=\"smpi-setting smpi-publication-user-setting\" data-key=\"system_publication_user_id\" value=\"" . esc_attr( (string) $user_id ) . "\">";
-        echo "<div class=\"smpi-locked-view\"><div class=\"smpi-locked-bar\">" . $this->ico( true ) . "<span class=\"smpi-locked-label\">Main publication profile</span><span class=\"smpi-pill smpi-pill--saved\">Saved</span><button type=\"button\" class=\"button smpi-change-user\">Change profile</button></div>";
+        echo "<div class=\"smpi-locked-view\"><div class=\"smpi-locked-bar\">" . self::ico( true ) . "<span class=\"smpi-locked-label\">Main publication profile</span><span class=\"smpi-pill smpi-pill--saved\">Saved</span><button type=\"button\" class=\"button smpi-change-user\">Change profile</button></div>";
         echo "<div class=\"smpi-current-user-summary\">" . $this->publication_user_card_html( $user_id ) . "</div></div>";
         echo "<div class=\"smpi-edit-view\"><div class=\"smpi-author-search-card\">";
         echo "<label for=\"smpi-publication-user-search\"><strong>Search for a publication profile</strong></label><p class=\"smpi-muted\">Search by publication name, username, or email, then click a result to lock it in. It saves automatically.</p>";
@@ -243,7 +341,7 @@ class DashboardController {
 
         $readiness = Dependencies::verified_profiles_readiness();
         if ( empty( $readiness["plugin_active"] ) || empty( $readiness["profile_cpt"] ) || empty( $readiness["profile_acf"] ) ) {
-            echo "<div class=\"smpi-alert smpi-alert-warning\"><strong>Verified Profiles setup required.</strong><p>Founder selection unlocks once all three requirements below are met.</p><div class=\"smpi-status-rows\"><div class=\"smpi-status-row\">" . $this->ico( ! empty( $readiness["plugin_active"] ), true ) . "<span>Verified Profiles plugin active</span></div><div class=\"smpi-status-row\">" . $this->ico( ! empty( $readiness["profile_cpt"] ), true ) . "<span>Profile content type active</span></div><div class=\"smpi-status-row\">" . $this->ico( ! empty( $readiness["profile_acf"] ), true ) . "<span>Profile ACF fields enabled</span></div></div>" . $this->verified_profiles_setup_actions_html( $readiness ) . "</div></div>";
+            echo "<div class=\"smpi-alert smpi-alert-warning\"><strong>Verified Profiles setup required.</strong><p>Founder selection unlocks once all three requirements below are met.</p><div class=\"smpi-status-rows\"><div class=\"smpi-status-row\">" . self::ico( ! empty( $readiness["plugin_active"] ), true ) . "<span>Verified Profiles plugin active</span></div><div class=\"smpi-status-row\">" . self::ico( ! empty( $readiness["profile_cpt"] ), true ) . "<span>Profile content type active</span></div><div class=\"smpi-status-row\">" . self::ico( ! empty( $readiness["profile_acf"] ), true ) . "<span>Profile ACF fields enabled</span></div></div>" . $this->verified_profiles_setup_actions_html( $readiness ) . "</div></div>";
             return;
         }
 
@@ -343,10 +441,6 @@ class DashboardController {
         return "<div class=\"smpi-empty-state smpi-empty-founder-profiles\"><strong>No founder profiles selected.</strong><p>Use the search above to add founder records from Verified Profiles.</p></div>";
     }
 
-    private function selected_user_label( int $user_id ): string {
-        $user = $user_id ? get_user_by( "id", $user_id ) : false;
-        return $user ? $user->display_name : "";
-    }
 
     private function publication_user_card_html( int $user_id ): string {
         $user = $user_id ? get_user_by( "id", $user_id ) : false;
@@ -435,7 +529,7 @@ class DashboardController {
         $text = sanitize_hex_color( (string) get_option( "hws_brand_highlight_text_color", "#111827" ) ) ?: "#111827";
         $edit = admin_url( "options-general.php?page=hws-core-tools&tab=brand-assets" );
         echo "<div class=smpi-hero><p class=smpi-kicker>Brand</p><h2>HWS Brand Assets</h2><p>SMP reports shared HWS brand values here. Editing remains owned by HWS Base Tools.</p></div>";
-        echo "<div class=smpi-grid><div class=smpi-card><h3>Highlight override</h3><p>" . ( $enabled ? $this->ico( true ) . "Enabled" : $this->ico( false ) . "Disabled" ) . "</p></div><div class=smpi-card><h3>Highlight background</h3><p><span class=smpi-color-swatch style=background:" . esc_attr( $background ) . "></span> <code>" . esc_html( $background ) . "</code></p></div><div class=smpi-card><h3>Highlight text</h3><p><span class=smpi-color-swatch style=background:" . esc_attr( $text ) . "></span> <code>" . esc_html( $text ) . "</code></p></div></div>";
+        echo "<div class=smpi-grid><div class=smpi-card><h3>Highlight override</h3><p>" . ( $enabled ? self::ico( true ) . "Enabled" : self::ico( false ) . "Disabled" ) . "</p></div><div class=smpi-card><h3>Highlight background</h3><p><span class=smpi-color-swatch style=background:" . esc_attr( $background ) . "></span> <code>" . esc_html( $background ) . "</code></p></div><div class=smpi-card><h3>Highlight text</h3><p><span class=smpi-color-swatch style=background:" . esc_attr( $text ) . "></span> <code>" . esc_html( $text ) . "</code></p></div></div>";
         echo "<div class=smpi-panel><h2>Edit Source</h2><p>These settings come from HWS Base Tools Brand Assets.</p><p><a class=button target=_blank rel=noopener href=" . esc_url( $edit ) . ">Open HWS Brand Assets</a></p></div>";
     }
 
@@ -535,7 +629,7 @@ class DashboardController {
             .smpi-sc-noresults{display:none;padding:16px;color:#98a2b3}
             </style>
             <h2>Shortcodes</h2>
-            <p class="smpi-sc-intro">Search a shortcode, or set a preview author and sample post to see live output. Click a card header to collapse it.</p>
+            <p class="smpi-sc-intro">Search a shortcode, or set a preview author and sample post to see live output. Open a card to view its shortcodes.</p>
             <div class="smpi-sc-top">
                 <div class="smpi-sc-search smpi-sc-search--filter"><?php ( new SmartSearchRenderer() )->render( [ "id" => "smpi-sc-filter-search", "source" => "smpi_shortcodes", "min_chars" => 2, "limit" => 12, "label" => "Search shortcodes", "placeholder" => "Search shortcodes by tag or description..." ] ); ?></div>
                 <div class="smpi-sc-search smpi-sc-search--author"><?php ( new SmartSearchRenderer() )->render( [ "id" => "smpi-sc-author-search", "source" => "users", "min_chars" => 2, "label" => "Preview author", "placeholder" => "Preview author..." ] ); ?></div>
@@ -569,7 +663,7 @@ class DashboardController {
                 var uid = box.attr("data-user") || 0, pid = box.attr("data-post") || 0;
                 $(".smpi-sc-spin").addClass("is-active");
                 $.post(smpiAdmin.ajaxUrl, { action: "smpi_shortcode_user_preview", nonce: smpiAdmin.nonce, user_id: uid, post_id: pid })
-                    .done(function(x){ if (x && x.success) { box.html(x.data.html || ""); applyFilter(filterValue()); } })
+                    .done(function(x){ if (x && x.success) { box.html(x.data.html || ""); if(window.hexaPluginCoreInitPersistentDetails)window.hexaPluginCoreInitPersistentDetails(box.get(0)); applyFilter(filterValue()); } })
                     .always(function(){ $(".smpi-sc-spin").removeClass("is-active"); });
             }
             function copyText(v, b){
@@ -855,7 +949,8 @@ class DashboardController {
             }
             $reg = (string) $ctx["register_file"];
             $access = (string) $ctx["access"];
-            $out .= "<details class=\"smpi-sc-card\" data-ctx=\"" . esc_attr( (string) $ctx["key"] ) . "\" open>";
+            $query_key = "shortcode-" . sanitize_key( (string) $ctx["key"] );
+            $out .= "<details class=\"smpi-sc-card\" data-ctx=\"" . esc_attr( (string) $ctx["key"] ) . "\" data-hpc-query-key=\"" . esc_attr( $query_key ) . "\">";
             $out .= "<summary class=\"smpi-sc-card-head\"><span class=\"smpi-sc-chev\" aria-hidden=\"true\"></span><span class=\"smpi-sc-layer smpi-sc-layer--" . esc_attr( $lmod ) . "\">" . esc_html( $layer ) . "</span><span class=\"smpi-sc-card-title\">" . esc_html( (string) $ctx["title"] ) . "</span><span class=\"smpi-sc-count\">" . (int) $count . "</span></summary>";
             $out .= "<div class=\"smpi-sc-card-body\">";
             $out .= "<p class=\"smpi-sc-card-blurb\">" . esc_html( (string) $ctx["blurb"] ) . "</p>";
@@ -867,115 +962,7 @@ class DashboardController {
         return $out;
     }
 
-    private static function shortcode_row_display_item( array $row ): array {
-        $shortcode = (string) ( $row['shortcode'] ?? '' );
-        $tag = self::shortcode_tag_from_code( $shortcode );
-        $parameters = self::shortcode_parameters_from_code( $shortcode );
 
-        return [
-            'label'       => $tag ?: (string) ( $row['group'] ?? 'Shortcode' ),
-            'shortcode'   => $shortcode,
-            'description' => self::shortcode_description_from_row( $row, $tag ),
-            'provider'    => (string) ( $row['provider'] ?? '' ),
-            'source'      => (string) ( $row['source'] ?? '' ),
-            'output_html' => (string) ( $row['value'] ?? '' ),
-            'evaluate'    => false,
-            'examples'    => [
-                [
-                    'label'      => 'Current selected context',
-                    'shortcode'  => $shortcode,
-                    'parameters' => $parameters,
-                ],
-            ],
-        ];
-    }
-
-    private static function shortcode_description_from_row( array $row, string $tag ): string {
-        $group = (string) ( $row['group'] ?? '' );
-        if ( 'Publication/global' === $group ) {
-            return 'Renders publication-level data from SMP settings, publication options, assigned pages, or schema helpers.';
-        }
-        if ( 'Author/user.php' === $group ) {
-            return 'Renders user profile data for the selected WordPress author.';
-        }
-        if ( 'Compatibility' === $group ) {
-            return 'Legacy compatibility shortcode for existing MuckRack and ACF author-field templates.';
-        }
-        if ( 'External provider' === $group ) {
-            return 'External provider shortcode listed for reference; SMP does not execute this row in the debugger.';
-        }
-        return '' !== $tag ? 'Displays the live output for [' . $tag . '].' : 'Displays the live output for this shortcode.';
-    }
-
-    private static function shortcode_tag_from_code( string $shortcode ): string {
-        return preg_match( '/^\[([a-zA-Z0-9_\-]+)/', trim( $shortcode ), $matches ) ? (string) $matches[1] : '';
-    }
-
-    private static function shortcode_parameters_from_code( string $shortcode ): array {
-        $parameters = [];
-        if ( preg_match_all( '/([a-zA-Z0-9_\-]+)="([^"]*)"/', $shortcode, $matches, PREG_SET_ORDER ) ) {
-            foreach ( $matches as $match ) {
-                $parameters[ (string) $match[1] ] = (string) $match[2];
-            }
-        }
-        return $parameters;
-    }
-
-    private static function shortcode_user_rows( int $user_id ): array {
-        $rows = [];
-        foreach ( Shortcodes::shortcodes() as $tag => $callback ) {
-            if ( 0 === strpos( $tag, "smp_post_" ) ) { continue; }
-            $code = "[" . $tag . "]";
-            $rows[] = [ "group" => "Publication/global", "provider" => "SMP Publication Integration", "source" => self::publication_shortcode_source( (string) $tag ), "shortcode" => $code, "value" => self::shortcode_value_html( $code ) ];
-        }
-        $aliases = AuthorShortcodes::field_aliases();
-        foreach ( AuthorShortcodes::shortcodes() as $tag => $callback ) {
-            $code = "[" . $tag . " user_id=\"" . $user_id . "\"";
-            if ( "author_image" === $tag ) { $code .= " size=\"thumbnail\" output=\"url\""; }
-            if ( "author_muckrack_verified" === $tag ) { $code .= " type=\"icon\" context=\"single_author\""; }
-            $code .= "]";
-            $rows[] = [ "group" => "Author/user.php", "provider" => "SMP Publication Integration", "source" => self::author_shortcode_source( (string) $tag, $aliases ), "shortcode" => $code, "value" => self::shortcode_value_html( $code ) ];
-        }
-        $legacy = [ "[acf_author_field field=\"muckrack_url\" user_id=\"" . $user_id . "\"]", "[muckrack_verified user_id=\"" . $user_id . "\" type=\"icon\"]", "[muckrack_verified user_id=\"" . $user_id . "\" type=\"text\"]" ];
-        foreach ( $legacy as $code ) {
-            $rows[] = [ "group" => "Compatibility", "provider" => "SMP MuckRack compatibility", "source" => "ACF/user fields: muckrack_verified, muckrack_url, what_best_describe_you", "shortcode" => $code, "value" => self::shortcode_value_html( $code ) ];
-        }
-        return array_merge( $rows, self::external_shortcode_rows( $user_id ) );
-    }
-
-    private static function publication_shortcode_source( string $tag ): string {
-        $map = [ "smp_publication_field" => "Publication option ACF field parameter", "smp_publication_mission_statement" => "mission_statement publication option", "smp_publication_founders" => "smpi_founder_profiles option / profile CPT", "smp_publication_user" => "system_publication_user_id setting", "smp_publication_profile" => "publication options and mapped user", "smp_publication_validate_schema" => "schema integrity report", "smp_publication_page" => "page_assignments option", "smp_publication_debug_url" => "public debug endpoint setting" ];
-        return $map[ $tag ] ?? "SMP publication option";
-    }
-
-    private static function author_shortcode_source( string $tag, array $aliases ): string {
-        $key = str_replace( "author_", "", $tag );
-        if ( "muck_rack" === $key ) { $key = "muckrack"; }
-        if ( "muckrack_verified" === $key ) { return "ACF/user fields: muckrack_verified, muckrack_url, what_best_describe_you"; }
-        return isset( $aliases[ $key ] ) ? "ACF/user meta aliases: " . implode( ", ", $aliases[ $key ] ) : "WordPress user meta";
-    }
-
-    private static function external_shortcode_rows( int $user_id ): array {
-        $rows = [];
-        $external = [ [ "HWS Base Tools", "[founder id=\"url_facebook\"]", "External founder/company shortcode provider" ], [ "HWS Base Tools", "[company id=\"subtitle\"]", "External founder/company shortcode provider" ], [ "SMP Verified Profiles", "[get_profile_field field=\"title\"]", "External profile CPT shortcode provider" ] ];
-        foreach ( $external as $row ) {
-            $rows[] = [ "group" => "External provider", "provider" => $row[0], "source" => $row[2], "shortcode" => $row[1], "value" => "<span class=\"smpi-muted\">External provider shortcode. SMP lists it but does not execute it in this debugger.</span>" ];
-        }
-        $providers = [];
-        if ( function_exists( "smp_vp_discover_shortcodes" ) ) { $providers[] = smp_vp_discover_shortcodes(); }
-        $fn = "smp_verified_profiles\get_verified_profile_shortcodes";
-        if ( function_exists( $fn ) ) { $providers[] = $fn(); }
-        foreach ( $providers as $provider_rows ) {
-            if ( ! is_array( $provider_rows ) ) { continue; }
-            foreach ( $provider_rows as $key => $value ) {
-                $tag = is_string( $key ) ? $key : ( is_string( $value ) ? $value : "" );
-                if ( "" === $tag ) { continue; }
-                $code = 0 === strpos( $tag, "[" ) ? $tag : "[" . trim( $tag ) . "]";
-                $rows[] = [ "group" => "External provider", "provider" => "SMP Verified Profiles", "source" => "Discovered provider shortcode", "shortcode" => $code, "value" => "<span class=\"smpi-muted\">External provider shortcode. SMP lists it but does not execute it in this debugger.</span>" ];
-            }
-        }
-        return $rows;
-    }
 
     private static function shortcode_value_html( string $code ): string {
         $value = do_shortcode( $code );
@@ -1070,43 +1057,41 @@ class DashboardController {
         return (string) ob_get_clean();
     }
 
-    private function post_content_blocks_required_fields_html(): string {
-        $summary_enabled = Settings::bool( "post_summary_acf_enabled" );
-        $faqs_enabled = Settings::bool( "post_faqs_acf_enabled" );
-        $summary_registered = function_exists( "acf_get_field" ) && (bool) acf_get_field( "field_65ab7ba0e849b" );
-        $faqs_registered = function_exists( "acf_get_field" ) && (bool) acf_get_field( "field_smpi_post_faq_items" );
-        $summary_ready = $summary_enabled && $summary_registered;
-        $faqs_ready = $faqs_enabled && $faqs_registered;
+    private function post_content_block_required_field_html( string $block ): string {
+        $definitions = [
+            "summary" => [
+                "setting" => "post_summary_acf_enabled",
+                "field_key" => "field_65ab7ba0e849b",
+                "label" => "Article Summary",
+            ],
+            "faqs" => [
+                "setting" => "post_faqs_acf_enabled",
+                "field_key" => "field_smpi_post_faq_items",
+                "label" => "Structured FAQ",
+            ],
+        ];
+        $definition = $definitions[ $block ] ?? $definitions["summary"];
+        $enabled = Settings::bool( $definition["setting"] );
+        $registered = function_exists( "acf_get_field" ) && (bool) acf_get_field( $definition["field_key"] );
+        $ready = $enabled && $registered;
         $custom_fields_url = admin_url( "options-general.php?page=smp-publication-integration&tab=custom_fields" );
 
-        $html = "<div class=\"smpi-control-group\"><h3>Required editor fields</h3>";
-        if ( $summary_ready && $faqs_ready ) {
-            $html .= $this->simple_status_html( true, "Editor fields are ready. Article summaries and structured FAQs are available on supported article editors." );
+        $html = "<div class=\"smpi-control-group\"><h3>Required editor field</h3>";
+        if ( $ready ) {
+            $html .= $this->simple_status_html( true, $definition["label"] . " is ready on supported article editors." );
         } else {
-            $missing = [];
-            if ( ! $summary_ready ) {
-                $missing[] = "Article Summary";
-            }
-            if ( ! $faqs_ready ) {
-                $missing[] = "Structured FAQ";
-            }
-            $field_label = implode( " and ", $missing ) . " editor field" . ( count( $missing ) > 1 ? "s are" : " is" );
-            $html .= "<div class=\"smpi-alert smpi-alert-warning\"><strong>Editor fields not ready.</strong><p>" . esc_html( $field_label ) . " not ready yet. Open Custom Fields and enable the required editor fields before using these output styles.</p><p><a class=\"button button-secondary\" href=\"" . esc_url( $custom_fields_url ) . "\">Open Custom Fields</a></p></div>";
+            $html .= "<div class=\"smpi-alert smpi-alert-warning\"><strong>Editor field not ready.</strong><p>Enable this feature, then reload the page. Open Custom Fields to review the shared editor-field registration.</p><p><a class=\"button button-secondary\" href=\"" . esc_url( $custom_fields_url ) . "\">Open Custom Fields</a></p></div>";
         }
 
-        $html .= "<div class=\"smpi-status-rows\"><div class=\"smpi-status-row\">" . $this->ico( $summary_ready, true ) . "<span>Article Summary editor field: " . esc_html( $summary_ready ? "Ready" : "Not ready" ) . "</span></div>";
-        $html .= "<div class=\"smpi-status-row\">" . $this->ico( $faqs_ready, true ) . "<span>Structured FAQ editor fields: " . esc_html( $faqs_ready ? "Ready" : "Not ready" ) . "</span></div></div>";
-        return $html . "</div>";
+        return $html . "<div class=\"smpi-status-rows\"><div class=\"smpi-status-row\">" . self::ico( $ready, true ) . "<span>" . esc_html( $definition["label"] ) . " editor field: " . esc_html( $ready ? "Ready" : "Not ready" ) . "</span></div></div></div>";
     }
 
-    private function post_content_blocks_shortcode_reference_html(): string {
-        $rows = [
-            [ "Article Summary", "post_summary", "[smp_post_summary style=\"sum00\"]", "[smp_post_acf field=\"post_summary\"] [smp_post_summary post_id=\"123\" format=\"text\"]" ],
-            [ "Structured FAQs", "post_faq_items", "[smp_post_faqs style=\"faq02\"]", "[smp_post_acf field=\"post_faq_items\" format=\"json\"] [smp_post_faqs post_id=\"123\" format=\"text\"]" ],
-        ];
-        $html = "<div class=\"smpi-control-group smpi-shortcode-reference\"><h3>Shortcodes</h3><p class=smpi-muted>These resolve the current post inside single.php. Pass <code>post_id</code> when testing elsewhere.</p><div class=smpi-shortcode-list>";
-        foreach ( $rows as $row ) {
-            $html .= "<div class=smpi-shortcode-row><strong>" . esc_html( $row[0] ) . "</strong><code>" . esc_html( $row[2] ) . "</code><small>Content source: <code>" . esc_html( $row[1] ) . "</code>. Variations: <code>" . esc_html( $row[3] ) . "</code></small></div>";
+    private function shortcode_usage_html( string $instructions, array $examples ): string {
+        $html = "<div class=\"smpi-control-group smpi-shortcode-reference\"><h3>Shortcode and use</h3><p>" . esc_html( $instructions ) . "</p><div class=smpi-shortcode-list>";
+        foreach ( $examples as $example ) {
+            $label = (string) ( $example[0] ?? "Example" );
+            $code = (string) ( $example[1] ?? "" );
+            $html .= "<div class=smpi-shortcode-row><strong>" . esc_html( $label ) . "</strong><span class=smpi-shortcode-code><code>" . esc_html( $code ) . "</code>" . CoreUi::copy_button( $code, "Copy " . strtolower( $label ) . " shortcode" ) . "</span></div>";
         }
         return $html . "</div></div>";
     }
@@ -1231,6 +1216,33 @@ class DashboardController {
 
 
 
+    private function custom_post_types(): void {
+        echo ( new ContentTypeRenderer() )->render(
+            PublicationContentTypes::content_types(),
+            [
+                'title'          => 'Publication Custom Post Types',
+                'description'    => 'Enable blog-style publication content types and safely edit their public labels and URL slugs.',
+                'persist_prefix' => 'smpi-content-types',
+            ]
+        );
+        echo ( new AcfFieldGroupRenderer() )->render(
+            PublicationContentTypes::acf_groups(),
+            [
+                'title'          => 'Publication ACF Structures',
+                'description'    => 'Control publication and article field structures through the same reusable Hexa WP Core registry.',
+                'persist_prefix' => 'smpi-acf-structures',
+            ]
+        );
+        echo ( new TaxonomyRenderer() )->render(
+            \smp_publication_integration\Content\PublicationTaxonomies::registry(),
+            [
+                'title'          => 'Publication Taxonomies',
+                'description'    => 'Article schema types and ordered author assignments are registered through the shared Hexa WP Core taxonomy registry.',
+                'persist_prefix' => 'smpi-publication-taxonomies',
+            ]
+        );
+    }
+
     private function custom_fields(): void {
         $settings = Settings::all();
         $acf_active = Dependencies::acf_active();
@@ -1267,7 +1279,7 @@ class DashboardController {
                 "registered" => function(): bool { return Settings::bool( "post_summary_acf_enabled" ) && function_exists( "acf_get_field" ) && (bool) acf_get_field( "field_65ab7ba0e849b" ); },
                 "acf_group_key" => "group_64a7290b61191",
                 "object_name" => "post_summary",
-                "location" => "post, press-release, imported-news editors",
+                "location" => "post, press-release, knowledge-base, and resources editors",
                 "description" => "Optional article summary field used by shortcodes and single article treatments.",
                 "instructions" => "Enable this when editors need a reusable post summary separate from the article body. Styling controls remain in Features.",
                 "fields" => [ "post_summary" ],
@@ -1284,7 +1296,7 @@ class DashboardController {
                 "registered" => function(): bool { return Settings::bool( "post_faqs_acf_enabled" ) && function_exists( "acf_get_field" ) && (bool) acf_get_field( "field_smpi_post_faq_items" ); },
                 "acf_group_key" => "group_64a7290b61191",
                 "object_name" => "post_faq_items",
-                "location" => "post, press-release, imported-news editors",
+                "location" => "post, press-release, knowledge-base, and resources editors",
                 "description" => "Structured FAQ rows that power FAQPage schema and display shortcodes.",
                 "instructions" => "Enable this when article editors need repeatable question and answer rows. Schema rows can be disabled one by one in the editor.",
                 "fields" => [ "question", "answer", "enabled_for_schema" ],
@@ -1334,12 +1346,12 @@ class DashboardController {
                 "enabled" => Settings::bool( "article_types_enabled" ),
                 "registered" => function(): bool { return Settings::bool( "article_types_enabled" ) && taxonomy_exists( \smp_publication_integration\Content\ArticleTypes::TAXONOMY ); },
                 "object_name" => \smp_publication_integration\Content\ArticleTypes::TAXONOMY,
-                "location" => "post, press-release, imported-news editors",
+                "location" => "post, press-release, knowledge-base, and resources editors",
                 "description" => "Controlled taxonomy that maps editorial selections to schema article types.",
                 "instructions" => "Enable this to show the radio-only Article Type selector. Terms are managed by code so editors cannot create arbitrary schema labels.",
                 "fields" => array_keys( \smp_publication_integration\Content\ArticleTypes::terms() ),
                 "dependencies" => [ "WordPress taxonomy API", "SMP article schema mapper" ],
-                "code_example" => "register_taxonomy(\"smpi_article_type\", [\"post\", \"press-release\", \"imported-news\"]);",
+                "code_example" => "PublicationTaxonomies::registry(); // Hexa WP Core owns registration",
                 "test_report" => $this->article_type_selector_report_text(),
             ],
         ];
@@ -1358,56 +1370,381 @@ class DashboardController {
 
     private function features(): void {
         $settings = Settings::all();
-        echo "<div class=\"smpi-section-intro\"><h2>Features</h2><p>Enable publication capabilities and configure their display settings.</p></div>";
-        echo "<style id=smpi-design-preview-css>" . \smp_publication_integration\Content\ArticleStyles::preview_bundle_css() . "</style>";
-        echo $this->feature_brand_color_tools_html( $settings );
-        echo "<div class=\"smpi-design-host\">";
-        $this->feature_card_from_snippet( "elementor_css_cache_busting", $this->elementor_css_report_html() );
-        $author_muckrack_controls = $this->author_muckrack_mode_help_html( $settings ) . $this->author_muckrack_shortcodes_html() . $this->context_select_html( "muckrack_verified_contexts", [ "single_author" => "single.php header author mention", "single_footer" => "single.php footer/about-author mention", "loop_cards" => "Loop card authors: show checkmark", "home" => "Home page author mention", "author" => "author.php author mention" ], $settings, "Placement contexts" ) . $this->select_setting_html( "muckrack_verified_style", [ "tooltip" => [ "label" => "Tooltip icon", "description" => "Small badge beside the author name. Hover or focus explains the verification without adding sentence-length text.", "preview" => $this->author_tooltip_preview_html( $settings ) ], "text" => [ "label" => "Inline text", "description" => "Writes the full verification sentence directly into the author area.", "preview" => $this->author_inline_preview_html( $settings ) ], "compact_block" => [ "label" => "Small editorial block", "description" => "Smaller author version of the editorial verification block with left accent and compact text.", "preview" => $this->author_compact_block_preview_html( $settings ) ] ], $settings, "Display style" ) . $this->icon_style_setting_html( $settings ) . $this->color_setting_html( "muckrack_icon_color", "Default icon color", $settings ) . $this->number_setting_html( "muckrack_icon_size", "Default checkmark size", $settings, 8, 64, "px" ) . $this->number_setting_html( "muckrack_icon_margin_left", "Default checkmark margin-left", $settings, -32, 64, "px" ) . $this->number_setting_html( "muckrack_icon_margin_top", "Default checkmark margin-top", $settings, -32, 64, "px" ) . $this->author_context_overrides_html( $settings ) . $this->inline_toggle_setting_html( "muckrack_author_always_show", "Always show for every author" );
-        $this->feature_card( "MuckRack verified authors", "muckrack_verified_enabled", "Uses the author user fields owned by hws-base-tools: muckrack_verified and muckrack_url.", "Supports both automatic Elementor-aware author placement and manual shortcode placement. Auto placement detects supported byline and about-author structures; shortcodes are for exact Elementor shortcode widgets or templates. The override can force the effective author badge for every author even when the individual ACF checkbox is empty.", "[author_muckrack_verified]
-[author_muckrack_verified type=\"text\"]
-[author_muckrack_verified style=\"compact_block\"]
-[author_muckrack]
-[muckrack_verified type=\"icon\" user_id=\"54\"]", $this->muckrack_report_html(), $this->activity_log_html(), $author_muckrack_controls );
-        $multi_author_controls = $this->multi_author_controls_html( $settings );
-        $this->feature_card( "Multiple post authors", "multi_authors_enabled", "Registers one ACF multi-user field on supported article editors: <code>" . esc_html( MultiAuthors::FIELD_NAME ) . "</code>. It is not a repeater.", "Lets posts and press releases store more than one WordPress author. Existing author shortcodes keep using the primary author by default and can target additional authors with author_index.", "[author_name]
-[author_name author_index=\"1\"]
-[acf_author_field field=\"job_title\"]
-[acf_author_field field=\"job_title\" author_index=\"1\"]
-[author_bio author_index=\"1\"]
-[author_image author_index=\"1\" output=\"url\"]
-[author_muckrack_verified author_index=\"1\"]
-[smp_post_author_ids]
-[smp_post_authors]
-[smp_post_authors format=\"lines\"]
-[smp_post_authors format=\"list\"]
-[smp_post_authors format=\"links\"]
-[smp_post_authors context=\"card\"]
-[smp_post_authors context=\"card\" format=\"plain\"]
-[smp_post_authors context=\"card\" format=\"lines\"]", $this->multi_authors_report_html(), $this->activity_log_html(), $multi_author_controls );
-        $publication_muckrack_controls = $this->select_setting_html( "publication_muckrack_text_mode", [ "news_outlet" => [ "label" => "News outlet verified by MuckRack editorial team", "description" => "Generic wording when you do not want the site name in the sentence." ], "publication_name" => [ "label" => get_bloginfo( "name" ) . " verified by MuckRack editorial team", "description" => "Uses the current publication name in the verification sentence." ] ], $settings, "Text option" ) . $this->select_setting_html( "publication_muckrack_style", [ "block" => [ "label" => "Editorial block", "description" => "Small article footer block with a left accent bar.", "preview" => $this->publication_preview_sample_html( "block", $settings ) ], "mini_block" => [ "label" => "Mini editorial block", "description" => "Same left-accent editorial concept with smaller text and a quieter footprint.", "preview" => $this->publication_preview_sample_html( "mini_block", $settings ) ], "compact" => [ "label" => "Compact pill", "description" => "Small inline badge for tight author or header layouts.", "preview" => $this->publication_preview_sample_html( "compact", $settings ) ], "minimalist" => [ "label" => "Minimalist text", "description" => "Plain text treatment that blends into existing article copy.", "preview" => $this->publication_preview_sample_html( "minimalist", $settings ) ] ], $settings, "Display style" ) . $this->color_setting_html( "publication_muckrack_color", "Accent color", $settings ) . $this->number_setting_html( "publication_muckrack_font_size", "Verification text size", $settings, 8, 64, "px" ) . $this->context_select_html( "publication_muckrack_placements", [ "below_author" => "Below author", "bottom_article" => "Bottom of article" ], $settings );
-        $this->feature_card( "MuckRack verified publication", "publication_muckrack_verified_enabled", "Registers site option ACF fields on Publication Theme Options: smpi_publication_muckrack_verified and smpi_publication_muckrack_url.", "Displays publication-level MuckRack verification text separately from journalist verification. Use this for the site/news-outlet claim, not the author badge.", "[smp_publication_muckrack_verified]", $this->publication_muckrack_report_html(), $this->activity_log_html(), $publication_muckrack_controls );
-        $this->feature_card( "Press-release inclusion controls", "press_release_include_enabled", "Uses existing press-release CPT and _smpi_pr_shadow_override meta. ACF/local fields are registered for force include or force exclude.", "Includes Hexa PR Wire press-release posts in selected blog-like loops: home, category/tag, author.php, and single.php recent article secondary queries. Force exclude is honored through the press-release visibility meta box.", "add_action(\"pre_get_posts\", function (WP_Query \$q) { /* SMP uses the same main-query guard pattern and selected contexts. */ });", $this->press_release_report_html(), $this->activity_log_html(), $this->context_select_html( "press_release_include_contexts", [ "home" => "Home page", "category_tag" => "Category and tag pages", "author" => "author.php", "single_recent" => "single.php recent article queries" ], $settings ) );
-        $this->feature_card( "Article type schema selector", "", "Moved to the Custom Fields tab. Registers the <code>smpi_article_type</code> taxonomy only when enabled there.", "Adds one radio-only Article Type box to supported article editors. The field is hidden when disabled and only allows predefined schema-backed values.", "editorial-news => NewsArticle\nanalysis => AnalysisNewsArticle\nopinion => OpinionNewsArticle\nreportage => ReportageNewsArticle\npress-release => Article\nsponsored => AdvertiserContentArticle", $this->article_type_selector_report_html(), $this->activity_log_html(), "<p class=\"smpi-muted\">Registration toggle lives in Custom Fields.</p>" . $this->article_type_selector_options_html() );
-        $breadcrumb_controls = $this->inline_toggle_setting_html( "breadcrumbs_hide_home", "Hide on front page/home page" ) . $this->inline_toggle_setting_html( "breadcrumbs_hide_term_archives", "Hide on category and tag pages" ) . $this->select_setting_html( "breadcrumbs_style", $this->breadcrumb_style_options(), $settings, "Breadcrumb template" ) . $this->color_setting_html( "breadcrumbs_accent_color", "Breadcrumb primary color", $settings ) . $this->number_setting_html( "breadcrumbs_font_size", "Breadcrumb font size", $settings, 8, 64, "px" ) . $this->context_select_html( "breadcrumbs_disabled_post_types", $this->breadcrumb_post_type_options(), $settings, "Disable on custom post type single templates" );
-        $this->feature_card( "Breadcrumbs", "breadcrumbs_enabled", "Registers a Hexa core-generated ACF multi post selector on Publication Theme Options: <code>smpi_breadcrumb_disabled_objects</code>. No repeater.", "Injects a selected Rank Math-compatible breadcrumb design directly below the site header on singular post/page/CPT templates and category/tag archives. Uses Rank Math breadcrumb markup when Rank Math is available and falls back to SMP-generated breadcrumbs when it is not. It is hidden on the front page/home page by default. Category and tag archives show by default unless disabled here.", "[smp_breadcrumbs]\n[smp_breadcrumbs style=\"bc-b2\"]\nACF option: smpi_breadcrumb_disabled_objects\nRank Math source: rank-math-options-general", $this->breadcrumbs_report_html(), $this->activity_log_html(), $breadcrumb_controls );
-        $toc_controls = $this->inline_toggle_setting_html( "table_of_contents_auto_single", "Automatically show above single.php content" ) . $this->inline_toggle_setting_html( "table_of_contents_include_summary", "Include What to Know summary at top" ) . $this->select_setting_html( "table_of_contents_style", $this->toc_style_options(), $settings, "Table of contents design" ) . $this->color_setting_html( "table_of_contents_accent_color", "Table of contents accent color", $settings ) . $this->font_style_setting_html( "table_of_contents_text_font_style", "Table of contents text font style", $settings ) . $this->number_setting_html( "table_of_contents_text_font_size", "Table of contents text font size", $settings, 8, 64, "px" ) . $this->color_setting_html( "table_of_contents_text_color", "Table of contents text color", $settings );
-        $this->feature_card( "Table of contents", "table_of_contents_enabled", "No ACF changes. Parses post headings from post_content.", "Adds [smp_table_of_contents] and optional automatic display above single.php content. Select the single.php display treatment here or use style= on the shortcode.", "[smp_table_of_contents]\n[smp_table_of_contents style=\"toc02\"]\n[smp_table_of_contents post_id=\"123\" title=\"In this article\"]", $this->table_of_contents_report_html(), $this->activity_log_html(), $toc_controls );
-        $article_heading_controls = $this->select_setting_html( "article_heading_style", $this->article_heading_style_options(), $settings, "Article H2/H3 template" ) . $this->color_setting_html( "article_heading_accent_color", "Heading accent color", $settings ) . $this->number_setting_html( "article_heading_h2_font_size", "H2 font size", $settings, 8, 64, "px" ) . $this->number_setting_html( "article_heading_h3_font_size", "H3 font size", $settings, 8, 64, "px" );
-        $this->feature_card( "Article H2/H3 styles", "article_heading_styles_enabled", "No ACF changes. Applies selected CSS to H2 and H3 tags inside single post content only.", "Injects the selected HerForward article-heading treatment into single post content. The admin previews and frontend CSS are generated from the same ArticleStyles template registry, with one accent color and separate H2/H3 font sizes.", "No shortcode needed. Enable the feature, choose a heading template, then tune accent color and H2/H3 sizes.", $this->article_heading_report_html(), $this->activity_log_html(), $article_heading_controls );
-        $drop_cap_controls = $this->article_drop_cap_preview_html() . $this->color_setting_html( "article_drop_cap_color", "Drop cap color", $settings ) . $this->number_setting_html( "article_drop_cap_font_size", "Drop cap size", $settings, 48, 180, "px" );
-        $this->feature_card( "Article first-letter drop cap", "article_drop_cap_enabled", "No ACF changes. Applies CSS to the first letter of the first paragraph inside single post content.", "Adds a large editorial first-letter treatment to article bodies, matching the supplied screenshot: bold black initial floated at the start of the first paragraph with surrounding copy wrapping to the right. The admin preview and frontend CSS are generated from the same ArticleStyles rules.", "No shortcode needed. Enable the feature, then tune color and size.", $this->article_drop_cap_report_html(), $this->activity_log_html(), $drop_cap_controls );
-        $inline_photo_controls = $this->select_setting_html( "inline_photo_treatment", $this->inline_photo_treatment_options(), $settings, "Inline photo treatment" ) . $this->color_setting_html( "inline_photo_accent_color", "Inline photo accent color", $settings ) . $this->font_style_setting_html( "inline_photo_caption_font_style", "Caption text font style", $settings ) . $this->number_setting_html( "inline_photo_caption_font_size", "Caption text font size", $settings, 8, 64, "px" ) . $this->color_setting_html( "inline_photo_caption_text_color", "Caption text color", $settings );
-        $this->feature_card( "Inline photo treatments", "inline_photo_treatments_enabled", "No ACF changes. Applies selected treatment to inline figures in posts and press-release articles.", "Prestyles inline photos and captions in single.php without editing each article. Treatments 1, 2, 4, and 5 are imported from the HerForward inline redesign page.", "No shortcode needed. Enable the feature and select a treatment.", $this->simple_status_html( Settings::bool( "inline_photo_treatments_enabled" ), "Current treatment: " . (string) Settings::get( "inline_photo_treatment", "none" ) . "." ), $this->activity_log_html(), $inline_photo_controls );
-        $featured_image_caption_controls = $this->select_setting_html( "featured_image_caption_template", $this->featured_image_caption_template_options(), $settings, "Featured image caption template" ) . $this->color_setting_html( "featured_image_caption_accent_color", "Featured caption accent color", $settings ) . $this->font_style_setting_html( "featured_image_caption_font_style", "Featured caption font style", $settings ) . $this->number_setting_html( "featured_image_caption_font_size", "Featured caption font size", $settings, 8, 64, "px" ) . $this->color_setting_html( "featured_image_caption_text_color", "Featured caption text color", $settings );
-        $this->feature_card( "Featured image caption templates", "featured_image_caption_templates_enabled", "No ACF changes. Reads the caption from the media attachment used as the post featured image.", "Auto-detects the single post or press-release featured image and applies a selected caption template. The designs intentionally duplicate the inline image treatments but use separate settings, selectors, and rendering code.", "No shortcode needed. Add a media caption to the featured image, enable this feature, and select a template.", $this->featured_image_caption_report_html(), $this->activity_log_html(), $featured_image_caption_controls );
-        $post_content_blocks_controls = $this->post_content_blocks_required_fields_html() . $this->select_setting_html( "post_summary_style", $this->post_summary_style_options(), $settings, "Summary output style" ) . $this->select_setting_html( "post_faqs_style", $this->post_faq_style_options(), $settings, "FAQ output style" ) . $this->color_setting_html( "post_faqs_accent_color", "FAQ accent color", $settings ) . $this->font_style_setting_html( "post_faqs_text_font_style", "FAQ text font style", $settings ) . $this->number_setting_html( "post_faqs_text_font_size", "FAQ text font size", $settings, 8, 64, "px" ) . $this->color_setting_html( "post_faqs_text_color", "FAQ text color", $settings ) . $this->post_content_blocks_shortcode_reference_html();
-        $this->feature_card( "Article Summary & FAQ Blocks", "", "Editor fields live in the Custom Fields tab. This card controls display styles and shortcode reference for article summary and structured FAQ output.", "Styles and documents the article summary and structured FAQ blocks rendered by SMP shortcodes. Turn on the corresponding editor fields from Custom Fields before using these outputs.", "[smp_post_summary style=\"sum00\"]\n[smp_post_faqs style=\"faq02\"]\n[smp_post_acf field=\"post_summary\"]", $this->post_acf_addons_report_html(), $this->activity_log_html(), $post_content_blocks_controls );
-        $this->feature_card_from_snippet( "publication_social_link_cleanup", $this->simple_status_html( Settings::bool( "publication_social_cleanup" ), "Publication social link cleanup script active on frontend pages." ) );
-        $this->feature_card( "HWS masked admin URL", "hws_masked_admin_report_enabled", "HWS Base Tools owns this feature. SMP only reports status and links to it.", "Confirms whether HWS Base Tools masked login is enabled and exposes the masked URL in the Overview and Features tabs.", "HWS option: hws_login_mask_options with slug hexa-admin.", $this->hws_masked_login_report_html(), $this->activity_log_html() );
+        echo "<div class=\"smpi-section-intro\"><h2>Features</h2><p>Enable publication features and configure their output.</p></div>";
+        echo \smp_publication_integration\Content\ArticleStyles::script_font_preview_link_html();
+        echo "<style id=smpi-design-preview-css>" . \smp_publication_integration\Content\ArticleStyles::preview_bundle_css() . TemplateDesignRegistry::preview_typography_state_css() . "</style>";
+        echo $this->feature_layout_styles_html();
+        echo CoreUi::collection_filter(
+            [
+                "id" => "smpi-feature-search",
+                "target_id" => "smpi-feature-collection",
+                "item_selector" => ".smpi-feature-filter-item",
+                "text_selector" => ":scope > summary, .smpi-feature-overview, .smpi-feature-settings",
+                "group_selector" => ".smpi-feature-group",
+                "label" => "Search features",
+                "placeholder" => "Search features...",
+                "item_label_singular" => "feature",
+                "item_label_plural" => "features",
+                "empty_message" => "No matching features.",
+            ]
+        );
+        echo "<div id=\"smpi-feature-collection\">";
+        echo CoreUi::collapsible( [ "title" => "HWS Base Tools primary color", "body_html" => $this->feature_brand_color_tools_html( $settings ), "open" => false, "meta_html" => CoreUi::pill( "Color source", "dark" ), "class" => "smpi-feature-filter-item" ] );
+        $design_classes = [ "smpi-design-host", "smpi-feature-groups" ];
+        foreach ( Settings::typography_preservation_surfaces() as $prefix => $default ) {
+            $mode = Settings::typography_mode( $prefix );
+            $design_classes[] = TemplateTypography::mode_state_class( $prefix, $mode );
+            foreach ( TemplateTypography::preservation_values( $settings, $prefix, $default ) as $property => $preserve ) {
+                if ( $preserve ) {
+                    $design_classes[] = TypographyPreservation::state_class( $prefix, $property );
+                }
+            }
+        }
+        echo "<div class=\"" . esc_attr( implode( " ", $design_classes ) ) . "\" data-hpc-typography-scope data-hpc-template-color-scope style=\"" . esc_attr( $this->design_preview_variables() ) . "\">";
+        $this->render_article_design_feature_group( $settings );
+        $this->render_author_feature_group( $settings );
+        $this->render_content_feature_group( $settings );
+        $this->render_system_feature_group( $settings );
+        echo "</div>";
         echo "</div>";
     }
 
+    private function render_article_design_feature_group( array $settings ): void {
+        $this->feature_group_open( "article-design", "Article design", "Article navigation, headings, images, and structured content blocks." );
+
+        $breadcrumb_controls = $this->breadcrumb_controls_html( $settings );
+        $this->feature_card(
+            "Breadcrumbs",
+            "breadcrumbs_enabled",
+            "Registers a Hexa core-generated ACF multi post selector on Publication Theme Options: <code>smpi_breadcrumb_disabled_objects</code>. No repeater.",
+            "Adds breadcrumbs below the site header on posts, pages, custom post types, and category or tag archives. Rank Math markup is used when available; SMP provides the fallback.",
+            "[smp_breadcrumbs]\n[smp_breadcrumbs style=\"bc-b2\"]\nACF option: smpi_breadcrumb_disabled_objects\nRank Math source: rank-math-options-general",
+            $this->breadcrumbs_report_html(),
+            $this->activity_log_html(),
+            $breadcrumb_controls,
+            true,
+            $this->breadcrumb_css_override_html()
+        );
+
+        $toc_controls = $this->inline_toggle_setting_html( "table_of_contents_auto_single", "Automatically place above article content" )
+            . $this->inline_toggle_setting_html( "table_of_contents_include_summary", "Include the Article Summary link" )
+            . $this->select_setting_html( "table_of_contents_style", $this->toc_style_options(), $settings, "Table of contents design" )
+            . $this->template_color_setting_html( "table_of_contents", "Table of contents design color", $settings )
+            . $this->typography_surface_control_html( "table_of_contents", $settings )
+            . $this->shortcode_usage_html(
+                "Use the default shortcode in an Elementor Shortcode widget or in post content. Turn off automatic placement when positioning it manually.",
+                [
+                    [ "Default", "[smp_table_of_contents]" ],
+                    [ "Choose a design", "[smp_table_of_contents style=\"toc02\"]" ],
+                    [ "Another post", "[smp_table_of_contents post_id=\"123\" title=\"In this article\"]" ],
+                ]
+            );
+        $this->feature_card(
+            "Table of contents",
+            "table_of_contents_enabled",
+            "No ACF changes. Parses post headings from post_content.",
+            "Builds a table of contents from post headings. Place it by shortcode or automatically above single-post content.",
+            "[smp_table_of_contents]\n[smp_table_of_contents style=\"toc02\"]\n[smp_table_of_contents post_id=\"123\" title=\"In this article\"]",
+            $this->table_of_contents_report_html(),
+            $this->activity_log_html(),
+            $toc_controls
+        );
+
+        $article_heading_controls = $this->select_setting_html( "article_heading_style", $this->article_heading_style_options(), $settings, "Article H2/H3 template" )
+            . $this->template_color_setting_html( "article_heading", "Heading design color", $settings )
+            . $this->typography_surface_control_html( "article_heading", $settings );
+        $this->feature_card(
+            "Article H2/H3 styles",
+            "article_heading_styles_enabled",
+            "No ACF changes. Applies selected CSS to H2 and H3 tags inside single post content only.",
+            "Styles H2 and H3 headings inside single-post content with one template, one accent color, and separate font sizes.",
+            "No shortcode needed. Enable the feature, choose a heading template, then tune accent color and H2/H3 sizes.",
+            $this->article_heading_report_html(),
+            $this->activity_log_html(),
+            $article_heading_controls
+        );
+
+        $drop_cap_controls = $this->select_setting_html( "article_drop_cap_style", $this->article_drop_cap_style_options(), $settings, "First-letter template" )
+            . $this->template_color_setting_html( "article_drop_cap", "Drop cap design color", $settings )
+            . $this->typography_surface_control_html( "article_drop_cap", $settings );
+        $this->feature_card(
+            "Article first-letter drop cap",
+            "article_drop_cap_enabled",
+            "No ACF changes. Applies CSS to the first letter of the first paragraph inside single post content.",
+            "Styles the first letter of the first paragraph in single-post content with one of ten selectable templates.",
+            "No shortcode needed. Enable the feature, choose a template, then tune accent color and size.",
+            $this->article_drop_cap_report_html(),
+            $this->activity_log_html(),
+            $drop_cap_controls
+        );
+
+        $inline_photo_controls = $this->select_setting_html( "inline_photo_treatment", $this->inline_photo_treatment_options(), $settings, "Inline photo treatment" )
+            . $this->template_color_setting_html( "inline_photo_caption", "Inline photo design color", $settings )
+            . $this->typography_surface_control_html( "inline_photo_caption", $settings );
+        $this->feature_card(
+            "Inline photo treatments",
+            "inline_photo_treatments_enabled",
+            "No ACF changes. Applies selected treatment to inline figures in posts and press-release articles.",
+            "Styles inline figures and captions in posts and press releases.",
+            "No shortcode needed. Enable the feature and select a treatment.",
+            $this->simple_status_html( Settings::bool( "inline_photo_treatments_enabled" ), "Current treatment: " . (string) Settings::get( "inline_photo_treatment", "none" ) . ". Font: " . Settings::font_family_label( "inline_photo_caption_font_family" ) . "." ),
+            $this->activity_log_html(),
+            $inline_photo_controls
+        );
+
+        $featured_image_caption_controls = $this->select_setting_html( "featured_image_caption_template", $this->featured_image_caption_template_options(), $settings, "Featured image caption template" )
+            . $this->template_color_setting_html( "featured_image_caption", "Featured caption design color", $settings )
+            . $this->typography_surface_control_html( "featured_image_caption", $settings );
+        $this->feature_card(
+            "Featured image caption templates",
+            "featured_image_caption_templates_enabled",
+            "No ACF changes. Reads the caption from the media attachment used as the post featured image.",
+            "Styles captions attached to featured images on posts and press releases.",
+            "No shortcode needed. Add a media caption to the featured image, enable this feature, and select a template.",
+            $this->featured_image_caption_report_html(),
+            $this->activity_log_html(),
+            $featured_image_caption_controls
+        );
+
+        $post_summary_controls = $this->post_content_block_required_field_html( "summary" )
+            . $this->select_setting_html( "post_summary_style", $this->post_summary_style_options(), $settings, "Summary output style" )
+            . $this->select_setting_html( "post_summary_placement", $this->post_summary_placement_options(), $settings, "Summary placement" )
+            . $this->template_color_setting_html( "post_summary", "Summary design color", $settings )
+            . $this->typography_surface_control_html( "post_summary", $settings )
+            . $this->shortcode_usage_html(
+                "Both shortcodes use the selected Summary design. Choose Manual placement when positioning the block in Elementor or post content.",
+                [
+                    [ "Recommended", "[smp_post_summary]" ],
+                    [ "ACF alias", "[smp_post_acf field=\"post_summary\"]" ],
+                    [ "Another post", "[smp_post_summary post_id=\"123\"]" ],
+                ]
+            );
+        $this->feature_card(
+            "Article Summary",
+            "post_summary_acf_enabled",
+            "Registers and reads the existing <code>post_summary</code> editor field. The feature toggle and Custom Fields tab update the same setting.",
+            "Displays the article summary with a selectable design, color, typography, and manual or automatic placement.",
+            "[smp_post_summary]\n[smp_post_acf field=\"post_summary\"]",
+            $this->post_summary_report_html(),
+            $this->activity_log_html(),
+            $post_summary_controls
+        );
+
+        $post_faq_controls = $this->post_content_block_required_field_html( "faqs" )
+            . $this->select_setting_html( "post_faqs_style", $this->post_faq_style_options(), $settings, "FAQ output style" )
+            . $this->select_setting_html( "post_faqs_placement", $this->post_faq_placement_options(), $settings, "FAQ placement" )
+            . $this->template_color_setting_html( "post_faqs", "FAQ design color", $settings )
+            . $this->typography_surface_control_html( "post_faqs", $settings )
+            . $this->shortcode_usage_html(
+                "Use the shortcode for manual placement. Automatic modes insert the same canonical FAQ output once per article.",
+                [
+                    [ "Recommended", "[smp_post_faqs]" ],
+                    [ "ACF alias", "[smp_post_acf field=\"post_faq_items\"]" ],
+                    [ "Another post", "[smp_post_faqs post_id=\"123\"]" ],
+                ]
+            );
+        $this->feature_card(
+            "Article FAQs",
+            "post_faqs_acf_enabled",
+            "Registers and reads the existing <code>post_faq_items</code> editor fields. FAQPage schema continues to use the same rows.",
+            "Displays structured article FAQs with a selectable design, color, typography, and manual or automatic placement.",
+            "[smp_post_faqs]\n[smp_post_acf field=\"post_faq_items\"]",
+            $this->post_faq_report_html(),
+            $this->activity_log_html(),
+            $post_faq_controls
+        );
+
+        $this->feature_group_close();
+    }
+
+    private function render_author_feature_group( array $settings ): void {
+        $this->feature_group_open( "authors-verification", "Authors and verification", "Author assignment and MuckRack verification output." );
+
+        $author_muckrack_controls = $this->inline_toggle_setting_html( "muckrack_author_always_show", "Always show for every author" )
+            . $this->context_select_html( "muckrack_verified_contexts", [ "single_author" => "single.php header author mention", "single_footer" => "single.php footer/about-author mention", "loop_cards" => "Loop card authors: show checkmark", "home" => "Home page author mention", "author" => "author.php author mention" ], $settings, "Placement contexts" )
+            . $this->select_setting_html( "muckrack_verified_style", [ "tooltip" => [ "label" => "Tooltip icon", "description" => "Small badge beside the author name. Hover or focus explains the verification without adding sentence-length text.", "preview" => $this->author_tooltip_preview_html( $settings ) ], "text" => [ "label" => "Inline text", "description" => "Writes the full verification sentence directly into the author area.", "preview" => $this->author_inline_preview_html( $settings ) ], "compact_block" => [ "label" => "Small editorial block", "description" => "Smaller author version of the editorial verification block with left accent and compact text.", "preview" => $this->author_compact_block_preview_html( $settings ) ] ], $settings, "Display style" )
+            . $this->typography_surface_control_html( "muckrack_verified", $settings )
+            . $this->icon_style_setting_html( $settings )
+            . $this->template_color_setting_html( "muckrack_verified", "Author verification design color", $settings )
+            . $this->number_setting_html( "muckrack_icon_size", "Default checkmark size", $settings, 8, 64, "px" )
+            . $this->number_setting_html( "muckrack_icon_margin_left", "Default checkmark margin-left", $settings, -32, 64, "px" )
+            . $this->number_setting_html( "muckrack_icon_margin_top", "Default checkmark margin-top", $settings, -32, 64, "px" )
+            . $this->author_context_overrides_html( $settings );
+        $author_reference = $this->author_muckrack_mode_help_html( $settings ) . $this->author_muckrack_shortcodes_html();
+        $this->feature_card(
+            "MuckRack verified authors",
+            "muckrack_verified_enabled",
+            "Uses the author user fields owned by hws-base-tools: muckrack_verified and muckrack_url.",
+            "Shows author-level MuckRack verification automatically or by shortcode. Placement, style, color, and context overrides are configured here.",
+            "[author_muckrack_verified]\n[author_muckrack_verified type=\"text\"]\n[author_muckrack_verified style=\"compact_block\"]\n[author_muckrack]\n[muckrack_verified type=\"icon\" user_id=\"54\"]",
+            $this->muckrack_report_html(),
+            $this->activity_log_html(),
+            $author_muckrack_controls,
+            true,
+            "",
+            $author_reference
+        );
+
+        $this->feature_card(
+            "Multiple post authors",
+            "multi_authors_enabled",
+            "Registers one ACF multi-user field on supported article editors: <code>" . esc_html( MultiAuthors::FIELD_NAME ) . "</code>. It is not a repeater.",
+            "Stores multiple WordPress authors on supported posts and keeps Elementor, archive, schema, and shortcode output aligned.",
+            "[author_name]\n[author_name author_index=\"1\"]\n[acf_author_field field=\"job_title\"]\n[acf_author_field field=\"job_title\" author_index=\"1\"]\n[author_bio author_index=\"1\"]\n[author_image author_index=\"1\" output=\"url\"]\n[author_muckrack_verified author_index=\"1\"]\n[smp_post_author_ids]\n[smp_post_authors]\n[smp_post_authors format=\"lines\"]\n[smp_post_authors format=\"list\"]\n[smp_post_authors format=\"links\"]\n[smp_post_authors context=\"card\"]\n[smp_post_authors context=\"card\" format=\"plain\"]\n[smp_post_authors context=\"card\" format=\"lines\"]",
+            $this->multi_authors_report_html(),
+            $this->activity_log_html(),
+            $this->multi_author_settings_html( $settings ),
+            true,
+            "",
+            $this->multi_author_reference_html()
+        );
+
+        $publication_muckrack_controls = $this->publication_muckrack_source_html()
+            . $this->select_setting_html( "publication_muckrack_text_mode", [ "news_outlet" => [ "label" => "News outlet verified by MuckRack editorial team", "description" => "Generic wording when you do not want the site name in the sentence." ], "publication_name" => [ "label" => get_bloginfo( "name" ) . " verified by MuckRack editorial team", "description" => "Uses the current publication name in the verification sentence." ] ], $settings, "Text option" )
+            . $this->context_select_html( "publication_muckrack_placements", [ "below_author" => "Below author", "bottom_article" => "Bottom of article" ], $settings )
+            . $this->select_setting_html( "publication_muckrack_style", [ "block" => [ "label" => "Editorial block", "description" => "Small article footer block with a left accent bar.", "preview" => $this->publication_preview_sample_html( "block", $settings ) ], "mini_block" => [ "label" => "Mini editorial block", "description" => "Same left-accent editorial concept with smaller text and a quieter footprint.", "preview" => $this->publication_preview_sample_html( "mini_block", $settings ) ], "compact" => [ "label" => "Compact pill", "description" => "Small inline badge for tight author or header layouts.", "preview" => $this->publication_preview_sample_html( "compact", $settings ) ], "minimalist" => [ "label" => "Minimalist text", "description" => "Plain text treatment that blends into existing article copy.", "preview" => $this->publication_preview_sample_html( "minimalist", $settings ) ] ], $settings, "Display style" )
+            . $this->template_color_setting_html( "publication_muckrack", "Publication verification design color", $settings )
+            . $this->typography_surface_control_html( "publication_muckrack", $settings );
+        $this->feature_card(
+            "MuckRack verified publication",
+            "publication_muckrack_verified_enabled",
+            "Registers site option ACF fields on Publication Theme Options: smpi_publication_muckrack_verified and smpi_publication_muckrack_url.",
+            "Shows publication-level MuckRack verification separately from author verification.",
+            "[smp_publication_muckrack_verified]",
+            $this->publication_muckrack_report_html(),
+            $this->activity_log_html(),
+            $publication_muckrack_controls
+        );
+
+        $this->feature_group_close();
+    }
+
+    private function render_content_feature_group( array $settings ): void {
+        $this->feature_group_open( "content-distribution", "Content and distribution", "Category output, press releases, schema types, and social-link cleanup." );
+
+        $elementor_category_controls = $this->inline_toggle_setting_html( "elementor_primary_category_exclude_default", "Exclude the configured WordPress default category" );
+        $this->feature_card(
+            "Elementor primary category",
+            "elementor_primary_category_enabled",
+            "No ACF changes. Registers one SMP-owned Elementor text dynamic tag.",
+            "Outputs one category in Elementor, honors Rank Math or Yoast primary-category metadata, and can exclude the WordPress default category.",
+            "Elementor dynamic tag: SMP Publication > Primary Category",
+            $this->simple_status_html( Settings::bool( "elementor_primary_category_enabled" ), "Primary Category dynamic tag is registered for Elementor text fields." ),
+            $this->activity_log_html(),
+            $elementor_category_controls
+        );
+
+        $this->feature_card(
+            "Press-release inclusion controls",
+            "press_release_include_enabled",
+            "Uses the press-release CPT and <code>_smpi_pr_shadow_override</code> meta. The editor provides force-include and force-exclude choices.",
+            "Includes press releases in selected post loops. Per-item show or hide overrides remain available in the press release editor.",
+            "add_action(\"pre_get_posts\", function (WP_Query \$q) { /* SMP uses the same main-query guard pattern and selected contexts. */ });",
+            $this->press_release_report_html(),
+            $this->activity_log_html(),
+            $this->context_select_html( "press_release_include_contexts", [ "home" => "Home page", "category_tag" => "Category and tag pages", "author" => "author.php", "single_recent" => "single.php recent article queries" ], $settings )
+        );
+
+        $article_type_reference = "<p class=\"smpi-muted\">The registration toggle is in Custom Fields.</p>" . $this->article_type_selector_options_html();
+        $this->feature_card(
+            "Article type schema selector",
+            "",
+            "Registers the <code>smpi_article_type</code> taxonomy only when the Custom Fields setting is enabled.",
+            "The editor field and toggle live in Custom Fields. This reference shows the allowed values and schema mappings.",
+            "editorial-news => NewsArticle\nanalysis => AnalysisNewsArticle\nopinion => OpinionNewsArticle\nreportage => ReportageNewsArticle\npress-release => Article\nsponsored => AdvertiserContentArticle",
+            $this->article_type_selector_report_html(),
+            $this->activity_log_html(),
+            "",
+            true,
+            "",
+            $article_type_reference
+        );
+
+        $this->feature_card_from_snippet( "publication_social_link_cleanup", $this->simple_status_html( Settings::bool( "publication_social_cleanup" ), "Publication social link cleanup script active on frontend pages." ) );
+
+        $this->feature_group_close();
+    }
+
+    private function render_system_feature_group( array $settings ): void {
+        $this->feature_group_open( "system-integrations", "System integrations", "Elementor asset behavior and HWS admin access reporting." );
+
+        $this->feature_card_from_snippet( "elementor_css_cache_busting", $this->elementor_css_report_html() );
+        $this->feature_card(
+            "HWS masked admin URL",
+            "hws_masked_admin_report_enabled",
+            "HWS Base Tools owns this feature. SMP only reports its status and URL.",
+            "Reports the masked admin URL managed by HWS Base Tools.",
+            "HWS option: hws_login_mask_options with slug hexa-admin.",
+            $this->hws_masked_login_report_html(),
+            $this->activity_log_html()
+        );
+
+        $this->feature_group_close();
+    }
+
+    private function feature_group_open( string $slug, string $title, string $description ): void {
+        $slug = sanitize_html_class( $slug );
+        $title_id = "smpi-feature-group-" . $slug;
+        echo "<section class=\"smpi-feature-group smpi-feature-group--" . esc_attr( $slug ) . "\" data-smpi-feature-group=\"" . esc_attr( $slug ) . "\" aria-labelledby=\"" . esc_attr( $title_id ) . "\"><header class=smpi-feature-group-head><h2 id=\"" . esc_attr( $title_id ) . "\">" . esc_html( $title ) . "</h2><p>" . esc_html( $description ) . "</p></header><div class=smpi-feature-group-list>";
+    }
+
+    private function feature_group_close(): void {
+        echo "</div></section>";
+    }
+
+    private function feature_layout_styles_html(): string {
+        return <<<'HTML'
+<style id="smpi-feature-layout-css">
+.smpi-feature-groups{display:grid;gap:32px;margin-top:28px;min-width:0}
+.smpi-feature-group{display:grid;gap:12px;min-width:0}
+.smpi-feature-group-head{border-bottom:1px solid #cfd6df;padding:0 0 10px}
+.smpi-feature-group-head h2{font-size:18px;letter-spacing:0;line-height:1.3;margin:0}
+.smpi-feature-group-head p{color:#596579;font-size:13px;line-height:1.45;margin:4px 0 0}
+.smpi-feature-group-list{display:grid;gap:10px;min-width:0}
+.smpi-feature-group-list>.hpc-section{margin:0;min-width:0}
+.smpi-feature-card.smpi-feature-card--core-collapsible{display:grid;gap:16px;min-width:0}
+.smpi-feature-card .smpi-feature-save-banner{margin:0}
+.smpi-feature-overview{align-items:start;border-bottom:1px solid #e1e6ed;display:grid;gap:18px;grid-template-columns:minmax(0,1fr) auto;padding:0 0 16px}
+.smpi-feature-overview h3,.smpi-feature-settings-head h3,.smpi-feature-reference-grid h4{color:#1d2735;font-size:14px;letter-spacing:0;line-height:1.35;margin:0;text-transform:none}
+.smpi-feature-overview p,.smpi-feature-settings-head p{color:#536176;line-height:1.55;margin:5px 0 0;max-width:78ch}
+.smpi-feature-overview-side{align-items:center;display:flex;justify-content:flex-end;min-width:180px}
+.smpi-feature-managed{color:#596579;font-size:12px;font-weight:700}
+.smpi-feature-settings{display:grid;gap:4px;min-width:0}
+.smpi-feature-settings-head{padding-bottom:4px}
+.smpi-feature-settings-body{display:grid;min-width:0}
+.smpi-feature-settings-body>.smpi-control-group,.smpi-feature-settings-body>.smpi-control-row,.smpi-feature-settings-body>.smpi-breadcrumb-flow,.smpi-feature-settings-body>.smpi-drop-cap-preview{border-top:1px solid #e6eaf0;margin:0;padding:16px 0}
+.smpi-feature-settings-body>:first-child{border-top:0;padding-top:8px}
+.smpi-feature-card .smpi-control-group h3,.smpi-feature-card .smpi-breadcrumb-section-head h3{letter-spacing:0;text-transform:none}
+.smpi-feature-card .smpi-choice-card{border-radius:8px}
+.smpi-feature-card .smpi-selected-pill{letter-spacing:0}
+.smpi-feature-card>.hpc-detail-card,.smpi-feature-before-activity>.hpc-detail-card{margin:0;min-width:0}
+.smpi-feature-reference-grid{display:grid;gap:20px;grid-template-columns:minmax(0,1fr) minmax(0,1fr);min-width:0}
+.smpi-feature-reference-grid section{min-width:0}
+.smpi-feature-reference-grid p{line-height:1.55;margin:6px 0 0}
+.smpi-feature-reference-grid .smpi-code{border-radius:6px;margin:6px 0 0;max-width:100%;min-height:72px}
+.smpi-feature-reference-extra{border-top:1px solid #e1e6ed;margin-top:18px;padding-top:4px}
+.smpi-feature-reference-extra>.smpi-control-group{border-top:1px solid #e6eaf0;margin:0;padding:16px 0}
+.smpi-feature-reference-extra>.smpi-control-group:first-child{border-top:0}
+.smpi-feature-reference-extra .smpi-mode-grid>div,.smpi-feature-reference-extra .smpi-shortcode-row{background:transparent;border:0;border-radius:0}
+.smpi-feature-reference-extra .smpi-shortcode-row{border-top:1px solid #e6eaf0;padding:12px 0}
+.smpi-feature-card .smpi-shortcode-code{align-items:center;display:flex;flex-wrap:wrap;gap:8px;min-width:0}
+.smpi-feature-card .smpi-shortcode-code code{overflow-wrap:anywhere;white-space:normal}
+.smpi-feature-before-activity,.smpi-feature-activity{min-width:0}
+.smpi-feature-diagnostics .widefat{max-width:100%}
+.smpi-feature-card pre,.smpi-feature-card code{max-width:100%}
+@media(max-width:782px){
+.smpi-feature-groups{gap:26px;margin-top:22px}
+.smpi-feature-group-head h2{font-size:17px}
+.smpi-feature-overview{grid-template-columns:minmax(0,1fr)}
+.smpi-feature-overview-side{justify-content:flex-start;min-width:0}
+.smpi-feature-reference-grid{grid-template-columns:minmax(0,1fr)}
+.smpi-feature-card .smpi-shortcode-row{grid-template-columns:minmax(0,1fr)}
+.smpi-feature-card .smpi-shortcode-row small{grid-column:1}
+.smpi-feature-card .hpc-detail-card-title{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+}
+</style>
+HTML;
+    }
     private function quick_run(): void {
         QuickStartFeatures::register_checklist_ajax();
         ( new GettingStartedChecklistRenderer( QuickStartFeatures::checklist_config() ) )->render();
@@ -1444,15 +1781,68 @@ class DashboardController {
     }
 
 
-    private function feature_card( string $title, string $toggle_key, string $acf, string $description, string $code, string $test_report, string $activity_log, string $extra_controls = "" ): void {
+    private function feature_card( string $title, string $toggle_key, string $acf, string $description, string $code, string $test_report, string $activity_log, string $extra_controls = "", bool $collapsible = true, string $before_activity_html = "", string $reference_extra_html = "" ): void {
         $log_key = $toggle_key ?: sanitize_key( $title );
-        echo "<article class=smpi-feature-card><div class=smpi-feature-head><div><p class=smpi-kicker>Feature</p><h2>" . esc_html( $title ) . "</h2></div><div class=smpi-feature-toggle>" . ( $toggle_key ? $this->inline_toggle_html( $toggle_key ) : "<span class=smpi-warn>Report only</span>" ) . "</div></div><div class=\"smpi-feature-save-banner\" aria-live=\"polite\"></div>";
-        if ( "" !== $extra_controls ) {
-            echo "<div class=smpi-feature-controls>" . $extra_controls . "</div>";
-        }
-        echo "<div class=smpi-feature-grid><section><h3>Custom ACF adjustments</h3><p>" . wp_kses_post( $acf ) . "</p></section><section><h3>Description / use instructions</h3><p>" . esc_html( $description ) . "</p></section><section><h3>Code example</h3><pre class=smpi-code>" . esc_html( $code ) . "</pre></section><section class=smpi-feature-report><h3>Test report, active and proof working</h3>" . wp_kses_post( $test_report ) . "</section><section class=smpi-feature-activity><h3>Activity log</h3>" . wp_kses_post( $this->activity_log_html( $log_key ) ) . "</section></div></article>";
-    }
+        $toggle_html = $toggle_key ? $this->inline_toggle_html( $toggle_key ) : "<span class=smpi-feature-managed>Managed in Custom Fields</span>";
+        $meta_html = "" !== $toggle_key
+            ? ( Settings::bool( $toggle_key ) ? CoreUi::pill( "Enabled", "success" ) : CoreUi::pill( "Disabled", "warning" ) )
+            : CoreUi::pill( "Linked settings", "dark" );
 
+        $overview_html = "<section class=smpi-feature-overview><div><h3>What it does</h3><p>" . esc_html( $description ) . "</p></div><div class=smpi-feature-overview-side>" . $toggle_html . "</div></section>";
+        $settings_html = "";
+        if ( "" !== $extra_controls ) {
+            $settings_html = "<section class=smpi-feature-settings><header class=smpi-feature-settings-head><h3>Settings</h3></header><div class=smpi-feature-settings-body>" . $extra_controls . "</div></section>";
+        }
+
+        $reference_body = "<div class=smpi-feature-reference-grid><section><h4>Data and dependencies</h4><p>" . wp_kses_post( $acf ) . "</p></section><section><h4>Implementation</h4><pre class=smpi-code>" . esc_html( $code ) . "</pre></section></div>";
+        if ( "" !== $reference_extra_html ) {
+            $reference_body .= "<div class=smpi-feature-reference-extra>" . $reference_extra_html . "</div>";
+        }
+        $reference_html = CoreUi::detail_card(
+            [
+                "title" => "Implementation reference",
+                "body_html" => $reference_body,
+                "meta_html" => CoreUi::pill( "Reference", "dark" ),
+                "class" => "smpi-feature-reference-panel",
+                "open" => false,
+            ]
+        );
+        $diagnostics_html = CoreUi::detail_card(
+            [
+                "title" => "Status and diagnostics",
+                "body_html" => "<div class=smpi-feature-diagnostics>" . $test_report . "</div>",
+                "meta_html" => CoreUi::pill( "Live status", "dark" ),
+                "class" => "smpi-feature-diagnostics-panel",
+                "open" => false,
+            ]
+        );
+        $activity_log = $this->activity_log_html( $log_key );
+
+        $html = "<article class=\"smpi-feature-card" . ( $collapsible ? " smpi-feature-card--core-collapsible" : "" ) . "\"><div class=\"smpi-feature-save-banner\" aria-live=\"polite\"></div>"
+            . $overview_html
+            . $settings_html
+            . $reference_html
+            . $diagnostics_html;
+        if ( "" !== $before_activity_html ) {
+            $html .= "<div class=smpi-feature-before-activity>" . $before_activity_html . "</div>";
+        }
+        $html .= "<div class=smpi-feature-activity>" . $activity_log . "</div></article>";
+
+        if ( $collapsible ) {
+            echo CoreUi::collapsible(
+                [
+                    "title" => $title,
+                    "body_html" => $html,
+                    "open" => false,
+                    "meta_html" => $meta_html,
+                    "class" => "smpi-feature-filter-item",
+                ]
+            );
+            return;
+        }
+
+        echo $html;
+    }
     private function feature_card_from_snippet( string $snippet_id, string $extra_report_html = "" ): void {
         $definition = SnippetDefinitions::definition( $snippet_id );
         if ( ! $definition ) {
@@ -1467,6 +1857,8 @@ class DashboardController {
             $this->snippet_code_text( $definition ),
             $this->snippet_report_html( $snippet_id ) . $extra_report_html,
             $this->activity_log_html(),
+            "",
+            true,
         );
     }
 
@@ -1496,7 +1888,7 @@ class DashboardController {
         $html .= "<ul class=smpi-status-rows>";
         foreach ( (array) ( $test["rules"] ?? [] ) as $rule ) {
             $passed = ! empty( $rule["passed"] );
-            $html .= "<li class=smpi-status-row>" . $this->ico( $passed ) . "<span>" . esc_html( (string) ( $rule["label"] ?? "Rule" ) ) . " - " . esc_html( (string) ( $rule["message"] ?? "" ) ) . "</span></li>";
+            $html .= "<li class=smpi-status-row>" . self::ico( $passed ) . "<span>" . esc_html( (string) ( $rule["label"] ?? "Rule" ) ) . " - " . esc_html( (string) ( $rule["message"] ?? "" ) ) . "</span></li>";
         }
         return $html . "</ul>";
     }
@@ -1507,17 +1899,141 @@ class DashboardController {
         $rgb = (string) $payload["primary_rgb"];
         $link = "" !== (string) $payload["admin_url"] ? CoreUi::external_link( (string) $payload["admin_url"], "Open HWS Brand Assets", "button button-secondary" ) : "";
 
-        return "<section class=\"smpi-feature-card smpi-brand-color-tools\"><div class=smpi-feature-head><div><p class=smpi-kicker>Brand color source</p><h2>HWS Base Tools primary color</h2><p class=smpi-muted>Feature color defaults now use this HWS Brand Assets value when a setting has not been customized.</p></div></div><div class=smpi-feature-grid><section><h3>Primary color</h3><p><code>" . esc_html( $primary ) . "</code> <code>" . esc_html( $rgb ) . "</code></p><span class=smpi-color-swatch style=\"background:" . esc_attr( $primary ) . "\"></span></section><section><h3>Import controls</h3><p>Apply the HWS primary color to all primary/accent feature color settings.</p><button type=button class=\"button button-primary\" data-smpi-import-brand-color data-key=\"_all_feature_primary_colors\" data-brand-color=\"" . esc_attr( $primary ) . "\">Import primary color into feature accents</button> " . $link . "<span class=spinner></span><span class=\"smpi-save-state\" aria-live=\"polite\"></span></section></div></section>";
+        return "<section class=\"smpi-feature-card smpi-feature-card--core-collapsible smpi-brand-color-tools\"><div class=smpi-feature-head><div><p class=smpi-kicker>Brand color source</p><h2>HWS Base Tools primary color</h2><p class=smpi-muted>Each design can use its original palette, the site palette, or a custom accent.</p></div></div><div class=smpi-feature-grid><section><h3>Primary color</h3><p><code>" . esc_html( $primary ) . "</code> <code>" . esc_html( $rgb ) . "</code></p><span class=smpi-color-swatch style=\"background:" . esc_attr( $primary ) . "\"></span></section><section><h3>Apply to all designs</h3><p>Set every template design card to Site Primary without changing neutral text, borders, or backgrounds.</p><button type=button class=\"button button-primary\" data-smpi-import-brand-color data-key=\"_all_feature_primary_colors\" data-brand-color=\"" . esc_attr( $primary ) . "\">Use Site Primary for all designs</button> " . $link . "<span class=spinner></span><span class=\"smpi-save-state\" aria-live=\"polite\"></span></section></div></section>";
     }
 
     private function inline_toggle_html( string $key ): string {
         $enabled = Settings::bool( $key );
-        return "<label class=smpi-switch><input class=smpi-setting type=checkbox data-key=" . esc_attr( $key ) . " value=1 " . checked( $enabled, true, false ) . "><span></span><strong>" . ( $enabled ? "Enabled" : "Disabled" ) . "</strong></label><span class=spinner></span><span class=smpi-save-state></span>";
+        return "<label class=smpi-switch><input class=\"smpi-setting smpi-feature-primary-toggle\" type=checkbox data-key=" . esc_attr( $key ) . " value=1 " . checked( $enabled, true, false ) . "><span></span><strong>" . ( $enabled ? "Enabled" : "Disabled" ) . "</strong></label><span class=spinner></span><span class=smpi-save-state></span>";
     }
 
     private function inline_toggle_setting_html( string $key, string $label ): string {
         $enabled = Settings::bool( $key );
-        return "<div class=smpi-control-row><label class=smpi-switch><input class=smpi-setting type=checkbox data-key=" . esc_attr( $key ) . " value=1 " . checked( $enabled, true, false ) . "><span></span><strong>" . esc_html( $label ) . "</strong></label><span class=spinner></span><span class=smpi-save-state></span></div>";
+        return "<div class=smpi-control-row>"
+            . CoreUi::toggle(
+                $key,
+                $enabled,
+                $label,
+                [
+                    "id"          => "smpi-" . $key,
+                    "input_class" => "smpi-setting",
+                    "data"        => [ "key" => $key ],
+                ]
+            )
+            . "<span class=spinner></span><span class=smpi-save-state></span></div>";
+    }
+
+    private function breadcrumb_controls_html( array $settings ): string {
+        $template = $this->select_setting_html( "breadcrumbs_style", $this->breadcrumb_style_options(), $settings, "Breadcrumb template" );
+        $appearance = "<div class=\"smpi-breadcrumb-appearance-grid\">"
+            . $this->template_color_setting_html( "breadcrumbs", "Breadcrumb design color", $settings )
+            . $this->optional_color_setting_html( "breadcrumbs_background_color", "Background override", $settings, "Use template background" )
+            . $this->typography_surface_control_html( "breadcrumbs", $settings )
+            . "</div>";
+        $visibility = "<div class=\"smpi-breadcrumb-visibility-grid\">"
+            . $this->inline_toggle_setting_html( "breadcrumbs_hide_home", "Hide on front page and posts page" )
+            . $this->inline_toggle_setting_html( "breadcrumbs_hide_term_archives", "Hide on category and tag pages" )
+            . "</div>"
+            . $this->breadcrumb_post_type_toggles_html( $settings );
+
+        return "<div class=\"smpi-breadcrumb-flow\">"
+            . $this->breadcrumb_section_html( "template", "01", "Template", $template )
+            . $this->breadcrumb_section_html( "appearance", "02", "Appearance", $appearance )
+            . $this->breadcrumb_section_html( "visibility", "03", "Visibility", $visibility )
+            . "</div>";
+    }
+
+    private function breadcrumb_css_override_html(): string {
+        $selector = Breadcrumbs::CSS_SELECTOR;
+        $html_example = <<<'HTML'
+<div class="smpi-breadcrumbs-band">
+  <div class="smpi-template smpi-template--breadcrumbs smpi-breadcrumbs smpi-bc-b6">
+    <nav class="smpi-template-content smpi-breadcrumb-nav" aria-label="Breadcrumbs">
+      <p class="smpi-template-list smpi-breadcrumb-list">
+        <a class="smpi-template-item smpi-template-link smpi-breadcrumb-item smpi-breadcrumb-link" href="/">Home</a>
+        <span class="smpi-breadcrumb-separator"> / </span>
+        <span class="smpi-template-item smpi-breadcrumb-item smpi-breadcrumb-current">Current page</span>
+      </p>
+    </nav>
+  </div>
+</div>
+HTML;
+        $css_example = <<<'CSS'
+body .smpi-breadcrumbs-band {
+  --smpi-bc-background: #111827;
+  --smpi-bc-accent: #60a5fa;
+  background: var(--smpi-bc-background);
+}
+
+body .smpi-breadcrumbs-band .smpi-breadcrumbs[class*="smpi-bc-"] .smpi-breadcrumb-link,
+body .smpi-breadcrumbs-band .smpi-breadcrumbs[class*="smpi-bc-"] .smpi-breadcrumb-current {
+  color: #f8fafc;
+}
+
+body.page-id-123 .smpi-breadcrumbs-band {
+  --smpi-bc-background: #ffffff;
+}
+
+CSS;
+
+        return ScopedCssOverride::render(
+            [
+                "title"        => "Breadcrumb CSS override",
+                "selector"     => $selector,
+                "instructions" => [
+                    "Enter the CSS you want to apply in the editor below.",
+                    "Use the band selector for the full background and its breadcrumb child for text. Add body.page-id-123 for one page only.",
+                    "Changes save when you leave the editor and load after the Breadcrumb template CSS.",
+                ],
+                "html_example" => $html_example,
+                "css_example"  => $css_example,
+                "setting_key"  => Breadcrumbs::CSS_SETTING,
+                "value"        => (string) Settings::get( Breadcrumbs::CSS_SETTING, "" ),
+                "input_class"  => "smpi-setting",
+                "editor_label" => "Your CSS override",
+                "editor_description" => "Edit scoped CSS here. Changes save automatically when you leave the field.",
+                "placeholder"  => $css_example,
+                "status_html" => '<span class="spinner"></span><span class="smpi-save-state"></span>',
+                "open"         => false,
+            ]
+        );
+    }
+
+    private function breadcrumb_section_html( string $slug, string $step, string $title, string $body_html ): string {
+        $slug = sanitize_html_class( $slug );
+        $title_id = "smpi-breadcrumb-" . $slug . "-title";
+        return "<section class=\"smpi-breadcrumb-section smpi-breadcrumb-section--" . esc_attr( $slug ) . "\" aria-labelledby=\"" . esc_attr( $title_id ) . "\"><header class=smpi-breadcrumb-section-head><span class=smpi-breadcrumb-step aria-hidden=true>" . esc_html( $step ) . "</span><h3 id=\"" . esc_attr( $title_id ) . "\">" . esc_html( $title ) . "</h3></header>" . $body_html . "</section>";
+    }
+
+    private function breadcrumb_post_type_toggles_html( array $settings ): string {
+        $key = "breadcrumbs_disabled_post_types";
+        $selected = isset( $settings[ $key ] ) && is_array( $settings[ $key ] ) ? $settings[ $key ] : [];
+        $options = $this->breadcrumb_post_type_options();
+        $html = "<div class=\"smpi-control-group smpi-context-control smpi-breadcrumb-post-type-control\"><h3>Hide breadcrumbs by post type</h3><p class=smpi-muted>Choose each individual post type where breadcrumbs should be hidden.</p>";
+
+        if ( empty( $options ) ) {
+            return $html . "<p class=smpi-muted>No public post types are registered.</p></div>";
+        }
+
+        $html .= "<div class=smpi-breadcrumb-toggle-grid>";
+        foreach ( $options as $value => $label ) {
+            $html .= "<div class=smpi-breadcrumb-toggle-item>"
+                . CoreUi::toggle(
+                    $key . "[]",
+                    in_array( $value, $selected, true ),
+                    (string) $label,
+                    [
+                        "id"          => "smpi-breadcrumb-hide-" . $value,
+                        "value"       => $value,
+                        "class"       => "smpi-breadcrumb-post-type-toggle",
+                        "input_class" => "smpi-setting-array",
+                        "data"        => [ "key" => $key ],
+                    ]
+                )
+                . "</div>";
+        }
+
+        return $html . "</div><span class=spinner></span><span class=smpi-save-state></span></div>";
     }
 
     private function context_select_html( string $key, array $options, array $settings, string $label = "Placement contexts" ): string {
@@ -1542,34 +2058,116 @@ class DashboardController {
         return $html . "</div><span class=spinner></span><span class=smpi-save-state></span></div>";
     }
 
-    private function color_setting_html( string $key, string $label, array $settings ): string {
+    private function template_color_setting_html( string $surface, string $label, array $settings ): string {
+        $definition = TemplateDesignRegistry::definition( $surface );
+        if ( [] === $definition ) {
+            return "";
+        }
+
+        return "<div class=\"smpi-control-group smpi-template-color-control\">" . TemplateColorControl::render( [
+            "source_key" => $definition["source_key"],
+            "custom_key" => $definition["custom_key"],
+            "template_key" => $definition["template_key"],
+            "template" => TemplateDesignRegistry::template( $surface, $settings ),
+            "source" => TemplateDesignRegistry::source( $surface, $settings ),
+            "custom" => (string) ( $settings[ $definition["custom_key"] ] ?? "" ),
+            "palettes" => $definition["palettes"],
+            "variables" => $definition["variables"],
+            "fallback" => $definition["fallback"],
+            "title" => $label,
+            "description" => "Choose the original template color, a site color, or a custom design color. Only mapped accents and tints change; typography stays unchanged.",
+            "input_class" => "smpi-setting",
+            "control_class" => "smpi-template-color-core-control",
+            "preview_scope" => ".smpi-design-host",
+            "status_html" => "<span class=spinner></span><span class=\"smpi-save-state\" aria-live=\"polite\"></span>",
+        ] ) . "</div>";
+    }
+
+    private function optional_color_setting_html( string $key, string $label, array $settings, string $inherit_label ): string {
         $default = Settings::color_default( $key );
-        $color = sanitize_hex_color( (string) ( $settings[ $key ] ?? $default ) ) ?: $default;
+        $color = sanitize_hex_color( (string) ( $settings[ $key ] ?? "" ) ) ?: "";
         return "<div class=smpi-control-group>" . ColorControl::render( [
             "key" => $key,
             "label" => $label,
             "value" => $color,
             "default" => $default,
+            "allow_inherit" => true,
+            "inherited_value" => $default,
+            "inherit_label" => $inherit_label,
+            "inherited_status_label" => "Template background",
             "control_class" => "smpi-color-core-control",
-            "hex_input_class" => "smpi-setting smpi-color-setting",
+            "hex_input_class" => "smpi-color-setting",
+            "value_input_class" => "smpi-setting smpi-color-hidden",
             "picker_class" => "smpi-color-picker-control",
-            "import_brand" => true,
-            "import_button_class" => "button button-secondary",
+            "preview_scope" => ".smpi-design-host",
+            "preview_variables" => [ "--smpi-bc-background" => "color" ],
             "status_html" => "<span class=spinner></span><span class=\"smpi-save-state\" aria-live=\"polite\"></span>",
         ] ) . "</div>";
+    }
+
+    private function typography_surface_control_html( string $prefix, array $settings ): string {
+        $args = TemplateDesignRegistry::typography_definition( $prefix );
+        if ( [] === $args ) {
+            return "";
+        }
+
+        $args["description"] = "Original Template matches the preview. Use Site Typography inherits every site value. Custom Typography changes only the values you select.";
+        $args["mode_control"] = true;
+        foreach ( [ "font_family", "font_weight", "font_color" ] as $property ) {
+            if ( empty( $args[ $property ]["key"] ) ) {
+                continue;
+            }
+            if ( "font_color" === $property ) {
+                $args[ $property ] = array_merge(
+                    [
+                        "default" => Settings::color_default( $args[ $property ]["key"] ),
+                        "import_brand" => true,
+                        "import_button_class" => "button button-secondary",
+                    ],
+                    $args[ $property ]
+                );
+            }
+        }
+
+        return $this->typography_control_html( $prefix, $settings, Settings::typography_preservation_defaults( $prefix ), $args );
+    }
+
+    private function typography_control_html( string $prefix, array $settings, $default, array $args ): string {
+        $args["prefix"] = $prefix;
+        $args["settings"] = $settings;
+        $args["defaults"] = $default;
+        $args["preview_variables"] = TemplateDesignRegistry::typography_preview_variables( $prefix );
+        $args["input_class"] = "smpi-setting";
+        $args["control_class"] = trim( "smpi-typography-core-control " . (string) ( $args["control_class"] ?? "" ) );
+
+        return "<div class=\"smpi-control-group smpi-typography-control\">" . TypographyControl::render( $args ) . "<span class=spinner></span><span class=\"smpi-save-state\" aria-live=\"polite\"></span></div>";
+    }
+
+    private function design_preview_variables(): string {
+        $variables = [];
+        $all_settings = Settings::all();
+        foreach ( array_keys( TemplateDesignRegistry::definitions() ) as $surface ) {
+            $variables = array_merge(
+                $variables,
+                TemplateDesignRegistry::css_variables( $surface, $all_settings ),
+                TemplateDesignRegistry::typography_css_variables( $surface, $all_settings )
+            );
+        }
+        $breadcrumb_background = sanitize_hex_color( (string) ( $all_settings["breadcrumbs_background_color"] ?? "" ) );
+        if ( $breadcrumb_background ) {
+            $variables["--smpi-bc-background"] = $breadcrumb_background;
+        }
+        $declarations = [];
+        foreach ( $variables as $variable => $value ) {
+            $declarations[] = $variable . ":" . $value;
+        }
+        return implode( ";", $declarations );
     }
 
     private function number_setting_html( string $key, string $label, array $settings, int $min = 8, int $max = 64, string $suffix = "" ): string {
         $value = isset( $settings[ $key ] ) ? (int) $settings[ $key ] : $min;
         $value = max( $min, min( $max, $value ) );
         return "<div class=smpi-control-group><h3>" . esc_html( $label ) . "</h3><label class=smpi-number-control><input class=smpi-setting type=number min=" . esc_attr( (string) $min ) . " max=" . esc_attr( (string) $max ) . " data-key=" . esc_attr( $key ) . " value=" . esc_attr( (string) $value ) . "><span>" . esc_html( $suffix ) . "</span></label><span class=spinner></span><span class=smpi-save-state></span></div>";
-    }
-
-    private function font_style_setting_html( string $key, string $label, array $settings ): string {
-        return $this->select_setting_html( $key, [
-            "normal" => [ "label" => "Normal text", "description" => "Keep the selected text upright." ],
-            "italic" => [ "label" => "Italic text", "description" => "Use an editorial italic treatment." ],
-        ], $settings, $label );
     }
 
     private function author_context_overrides_html( array $settings ): string {
@@ -1580,21 +2178,41 @@ class DashboardController {
             "home" => [ "label" => "Home page authors", "description" => "Overrides author badges in home page article lists." ],
             "author" => [ "label" => "Author archive/profile", "description" => "Overrides badges on author.php archive/profile pages." ],
         ];
-        $default_color = sanitize_hex_color( (string) ( $settings["muckrack_icon_color"] ?? Settings::color_default( "muckrack_icon_color" ) ) ) ?: Settings::color_default( "muckrack_icon_color" );
-        $brand_color = Settings::brand_primary_color( $default_color );
-        $html = "<div class=\"smpi-control-group smpi-context-overrides\"><h3>Context overrides</h3><p class=smpi-muted>Use the color picker for a context override. Clear returns that context to the default color above.</p><div class=smpi-context-override-list>";
+        $default_color = TemplateDesignRegistry::effective_color( "muckrack_verified", $settings );
+        $html = "<div class=\"smpi-control-group smpi-context-overrides\"><h3>Context overrides</h3><p class=smpi-muted>Choose a custom color or use the default color above. Every context uses the same Hexa WP Core color control.</p><div class=smpi-context-override-list>";
         foreach ( $contexts as $context => $meta ) {
             $color_key = "muckrack_icon_color_" . $context;
             $size_key = "muckrack_icon_size_" . $context;
             $margin_left_key = "muckrack_icon_margin_left_" . $context;
             $margin_top_key = "muckrack_icon_margin_top_" . $context;
             $color = sanitize_hex_color( (string) ( $settings[ $color_key ] ?? "" ) ) ?: "";
-            $effective = "" !== $color ? $color : $default_color;
             $size = isset( $settings[ $size_key ] ) ? absint( $settings[ $size_key ] ) : 0;
             $size = $size > 0 ? max( 8, min( 64, $size ) ) : 0;
             $margin_left = isset( $settings[ $margin_left_key ] ) && "" !== (string) $settings[ $margin_left_key ] ? max( -32, min( 64, (int) $settings[ $margin_left_key ] ) ) : "";
             $margin_top = isset( $settings[ $margin_top_key ] ) && "" !== (string) $settings[ $margin_top_key ] ? max( -32, min( 64, (int) $settings[ $margin_top_key ] ) ) : "";
-            $html .= "<div class=smpi-context-override-row><div><strong>" . esc_html( $meta["label"] ) . "</strong><small>" . esc_html( $meta["description"] ) . "</small></div><label class=smpi-color-control>Color override <input class=smpi-color-picker type=color data-smpi-sync-key=" . esc_attr( $color_key ) . " value=" . esc_attr( $effective ) . "><input class=\"smpi-setting smpi-color-hidden\" type=hidden data-key=" . esc_attr( $color_key ) . " value=\"" . esc_attr( $color ) . "\"><code class=smpi-color-hex data-smpi-color-hex data-smpi-empty-label=inherit>" . esc_html( "" !== $color ? $color : "inherit" ) . "</code><code class=smpi-color-rgb data-smpi-color-rgb>" . esc_html( BrandColorProvider::rgb_string( $effective ) ) . "</code><span class=smpi-color-swatch style=\"background:" . esc_attr( $effective ) . "\"></span>" . CoreUi::copy_button( $effective, "" !== $color ? "Copy hex" : "Copy inherited hex" ) . "<button type=button class=\"button button-secondary\" data-smpi-import-brand-color data-key=" . esc_attr( $color_key ) . " data-brand-color=" . esc_attr( $brand_color ) . ">Import HWS primary</button><button type=button class=\"button button-link smpi-color-inherit\" data-smpi-sync-key=" . esc_attr( $color_key ) . ">Inherit</button></label><label>Size override <input class=smpi-setting type=number min=0 max=64 data-key=" . esc_attr( $size_key ) . " value=\"" . esc_attr( (string) $size ) . "\"><span>px</span></label><label>Margin left <input class=smpi-setting type=number min=-32 max=64 placeholder=inherit data-key=" . esc_attr( $margin_left_key ) . " value=\"" . esc_attr( (string) $margin_left ) . "\"><span>px</span></label><label>Margin top <input class=smpi-setting type=number min=-32 max=64 placeholder=inherit data-key=" . esc_attr( $margin_top_key ) . " value=\"" . esc_attr( (string) $margin_top ) . "\"><span>px</span></label></div>";
+            $color_control = ColorControl::render( [
+                "key" => $color_key,
+                "id" => "smpi-" . $color_key,
+                "label" => "Color override",
+                "value" => $color,
+                "default" => $default_color,
+                "allow_inherit" => true,
+                "inherited_value" => $default_color,
+                "control_class" => "smpi-color-core-control smpi-context-color-control",
+                "hex_input_class" => "smpi-color-setting",
+                "picker_class" => "smpi-color-picker-control",
+                "value_input_class" => "smpi-setting smpi-color-hidden",
+                "import_brand" => true,
+                "import_button_class" => "button button-secondary",
+                "inherit_button_class" => "button button-secondary",
+            ] );
+            $html .= "<div class=smpi-context-override-row>"
+                . "<div class=smpi-context-override-copy><strong>" . esc_html( $meta["label"] ) . "</strong><small>" . esc_html( $meta["description"] ) . "</small></div>"
+                . $color_control
+                . "<label>Size override <input class=smpi-setting type=number min=0 max=64 data-key=" . esc_attr( $size_key ) . " value=\"" . esc_attr( (string) $size ) . "\"><span>px</span></label>"
+                . "<label>Margin left <input class=smpi-setting type=number min=-32 max=64 placeholder=inherit data-key=" . esc_attr( $margin_left_key ) . " value=\"" . esc_attr( (string) $margin_left ) . "\"><span>px</span></label>"
+                . "<label>Margin top <input class=smpi-setting type=number min=-32 max=64 placeholder=inherit data-key=" . esc_attr( $margin_top_key ) . " value=\"" . esc_attr( (string) $margin_top ) . "\"><span>px</span></label>"
+                . "</div>";
         }
         return $html . "</div><span class=spinner></span><span class=\"smpi-save-state\" aria-live=\"polite\"></span></div>";
     }
@@ -1606,13 +2224,16 @@ class DashboardController {
             "bc-b3" => [ "label" => "Option 3: Uppercase Eyebrow", "description" => "Letter-spaced uppercase crumbs over a short accent rule.", "preview" => $this->breadcrumb_design_preview_html( "bc-b3" ) ],
             "bc-b4" => [ "label" => "Option 4: Soft Chips", "description" => "Each crumb is a rounded chip; current page becomes a filled accent pill.", "preview" => $this->breadcrumb_design_preview_html( "bc-b4" ) ],
             "bc-b5" => [ "label" => "Option 5: Gradient Lead-in", "description" => "Breadcrumb above a large serif headline on a soft top-down gradient.", "preview" => $this->breadcrumb_design_preview_html( "bc-b5" ) ],
-            "bc-b6" => [ "label" => "Option 6: Flush Minimal", "description" => "Capital-case crumbs with tight letter-spacing, flush to the header grid with no side padding.", "preview" => $this->breadcrumb_design_preview_html( "bc-b6" ) ],
+            "bc-b6" => [ "label" => "Option 6: Flush Minimal", "description" => "Capital-case crumbs aligned to the header grid on a full-width background band, with no forced divider.", "preview" => $this->breadcrumb_design_preview_html( "bc-b6" ) ],
         ];
     }
 
     private function breadcrumb_post_type_options(): array {
         $options = [];
-        foreach ( get_post_types( [ "public" => true, "_builtin" => false ], "objects" ) as $type => $object ) {
+        foreach ( get_post_types( [ "public" => true ], "objects" ) as $type => $object ) {
+            if ( "attachment" === $type ) {
+                continue;
+            }
             $options[ $type ] = isset( $object->labels->name ) ? (string) $object->labels->name : $type;
         }
         return $options;
@@ -1626,6 +2247,21 @@ class DashboardController {
             "toc02" => [ "label" => "Soft Box", "description" => "Contained gray card with numbered items.", "preview" => $this->toc_design_preview_html( "toc02" ) ],
             "toc03" => [ "label" => "Numbered Rows", "description" => "Divided rows with blue indexes.", "preview" => $this->toc_design_preview_html( "toc03" ) ],
             "toc04" => [ "label" => "Jump Pills", "description" => "Horizontal pill links.", "preview" => $this->toc_design_preview_html( "toc04" ) ],
+        ];
+    }
+
+    private function article_drop_cap_style_options(): array {
+        return [
+            "dropcap-classic" => [ "label" => "Classic editorial", "description" => "A large unframed letter with traditional editorial spacing.", "preview" => $this->article_drop_cap_preview_html( "dropcap-classic" ) ],
+            "dropcap-highlight" => [ "label" => "Highlight block", "description" => "A solid accent tile behind the first letter.", "preview" => $this->article_drop_cap_preview_html( "dropcap-highlight" ) ],
+            "dropcap-outline" => [ "label" => "Outline frame", "description" => "A thin accent frame around the first letter.", "preview" => $this->article_drop_cap_preview_html( "dropcap-outline" ) ],
+            "dropcap-side-rule" => [ "label" => "Side rule", "description" => "A compact first letter anchored by a strong vertical rule.", "preview" => $this->article_drop_cap_preview_html( "dropcap-side-rule" ) ],
+            "dropcap-soft-tile" => [ "label" => "Soft tile", "description" => "A restrained tinted tile with a compact corner radius.", "preview" => $this->article_drop_cap_preview_html( "dropcap-soft-tile" ) ],
+            "dropcap-script-classic" => [ "label" => "Script classic", "description" => "Dancing Script with clean editorial spacing.", "preview" => $this->article_drop_cap_preview_html( "dropcap-script-classic" ) ],
+            "dropcap-script-tile" => [ "label" => "Script tile", "description" => "Great Vibes on a soft tinted tile.", "preview" => $this->article_drop_cap_preview_html( "dropcap-script-tile" ) ],
+            "dropcap-script-round" => [ "label" => "Script round", "description" => "Parisienne inside a rounded tinted badge.", "preview" => $this->article_drop_cap_preview_html( "dropcap-script-round" ) ],
+            "dropcap-script-underline" => [ "label" => "Script underline", "description" => "Pinyon Script with an accent underline.", "preview" => $this->article_drop_cap_preview_html( "dropcap-script-underline" ) ],
+            "dropcap-script-shadow" => [ "label" => "Script shadow", "description" => "Allura with a soft offset tint shadow.", "preview" => $this->article_drop_cap_preview_html( "dropcap-script-shadow" ) ],
         ];
     }
 
@@ -1695,10 +2331,10 @@ class DashboardController {
         return [
             "none" => [ "label" => "No style", "description" => "Render the field exactly as entered.", "preview" => $this->summary_design_preview_html( "none" ) ],
             "sum00" => [ "label" => "Reuters Plate", "description" => "Gray summary plate with strong heading underline.", "preview" => $this->summary_design_preview_html( "sum00" ) ],
-            "sum01" => [ "label" => "Key Points Card", "description" => "White card with blue accent edge.", "preview" => $this->summary_design_preview_html( "sum01" ) ],
+            "sum01" => [ "label" => "Key Points Card", "description" => "White card with a selected-color accent edge.", "preview" => $this->summary_design_preview_html( "sum01" ) ],
             "sum02" => [ "label" => "Eyebrow Bullets", "description" => "Minimal rules and compact bullets.", "preview" => $this->summary_design_preview_html( "sum02" ) ],
-            "sum03" => [ "label" => "Numbered Brief", "description" => "Dark header and briefing structure.", "preview" => $this->summary_design_preview_html( "sum03" ) ],
-            "sum04" => [ "label" => "Highlight Callout", "description" => "Soft blue callout box.", "preview" => $this->summary_design_preview_html( "sum04" ) ],
+            "sum03" => [ "label" => "Numbered Brief", "description" => "Selected-color header and briefing structure.", "preview" => $this->summary_design_preview_html( "sum03" ) ],
+            "sum04" => [ "label" => "Highlight Callout", "description" => "Soft selected-color callout box.", "preview" => $this->summary_design_preview_html( "sum04" ) ],
         ];
     }
 
@@ -1710,6 +2346,42 @@ class DashboardController {
             "faq02" => [ "label" => "Card List", "description" => "Each question in its own card.", "preview" => $this->faq_design_preview_html( "faq02" ) ],
             "faq03" => [ "label" => "Numbered", "description" => "Oversized ghost numbers.", "preview" => $this->faq_design_preview_html( "faq03" ) ],
             "faq04" => [ "label" => "People Also Ask", "description" => "Soft Google-like Q and A cards.", "preview" => $this->faq_design_preview_html( "faq04" ) ],
+        ];
+    }
+
+    private function post_summary_placement_options(): array {
+        return [
+            "manual" => [
+                "label" => "Manual shortcode",
+                "description" => "Do not insert the Summary automatically. Place its shortcode in Elementor or post content.",
+                "preview" => "<code>[smp_post_summary]</code>",
+            ],
+            "above_content" => [
+                "label" => "Above content",
+                "description" => "Insert the Summary immediately before the article content.",
+            ],
+            "below_content" => [
+                "label" => "Below content",
+                "description" => "Insert the Summary immediately after the article content.",
+            ],
+        ];
+    }
+
+    private function post_faq_placement_options(): array {
+        return [
+            "manual" => [
+                "label" => "Manual shortcode",
+                "description" => "Do not insert FAQs automatically. Place the shortcode where the block should appear.",
+                "preview" => "<code>[smp_post_faqs]</code>",
+            ],
+            "below_content" => [
+                "label" => "Below content",
+                "description" => "Insert the FAQ block immediately after the article content.",
+            ],
+            "below_author" => [
+                "label" => "Below author",
+                "description" => "Insert the FAQ block immediately after the article author section.",
+            ],
         ];
     }
 
@@ -1727,29 +2399,28 @@ class DashboardController {
     private function breadcrumb_design_preview_html( string $style ): string {
         $style = \smp_publication_integration\Content\ArticleStyles::normalize_breadcrumb_style( $style );
         $title = "Amazon Shelves Guadagnino Film";
-        $crumbs = "<nav aria-label=\"breadcrumbs\" class=\"rank-math-breadcrumb\"><p><a href=\"#\">Home</a><span class=\"separator\"> - </span><a href=\"#\">Entertainment</a><span class=\"separator\"> - </span><span class=\"last\">" . esc_html( $title ) . "</span></p></nav>";
-        $title_html = in_array( $style, [ "bc-b1", "bc-b5" ], true ) ? "<div class=\"pt\">" . esc_html( $title ) . "</div>" : "";
+        $crumbs = "<nav aria-label=\"breadcrumbs\" class=\"rank-math-breadcrumb smpi-template-content smpi-breadcrumb-nav\"><p class=\"smpi-template-list smpi-breadcrumb-list\"><a class=\"smpi-template-item smpi-template-link smpi-breadcrumb-item smpi-breadcrumb-link\" href=\"#\">Home</a><span class=\"separator smpi-breadcrumb-separator\"> - </span><a class=\"smpi-template-item smpi-template-link smpi-breadcrumb-item smpi-breadcrumb-link\" href=\"#\">Entertainment</a><span class=\"separator smpi-breadcrumb-separator\"> - </span><span class=\"last smpi-template-item smpi-breadcrumb-item smpi-breadcrumb-current\">" . esc_html( $title ) . "</span></p></nav>";
+        $title_html = in_array( $style, [ "bc-b1", "bc-b5" ], true ) ? "<div class=\"smpi-template-title smpi-breadcrumb-title\">" . esc_html( $title ) . "</div>" : "";
         $inner = "bc-b5" === $style ? $crumbs . $title_html : $title_html . $crumbs;
-        return "<div class=\"smpi-breadcrumbs smpi-" . esc_attr( $style ) . "\">" . $inner . "</div>";
+        $classes = \smp_publication_integration\Content\TemplateMarkup::root_classes( "breadcrumbs", [ "smpi-breadcrumbs", "smpi-" . $style ] );
+        return "<div class=\"smpi-breadcrumbs-band\"><div class=\"" . esc_attr( $classes ) . "\">" . $inner . "</div></div>";
     }
 
     private function toc_design_preview_html( string $style ): string {
-        $label = esc_html( $this->toc_preview_label( $style ) );
-        if ( "toc04" === $style ) {
-            return "<nav class=\"smpi-table-of-contents smpi-" . esc_attr( $style ) . "\"><span class=\"smpi-toc-label\">" . $label . "</span><a href=\"#\">The rise of new technology</a><a href=\"#\">What the data reveals</a></nav>";
-        }
-        return "<nav class=\"smpi-table-of-contents smpi-" . esc_attr( $style ) . "\"><p class=\"smpi-toc-label\">" . $label . "</p><ol><li><a href=\"#\">The rise of new technology</a></li><li><a href=\"#\">What the data reveals</a></li></ol></nav>";
+        $content = "<h2>The rise of new technology</h2><h2>What the data reveals</h2>";
+        return \smp_publication_integration\Content\TableOfContents::build_toc( $content, $this->toc_preview_label( $style ), $style );
     }
 
     private function article_heading_preview_html( string $style ): string {
         $style = \smp_publication_integration\Content\ArticleStyles::normalize_article_heading_style( $style );
         $class = "none" === $style ? "smpi-ah-preview h2-stage smpi-ah-preview-none" : "smpi-ah-preview h2-stage smpi-ah-preview-" . $style;
         $sample = $this->article_heading_preview_sample( $style );
-        return "<div class=\"smpi-ah-preview-stack\"><div class=\"" . esc_attr( $class ) . "\"><h2>" . esc_html( $sample[0] ) . "</h2><p>" . esc_html( $sample[1] ) . "</p></div><div class=\"" . esc_attr( $class ) . "\"><h3>What changed next</h3><p>The same selected treatment applies to article H3 subheadings inside post content.</p></div></div>";
+        return "<div class=\"smpi-ah-preview-stack\"><div class=\"" . esc_attr( $class ) . "\"><h2 class=\"smpi-template-title smpi-article-heading smpi-article-heading--h2\">" . esc_html( $sample[0] ) . "</h2><p class=\"smpi-template-text smpi-article-paragraph\">" . esc_html( $sample[1] ) . "</p></div><div class=\"" . esc_attr( $class ) . "\"><h3 class=\"smpi-template-title smpi-article-heading smpi-article-heading--h3\">What changed next</h3><p class=\"smpi-template-text smpi-article-paragraph\">The same selected treatment applies to article H3 subheadings inside post content.</p></div></div>";
     }
 
-    private function article_drop_cap_preview_html(): string {
-        return "<div class=\"smpi-control-group smpi-dropcap-control\"><h3>Preview</h3><span class=smpi-choice-preview><div class=smpi-dropcap-preview><p>Structured mentorship and practical feedback are producing measurable results, showing how skill-building and coaching can create sustainable operators within the article body.</p></div></span></div>";
+    private function article_drop_cap_preview_html( string $style ): string {
+        $style = \smp_publication_integration\Content\ArticleStyles::normalize_article_drop_cap_style( $style );
+        return "<div class=\"smpi-template smpi-template--article-content smpi-dropcap-preview smpi-dropcap-preview--" . esc_attr( $style ) . "\"><p class=\"smpi-template-text smpi-article-paragraph smpi-article-lead\">Female founders are reshaping how modern publications tell important stories.</p></div>";
     }
 
     private function article_heading_report_html(): string {
@@ -1757,34 +2428,49 @@ class DashboardController {
         $style = (string) Settings::get( "article_heading_style", "h2-tick" );
         $h2 = (int) Settings::get( "article_heading_h2_font_size", 23 );
         $h3 = (int) Settings::get( "article_heading_h3_font_size", 20 );
-        return $this->simple_status_html( $enabled, "Current template: " . $style . ". H2: " . $h2 . "px. H3: " . $h3 . "px. Applies only to single post content." );
+        $preserved = [];
+        foreach ( TypographyPreservation::values( Settings::all(), "article_heading", true ) as $key => $preserve ) {
+            if ( $preserve ) {
+                $label = [ "font_family" => "font", "font_size" => "size", "font_color" => "color", "font_weight" => "weight" ][ $key ] ?? $key;
+                $preserved[] = $label;
+            }
+        }
+        $preserve_text = empty( $preserved ) ? "No theme typography is preserved." : "Preserving theme " . implode( ", ", $preserved ) . ".";
+        return $this->simple_status_html( $enabled, "Current template: " . $style . ". " . $preserve_text . " Font: " . Settings::font_family_label( "article_heading_font_family" ) . ". H2: " . $h2 . "px. H3: " . $h3 . "px. Applies only to single post content." );
     }
 
     private function article_drop_cap_report_html(): string {
         $enabled = Settings::bool( "article_drop_cap_enabled" );
+        $style = \smp_publication_integration\Content\ArticleStyles::normalize_article_drop_cap_style( (string) Settings::get( "article_drop_cap_style", "dropcap-classic" ) );
+        $script_font = \smp_publication_integration\Content\ArticleStyles::article_drop_cap_script_font_for_style( $style );
+        $preserved = array_keys( array_filter( TypographyPreservation::values( Settings::all(), "article_drop_cap", false ) ) );
         $size = (int) Settings::get( "article_drop_cap_font_size", 96 );
-        $color = sanitize_hex_color( (string) Settings::get( "article_drop_cap_color", "#111111" ) ) ?: "#111111";
+        $default_color = Settings::color_default( "article_drop_cap_color" );
+        $color = sanitize_hex_color( (string) Settings::get( "article_drop_cap_color", $default_color ) ) ?: $default_color;
         $html = $this->simple_status_html( $enabled, $enabled ? "Drop cap CSS is injected on single post content." : "Drop cap CSS is disabled." );
-        $html .= "<table class=widefat><tbody><tr><th>Color</th><td>" . esc_html( $color ) . "</td></tr><tr><th>Size</th><td>" . esc_html( (string) $size ) . "px</td></tr><tr><th>Selector</th><td><code>body.single-post post content &gt; p:first-of-type::first-letter</code></td></tr><tr><th>CSS source</th><td><code>ArticleStyles::article_drop_cap_rules()</code></td></tr></tbody></table>";
+        $font_source = [] !== $script_font ? (string) $script_font["label"] . " (template)" : Settings::font_family_label( "article_drop_cap_font_family" );
+        $html .= "<table class=widefat><tbody><tr><th>Template</th><td><code>" . esc_html( $style ) . "</code></td></tr><tr><th>Font source</th><td>" . esc_html( $font_source ) . "</td></tr><tr><th>Font weight</th><td>" . esc_html( [] !== $script_font ? (string) $script_font["default_weight"] : Settings::font_weight_label( "article_drop_cap_font_weight" ) ) . "</td></tr><tr><th>Preserved</th><td>" . esc_html( [] === $preserved ? "None" : implode( ", ", array_map( static fn( string $property ): string => str_replace( "_", " ", $property ), $preserved ) ) ) . "</td></tr><tr><th>Accent color</th><td>" . esc_html( $color ) . "</td></tr><tr><th>Size</th><td>" . esc_html( (string) $size ) . "px</td></tr><tr><th>Selector</th><td><code>body.single-post .smpi-article-lead::first-letter</code></td></tr><tr><th>CSS source</th><td><code>ArticleStyles::article_drop_cap_rules()</code></td></tr></tbody></table>";
         return $html;
     }
 
     private function inline_photo_preview_html( string $style ): string {
-        $img = "<img src=\"" . esc_url( $this->preview_image_url() ) . "\" alt=\"\">";
-        $cap = "<figcaption>Collegiate summer leagues provide a platform for emerging talent.</figcaption>";
-        return "<figure class=\"smpi-pp smpi-pp-" . esc_attr( $style ) . "\">" . $img . $cap . "</figure>";
+        $img = "<img class=\"smpi-template-image smpi-inline-photo-image\" src=\"" . esc_url( $this->preview_image_url() ) . "\" alt=\"\">";
+        $cap = "<figcaption class=\"smpi-template-caption smpi-inline-photo-caption\">Collegiate summer leagues provide a platform for emerging talent.</figcaption>";
+        $classes = \smp_publication_integration\Content\TemplateMarkup::root_classes( "inline-photo", [ "smpi-pp", "smpi-pp-" . $style, "smpi-inline-photo", "smpi-inline-photo--" . $style ] );
+        return "<figure class=\"" . esc_attr( $classes ) . "\">" . $img . $cap . "</figure>";
     }
 
     private function featured_image_caption_preview_html( string $style ): string {
-        $img = "<img src=\"" . esc_url( $this->preview_image_url() ) . "\" alt=\"\">";
-        $cap = "<span class=\"smpi-featured-image-caption-text\">Featured image caption pulled from the media attachment.</span>";
-        return "<figure class=\"smpi-fi-preview smpi-fi-preview-" . esc_attr( $style ) . "\">" . $img . $cap . "</figure>";
+        $img = "<img class=\"smpi-template-image smpi-featured-image-caption-image\" src=\"" . esc_url( $this->preview_image_url() ) . "\" alt=\"\">";
+        $cap = "<span class=\"smpi-template-caption smpi-featured-image-caption-text\">Featured image caption pulled from the media attachment.</span>";
+        $classes = \smp_publication_integration\Content\TemplateMarkup::root_classes( "featured-image-caption", [ "smpi-fi-preview", "smpi-fi-preview-" . $style, "smpi-featured-image-caption", "smpi-featured-image-caption--" . $style ] );
+        return "<figure class=\"" . esc_attr( $classes ) . "\">" . $img . $cap . "</figure>";
     }
 
     private function featured_image_caption_report_html(): string {
         $enabled = Settings::bool( "featured_image_caption_templates_enabled" );
         $style = (string) Settings::get( "featured_image_caption_template", "fig2" );
-        $html = $this->simple_status_html( $enabled, "Current template: " . $style . ". Auto-detects single post and press-release featured images with media captions." );
+        $html = $this->simple_status_html( $enabled, "Current template: " . $style . ". Font: " . Settings::font_family_label( "featured_image_caption_font_family" ) . ". Auto-detects single post and press-release featured images with media captions." );
         $items = get_posts( [
             "post_type"      => [ "post", "press-release" ],
             "post_status"    => [ "publish", "pending", "draft" ],
@@ -1807,34 +2493,26 @@ class DashboardController {
     }
 
     private function summary_design_preview_html( string $style ): string {
-        $content = "<ul><li>Commitments exceed \$150 billion across five regions.</li><li>The fund becomes operational after final approval.</li></ul>";
+        $content = "<ul class=\"smpi-template-list smpi-post-summary-list\"><li class=\"smpi-template-item smpi-post-summary-item\">Commitments exceed \$150 billion across five regions.</li><li class=\"smpi-template-item smpi-post-summary-item\">The fund becomes operational after final approval.</li></ul>";
+        $classes = \smp_publication_integration\Content\TemplateMarkup::root_classes( "article-summary", [ "smpi-post-summary", "smpi-" . $style ] );
         if ( "none" === $style ) {
-            return "<aside class=\"smpi-post-summary smpi-none\">" . $content . "</aside>";
+            return "<aside class=\"" . esc_attr( $classes ) . "\"><div class=\"smpi-template-content smpi-post-summary-content\">" . $content . "</div></aside>";
         }
         $title = esc_html( \smp_publication_integration\Content\ArticleStyles::summary_title( $style ) );
-        return "<aside class=\"smpi-post-summary smpi-" . esc_attr( $style ) . "\"><h2>" . $title . "</h2><div class=\"smpi-post-summary-content\">" . $content . "</div></aside>";
+        return "<aside class=\"" . esc_attr( $classes ) . "\"><h2 class=\"smpi-template-title smpi-post-summary-title\">" . $title . "</h2><div class=\"smpi-template-content smpi-post-summary-content\">" . $content . "</div></aside>";
     }
 
     private function faq_design_preview_html( string $style ): string {
-        $content = "<ul class=\"smpi-post-faq-list\"><li class=\"smpi-post-faq-item\"><h3 class=\"smpi-post-faq-question\">What record did Messi tie?</h3><div class=\"smpi-post-faq-answer\"><p>He tied Klose's World Cup goals record with a hat trick against Algeria.</p></div></li><li class=\"smpi-post-faq-item\"><h3 class=\"smpi-post-faq-question\">What injury did Jose Ramirez sustain?</h3><div class=\"smpi-post-faq-answer\"><p>Surgery on a broken hamate bone, about five to seven weeks of recovery.</p></div></li></ul>";
+        $content = "<ul class=\"smpi-template-list smpi-post-faq-list\"><li class=\"smpi-template-item smpi-post-faq-item\"><h3 class=\"smpi-template-title smpi-post-faq-question\">What record did Messi tie?</h3><div class=\"smpi-template-content smpi-post-faq-answer\"><p class=\"smpi-template-text smpi-post-faq-text\">He tied Klose's World Cup goals record with a hat trick against Algeria.</p></div></li><li class=\"smpi-template-item smpi-post-faq-item\"><h3 class=\"smpi-template-title smpi-post-faq-question\">What injury did Jose Ramirez sustain?</h3><div class=\"smpi-template-content smpi-post-faq-answer\"><p class=\"smpi-template-text smpi-post-faq-text\">Surgery on a broken hamate bone, about five to seven weeks of recovery.</p></div></li></ul>";
+        $classes = \smp_publication_integration\Content\TemplateMarkup::root_classes( "article-faqs", [ "smpi-post-faqs", "smpi-" . $style ] );
         if ( "none" === $style ) {
-            return "<section class=\"smpi-post-faqs smpi-none\">" . $content . "</section>";
+            return "<section class=\"" . esc_attr( $classes ) . "\"><div class=\"smpi-template-content smpi-post-faqs-content\">" . $content . "</div></section>";
         }
         $title = esc_html( \smp_publication_integration\Content\ArticleStyles::faq_title( $style ) );
-        return "<section class=\"smpi-post-faqs smpi-" . esc_attr( $style ) . "\"><h2>" . $title . "</h2><div class=\"smpi-post-faqs-content\">" . $content . "</div></section>";
+        return "<section class=\"" . esc_attr( $classes ) . "\"><h2 class=\"smpi-template-title smpi-post-faqs-title\">" . $title . "</h2><div class=\"smpi-template-content smpi-post-faqs-content\">" . $content . "</div></section>";
     }
 
-    private function style_vars( array $vars ): string {
-        $parts = [];
-        foreach ( $vars as $key => $value ) {
-            $parts[] = "--" . sanitize_key( (string) $key ) . ":" . sanitize_text_field( (string) $value );
-        }
-        return implode( ";", $parts );
-    }
 
-    private function font_style_value( string $value ): string {
-        return "italic" === $value ? "italic" : "normal";
-    }
 
     private function icon_style_setting_html( array $settings ): string {
         return $this->select_setting_html( "muckrack_icon_style", [
@@ -1888,7 +2566,10 @@ class DashboardController {
 
     private function breadcrumb_post_type_descriptions(): array {
         $descriptions = [];
-        foreach ( get_post_types( [ "public" => true, "_builtin" => false ], "objects" ) as $type => $object ) {
+        foreach ( get_post_types( [ "public" => true ], "objects" ) as $type => $object ) {
+            if ( "attachment" === $type ) {
+                continue;
+            }
             $label = isset( $object->labels->singular_name ) ? (string) $object->labels->singular_name : $type;
             $descriptions[ $type ] = "Do not inject SMP breadcrumbs on single " . $label . " templates.";
         }
@@ -1896,19 +2577,20 @@ class DashboardController {
     }
 
     private function author_icon_preview_html( array $settings, string $style = "" ): string {
-        $color = sanitize_hex_color( (string) ( $settings["muckrack_icon_color"] ?? "#2d5277" ) ) ?: "#2d5277";
         $style = "" !== $style ? $style : (string) ( $settings["muckrack_icon_style"] ?? "circle_check" );
         if ( ! in_array( $style, [ "circle_check", "circle_outline_check", "check" ], true ) ) {
             $style = "circle_check";
         }
-        $class = "check" === $style ? "smpi-muckrack-preview-check" : ( "circle_outline_check" === $style ? "smpi-muckrack-preview-outline" : "smpi-muckrack-preview-circle" );
-        $size = isset( $settings['muckrack_icon_size'] ) ? absint( $settings['muckrack_icon_size'] ) : 22;
+        $preview_class = "check" === $style ? "smpi-muckrack-preview-check" : ( "circle_outline_check" === $style ? "smpi-muckrack-preview-outline" : "smpi-muckrack-preview-circle" );
+        $icon_class = "check" === $style ? "smpi-muckrack-icon-check" : ( "circle_outline_check" === $style ? "smpi-muckrack-icon-outline" : "smpi-muckrack-icon-circle" );
+        $class = "smpi-muckrack-icon " . $icon_class . " " . $preview_class;
+        $size = isset( $settings['muckrack_icon_size'] ) ? absint( $settings['muckrack_icon_size'] ) : 16;
         $size = max( 8, min( 64, $size ?: 22 ) );
         $margin_left = isset( $settings['muckrack_icon_margin_left'] ) ? (int) $settings['muckrack_icon_margin_left'] : 2;
         $margin_top = isset( $settings['muckrack_icon_margin_top'] ) ? (int) $settings['muckrack_icon_margin_top'] : 0;
         $margin_left = max( -32, min( 64, $margin_left ) );
         $margin_top = max( -32, min( 64, $margin_top ) );
-        return '<span class="' . esc_attr( $class ) . '" style="--smpi-muckrack-color:' . esc_attr( $color ) . ';color:' . esc_attr( $color ) . ';font-size:' . esc_attr( (string) $size ) . 'px;margin-left:' . esc_attr( (string) $margin_left ) . 'px;margin-top:' . esc_attr( (string) $margin_top ) . 'px" aria-label="Verified by MuckRack editorial team">' . $this->muckrack_icon_svg_html( $style ) . '</span>';
+        return '<span class="' . esc_attr( $class ) . '" style="font-size:' . esc_attr( (string) $size ) . 'px;margin-left:' . esc_attr( (string) $margin_left ) . 'px;margin-top:' . esc_attr( (string) $margin_top ) . 'px" aria-label="Verified by MuckRack editorial team">' . $this->muckrack_icon_svg_html( $style ) . '</span>';
     }
 
     private function muckrack_icon_svg_html( string $style ): string {
@@ -1926,13 +2608,11 @@ class DashboardController {
     }
 
     private function author_inline_preview_html( array $settings ): string {
-        $color = sanitize_hex_color( (string) ( $settings["muckrack_icon_color"] ?? "#2d5277" ) ) ?: "#2d5277";
-        return "<span class=smpi-author-inline-demo>Journalist verified by <strong style=\"color:" . esc_attr( $color ) . "\">MuckRack</strong> editorial team <a href=#>(learn more)</a></span>";
+        return "<span class=\"smpi-author-inline-demo smpi-muckrack-author-text\">Journalist verified by <span class=\"smpi-muckrack-brand smpi-muckrack-author-brand\">MuckRack</span> editorial team <a href=#>(learn more)</a></span>";
     }
 
     private function author_compact_block_preview_html( array $settings ): string {
-        $color = sanitize_hex_color( (string) ( $settings["muckrack_icon_color"] ?? "#2d5277" ) ) ?: "#2d5277";
-        return "<span class=smpi-author-block-demo style=--smpi-muckrack-color:" . esc_attr( $color ) . ">Author verified by <strong>MuckRack</strong> editorial team <a href=#>(learn more)</a></span>";
+        return "<span class=\"smpi-author-block-demo smpi-muckrack-author-note\">Author verified by <span class=smpi-muckrack-brand>MuckRack</span> editorial team <a href=#>(learn more)</a></span>";
     }
 
     private function author_muckrack_mode_help_html( array $settings ): string {
@@ -1959,32 +2639,15 @@ class DashboardController {
         return $html . "</div></div>";
     }
 
-    private function author_muckrack_examples_html( array $settings ): string {
-        return "<div class=\"smpi-control-group smpi-preview-group\"><h3>Visual examples</h3><div class=smpi-preview-stack><div class=smpi-preview-demo><strong>Tooltip / hover badge</strong><p>" . $this->author_tooltip_preview_html( $settings ) . "</p></div><div class=smpi-preview-demo><strong>Inline text</strong><p>" . $this->author_inline_preview_html( $settings ) . "</p></div><div class=smpi-preview-demo><strong>Small editorial block</strong><p>" . $this->author_compact_block_preview_html( $settings ) . "</p></div></div></div>";
-    }
 
     private function publication_preview_sample_html( string $style, array $settings ): string {
-        $color = sanitize_hex_color( (string) ( $settings["publication_muckrack_color"] ?? "#2d5277" ) ) ?: "#2d5277";
         $label = "publication_name" === (string) ( $settings["publication_muckrack_text_mode"] ?? "news_outlet" ) ? get_bloginfo( "name" ) : "News outlet";
         $class = "smpi-publication-preview-" . sanitize_html_class( $style );
-        $font_size = isset( $settings['publication_muckrack_font_size'] ) ? absint( $settings['publication_muckrack_font_size'] ) : 14;
-        $font_size = max( 8, min( 64, $font_size ?: 14 ) );
-        return '<span class="' . esc_attr( $class ) . '" style="--smpi-muckrack-color:' . esc_attr( $color ) . ';font-size:' . esc_attr( (string) $font_size ) . 'px">' . esc_html( $label ) . ' verified by <strong class="smpi-publication-preview-brand">MuckRack</strong> editorial team <a href="#">(learn more)</a></span>';
+        return '<span class="smpi-muckrack-publication-text smpi-muckrack-publication-' . esc_attr( $style ) . ' ' . esc_attr( $class ) . '">' . esc_html( $label ) . ' verified by <span class="smpi-muckrack-brand smpi-publication-preview-brand">MuckRack</span> editorial team <a href="#">(learn more)</a></span>';
     }
 
-    private function publication_muckrack_preview_html( array $settings ): string {
-        $html = "<div class=\"smpi-control-group smpi-preview-group\"><h3>Visual examples</h3><div class=smpi-publication-preview-list>";
-        $font_size = isset( $settings['publication_muckrack_font_size'] ) ? absint( $settings['publication_muckrack_font_size'] ) : 14;
-        $font_size = max( 8, min( 64, $font_size ?: 14 ) );
-        foreach ( [ "block" => "Editorial block", "mini_block" => "Mini editorial block", "compact" => "Compact pill", "minimalist" => "Minimalist text" ] as $style => $label ) {
-            $html .= "<div class=smpi-publication-preview-item><strong>" . esc_html( $label ) . "</strong><p>" . $this->publication_preview_sample_html( $style, $settings ) . "</p></div>";
-        $font_size = isset( $settings['publication_muckrack_font_size'] ) ? absint( $settings['publication_muckrack_font_size'] ) : 14;
-        $font_size = max( 8, min( 64, $font_size ?: 14 ) );
-        }
-        return $html . "</div></div>";
-    }
 
-    private function ico( bool $ok, bool $strict = false ): string {
+    private static function ico( bool $ok, bool $strict = false ): string {
         if ( $ok ) {
             return "<span class=\"smpi-ico smpi-ico--ok\" aria-hidden=\"true\">&#10003;</span>";
         }
@@ -1994,52 +2657,67 @@ class DashboardController {
     }
 
     private function simple_status_html( bool $ok, string $message ): string {
-        return "<p class=\"smpi-status-line\">" . $this->ico( $ok ) . "<span>" . esc_html( $message ) . "</span></p>";
+        return "<p class=\"smpi-status-line\">" . self::ico( $ok ) . "<span>" . esc_html( $message ) . "</span></p>";
+    }
+
+    private function typography_preserved_label( string $prefix ): string {
+        $mode = Settings::typography_mode( $prefix );
+        if ( TemplateTypography::TEMPLATE_DEFAULT === $mode ) {
+            return "Not applicable in Template Default";
+        }
+        if ( TemplateTypography::SITE_INHERIT === $mode ) {
+            return "All typography uses the site";
+        }
+        $values = TemplateTypography::preservation_values( Settings::all(), $prefix, Settings::typography_preservation_defaults( $prefix ) );
+        $properties = array_keys( array_filter( $values ) );
+        return [] === $properties ? "None" : implode( ", ", array_map( static fn( string $property ): string => str_replace( "_", " ", $property ), $properties ) );
     }
 
 
-    private function post_list_defaults_report_html(): string {
-        $enabled = Settings::bool( "post_list_defaults_enabled" );
-        $hidden = \smp_publication_integration\Content\PostListDefaults::hidden_columns();
-        $user_id = get_current_user_id();
-        $user_hidden = $user_id > 0 ? get_user_option( "manageedit-postcolumnshidden", $user_id ) : false;
-        $per_page = $user_id > 0 ? get_user_option( "edit_post_per_page", $user_id ) : false;
-        $mode = function_exists( "get_user_setting" ) ? get_user_setting( "posts_list_mode", "" ) : "";
 
-        $html = $this->simple_status_html( $enabled, "Default post list view is " . ( $enabled ? "enabled" : "disabled" ) . ". New/default users get 20 items, compact view, and a cleaned column set." );
+
+    private function post_summary_report_html(): string {
+        return $this->post_content_block_report_html( "summary" );
+    }
+
+    private function post_faq_report_html(): string {
+        return $this->post_content_block_report_html( "faqs" );
+    }
+
+    private function post_content_block_report_html( string $block ): string {
+        $definitions = [
+            "summary" => [
+                "label" => "Article Summary",
+                "enabled" => "post_summary_acf_enabled",
+                "field_key" => "field_65ab7ba0e849b",
+                "field" => "post_summary",
+                "style" => "post_summary_style",
+                "placement" => "post_summary_placement",
+                "font" => "post_summary_font_family",
+                "shortcode" => "[smp_post_summary]",
+            ],
+            "faqs" => [
+                "label" => "Article FAQs",
+                "enabled" => "post_faqs_acf_enabled",
+                "field_key" => "field_smpi_post_faq_items",
+                "field" => "post_faq_items",
+                "style" => "post_faqs_style",
+                "placement" => "post_faqs_placement",
+                "font" => "post_faqs_font_family",
+                "shortcode" => "[smp_post_faqs]",
+            ],
+        ];
+        $definition = $definitions[ $block ] ?? $definitions["summary"];
+        $enabled = Settings::bool( $definition["enabled"] );
+        $registered = function_exists( "acf_get_field" ) && (bool) acf_get_field( $definition["field_key"] );
+        $ready = $enabled && $registered;
+        $html = $this->simple_status_html( $ready, $definition["label"] . " editor field: " . ( $ready ? "ready" : "not ready" ) . "." );
         $html .= "<table class=\"widefat striped\"><tbody>";
-        $html .= "<tr><th>Hidden columns enforced for default users</th><td><code>" . esc_html( implode( "</code>, <code>", $hidden ) ) . "</code></td></tr>";
-        $html .= "<tr><th>Visible columns expected</th><td>Author, Tags, Article Types, Date, SEO Details</td></tr>";
-        $html .= "<tr><th>Items per page</th><td><code>20</code></td></tr>";
-        $html .= "<tr><th>View mode</th><td><code>compact/list</code></td></tr>";
-        $html .= "<tr><th>Current user hidden columns</th><td><code>" . esc_html( is_array( $user_hidden ) ? implode( ", ", array_filter( array_map( "strval", $user_hidden ) ) ) : "not customized" ) . "</code></td></tr>";
-        $html .= "<tr><th>Current user per page</th><td><code>" . esc_html( false === $per_page ? "not customized" : (string) $per_page ) . "</code></td></tr>";
-        $html .= "<tr><th>Current user mode</th><td><code>" . esc_html( "" !== $mode ? $mode : "not set" ) . "</code></td></tr>";
-        return $html . "</tbody></table>";
-    }
-
-    private function shadow_posts_report_html(): string {
-        global $wpdb;
-        $complete = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->postmeta} WHERE meta_key = %s AND meta_value = %s", "_smpi_shadow_complete", "1" ) );
-        $home = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->postmeta} WHERE meta_key = %s AND meta_value = %s", "_smpi_shadow_home", "1" ) );
-        $enabled = Settings::bool( "shadow_posts_enabled" );
-        $html = $this->simple_status_html( $enabled, "Feature toggle: " . ( $enabled ? "on" : "off" ) . ". Single URLs remain accessible; home/category/tag main queries are filtered only when enabled." );
-        $html .= "<table class=widefat><tbody><tr><th>Complete shadow posts</th><td>" . esc_html( (string) $complete ) . "</td></tr><tr><th>Home-only shadow posts</th><td>" . esc_html( (string) $home ) . "</td></tr><tr><th>Post editor controls</th><td><code>Completely shadow post</code> and <code>Shadow from home page only</code></td></tr></tbody></table>";
-        return $html;
-    }
-
-    private function post_acf_addons_report_html(): string {
-        $summary_enabled = Settings::bool( "post_summary_acf_enabled" );
-        $faqs_enabled = Settings::bool( "post_faqs_acf_enabled" );
-        $summary_registered = function_exists( "acf_get_field" ) && (bool) acf_get_field( "field_65ab7ba0e849b" );
-        $faqs_registered = function_exists( "acf_get_field" ) && (bool) acf_get_field( "field_smpi_post_faq_items" );
-        $summary_ready = $summary_enabled && $summary_registered;
-        $faqs_ready = $faqs_enabled && $faqs_registered;
-        $ok = $summary_ready && $faqs_ready;
-        $html = $this->simple_status_html( $ok, "Article Summary field: " . ( $summary_ready ? "ready" : "not ready" ) . ". Structured FAQ fields: " . ( $faqs_ready ? "ready" : "not ready" ) . "." );
-        $html .= "<table class=\"widefat striped\"><thead><tr><th>Editor field</th><th>Custom Fields setting</th><th>Editor field status</th><th>Content source</th><th>Locations</th></tr></thead><tbody>";
-        $html .= "<tr><td>Article Summary</td><td>" . ( $summary_enabled ? "Enabled" : "Disabled" ) . "</td><td>" . $this->ico( (bool) $summary_ready, true ) . "</td><td><code>post_summary</code></td><td><code>post</code>, <code>press-release</code>, <code>imported-news</code></td></tr>";
-        $html .= "<tr><td>Structured FAQs</td><td>" . ( $faqs_enabled ? "Enabled" : "Disabled" ) . "</td><td>" . $this->ico( (bool) $faqs_ready, true ) . "</td><td><code>post_faq_items</code></td><td><code>post</code>, <code>press-release</code>, <code>imported-news</code></td></tr>";
+        $html .= "<tr><th>Content source</th><td><code>" . esc_html( $definition["field"] ) . "</code></td></tr>";
+        $html .= "<tr><th>Selected design</th><td><code>" . esc_html( (string) Settings::get( $definition["style"], "none" ) ) . "</code></td></tr>";
+        $html .= "<tr><th>Placement</th><td>" . esc_html( str_replace( "_", " ", (string) Settings::get( $definition["placement"], "manual" ) ) ) . "</td></tr>";
+        $html .= "<tr><th>Shortcode</th><td><code>" . esc_html( $definition["shortcode"] ) . "</code></td></tr>";
+        $html .= "<tr><th>Font</th><td>" . esc_html( Settings::font_family_label( $definition["font"] ) ) . "</td></tr>";
         return $html . "</tbody></table>";
     }
 
@@ -2061,8 +2739,9 @@ class DashboardController {
         $html = $this->simple_status_html( ! empty( $report["enabled"] ), "Breadcrumb feature: " . ( ! empty( $report["enabled"] ) ? "enabled" : "disabled" ) . ". Rank Math renderer available: " . ( ! empty( $report["rank_math_active"] ) ? "yes" : "fallback renderer will be used" ) . "." );
         $html .= "<table class=\"widefat striped\"><tbody>";
         $html .= "<tr><th>Current template</th><td><code>" . esc_html( (string) $report["style"] ) . "</code></td></tr>";
-        $html .= "<tr><th>Rank Math source</th><td>" . $this->ico( $rank_on, true ) . esc_html( $rank_on ? "Rank Math breadcrumbs are enabled and available to SMP." : "Rank Math breadcrumbs are disabled or missing; SMP fallback breadcrumbs will be used." ) . "</td></tr>";
-        $html .= "<tr><th>Disabled custom post types</th><td><code>" . esc_html( $disabled ) . "</code></td></tr>";
+        $html .= "<tr><th>Font</th><td>" . esc_html( Settings::font_family_label( "breadcrumbs_font_family" ) ) . "</td></tr>";
+        $html .= "<tr><th>Rank Math source</th><td>" . self::ico( $rank_on, true ) . esc_html( $rank_on ? "Rank Math breadcrumbs are enabled and available to SMP." : "Rank Math breadcrumbs are disabled or missing; SMP fallback breadcrumbs will be used." ) . "</td></tr>";
+        $html .= "<tr><th>Hidden post types</th><td><code>" . esc_html( $disabled ) . "</code></td></tr>";
         $html .= "<tr><th>ACF disabled posts/pages selected</th><td><code>" . esc_html( (string) (int) $report["disabled_object_count"] ) . "</code></td></tr>";
         $html .= "<tr><th>Shortcode</th><td><code>" . esc_html( (string) $report["shortcode"] ) . "</code></td></tr>";
         $html .= "<tr><th>Sample proof URL</th><td>" . ( "" !== (string) $report["sample_url"] ? "<a target=\"_blank\" rel=\"noopener noreferrer\" href=\"" . esc_url( (string) $report["sample_url"] ) . "\">Open sample</a>" : "<span class=smpi-warn>No published sample found</span>" ) . "</td></tr>";
@@ -2072,26 +2751,17 @@ class DashboardController {
     private function table_of_contents_report_html(): string {
         $report = \smp_publication_integration\Content\TableOfContents::integrity_report();
         $html = $this->simple_status_html( ! empty( $report["enabled"] ), "Shortcode active: " . (string) $report["shortcode"] . ". Auto single.php placement: " . ( ! empty( $report["auto_single"] ) ? "on" : "off" ) . "." );
-        $html .= "<table class=widefat><tbody><tr><th>Sample post</th><td>#" . esc_html( (string) $report["sample_post_id"] ) . "</td></tr><tr><th>Headings found</th><td>" . esc_html( (string) $report["heading_count"] ) . "</td></tr></tbody></table>";
+        $html .= "<table class=widefat><tbody><tr><th>Font</th><td>" . esc_html( Settings::font_family_label( "table_of_contents_font_family" ) ) . "</td></tr><tr><th>Sample post</th><td>#" . esc_html( (string) $report["sample_post_id"] ) . "</td></tr><tr><th>Headings found</th><td>" . esc_html( (string) $report["heading_count"] ) . "</td></tr></tbody></table>";
         return $html;
     }
 
-    private function estimated_read_time_report_html(): string {
-        $report = \smp_publication_integration\Content\EstimatedReadTime::integrity_report( 5 );
-        $html = $this->simple_status_html( ! empty( $report["enabled"] ), "Shortcode active: " . (string) $report["shortcode"] . ". Default output is minutes; use unit=seconds for seconds." );
-        $html .= "<table class=\"widefat striped\"><thead><tr><th>Recent post</th><th>Words</th><th>Seconds</th><th>Minutes</th></tr></thead><tbody>";
-        foreach ( $report["posts"] as $row ) {
-            $html .= "<tr><td>" . esc_html( $row["title"] ) . " (#" . esc_html( (string) $row["post_id"] ) . ")</td><td>" . esc_html( (string) $row["words"] ) . "</td><td>" . esc_html( (string) $row["seconds"] ) . "</td><td>" . esc_html( (string) $row["minutes"] ) . "</td></tr>";
-        }
-        return $html . "</tbody></table>";
-    }
 
     private function elementor_css_report_html(): string {
         $report = \smp_publication_integration\Content\ElementorCssCacheBusting::test_report();
         $html = $this->simple_status_html( ! empty( $report["enabled"] ) && (int) $report["css_files"] > 0, "Elementor CSS files found: " . (int) $report["css_files"] );
         $html .= "<table class=\"widefat striped\"><thead><tr><th>File</th><th>Readable</th><th>Cache query</th></tr></thead><tbody>";
         foreach ( $report["sample_files"] as $file ) {
-            $html .= "<tr><td><code>" . esc_html( $file["file"] ) . "</code></td><td>" . $this->ico( (bool) $file["readable"], true ) . "</td><td><code>" . esc_html( $file["query"] ) . "</code></td></tr>";
+            $html .= "<tr><td><code>" . esc_html( $file["file"] ) . "</code></td><td>" . self::ico( (bool) $file["readable"], true ) . "</td><td><code>" . esc_html( $file["query"] ) . "</code></td></tr>";
         }
         return $html . "</tbody></table>";
     }
@@ -2099,10 +2769,21 @@ class DashboardController {
     private function muckrack_report_html(): string {
         $rows = \smp_publication_integration\Content\MuckRackVerification::integrity_report( 10 );
         $forced = Settings::bool( "muckrack_author_always_show" );
-        $html = $this->simple_status_html( Settings::bool( "muckrack_verified_enabled" ), "Top 10 authors by published posts checked for MuckRack ACF/user fields. Always-show override: " . ( $forced ? "on" : "off" ) . "." );
+        $html = $this->simple_status_html( Settings::bool( "muckrack_verified_enabled" ), "Top 10 authors by published posts checked for MuckRack ACF/user fields. Always-show override: " . ( $forced ? "on" : "off" ) . ". Font: " . Settings::font_family_label( "muckrack_verified_font_family" ) . "." );
+        $text_color = sanitize_hex_color( (string) Settings::get( "muckrack_verified_text_color", "#64748b" ) ) ?: "#64748b";
+        $html .= "<table class=\"widefat striped\"><tbody>";
+        $typography_mode = Settings::typography_mode( "muckrack_verified" );
+        $typography_options = TemplateTypography::options();
+        $html .= "<tr><th>Typography mode</th><td>" . esc_html( (string) ( $typography_options[ $typography_mode ]["label"] ?? "Template Default" ) ) . "</td></tr>";
+        $html .= "<tr><th>Font</th><td>" . esc_html( Settings::font_family_label( "muckrack_verified_font_family" ) ) . "</td></tr>";
+        $html .= "<tr><th>Font weight</th><td>" . esc_html( Settings::font_weight_label( "muckrack_verified_font_weight" ) ) . "</td></tr>";
+        $html .= "<tr><th>Text color</th><td><span class=smpi-color-swatch style=\"background:" . esc_attr( $text_color ) . "\"></span> <code>" . esc_html( $text_color ) . "</code></td></tr>";
+        $html .= "<tr><th>Text size</th><td>" . esc_html( (string) max( 8, min( 64, (int) Settings::get( "muckrack_verified_font_size", 14 ) ) ) ) . "px</td></tr>";
+        $html .= "<tr><th>Leave as is</th><td>" . esc_html( $this->typography_preserved_label( "muckrack_verified" ) ) . "</td></tr>";
+        $html .= "</tbody></table>";
         $html .= "<table class=\"widefat striped\"><thead><tr><th>User</th><th>Posts</th><th>ACF verified</th><th>Effective</th><th>Forced</th><th>URL</th><th>Description</th></tr></thead><tbody>";
         foreach ( $rows as $row ) {
-            $html .= "<tr><td>" . esc_html( $row["display_name"] ) . " (#" . esc_html( (string) $row["user_id"] ) . ")</td><td>" . esc_html( (string) $row["posts"] ) . "</td><td>" . $this->ico( (bool) $row["acf_verified"] ) . "</td><td>" . $this->ico( (bool) $row["verified"] ) . "</td><td>" . ( $row["forced"] ? "YES" : "NO" ) . "</td><td>" . $this->ico( (bool) $row["has_url"] ) . "</td><td>" . $this->ico( (bool) $row["has_description"] ) . "</td></tr>";
+            $html .= "<tr><td>" . esc_html( $row["display_name"] ) . " (#" . esc_html( (string) $row["user_id"] ) . ")</td><td>" . esc_html( (string) $row["posts"] ) . "</td><td>" . self::ico( (bool) $row["acf_verified"] ) . "</td><td>" . self::ico( (bool) $row["verified"] ) . "</td><td>" . ( $row["forced"] ? "YES" : "NO" ) . "</td><td>" . self::ico( (bool) $row["has_url"] ) . "</td><td>" . self::ico( (bool) $row["has_description"] ) . "</td></tr>";
         }
         return $html . "</tbody></table>";
     }
@@ -2127,17 +2808,22 @@ class DashboardController {
 [smp_post_authors format=\"links\"]
 [smp_post_authors format=\"lines\"]
 [author_name author_index=\"1\"]
-[acf_author_field field=\"job_title\" author_index=\"1\"]", $this->multi_authors_report_html(), $this->activity_log_html(), $this->multi_author_controls_html( $settings ) );
+[acf_author_field field=\"job_title\" author_index=\"1\"]", $this->multi_authors_report_html(), $this->activity_log_html(), $this->multi_author_controls_html( $settings ), false );
     }
 
     private function multi_author_controls_html( array $settings ): string {
-        $loop_controls = $this->multi_author_loop_output_controls_html( $settings );
-        return $this->inline_toggle_setting_html( "multi_authors_disable_loop_cards", "Force primary author only on loop/cards" )
-            . $loop_controls
-            . $this->multi_author_examples_html()
-            . "<div class=\"smpi-control-group\"><h3>Elementor protocol</h3><p>Add <code>smp-author</code> to the exact author identity unit that should repeat for every selected author. Do not put it on a row that also contains Share, read-time, ads, or unrelated controls. Legacy <code>smpi-author-module</code> is still supported for older templates, and the loop-card fallback can rewrite author-name links when no class exists.</p></div>";
+        return $this->multi_author_settings_html( $settings ) . $this->multi_author_reference_html();
     }
 
+    private function multi_author_settings_html( array $settings ): string {
+        return $this->inline_toggle_setting_html( "multi_authors_disable_loop_cards", "Force primary author only on loop/cards" )
+            . $this->multi_author_loop_output_controls_html( $settings );
+    }
+
+    private function multi_author_reference_html(): string {
+        return $this->multi_author_examples_html()
+            . "<div class=\"smpi-control-group\"><h3>Elementor protocol</h3><p>Add <code>smp-author</code> to the exact author identity unit that should repeat for every selected author. Do not put it on a row that also contains Share, read-time, ads, or unrelated controls. Legacy <code>smpi-author-module</code> is still supported for older templates, and the loop-card fallback can rewrite author-name links when no class exists.</p></div>";
+    }
     private function multi_author_debug_module_html(): string {
         return "<div class=\"smpi-panel smpi-control-group smpi-multi-author-debug-panel smpi-multi-author-test\"><h2>Frontend hook and class detection test</h2><p>Enter a post ID or URL, or leave blank to test the most recent published article. The test reports assigned authors, schema authors, visible frontend authors, detected <code>smp-author</code> units, legacy fallback units, loop-card mode, author links, and whether share/read-time content is being captured by the author boundary.</p><div class=\"smpi-inline-test-row\"><input type=\"text\" class=\"regular-text\" data-smpi-multi-author-test-target placeholder=\"Post ID or URL\"><button type=\"button\" class=\"button button-primary\" data-smpi-test-multi-authors>Run frontend author test</button><span class=\"spinner\"></span><span class=\"smpi-save-state\" aria-live=\"polite\"></span></div><div class=\"smpi-multi-author-test-result\" data-smpi-multi-author-test-result aria-live=\"polite\"></div></div>";
     }
@@ -2172,18 +2858,78 @@ class DashboardController {
     }
 
     private function publication_muckrack_report_html(): string {
-        $report = \smp_publication_integration\Content\MuckRackVerification::publication_report();
+        $report = MuckRackVerification::publication_report();
         $placements = ! empty( $report["placements"] ) ? implode( ", ", array_map( "sanitize_key", (array) $report["placements"] ) ) : "none selected";
         $html = $this->simple_status_html( ! empty( $report["effective"] ), "Feature toggle: " . ( ! empty( $report["enabled"] ) ? "on" : "off" ) . ". Publication ACF verified: " . ( ! empty( $report["acf_verified"] ) ? "yes" : "no" ) . "." );
         $html .= "<table class=\"widefat striped\"><tbody>";
         $html .= "<tr><th>Text option</th><td><code>" . esc_html( (string) $report["text_mode"] ) . "</code></td></tr>";
         $html .= "<tr><th>Display style</th><td><code>" . esc_html( (string) $report["style"] ) . "</code></td></tr>";
+        $html .= "<tr><th>Color mode</th><td><code>" . esc_html( (string) $report["color_source"] ) . "</code></td></tr>";
+        $html .= "<tr><th>Typography mode</th><td><code>" . esc_html( (string) $report["typography_mode"] ) . "</code></td></tr>";
+        $html .= "<tr><th>Font</th><td>" . esc_html( (string) $report["font_family"] ) . "</td></tr>";
+        $html .= "<tr><th>Font weight</th><td>" . esc_html( (string) $report["font_weight"] ) . "</td></tr>";
+        $html .= "<tr><th>Text color</th><td><span class=smpi-color-swatch style=\"background:" . esc_attr( (string) $report["text_color"] ) . "\"></span> <code>" . esc_html( (string) $report["text_color"] ) . "</code></td></tr>";
+        $html .= "<tr><th>Text size</th><td>" . esc_html( (string) $report["font_size"] ) . "px</td></tr>";
+        $html .= "<tr><th>Leave as is</th><td>" . esc_html( empty( $report["preserved"] ) ? "None" : implode( ", ", array_map( static fn( string $property ): string => str_replace( "_", " ", $property ), (array) $report["preserved"] ) ) ) . "</td></tr>";
         $html .= "<tr><th>Accent color</th><td><span class=smpi-color-swatch style=\"background:" . esc_attr( (string) $report["color"] ) . "\"></span> <code>" . esc_html( (string) $report["color"] ) . "</code></td></tr>";
         $html .= "<tr><th>Placement</th><td>" . esc_html( $placements ) . "</td></tr>";
-        $html .= "<tr><th>MuckRack URL</th><td>" . ( "" !== $report["url"] ? esc_html( (string) $report["url"] ) : $this->ico( false ) . "Missing optional URL." ) . "</td></tr>";
+        $html .= "<tr><th>MuckRack URL</th><td>" . ( "" !== $report["url"] ? esc_html( (string) $report["url"] ) : self::ico( false ) . "Missing optional URL." ) . "</td></tr>";
         $html .= "<tr><th>Shortcode</th><td><code>" . esc_html( (string) $report["shortcode"] ) . "</code></td></tr>";
-        $html .= "<tr><th>Actual preview</th><td>" . ( "" !== $report["preview_html"] ? wp_kses_post( (string) $report["preview_html"] ) : $this->ico( false ) . "Enable feature and verify publication ACF to render the live shortcode preview. Visual examples are shown above." ) . "</td></tr>";
+        $html .= "<tr><th>Actual preview</th><td>" . ( "" !== $report["preview_html"] ? wp_kses_post( (string) $report["preview_html"] ) : self::ico( false ) . "Enable feature and verify publication ACF to render the live shortcode preview. Visual examples are shown above." ) . "</td></tr>";
         return $html . "</tbody></table>";
+    }
+
+    private function publication_muckrack_source_html(): string {
+        $report = MuckRackVerification::publication_report();
+        $verified = function_exists( 'get_field' )
+            ? (bool) get_field( AcfFields::PUBLICATION_MUCKRACK_VERIFIED_FIELD_KEY, 'option' )
+            : (bool) get_option( 'options_' . AcfFields::PUBLICATION_MUCKRACK_VERIFIED_FIELD_NAME, false );
+        $source_url = function_exists( 'get_field' )
+            ? trim( (string) get_field( AcfFields::PUBLICATION_MUCKRACK_URL_FIELD_KEY, 'option' ) )
+            : trim( (string) get_option( 'options_' . AcfFields::PUBLICATION_MUCKRACK_URL_FIELD_NAME, '' ) );
+        $input_url = '' !== $source_url ? $source_url : trim( (string) ( $report['url'] ?? '' ) );
+        $effective = MuckRackVerification::publication_enabled();
+        $options_url = add_query_arg(
+            [
+                'page' => Config::$settings_page_slug,
+                'tab'  => 'publication_options',
+            ],
+            admin_url( 'options-general.php' )
+        );
+
+        $status = '<div class="smpi-status-rows smpi-publication-muckrack-source-status">'
+            . $this->publication_muckrack_source_status_html( 'verified', $verified, 'Publication verification source', $verified ? 'Enabled' : 'Disabled' )
+            . $this->publication_muckrack_source_status_html( 'url', '' !== $source_url, 'Publication MuckRack URL', '' !== $source_url ? 'Saved' : 'Missing' )
+            . $this->publication_muckrack_source_status_html( 'effective', $effective, 'Frontend output', $effective ? 'Active' : 'Inactive' )
+            . '</div>';
+        $toggle = CoreUi::toggle(
+            'smpi_publication_muckrack_source_verified',
+            $verified,
+            'Publication verified by MuckRack',
+            [
+                'id'          => 'smpi-publication-muckrack-source-verified',
+                'input_class' => 'smpi-publication-muckrack-source-verified',
+            ]
+        );
+        $edit_link = '<a class="smpi-publication-muckrack-source-link" href="' . esc_url( $options_url ) . '" target="_blank" rel="noopener noreferrer">' . esc_html( $options_url ) . '</a>';
+
+        return '<div class="smpi-control-group smpi-publication-muckrack-source" data-smpi-publication-muckrack-source>'
+            . '<h3>Publication verification source</h3>'
+            . '<p class="smpi-muted">Edit the existing Publication Options ACF fields used by the shortcode and frontend output.</p>'
+            . $status
+            . '<div class="smpi-publication-muckrack-source-fields"><div class="smpi-control-row">' . $toggle . '</div>'
+            . '<label class="smpi-publication-muckrack-source-url-field" for="smpi-publication-muckrack-source-url"><strong>Publication MuckRack URL</strong>'
+            . '<input id="smpi-publication-muckrack-source-url" class="regular-text smpi-publication-muckrack-source-url" type="url" value="' . esc_attr( $input_url ) . '" placeholder="https://muckrack.com/media-outlet/example"></label></div>'
+            . '<div class="smpi-publication-muckrack-source-actions"><button type="button" class="button button-primary" data-smpi-save-publication-muckrack-source>Save publication source</button><span class="spinner"></span><span class="smpi-save-state" aria-live="polite"></span></div>'
+            . '<p class="smpi-publication-muckrack-source-edit"><strong>Edit all Publication Options:</strong> ' . $edit_link . '</p>'
+            . '</div>';
+    }
+
+    private function publication_muckrack_source_status_html( string $key, bool $ok, string $label, string $state ): string {
+        return '<div class="smpi-status-row" data-smpi-publication-muckrack-status="' . esc_attr( $key ) . '">'
+            . self::ico( $ok, true )
+            . '<span><strong>' . esc_html( $label ) . ':</strong> <span data-smpi-publication-muckrack-status-text>' . esc_html( $state ) . '</span></span>'
+            . '</div>';
     }
 
     private function press_release_report_html(): string {
@@ -2192,16 +2938,11 @@ class DashboardController {
         $html = $this->simple_status_html( $hpr && Settings::bool( "press_release_include_enabled" ), "Hexa PR Wire active: " . ( $hpr ? "yes" : "no" ) . ". Press-release CPT exists: " . ( post_type_exists( "press-release" ) ? "yes" : "no" ) . "." );
         $html .= "<table class=\"widefat striped\"><thead><tr><th>Recent author</th><th>Posts</th><th>Press releases</th><th>Expected on author.php</th><th>Consistent</th></tr></thead><tbody>";
         foreach ( $rows as $row ) {
-            $html .= "<tr><td>" . esc_html( $row["display_name"] ) . " (#" . esc_html( (string) $row["user_id"] ) . ")</td><td>" . esc_html( (string) $row["posts"] ) . "</td><td>" . esc_html( (string) $row["press_releases"] ) . "</td><td>" . ( $row["expected"] ? "YES" : "NO" ) . "</td><td>" . $this->ico( (bool) $row["consistent"], true ) . "</td></tr>";
+            $html .= "<tr><td>" . esc_html( $row["display_name"] ) . " (#" . esc_html( (string) $row["user_id"] ) . ")</td><td>" . esc_html( (string) $row["posts"] ) . "</td><td>" . esc_html( (string) $row["press_releases"] ) . "</td><td>" . ( $row["expected"] ? "YES" : "NO" ) . "</td><td>" . self::ico( (bool) $row["consistent"], true ) . "</td></tr>";
         }
         return $html . "</tbody></table>";
     }
 
-    private function rank_math_breadcrumb_report_html(): string {
-        $rank = get_option( "rank-math-options-general", [] );
-        $on = is_array( $rank ) && ( $rank["breadcrumbs"] ?? "" ) === "on";
-        return $this->simple_status_html( $on, $on ? "Rank Math breadcrumbs are enabled." : "Rank Math breadcrumbs are disabled or missing." );
-    }
 
     private function hws_masked_login_status(): array {
         $opts = get_option( "hws_login_mask_options", [] );
@@ -2216,21 +2957,32 @@ class DashboardController {
     }
 
     private function activity_log_html( string $feature_key = "" ): string {
-        $log = Settings::activity_log();
+        $entries = Settings::activity_entries();
         if ( "" !== $feature_key ) {
             $needle = sanitize_key( $feature_key );
-            $log = array_values( array_filter( $log, static function ( array $item ) use ( $needle ): bool {
-                return false !== strpos( sanitize_key( (string) ( $item["message"] ?? "" ) ), $needle );
+            $entries = array_values( array_filter( $entries, static function ( object $entry ) use ( $needle ): bool {
+                $data = method_exists( $entry, 'to_array' ) ? $entry->to_array() : [];
+                return false !== strpos( sanitize_key( (string) ( $data["message"] ?? "" ) ), $needle );
             } ) );
         }
-        if ( empty( $log ) ) {
-            return "<p>No activity logged for this feature yet.</p>";
-        }
-        $html = "<ul>";
-        foreach ( array_slice( $log, 0, 5 ) as $item ) {
-            $html .= "<li><code>" . esc_html( (string) ( $item["time"] ?? "" ) ) . "</code> " . esc_html( (string) ( $item["message"] ?? "" ) ) . "</li>";
-        }
-        return $html . "</ul>";
+
+        $entries = array_slice( $entries, -5 );
+        $id      = 'smpi-activity-log-' . ( $feature_key ? sanitize_key( $feature_key ) : 'general' );
+        $config  = new ActivityLogConfig(
+            [
+                'id'          => $id,
+                'title'       => 'Activity Log',
+                'storage'     => ActivityLogConfig::STORAGE_PERMANENT,
+                'storage_key' => 'smpi_activity_log',
+                'max_entries' => 5,
+                'collapsed'   => true,
+                'dark'        => true,
+            ]
+        );
+
+        ob_start();
+        ( new ActivityLogRenderer( $config ) )->render( $entries );
+        return (string) ob_get_clean();
     }
 
     private function ui_cleanup(): void {
@@ -2259,7 +3011,7 @@ class DashboardController {
         ob_start();
         echo '<div class="smpi-grid">';
         foreach ( $checks as $check ) {
-            echo '<div class="smpi-card"><h3>' . esc_html( $check[0] ) . '</h3><p>' . $this->ico( (bool) $check[1] ) . wp_kses_post( $check[2] ) . '</p></div>';
+            echo '<div class="smpi-card"><h3>' . esc_html( $check[0] ) . '</h3><p>' . self::ico( (bool) $check[1] ) . wp_kses_post( $check[2] ) . '</p></div>';
         }
         echo '</div>';
         return (string) ob_get_clean();
@@ -2407,13 +3159,7 @@ class DashboardController {
             [
                 [
                     'definitions' => PluginInventory::recommended_definitions(),
-                    'args'        => array_merge(
-                        PluginInventory::recommended_renderer_args(),
-                        [
-                            'title'       => 'Everything You Should Have',
-                            'description' => 'Required plugin stack audited from the active Mash Viral runtime. Missing items from this list are treated as required.',
-                        ]
-                    ),
+                    'args'        => PluginInventory::recommended_renderer_args(),
                 ],
                 [
                     'definitions' => PluginInventory::forbidden_definitions(),
@@ -2422,7 +3168,7 @@ class DashboardController {
             ],
             [
                 'title'       => 'Plugins',
-                'description' => 'Recommended and forbidden plugin detection for the Mash Viral SMP runtime.',
+                'description' => 'SMP plugin requirements and explicitly forbidden plugins.',
                 'persist_key' => 'smpi-plugin-inventory',
                 'open'        => true,
             ]
@@ -2556,25 +3302,22 @@ class DashboardController {
         echo '<div class="smpi-card"><h3>' . esc_html( $title ) . '</h3><p>' . wp_kses_post( $content ) . '</p></div>';
     }
 
-    private function status_card( string $title, bool $ok, string $message ): void {
-        $this->card( $title, $this->ico( $ok ) . esc_html( $message ) );
-    }
 
 
 
     private function scripts(): void {
-        $active = isset( $_GET["tab"] ) ? sanitize_key( wp_unslash( $_GET["tab"] ) ) : "overview";
+        $requested = isset( $_GET["tab"] ) ? sanitize_key( wp_unslash( $_GET["tab"] ) ) : "overview";
+        $section   = isset( $_GET["section"] ) ? sanitize_key( wp_unslash( $_GET["section"] ) ) : "";
+        $active    = $this->navigation()->resolve( $requested, $section )->section();
         ?>
         <script>
-        window.smpiAdmin={ajaxUrl:ajaxurl,nonce:<?php echo wp_json_encode( Ajax::nonce() ); ?>,pageUrl:<?php echo wp_json_encode( admin_url( "options-general.php?page=" . Config::$settings_page_slug ) ); ?>,activeTab:<?php echo wp_json_encode( $active ); ?>};
+        window.smpiAdmin={ajaxUrl:ajaxurl,nonce:<?php echo wp_json_encode( Ajax::nonce() ); ?>,activeTab:<?php echo wp_json_encode( $active ); ?>};
         jQuery(function($){
             function tabPanel(){return $(`#smpi-tab-panel`)}
-            function tabUrl(tab){return smpiAdmin.pageUrl+`&tab=`+encodeURIComponent(tab)}
+            function setTabMessage(text){$(`#smpi-core-tabs [data-hpc-tab-message]`).text(text)}
             function destroyDynamicEditors(root){if(window.acf){try{acf.doAction(`remove`,root)}catch(e){}}if(!window.tinymce)return;root.find(`textarea.wp-editor-area`).each(function(){var id=this.id;if(id&&tinymce.get(id)){tinymce.get(id).remove()}})}
             function initAcfFields(root){if(window.acf){try{acf.doAction(`append`,root)}catch(e){}}}
             function initDynamicEditors(root){if(!window.wp||!wp.editor)return;root.find(`.smpi-page-template-editor textarea`).each(function(){var id=this.id;if(!id)return;if(window.tinymce&&tinymce.get(id)){tinymce.get(id).remove()}try{wp.editor.initialize(id,{tinymce:true,quicktags:true,mediaButtons:$(this).closest(`.smpi-page-template-editor`).length>0})}catch(e){}})}
-            function setActiveTab(tab){$(`.smpi-tab-btn`).removeClass(`active`).attr(`aria-selected`,`false`);$(`.smpi-tab-btn[data-tab="${tab}"]`).addClass(`active`).attr(`aria-selected`,`true`);smpiAdmin.activeTab=tab}
-            function loadTab(tab,href,push){var panel=tabPanel(),status=$(`.smpi-tab-status`),msg=status.find(`.smpi-tab-message`);if(!tab||panel.data(`loading`))return;panel.data(`loading`,1).addClass(`is-loading`).attr(`aria-busy`,`true`);status.find(`.spinner`).addClass(`is-active`);msg.text(`Loading...`);$.post(smpiAdmin.ajaxUrl,{action:`smpi_load_tab`,nonce:smpiAdmin.nonce,tab:tab}).done(function(x){if(!x||!x.success){msg.text(`Error loading tab.`);return}destroyDynamicEditors(panel);panel.html(x.data.html||``).attr(`data-active-tab`,x.data.tab).attr(`aria-busy`,`false`);setActiveTab(x.data.tab);msg.text(`Loaded ${x.data.label}.`);if(push!==false&&window.history&&history.pushState){history.pushState({smpiTab:x.data.tab},``,href||tabUrl(x.data.tab))}initAcfFields(panel);initDynamicEditors(panel)}).fail(function(){msg.text(`Error loading tab.`)}).always(function(){panel.removeData(`loading`).removeClass(`is-loading`).attr(`aria-busy`,`false`);status.find(`.spinner`).removeClass(`is-active`)})}
             initDynamicEditors(tabPanel());
             document.addEventListener("hexa-core-host-tab-before-load",function(ev){if(!ev.detail||!ev.detail.panel||ev.detail.panel.id!=="smpi-tab-panel")return;destroyDynamicEditors($(ev.detail.panel))});
             document.addEventListener("hexa-core-host-tab-loaded",function(ev){if(!ev.detail||!ev.detail.panel||ev.detail.panel.id!=="smpi-tab-panel")return;smpiAdmin.activeTab=ev.detail.tab||smpiAdmin.activeTab;initAcfFields($(ev.detail.panel));initDynamicEditors($(ev.detail.panel))});
@@ -2583,16 +3326,27 @@ class DashboardController {
             function smpiEscape(v){return $(`<div>`).text(v==null?``:String(v)).html()}
             function smpiAttr(v){return smpiEscape(v).replace(/"/g,`&quot;`).replace(/'/g,`&#039;`).replace(/`/g,`&#096;`)}
             function smpiSafeUrl(v){v=String(v||``).trim();if(!v)return `#`;try{var u=new URL(v,window.location.origin);return /^(http|https):$/.test(u.protocol)?u.href:`#`}catch(e){return `#`}}
-            function saveRoot(e){return e.closest(`.smpi-control-group,td,.smpi-user-picker,.smpi-profile-picker,.smpi-feature-card`)}
+            function saveRoot(e){return e.closest(`[data-hpc-scoped-css-editor],.smpi-control-group,td,.smpi-user-picker,.smpi-profile-picker,.smpi-feature-card`)}
             function featureRoot(e){return e.closest(`.smpi-feature-card`)}
-            function inputStateLabel(e){var k=e.data(`key`)||`setting`;if(e.hasClass(`smpi-setting-array`)){var checked=$(`.smpi-setting-array[data-key="${k}"]`).filter(`:checked`).closest(`.smpi-choice-card`).find(`strong`).map(function(){return $(this).text().trim()}).get();return k+`: `+(checked.length?checked.join(`, `):`none`)}if(e.is(`:checkbox`)){return k+`: `+(e.is(`:checked`)?`Enabled`:`Disabled`)}if(e.is(`[type="radio"]`)){var label=e.closest(`.smpi-choice-card`).find(`strong`).first().text().trim();return k+`: `+(label||e.val())}return k+`: `+(e.val()||`empty`)}
+            function inputStateLabel(e){
+                var k=e.data(`key`)||`setting`;
+                if(e.hasClass(`smpi-setting-array`)){var checked=$(`.smpi-setting-array[data-key="${k}"]`).filter(`:checked`).map(function(){var input=$(this),label=input.closest(`.smpi-choice-card,.hpc-toggle`).find(`strong,.hpc-toggle-label`).first().text().trim();return label||String(input.val()||``)}).get();return k+`: `+(checked.length?checked.join(`, `):`none`)}
+                if(e.is(`:checkbox`)){return k+`: `+(e.is(`:checked`)?`Enabled`:`Disabled`)}
+                if(e.is(`[type="radio"]`)){var label=e.closest(`.smpi-choice-card`).find(`strong`).first().text().trim();return k+`: `+(label||e.val())}
+                if(e.is(`[data-hpc-font-family-select]`)){return k+`: `+(e.find(`option:selected`).text().trim()||`Template font`)}
+                if(e.is(`[data-hpc-font-weight-select]`)){return k+`: `+(e.find(`option:selected`).text().trim()||`Font default`)}
+                return k+`: `+(e.val()||`empty`)
+            }
             function updateChoiceState(e){var k=e.data(`key`);if(!k)return;if(e.is(`[type="radio"]`)){var group=$(`input[type="radio"][data-key="${k}"]`).closest(`.smpi-choice-card`);group.removeClass(`is-selected`).find(`.smpi-selected-pill`).remove();var card=e.closest(`.smpi-choice-card`);card.addClass(`is-selected`);if(!card.find(`.smpi-selected-pill`).length){card.append(`<span class="smpi-selected-pill">Selected</span>`)}}else if(e.hasClass(`smpi-setting-array`)){var card=e.closest(`.smpi-choice-card`);card.toggleClass(`is-selected`,e.is(`:checked`));if(e.is(`:checked`)&&!card.find(`.smpi-selected-pill`).length){card.append(`<span class="smpi-selected-pill">Selected</span>`)}if(!e.is(`:checked`)){card.find(`.smpi-selected-pill`).remove()}}}
             function setSaveState(root,state,message){var s=root.find(`.smpi-save-state`).first();if(!s.length)return;s.removeClass(`is-saving is-saved is-error smpi-ok smpi-bad`).attr(`aria-live`,`polite`);if(state===`saving`){s.addClass(`is-saving`).text(message||`Saving...`);return}if(state===`saved`){s.addClass(`is-saved`).text(message||`✓ Saved`);return}s.addClass(`is-error`).text(`✕ Error: `+(message||`Save failed`))}
             function setFeatureSaveState(card,state,message){if(!card.length)return;var b=card.find(`.smpi-feature-save-banner`).first();if(!b.length)return;b.removeClass(`is-saving is-saved is-error`).addClass(`is-visible is-`+state).text(message);card.toggleClass(`is-saving`,state===`saving`)}
             var smpiSaveToastTimer=null;
             function saveToast(){var t=$(`#smpi-save-toast`);if(t.length)return t;t=$(`<div id="smpi-save-toast" class="smpi-save-toast" aria-live="polite"><span class="smpi-save-toast-spinner" aria-hidden="true"></span><span class="smpi-save-toast-message"></span></div>`);$(`body`).append(t);return t}
             function setGlobalSaveToast(state,message){var t=saveToast();clearTimeout(smpiSaveToastTimer);t.removeClass(`is-saving is-saved is-error`).addClass(`is-visible is-`+state).attr(`role`,state===`error`?`alert`:`status`);t.find(`.smpi-save-toast-message`).text(message);if(state!==`saving`){smpiSaveToastTimer=setTimeout(function(){t.removeClass(`is-visible is-saving is-saved is-error`)},6500)}}
-            function saveSetting(e, done){var k=e.data(`key`),d={action:`smpi_save_settings`,nonce:smpiAdmin.nonce,tab:smpiAdmin.activeTab},v;if(!k)return;var r=saveRoot(e),card=featureRoot(e);updateChoiceState(e);if(e.is(`:checkbox`)&&!e.hasClass(`smpi-setting-array`)){e.closest(`.smpi-switch`).find(`strong`).text(e.is(`:checked`)?`Enabled`:`Disabled`)}if(e.hasClass(`smpi-color-setting`)||e.is(`[data-hpc-color-hex-input]`)){var normalized=smpiHex(e.val());if(!normalized){var badLabel=k+`: `+(e.val()||`empty`),badMsg=`Invalid hex color. Use #RRGGBB.`;setSaveState(r,`error`,badMsg);setFeatureSaveState(card,`error`,`Error saving ${badLabel}: ${badMsg}`);setGlobalSaveToast(`error`,`Error saving ${badLabel}: ${badMsg}`);$(`.smpi-tab-message`).text(`Error saving ${badLabel}: ${badMsg}`);if(done)done(null);return}e.val(normalized);smpiSyncColor(e.closest(`.smpi-color-control,[data-hpc-color-control]`),normalized,false)}if(e.hasClass(`smpi-setting-array`)){var g=$(`.smpi-setting-array[data-key="${k}"]`);d[k+`_present`]=1;d[k]=g.filter(`:checked`).map(function(){return $(this).val()}).get()}else{v=e.is(`:checkbox`)?(e.is(`:checked`)?1:0):e.val();d[k]=v}var label=inputStateLabel(e);r.find(`.spinner`).addClass(`is-active`);setSaveState(r,`saving`,`Saving...`);setFeatureSaveState(card,`saving`,`Saving ${label}`);setGlobalSaveToast(`saving`,`Saving ${label}`);$(`.smpi-tab-message`).text(`Saving ${label}`);$.post(smpiAdmin.ajaxUrl,d).done(function(x){var ok=!!(x&&x.success),msg=saveMessage(x,`Server rejected the save.`);setSaveState(r,ok?`saved`:`error`,ok?`✓ Saved`:msg);setFeatureSaveState(card,ok?`saved`:`error`,ok?`Saved ${label}`:`Error saving ${label}: ${msg}`);setGlobalSaveToast(ok?`saved`:`error`,ok?`Saved ${label}`:`Error saving ${label}: ${msg}`);if(ok&&x.data&&x.data.fragment){refreshActiveFragment(x.data.fragment);$(`.smpi-tab-message`).text(`Saved and refreshed ${x.data.fragment.label}.`)}else if(ok){$(`.smpi-tab-message`).text(`Saved ${label}.`)}if(done)done(x)}).fail(function(xhr){var msg=`HTTP ${xhr.status||0} ${xhr.statusText||`request failed`}`;setSaveState(r,`error`,msg);setFeatureSaveState(card,`error`,`Error saving ${label}: ${msg}`);setGlobalSaveToast(`error`,`Error saving ${label}: ${msg}`);$(`.smpi-tab-message`).text(`Error saving ${label}: ${msg}`);if(done)done(null)}).always(function(){r.find(`.spinner`).removeClass(`is-active`);card.removeClass(`is-saving`)})}
+            function syncFeatureSummaryState(input,settings){if(!input.hasClass(`smpi-feature-primary-toggle`))return;var key=input.data(`key`),raw=settings&&Object.prototype.hasOwnProperty.call(settings,key)?settings[key]:input.is(`:checked`),enabled=raw===true||raw===1||raw===`1`,details=input.closest(`details.smpi-feature-filter-item`),pill=details.children(`summary`).find(`.hpc-section-summary-side .hpc-pill`).first();input.prop(`checked`,enabled);input.closest(`.smpi-switch`).find(`strong`).text(enabled?`Enabled`:`Disabled`);pill.removeClass(`success warning dark`).addClass(enabled?`success`:`warning`).attr(`aria-live`,`polite`).text(enabled?`Enabled`:`Disabled`)}
+            function saveSetting(e, done){var k=e.data(`key`),d={action:`smpi_save_settings`,nonce:smpiAdmin.nonce,tab:smpiAdmin.activeTab},v;if(!k)return;var r=saveRoot(e),card=featureRoot(e);updateChoiceState(e);if(e.is(`:checkbox`)&&!e.hasClass(`smpi-setting-array`)){e.closest(`.smpi-switch`).find(`strong`).text(e.is(`:checked`)?`Enabled`:`Disabled`)}if(e.hasClass(`smpi-color-setting`)||e.is(`[data-hpc-color-hex-input]`)){var normalized=smpiHex(e.val());if(!normalized){var badLabel=k+`: `+(e.val()||`empty`),badMsg=`Invalid hex color. Use #RRGGBB.`;setSaveState(r,`error`,badMsg);setFeatureSaveState(card,`error`,`Error saving ${badLabel}: ${badMsg}`);setGlobalSaveToast(`error`,`Error saving ${badLabel}: ${badMsg}`);setTabMessage(`Error saving ${badLabel}: ${badMsg}`);if(done)done(null);return}e.val(normalized)}if(e.hasClass(`smpi-setting-array`)){var g=$(`.smpi-setting-array[data-key="${k}"]`);d[k+`_present`]=1;d[k]=g.filter(`:checked`).map(function(){return $(this).val()}).get()}else{v=e.is(`:checkbox`)?(e.is(`:checked`)?1:0):e.val();d[k]=v}var label=inputStateLabel(e);r.find(`.spinner`).addClass(`is-active`);setSaveState(r,`saving`,`Saving...`);setFeatureSaveState(card,`saving`,`Saving ${label}`);setGlobalSaveToast(`saving`,`Saving ${label}`);setTabMessage(`Saving ${label}`);$.post(smpiAdmin.ajaxUrl,d).done(function(x){var ok=!!(x&&x.success),msg=saveMessage(x,`Server rejected the save.`);if(ok)syncFeatureSummaryState(e,x.data&&x.data.settings?x.data.settings:null);setSaveState(r,ok?`saved`:`error`,ok?`✓ Saved`:msg);setFeatureSaveState(card,ok?`saved`:`error`,ok?`Saved ${label}`:`Error saving ${label}: ${msg}`);setGlobalSaveToast(ok?`saved`:`error`,ok?`Saved ${label}`:`Error saving ${label}: ${msg}`);if(ok&&x.data&&x.data.fragment){refreshActiveFragment(x.data.fragment);setTabMessage(`Saved and refreshed ${x.data.fragment.label}.`)}else if(ok){setTabMessage(`Saved ${label}.`)}if(done)done(x)}).fail(function(xhr){var msg=`HTTP ${xhr.status||0} ${xhr.statusText||`request failed`}`;setSaveState(r,`error`,msg);setFeatureSaveState(card,`error`,`Error saving ${label}: ${msg}`);setGlobalSaveToast(`error`,`Error saving ${label}: ${msg}`);setTabMessage(`Error saving ${label}: ${msg}`);if(done)done(null)}).always(function(){r.find(`.spinner`).removeClass(`is-active`);card.removeClass(`is-saving`)})}
+            function setPublicationMuckrackStatus(panel,key,ok,state){var row=panel.find(`[data-smpi-publication-muckrack-status="${key}"]`),icon=row.find(`.smpi-ico`).first();icon.removeClass(`smpi-ico--ok smpi-ico--bad smpi-ico--warn`).addClass(ok?`smpi-ico--ok`:`smpi-ico--bad`).html(ok?`&#10003;`:`&#10007;`);row.find(`[data-smpi-publication-muckrack-status-text]`).text(state)}
+            $(document).on(`click`,`[data-smpi-save-publication-muckrack-source]`,function(){var b=$(this),panel=b.closest(`[data-smpi-publication-muckrack-source]`),card=featureRoot(b),verified=panel.find(`.smpi-publication-muckrack-source-verified`).is(`:checked`),url=String(panel.find(`.smpi-publication-muckrack-source-url`).val()||``).trim(),label=`publication MuckRack source`;panel.find(`.spinner`).addClass(`is-active`);b.prop(`disabled`,true);setSaveState(panel,`saving`,`Saving...`);setFeatureSaveState(card,`saving`,`Saving ${label}`);setGlobalSaveToast(`saving`,`Saving ${label}`);setTabMessage(`Saving ${label}`);$.post(smpiAdmin.ajaxUrl,{action:`smpi_save_publication_muckrack_source`,nonce:smpiAdmin.nonce,verified:verified?1:0,url:url}).done(function(x){var ok=!!(x&&x.success),msg=saveMessage(x,`Server rejected the save.`);if(ok&&x.data){panel.find(`.smpi-publication-muckrack-source-verified`).prop(`checked`,!!x.data.verified);panel.find(`.smpi-publication-muckrack-source-url`).val(x.data.url||``);setPublicationMuckrackStatus(panel,`verified`,!!x.data.verified,x.data.verified?`Enabled`:`Disabled`);setPublicationMuckrackStatus(panel,`url`,!!x.data.url_available,x.data.url_available?`Saved`:`Missing`);setPublicationMuckrackStatus(panel,`effective`,!!x.data.effective,x.data.effective?`Active`:`Inactive`)}setSaveState(panel,ok?`saved`:`error`,ok?`✓ Saved`:msg);setFeatureSaveState(card,ok?`saved`:`error`,ok?msg:`Error saving ${label}: ${msg}`);setGlobalSaveToast(ok?`saved`:`error`,ok?msg:`Error saving ${label}: ${msg}`);setTabMessage(ok?msg:`Error saving ${label}: ${msg}`)}).fail(function(xhr){var msg=`HTTP ${xhr.status||0} ${xhr.statusText||`request failed`}`;setSaveState(panel,`error`,msg);setFeatureSaveState(card,`error`,`Error saving ${label}: ${msg}`);setGlobalSaveToast(`error`,`Error saving ${label}: ${msg}`);setTabMessage(`Error saving ${label}: ${msg}`)}).always(function(){panel.find(`.spinner`).removeClass(`is-active`);card.removeClass(`is-saving`);b.prop(`disabled`,false)})});
             function isDeferredNumberSetting(e){return e.hasClass(`smpi-setting`)&&e.is(`input[type="number"]`)}
             function numberOriginalValue(e){var v=e.data(`smpi-original-value`);return typeof v===`undefined`?String(e.val()||``):String(v)}
             function commitNumberSetting(e){if(!isDeferredNumberSetting(e))return;var current=String(e.val()||``);if(numberOriginalValue(e)===current)return;e.data(`smpi-original-value`,current);saveSetting(e)}
@@ -2601,19 +3355,8 @@ class DashboardController {
             $(document).on(`keydown`,`.smpi-setting[type="number"]`,function(ev){if(ev.key===`Enter`){ev.preventDefault();$(this).trigger(`blur`)}});
             $(document).on(`change`,`.smpi-setting,.smpi-setting-array`,function(){var e=$(this);if(isDeferredNumberSetting(e))return;saveSetting(e)});
             function smpiHex(v){v=String(v||``).trim().toLowerCase();if(v&&v.charAt(0)!==`#`)v=`#`+v;if(/^#[0-9a-f]{3}$/.test(v)){v=`#`+v[1]+v[1]+v[2]+v[2]+v[3]+v[3]}return /^#[0-9a-f]{6}$/.test(v)?v:``}
-            function smpiRgb(v){var h=smpiHex(v);return h?`rgb(${parseInt(h.slice(1,3),16)}, ${parseInt(h.slice(3,5),16)}, ${parseInt(h.slice(5,7),16)})`:``}
-            function smpiRgba(v,a){var h=smpiHex(v);return h?`rgba(${parseInt(h.slice(1,3),16)},${parseInt(h.slice(3,5),16)},${parseInt(h.slice(5,7),16)},${a})`:``}
-            function smpiSetPreviewVar(host,key,value,suffix){if(!host)return;host.style.setProperty(key,String(value)+suffix)}
-            function smpiSetDerivedPreviewVars(host,key,value){if(!host||key!==`article_heading_accent_color`)return;var fade=smpiRgba(value,0),highlight=smpiRgba(value,.16);if(fade)host.style.setProperty(`--smpi-heading-accent-fade`,fade);if(highlight)host.style.setProperty(`--smpi-heading-highlight`,highlight)}
-            function smpiSyncColor(wrap,value,isEmpty){var hex=smpiHex(value),display=isEmpty?((wrap.find(`[data-smpi-empty-label]`).data(`smpi-empty-label`)||`inherit`)):hex;if(hex){wrap.find(`.smpi-color-swatch,.hpc-color-swatch`).css(`background`,hex);wrap.find(`[data-hpc-copy]`).attr(`data-hpc-copy`,hex);wrap.find(`[data-hpc-color-picker]`).val(hex);wrap.find(`[data-hpc-color-hex-input]`).val(hex)}wrap.find(`[data-smpi-color-hex],[data-hpc-color-hex]`).text(display||hex||`inherit`);wrap.find(`[data-smpi-color-rgb],[data-hpc-color-rgb]`).text(hex?smpiRgb(hex):``)}
-            function smpiApplyColor(key,color){var hex=smpiHex(color);if(!key||!hex)return;$(`[data-hpc-color-control][data-key="${key}"]`).each(function(){smpiSyncColor($(this),hex,false);$(this).find(`[data-hpc-color-hex-input]`).val(hex)});var hidden=$(`.smpi-color-hidden[data-key="${key}"]`).first(),picker=$(`.smpi-color-picker[data-smpi-sync-key="${key}"]`).first();if(hidden.length){hidden.val(hex)}if(picker.length){picker.val(hex);smpiSyncColor(picker.closest(`.smpi-color-control`),hex,false)}var m=smpiPV[key],host=document.querySelector(`.smpi-design-host`);if(m&&host){smpiSetPreviewVar(host,m[0],hex,m[1]);smpiSetDerivedPreviewVars(host,key,hex)}}
-            $(document).on(`input`,`.smpi-color-setting,.smpi-color-picker,[data-hpc-color-picker],[data-hpc-color-hex-input]`,function(){var input=$(this),wrap=input.closest(`.smpi-color-control,[data-hpc-color-control]`);smpiSyncColor(wrap,input.val(),false)});
-            $(document).on(`change`,`.smpi-color-picker`,function(){var input=$(this),key=input.data(`smpi-sync-key`),hidden=$(`.smpi-color-hidden[data-key="${key}"]`).first(),hex=smpiHex(input.val());smpiSyncColor(input.closest(`.smpi-color-control`),hex,false);hidden.val(hex).trigger(`change`)});
-            $(document).on(`click`,`.smpi-color-inherit`,function(){var b=$(this),key=b.data(`smpi-sync-key`),hidden=$(`.smpi-color-hidden[data-key="${key}"]`).first(),picker=$(`.smpi-color-picker[data-smpi-sync-key="${key}"]`).first();hidden.val(``).trigger(`change`);smpiSyncColor(b.closest(`.smpi-color-control`),picker.val(),true)});
-            $(document).on(`click`,`[data-smpi-import-brand-color]`,function(){var b=$(this),key=b.data(`key`),r=saveRoot(b),card=featureRoot(b),label=key===`_all_feature_primary_colors`?`HWS primary color into feature accents`:`HWS primary color into ${key}`;r.find(`.spinner`).addClass(`is-active`);b.prop(`disabled`,true);setSaveState(r,`saving`,`Importing...`);setFeatureSaveState(card,`saving`,`Importing ${label}`);setGlobalSaveToast(`saving`,`Importing ${label}`);$.post(smpiAdmin.ajaxUrl,{action:`smpi_import_brand_primary_color`,nonce:smpiAdmin.nonce,key:key,tab:smpiAdmin.activeTab}).done(function(x){var ok=!!(x&&x.success),msg=saveMessage(x,`Server rejected the import.`);if(ok&&x.data&&x.data.colors){$.each(x.data.colors,function(k,c){smpiApplyColor(k,c)})}setSaveState(r,ok?`saved`:`error`,ok?`✓ Imported`:msg);setFeatureSaveState(card,ok?`saved`:`error`,ok?msg:`Error importing ${label}: ${msg}`);setGlobalSaveToast(ok?`saved`:`error`,ok?msg:`Error importing ${label}: ${msg}`);$(`.smpi-tab-message`).text(ok?msg:`Error importing ${label}: ${msg}`)}).fail(function(xhr){var msg=`HTTP ${xhr.status||0} ${xhr.statusText||`request failed`}`;setSaveState(r,`error`,msg);setFeatureSaveState(card,`error`,`Error importing ${label}: ${msg}`);setGlobalSaveToast(`error`,`Error importing ${label}: ${msg}`);$(`.smpi-tab-message`).text(`Error importing ${label}: ${msg}`)}).always(function(){r.find(`.spinner`).removeClass(`is-active`);card.removeClass(`is-saving`);b.prop(`disabled`,false)})});
-            $(document).on(`click`,`[data-smpi-test-multi-authors]`,function(){var b=$(this),r=saveRoot(b),card=featureRoot(b),target=r.find(`[data-smpi-multi-author-test-target]`).val()||``,out=r.find(`[data-smpi-multi-author-test-result]`).first(),label=target?`Multiple author frontend hook for ${target}`:`Multiple author frontend hook for latest post`;r.find(`.spinner`).addClass(`is-active`);b.prop(`disabled`,true);out.html(`<p class="smpi-muted">Testing frontend author hook...</p>`);setSaveState(r,`saving`,`Testing...`);setFeatureSaveState(card,`saving`,`Testing ${label}`);setGlobalSaveToast(`saving`,`Testing ${label}`);$.post(smpiAdmin.ajaxUrl,{action:`smpi_test_multi_authors`,nonce:smpiAdmin.nonce,target:target,tab:smpiAdmin.activeTab}).done(function(x){var ok=!!(x&&x.success),msg=saveMessage(x,`Server rejected the test.`);out.html(ok&&x.data&&x.data.html?x.data.html:`<div class="notice notice-error inline"><p>${smpiEscape(msg)}</p></div>`);setSaveState(r,ok?`saved`:`error`,ok?`✓ Tested`:msg);setFeatureSaveState(card,ok?`saved`:`error`,ok?msg:`Error testing ${label}: ${msg}`);setGlobalSaveToast(ok?`saved`:`error`,ok?msg:`Error testing ${label}: ${msg}`);$(`.smpi-tab-message`).text(ok?msg:`Error testing ${label}: ${msg}`)}).fail(function(xhr){var msg=`HTTP ${xhr.status||0} ${xhr.statusText||`request failed`}`;out.html(`<div class="notice notice-error inline"><p>${smpiEscape(msg)}</p></div>`);setSaveState(r,`error`,msg);setFeatureSaveState(card,`error`,`Error testing ${label}: ${msg}`);setGlobalSaveToast(`error`,`Error testing ${label}: ${msg}`);$(`.smpi-tab-message`).text(`Error testing ${label}: ${msg}`)}).always(function(){r.find(`.spinner`).removeClass(`is-active`);card.removeClass(`is-saving`);b.prop(`disabled`,false)})});
-            var smpiPV={'breadcrumbs_accent_color':['--smpi-bc-accent',''],'breadcrumbs_font_size':['--smpi-bc-font-size','px'],'table_of_contents_accent_color':['--smpi-toc-accent',''],'table_of_contents_text_color':['--smpi-toc-text',''],'table_of_contents_text_font_size':['--smpi-toc-size','px'],'table_of_contents_text_font_style':['--smpi-toc-fstyle',''],'article_heading_accent_color':['--smpi-heading-accent',''],'article_heading_h2_font_size':['--smpi-heading-h2-size','px'],'article_heading_h3_font_size':['--smpi-heading-h3-size','px'],'article_drop_cap_color':['--smpi-dropcap-color',''],'article_drop_cap_font_size':['--smpi-dropcap-size','px'],'post_faqs_accent_color':['--smpi-faq-accent',''],'post_faqs_text_color':['--smpi-faq-text',''],'post_faqs_text_font_size':['--smpi-faq-size','px'],'post_faqs_text_font_style':['--smpi-faq-fstyle',''],'inline_photo_accent_color':['--smpi-photo-accent',''],'inline_photo_caption_text_color':['--smpi-photo-cap-color',''],'inline_photo_caption_font_size':['--smpi-photo-cap-size','px'],'inline_photo_caption_font_style':['--smpi-photo-cap-fstyle',''],'featured_image_caption_accent_color':['--smpi-fi-accent',''],'featured_image_caption_text_color':['--smpi-fi-cap-color',''],'featured_image_caption_font_size':['--smpi-fi-cap-size','px'],'featured_image_caption_font_style':['--smpi-fi-cap-fstyle','']};
-            $(document).on(`input change`,`.smpi-setting`,function(){var k=$(this).data(`key`),m=smpiPV[k];if(!m)return;var host=document.querySelector(`.smpi-design-host`);if(host){smpiSetPreviewVar(host,m[0],$(this).val(),m[1]);smpiSetDerivedPreviewVars(host,k,$(this).val())}});
+            $(document).on(`click`,`[data-smpi-import-brand-color]`,function(){var b=$(this),key=b.data(`key`),r=saveRoot(b),card=featureRoot(b),label=key===`_all_feature_primary_colors`?`HWS primary color into feature accents`:`HWS primary color into ${key}`;r.find(`.spinner`).addClass(`is-active`);b.prop(`disabled`,true);setSaveState(r,`saving`,`Importing...`);setFeatureSaveState(card,`saving`,`Importing ${label}`);setGlobalSaveToast(`saving`,`Importing ${label}`);$.post(smpiAdmin.ajaxUrl,{action:`smpi_import_brand_primary_color`,nonce:smpiAdmin.nonce,key:key,tab:smpiAdmin.activeTab}).done(function(x){var ok=!!(x&&x.success),msg=saveMessage(x,`Server rejected the import.`);if(ok&&x.data){if(x.data.colors&&window.hexaColorControl){$.each(x.data.colors,function(k,c){window.hexaColorControl.applyByKey(k,c,false)})}if(x.data.sources&&window.hexaTemplateColorControl){$.each(x.data.sources,function(k,source){window.hexaTemplateColorControl.applyByKey(k,source)})}}setSaveState(r,ok?`saved`:`error`,ok?`✓ Imported`:msg);setFeatureSaveState(card,ok?`saved`:`error`,ok?msg:`Error importing ${label}: ${msg}`);setGlobalSaveToast(ok?`saved`:`error`,ok?msg:`Error importing ${label}: ${msg}`);setTabMessage(ok?msg:`Error importing ${label}: ${msg}`)}).fail(function(xhr){var msg=`HTTP ${xhr.status||0} ${xhr.statusText||`request failed`}`;setSaveState(r,`error`,msg);setFeatureSaveState(card,`error`,`Error importing ${label}: ${msg}`);setGlobalSaveToast(`error`,`Error importing ${label}: ${msg}`);setTabMessage(`Error importing ${label}: ${msg}`)}).always(function(){r.find(`.spinner`).removeClass(`is-active`);card.removeClass(`is-saving`);b.prop(`disabled`,false)})});
+            $(document).on(`click`,`[data-smpi-test-multi-authors]`,function(){var b=$(this),r=saveRoot(b),card=featureRoot(b),target=r.find(`[data-smpi-multi-author-test-target]`).val()||``,out=r.find(`[data-smpi-multi-author-test-result]`).first(),label=target?`Multiple author frontend hook for ${target}`:`Multiple author frontend hook for latest post`;r.find(`.spinner`).addClass(`is-active`);b.prop(`disabled`,true);out.html(`<p class="smpi-muted">Testing frontend author hook...</p>`);setSaveState(r,`saving`,`Testing...`);setFeatureSaveState(card,`saving`,`Testing ${label}`);setGlobalSaveToast(`saving`,`Testing ${label}`);$.post(smpiAdmin.ajaxUrl,{action:`smpi_test_multi_authors`,nonce:smpiAdmin.nonce,target:target,tab:smpiAdmin.activeTab}).done(function(x){var ok=!!(x&&x.success),msg=saveMessage(x,`Server rejected the test.`);out.html(ok&&x.data&&x.data.html?x.data.html:`<div class="notice notice-error inline"><p>${smpiEscape(msg)}</p></div>`);setSaveState(r,ok?`saved`:`error`,ok?`✓ Tested`:msg);setFeatureSaveState(card,ok?`saved`:`error`,ok?msg:`Error testing ${label}: ${msg}`);setGlobalSaveToast(ok?`saved`:`error`,ok?msg:`Error testing ${label}: ${msg}`);setTabMessage(ok?msg:`Error testing ${label}: ${msg}`)}).fail(function(xhr){var msg=`HTTP ${xhr.status||0} ${xhr.statusText||`request failed`}`;out.html(`<div class="notice notice-error inline"><p>${smpiEscape(msg)}</p></div>`);setSaveState(r,`error`,msg);setFeatureSaveState(card,`error`,`Error testing ${label}: ${msg}`);setGlobalSaveToast(`error`,`Error testing ${label}: ${msg}`);setTabMessage(`Error testing ${label}: ${msg}`)}).always(function(){r.find(`.spinner`).removeClass(`is-active`);card.removeClass(`is-saving`);b.prop(`disabled`,false)})});
             var userTimer=null;
             function lockUserCard(u){return `<div class="smpi-profile-card"><div class="smpi-profile-avatar"><img src="${smpiAttr(smpiSafeUrl(u.avatar))}" alt=""></div><div class="smpi-profile-info"><h3>${smpiEscape(u.name||u.label)}</h3><p><span class="dashicons dashicons-email"></span> ${smpiEscape(u.email||``)}</p><p><a class="button button-secondary" target="_blank" rel="noopener noreferrer" href="${smpiAttr(smpiSafeUrl(u.edit_url))}">Edit Profile</a> <a class="button button-secondary" target="_blank" rel="noopener noreferrer" href="${smpiAttr(smpiSafeUrl(u.view_url))}">View Author Page</a></p></div></div>`}
             $(document).on(`input`,`.smpi-user-search`,function(){var input=$(this),picker=input.closest(`.smpi-user-picker`),box=picker.find(`.smpi-user-results`),term=input.val();clearTimeout(userTimer);if(term.length<2){box.empty();return}userTimer=setTimeout(function(){picker.find(`.spinner`).addClass(`is-active`);$.post(smpiAdmin.ajaxUrl,{action:`smpi_search_users`,nonce:smpiAdmin.nonce,term:term}).done(function(x){box.empty();if(!x.success||!x.data.users.length){box.html(`<p class="smpi-muted">No matching users.</p>`);return}$.each(x.data.users,function(i,u){var b=$(`<button type="button" class="button smpi-user-result"></button>`).append($(`<strong></strong>`).text(u.label||``),` `,$(`<span class="smpi-muted"></span>`).text(u.email||``)).data(`user`,u);box.append(b)})}).always(function(){picker.find(`.spinner`).removeClass(`is-active`)})},250)});
@@ -2642,9 +3385,14 @@ class DashboardController {
     <?php }
 
     private function styles(): void { ?>
-        <style>.smpi-dashboard{max-width:1280px}.smpi-tabs-nav{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0;border-bottom:1px solid #dcdcde}.smpi-tab-btn{border:1px solid #dcdcde;border-bottom:none;background:#f6f7f7;padding:10px 14px;border-radius:8px 8px 0 0;cursor:pointer;text-decoration:none;color:#1d2327;display:inline-block}.smpi-tab-btn.active{background:#fff;color:#2271b1;font-weight:700}.smpi-tab-status{display:flex;align-items:center;gap:6px;min-height:24px;margin:-8px 0 8px}.smpi-tab-status .spinner{float:none;margin:0}.smpi-tab-message{color:#646970;font-size:12px}.smpi-tab-content{display:none;position:relative}.smpi-tab-content.active{display:block}.smpi-tab-content.is-loading{opacity:.55;pointer-events:none}.smpi-hero{margin:18px 0;padding:28px 30px;border:1px solid #dcdcde;border-radius:14px;background:linear-gradient(135deg,#fff 0%,#eef6fb 100%);box-shadow:0 10px 28px rgba(0,0,0,.05)}.smpi-kicker{margin:0 0 8px;color:#2271b1;font-weight:700;letter-spacing:.08em;text-transform:uppercase}.smpi-hero h2{margin:0 0 10px;font-size:22px;line-height:1.3;max-width:54ch}.smpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;margin:18px 0}.smpi-card,.smpi-panel{padding:18px;border:1px solid #dcdcde;border-radius:12px;background:#fff;margin:16px 0}.smpi-card h3,.smpi-panel h2{margin-top:0}.smpi-panel h2{font-size:16px;margin-bottom:14px}.smpi-ok{color:#008a20;font-weight:700}.smpi-warn{color:#996800;font-weight:700}.smpi-bad{color:#b32d2e;font-weight:700}.smpi-code,.smpi-code-panel{white-space:pre-wrap;background:#101517;color:#e6edf3;border:1px solid #1f2933;border-radius:10px;padding:14px;max-height:520px;overflow:auto}.smpi-page-select,.smpi-mapping-select{min-width:320px}.smpi-save-state{align-items:center;border-radius:999px;display:inline-flex;font-weight:800;margin-left:8px;min-height:24px;padding:3px 9px}.smpi-save-state:empty{display:none}.smpi-save-state.is-saving{background:#eef2f7;color:#475569}.smpi-save-state.is-saved{background:#e6f4ea;color:#137333}.smpi-save-state.is-error{background:#fce8e6;color:#b32d2e;white-space:normal}.smpi-user-picker{padding:14px;border:1px solid #dcdcde;border-radius:10px;background:#f9fafb;margin:12px 0}.smpi-user-results{display:grid;gap:6px;margin-top:10px;max-width:720px}.smpi-user-result{text-align:left;justify-content:flex-start}.smpi-profile-card{display:flex;gap:18px;align-items:center;padding:18px;border:1px solid #e5e7eb;border-radius:12px;background:#f9fafb;margin:14px 0}.smpi-profile-avatar img{width:96px;height:96px;border-radius:999px;background:#fff;object-fit:cover;box-shadow:0 2px 10px rgba(0,0,0,.08)}.smpi-profile-info h3{margin:0 0 6px}.smpi-profile-fields{display:grid;gap:10px;margin-top:12px}.smpi-field-preview{padding:11px 14px;border:1px solid #e5e7eb;border-radius:8px;background:#fff}.smpi-field-preview p{margin:6px 0 0}.smpi-muted{color:#646970}.smpi-alert{padding:12px 14px;border-radius:8px;border:1px solid #f0c36d;background:#fff8e5}.smpi-alert-warning{color:#664d03}.smpi-publication-author-panel{padding:0;overflow:hidden}.smpi-publication-author-panel .smpi-overview-section{padding:24px 28px;background:linear-gradient(135deg,#111827 0%,#1f3a5f 100%);color:#fff}.smpi-publication-author-panel .smpi-overview-section .smpi-kicker{color:#9bd4ff}.smpi-publication-author-panel .smpi-overview-section h2{font-size:30px;margin:0 0 8px}.smpi-publication-author-panel .smpi-overview-section p:last-child{max-width:760px;font-size:15px;color:#e5edf7}.smpi-author-binding-layout{display:grid;grid-template-columns:minmax(320px,520px) 1fr;gap:22px;padding:24px 28px}.smpi-author-search-card{padding:18px;border:1px solid #d8dee8;border-radius:14px;background:#f8fafc}.smpi-user-picker{padding:0;border:0;background:transparent;margin:12px 0 0}.smpi-user-search{width:min(100%,420px);font-size:16px;padding:8px 12px}.smpi-empty-state{padding:22px;border:1px dashed #b9c2cf;border-radius:14px;background:#fbfcfe;color:#334155}.smpi-empty-state p{margin:8px 0 0}.smpi-advanced-map{display:none}.smpi-founder-profile-panel{border-top:1px solid #e5e7eb;padding:22px 28px}.smpi-founder-header h3{margin:0 0 6px}.smpi-profile-picker{padding:18px;border:1px solid #d8dee8;border-radius:14px;background:#f8fafc}.smpi-profile-search{width:min(100%,420px);font-size:16px;padding:8px 12px}.smpi-profile-results{display:grid;gap:6px;margin-top:10px;max-width:720px}.smpi-profile-result{text-align:left;justify-content:flex-start}.smpi-founder-selected{display:grid;gap:12px;margin-top:16px}.smpi-founder-profile-card{display:flex;gap:14px;align-items:center;padding:14px;border:1px solid #e5e7eb;border-radius:12px;background:#fff}.smpi-founder-thumb img,.smpi-founder-thumb span{width:58px;height:58px;border-radius:999px;display:flex;align-items:center;justify-content:center;background:#eef2f7;object-fit:cover}.smpi-founder-info p{margin:6px 0 0}.smpi-system{margin-top:18px}.smpi-defs{margin:0}.smpi-def{display:grid;grid-template-columns:190px 1fr;gap:18px;align-items:center;padding:13px 0;border-top:1px solid #eef0f2}.smpi-def:first-child{border-top:0;padding-top:2px}.smpi-def-block{align-items:start}.smpi-defs dt{margin:0;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#646970}.smpi-defs dd{margin:0}.smpi-defs code{background:#f0f1f3;border-radius:6px;padding:4px 9px;font-size:13px;color:#1d2327;word-break:break-all}@media(max-width:782px){.smpi-def{grid-template-columns:1fr;gap:6px}}.smpi-feature-card{padding:22px;border:1px solid #d8dee8;border-radius:18px;background:#fff;margin:18px 0;box-shadow:0 10px 28px rgba(15,23,42,.05)}.smpi-feature-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;border-bottom:1px solid #eef0f2;padding-bottom:16px;margin-bottom:16px}.smpi-feature-head h2{font-size:22px;margin:0}.smpi-feature-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}.smpi-feature-grid section,.smpi-feature-controls{border:1px solid #eef0f2;border-radius:14px;background:#f8fafc;padding:14px}.smpi-feature-report,.smpi-feature-activity{grid-column:1/-1;overflow-x:auto}.smpi-feature-report table{min-width:720px;max-width:100%}.smpi-feature-report .widefat{width:100%}.smpi-feature-grid h3,.smpi-control-group h3{margin:0 0 9px;font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:#475569}.smpi-choice-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:10px}.smpi-control-group:has(input[data-key="muckrack_verified_style"]) .smpi-choice-grid,.smpi-control-group:has(input[data-key="muckrack_icon_style"]) .smpi-choice-grid,.smpi-control-group:has(input[data-key="publication_muckrack_style"]) .smpi-choice-grid{grid-template-columns:1fr}.smpi-control-group:has(input[data-key="muckrack_verified_style"]) .smpi-choice-preview,.smpi-control-group:has(input[data-key="muckrack_icon_style"]) .smpi-choice-preview,.smpi-control-group:has(input[data-key="publication_muckrack_style"]) .smpi-choice-preview{max-width:620px}.smpi-control-group:has(input[data-key="muckrack_icon_style"]) .smpi-choice-preview{display:flex;align-items:center;gap:10px}.smpi-control-group:has(input[data-key="muckrack_icon_style"]) .smpi-choice-preview:before{content:"Jane Reporter";font-weight:700;color:#1f2937}.smpi-control-group:has(input[data-key="muckrack_icon_style"]) .smpi-choice-preview:after{content:"Verified by MuckRack editorial team";font-size:12px;color:#64748b}.smpi-choice-list{display:grid;grid-template-columns:1fr;gap:10px}.smpi-choice-card{display:flex;gap:12px;align-items:flex-start;position:relative;padding:14px 16px;border:1px solid #d8dee8;border-radius:14px;background:#fff;cursor:pointer;box-shadow:inset 0 0 0 1px transparent}.smpi-choice-card input{margin-top:3px}.smpi-choice-card strong{display:block;color:#1f2937}.smpi-choice-card small{display:block;margin-top:3px;color:#64748b;line-height:1.35}.smpi-choice-body{min-width:0;flex:1}.smpi-selected-pill{margin-left:auto;align-self:flex-start;background:#2271b1;color:#fff;border-radius:999px;padding:2px 8px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}.smpi-choice-card.is-selected,.smpi-choice-card:has(input:checked){border-color:#2271b1;background:#eef6fb;box-shadow:inset 0 0 0 1px #2271b1}.smpi-choice-preview{display:block;margin-top:10px;padding:12px;border:1px solid #e2e8f0;border-radius:10px;background:#fff}.smpi-preview-stack,.smpi-publication-preview-list{display:grid;gap:12px}.smpi-mode-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}.smpi-mode-grid>div,.smpi-shortcode-row{padding:12px;border:1px solid #d8dee8;border-radius:12px;background:#fff}.smpi-shortcode-list{display:grid;gap:10px}.smpi-shortcode-row{display:grid;grid-template-columns:minmax(180px,240px) minmax(260px,1fr);gap:8px 14px;align-items:start}.smpi-shortcode-row code{white-space:normal;word-break:break-word}.smpi-shortcode-row small{grid-column:2;color:#64748b}.smpi-shortcode-reference{margin-bottom:14px}.smpi-preview-demo,.smpi-publication-preview-item{padding:12px;border:1px solid #d8dee8;border-radius:12px;background:#fff}.smpi-tooltip-demo{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.smpi-tooltip-bubble{background:#111827;color:#fff;border-radius:8px;padding:6px 8px;font-size:12px;white-space:nowrap}.smpi-author-inline-demo{display:inline-block}.smpi-author-block-demo{display:inline-flex;align-items:center;gap:.25em;border-left:2px solid var(--smpi-muckrack-color,#2d5277);background:#f5f8fb;color:#64748b;padding:6px 8px;font-size:11px;line-height:1.25}.smpi-author-block-demo strong{color:var(--smpi-muckrack-color,#2d5277)}.smpi-publication-preview-block{display:block;border-left:3px solid var(--smpi-muckrack-color,#2d5277);background:#f5f8fb;padding:8px 10px;font-size:12px;line-height:1.3;max-width:520px}.smpi-publication-preview-mini_block{display:block;border-left:2px solid var(--smpi-muckrack-color,#2d5277);background:#f6f8fb;padding:6px 9px;font-size:11px;line-height:1.25;max-width:520px;color:#475569}.smpi-publication-preview-compact{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--smpi-muckrack-color,#2d5277);border-radius:999px;padding:4px 9px;background:#fff;font-size:12px;line-height:1.25}.smpi-publication-preview-minimalist{display:inline;color:#334155;font-size:12px;line-height:1.3}.smpi-publication-preview-brand{color:var(--smpi-muckrack-color,#2d5277);font-weight:700}.smpi-switch{display:inline-flex;gap:10px;align-items:center}.smpi-switch input{position:absolute;opacity:0}.smpi-switch span{width:42px;height:24px;border-radius:999px;background:#cbd5e1;position:relative;display:inline-block}.smpi-switch span:before{content:"";width:18px;height:18px;border-radius:999px;background:#fff;position:absolute;left:3px;top:3px;transition:.18s}.smpi-switch input:checked+span{background:#2271b1}.smpi-switch input:checked+span:before{transform:translateX(18px)}.smpi-control-row{margin:10px 0}.smpi-color-control{align-items:center;display:flex;gap:10px;flex-wrap:wrap}.smpi-color-control input[type=color]{height:38px;width:54px}.smpi-color-control code{background:#eef0f3;border-radius:4px;min-width:76px;padding:5px 8px;text-align:center}.smpi-color-control .hpc-button,.smpi-color-control .button{padding:7px 10px}.smpi-color-rgb{background:#eef0f3;border-radius:4px;min-width:128px;padding:5px 8px;text-align:center}.smpi-brand-color-tools .smpi-feature-grid{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}.smpi-color-swatch{display:inline-block;width:32px;height:32px;border-radius:8px;border:1px solid #cbd5e1;vertical-align:middle}.smpi-icon-preview{display:flex;gap:10px;margin-top:8px}.smpi-muckrack-preview-circle,.smpi-muckrack-preview-outline,.smpi-muckrack-preview-check{display:inline-flex;align-items:center;justify-content:center;--smpi-muckrack-color:#2d5277;color:var(--smpi-muckrack-color,#2d5277);line-height:1}.smpi-muckrack-preview-circle svg,.smpi-muckrack-preview-outline svg,.smpi-muckrack-preview-check svg{display:block;width:1em;height:1em}.smpi-ico{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;min-width:20px;border-radius:999px;font-size:12px;font-weight:700;line-height:1;margin-right:8px;vertical-align:middle}.smpi-ico--ok{background:#e6f4ea;color:#137333}.smpi-ico--bad{background:#fce8e6;color:#c5221f}.smpi-ico--warn{background:#fef7e0;color:#9a6700}.smpi-status-line{display:flex;align-items:center;margin:8px 0}.smpi-status-line span,.smpi-status-row span{color:#1f2937}.smpi-status-rows{display:grid;gap:10px;margin:14px 0}.smpi-status-row{display:flex;align-items:center;font-weight:600}.smpi-pill{display:inline-flex;align-items:center;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}.smpi-pill--saved{background:#e6f4ea;color:#137333}.smpi-author-binding-layout{display:block;padding:24px 28px}.smpi-author-search-card{padding:18px;border:1px solid #d8dee8;border-radius:14px;background:#f8fafc;max-width:760px}.smpi-user-picker.is-locked .smpi-edit-view{display:none}.smpi-user-picker:not(.is-locked) .smpi-locked-view{display:none}.smpi-locked-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 16px;border:1px solid #cfe3d6;background:#f3faf5;border-radius:12px}.smpi-locked-label{font-weight:700;color:#0f5132}.smpi-locked-bar .smpi-change-user{margin-left:auto}.smpi-edit-actions{display:flex;align-items:center;gap:14px;margin-top:12px}.smpi-user-result{display:block;width:100%;text-align:left;padding:8px 12px;height:auto;line-height:1.5}.smpi-save-state.is-saved{color:#137333}.smpi-dashboard a[target="_blank"]::after{content:"\2197";font-size:.82em;margin-left:3px;line-height:1;opacity:.6;font-weight:700;text-decoration:none}.smpi-number-control{display:flex;align-items:center;gap:8px}.smpi-number-control input{width:90px}.smpi-context-override-list{display:grid;gap:10px}.smpi-context-override-row{display:grid;grid-template-columns:minmax(220px,1fr) minmax(180px,220px) minmax(160px,200px);gap:12px;align-items:center;padding:12px;border:1px solid #d8dee8;border-radius:12px;background:#fff}.smpi-context-override-row strong,.smpi-context-override-row small{display:block}.smpi-context-override-row small{color:#64748b;margin-top:3px;line-height:1.35}.smpi-context-override-row input[type=text]{width:100%;max-width:150px}.smpi-context-override-row input[type=color]{width:54px}.smpi-context-override-row input[type=number]{width:80px}.smpi-control-group:has(input[data-key="table_of_contents_style"]) .smpi-choice-grid,.smpi-control-group:has(input[data-key="inline_photo_treatment"]) .smpi-choice-grid,.smpi-control-group:has(input[data-key="featured_image_caption_template"]) .smpi-choice-grid,.smpi-control-group:has(input[data-key="post_summary_style"]) .smpi-choice-grid,.smpi-control-group:has(input[data-key="post_faqs_style"]) .smpi-choice-grid{grid-template-columns:1fr}.smpi-design-preview{display:block;max-width:640px;color:#334155}.smpi-design-preview ol,.smpi-design-preview ul{margin:8px 0 0;padding-left:20px}.smpi-design-preview a{color:#2563eb;text-decoration:none}.smpi-design-photo{margin:0}.smpi-photo-block{display:block;width:100%;height:92px;background:linear-gradient(135deg,#d8dee8,#f8fafc);border-radius:10px}.smpi-design-photo figcaption{margin-top:9px;font-size:12px;line-height:1.45;color:#64748b}.smpi-design-fig1 .smpi-photo-block{box-shadow:0 14px 28px -22px #111;border-radius:14px}.smpi-design-fig1 figcaption{padding-left:12px;border-left:3px solid #d63428;font-family:Georgia,serif;font-style:italic;color:#1f2937}.smpi-design-fig2{border-radius:14px;overflow:hidden;box-shadow:0 16px 34px -28px #111}.smpi-design-fig2 .smpi-photo-block{border-radius:0}.smpi-design-fig2 figcaption{background:#fafafa;border-top:3px solid #d63428;padding:12px}.smpi-design-fig4{position:relative;border-radius:14px;overflow:hidden}.smpi-design-fig4 .smpi-photo-block{height:110px;border-radius:0}.smpi-design-fig4 figcaption{position:absolute;left:0;right:0;bottom:0;color:#fff;background:linear-gradient(transparent,rgba(0,0,0,.78));padding:38px 14px 12px}.smpi-design-fig5{border:1px solid #e5e7eb;border-radius:14px;padding:10px;box-shadow:0 14px 30px -24px #111}.smpi-design-summary,.smpi-design-faq{font-size:13px;line-height:1.45}.smpi-design-summary h2,.smpi-design-faq h2{margin:0 0 8px;font-size:14px}.smpi-sum00{background:#f5f6f7;padding:16px}.smpi-sum01{border:1px solid #e5e7eb;border-left:4px solid #2563eb;border-radius:12px;padding:16px}.smpi-sum02{border-top:2px solid #0a0a0a;border-bottom:1px solid #e5e7eb;padding:14px 0}.smpi-sum03{border:1px solid #e5e7eb;border-radius:12px;overflow:hidden}.smpi-sum03 h2{background:#0a0a0a;color:#fff;padding:10px 14px}.smpi-sum03 ul{padding:10px 24px}.smpi-sum04{background:#eff4ff;border-radius:14px;padding:16px}.smpi-faq02>div,.smpi-faq04>div{border:1px solid #e5e7eb;border-radius:12px;padding:12px;background:#fff}.smpi-faq04>div{background:#f8fafc}.smpi-faq03>div{display:grid;grid-template-columns:auto 1fr;gap:12px}.smpi-faq03>div:before{content:"01";font-size:22px;font-weight:800;color:#c7d6ff}.smpi-plugin-registry .button{margin:0 4px 6px 0}.smpi-design-toc{color:var(--smpi-toc-text-color,#1f2937);font-size:var(--smpi-toc-font-size,15px);font-style:var(--smpi-toc-font-style,normal)}.smpi-design-toc a,.smpi-design-toc .smpi-toc-label{color:var(--smpi-toc-accent,#2563eb)}.smpi-design-toc.smpi-toc01{border-left-color:var(--smpi-toc-accent,#2563eb)}.smpi-design-toc.smpi-toc02 li:before,.smpi-design-toc.smpi-toc03 a:before{color:var(--smpi-toc-accent,#2563eb)}.smpi-design-photo figcaption{color:var(--smpi-inline-photo-caption-color,#272727);font-size:var(--smpi-inline-photo-caption-size,16px);font-style:var(--smpi-inline-photo-caption-style,italic)}.smpi-design-fig1 figcaption{border-left-color:var(--smpi-inline-photo-accent,#d63428)}.smpi-design-fig2 figcaption{border-top-color:var(--smpi-inline-photo-accent,#d63428)}.smpi-design-fig5{border-color:var(--smpi-inline-photo-accent,#d63428)}.smpi-design-faq{color:var(--smpi-faq-text-color,#1f2937);font-size:var(--smpi-faq-font-size,16px);font-style:var(--smpi-faq-font-style,normal)}.smpi-design-faq h2,.smpi-design-faq strong{color:var(--smpi-faq-accent,#2563eb)}.smpi-design-faq.smpi-faq02>div,.smpi-design-faq.smpi-faq04>div{border-left:3px solid var(--smpi-faq-accent,#2563eb)}.smpi-design-faq.smpi-faq03>div:before{color:var(--smpi-faq-accent,#2563eb)}.smpi-page-detail-wrap{margin-top:14px}.smpi-page-detail{border:1px solid #d8dee8;border-radius:14px;background:#f8fafc;padding:16px;margin-top:12px}.smpi-page-detail-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;border-bottom:1px solid #e5e7eb;padding-bottom:12px;margin-bottom:12px}.smpi-page-detail h3{margin:0 0 4px;font-size:16px}.smpi-page-meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px 16px;margin:0}.smpi-page-meta div{padding:10px;border:1px solid #e5e7eb;border-radius:10px;background:#fff}.smpi-page-meta dt{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#64748b;margin:0 0 4px}.smpi-page-meta dd{margin:0;word-break:break-word}.smpi-page-meta-wide{grid-column:1/-1}.smpi-page-slug-row dd{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.smpi-page-slug-input{max-width:360px}.smpi-page-actions{margin:12px 0 0}.smpi-page-detail-missing{border-color:#f0c36d;background:#fff8e5}</style>
-        <style id="smpi-author-badge-spacing-admin-css">.smpi-context-overrides .smpi-context-override-row{grid-template-columns:minmax(220px,1fr) minmax(180px,220px) repeat(3,minmax(118px,160px));}.smpi-context-overrides .smpi-context-override-row label{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}.smpi-context-overrides .smpi-context-override-row input[type=number]{width:82px;}@media(max-width:1200px){.smpi-context-overrides .smpi-context-override-row{grid-template-columns:1fr 1fr;}.smpi-context-overrides .smpi-context-override-row>div{grid-column:1/-1;}}@media(max-width:782px){.smpi-context-overrides .smpi-context-override-row{grid-template-columns:1fr;}}</style>
-        <style id="smpi-article-heading-admin-css">.smpi-control-group:has(input[data-key="article_heading_style"]) .smpi-choice-grid{grid-template-columns:1fr}.smpi-control-group:has(input[data-key="article_heading_style"]) .smpi-choice-card{min-height:0;overflow:hidden}.smpi-control-group:has(input[data-key="article_heading_style"]) .smpi-choice-body{min-width:0}.smpi-control-group:has(input[data-key="article_heading_style"]) .smpi-choice-preview{background:transparent;border:0;box-sizing:border-box;display:block;max-width:820px;overflow:hidden;padding:0;width:100%}.smpi-control-group:has(input[data-key="article_heading_style"]) .smpi-ah-preview-stack{width:100%;max-width:820px;overflow:hidden}.smpi-control-group:has(input[data-key="article_heading_style"]) .smpi-ah-preview{overflow:hidden;position:relative;width:100%}.smpi-choice-preview .smpi-ah-preview h2,.smpi-choice-preview .smpi-ah-preview h3{text-transform:none;letter-spacing:0}</style>
+        <style>.smpi-dashboard{max-width:1280px}.smpi-hero{margin:18px 0;padding:28px 30px;border:1px solid #dcdcde;border-radius:14px;background:linear-gradient(135deg,#fff 0%,#eef6fb 100%);box-shadow:0 10px 28px rgba(0,0,0,.05)}.smpi-kicker{margin:0 0 8px;color:#2271b1;font-weight:700;letter-spacing:.08em;text-transform:uppercase}.smpi-hero h2{margin:0 0 10px;font-size:22px;line-height:1.3;max-width:54ch}.smpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;margin:18px 0}.smpi-card,.smpi-panel{padding:18px;border:1px solid #dcdcde;border-radius:12px;background:#fff;margin:16px 0}.smpi-card h3,.smpi-panel h2{margin-top:0}.smpi-panel h2{font-size:16px;margin-bottom:14px}.smpi-ok{color:#008a20;font-weight:700}.smpi-warn{color:#996800;font-weight:700}.smpi-bad{color:#b32d2e;font-weight:700}.smpi-code,.smpi-code-panel{white-space:pre-wrap;background:#101517;color:#e6edf3;border:1px solid #1f2933;border-radius:10px;padding:14px;max-height:520px;overflow:auto}.smpi-page-select,.smpi-mapping-select{min-width:320px}.smpi-save-state{align-items:center;border-radius:999px;display:inline-flex;font-weight:800;margin-left:8px;min-height:24px;padding:3px 9px}.smpi-save-state:empty{display:none}.smpi-save-state.is-saving{background:#eef2f7;color:#475569}.smpi-save-state.is-saved{background:#e6f4ea;color:#137333}.smpi-save-state.is-error{background:#fce8e6;color:#b32d2e;white-space:normal}.smpi-user-picker{padding:14px;border:1px solid #dcdcde;border-radius:10px;background:#f9fafb;margin:12px 0}.smpi-user-results{display:grid;gap:6px;margin-top:10px;max-width:720px}.smpi-user-result{text-align:left;justify-content:flex-start}.smpi-profile-card{display:flex;gap:18px;align-items:center;padding:18px;border:1px solid #e5e7eb;border-radius:12px;background:#f9fafb;margin:14px 0}.smpi-profile-avatar img{width:96px;height:96px;border-radius:999px;background:#fff;object-fit:cover;box-shadow:0 2px 10px rgba(0,0,0,.08)}.smpi-profile-info h3{margin:0 0 6px}.smpi-profile-fields{display:grid;gap:10px;margin-top:12px}.smpi-field-preview{padding:11px 14px;border:1px solid #e5e7eb;border-radius:8px;background:#fff}.smpi-field-preview p{margin:6px 0 0}.smpi-muted{color:#646970}.smpi-alert{padding:12px 14px;border-radius:8px;border:1px solid #f0c36d;background:#fff8e5}.smpi-alert-warning{color:#664d03}.smpi-publication-author-panel{padding:0;overflow:hidden}.smpi-publication-author-panel .smpi-overview-section{padding:24px 28px;background:linear-gradient(135deg,#111827 0%,#1f3a5f 100%);color:#fff}.smpi-publication-author-panel .smpi-overview-section .smpi-kicker{color:#9bd4ff}.smpi-publication-author-panel .smpi-overview-section h2{font-size:30px;margin:0 0 8px}.smpi-publication-author-panel .smpi-overview-section p:last-child{max-width:760px;font-size:15px;color:#e5edf7}.smpi-author-binding-layout{display:grid;grid-template-columns:minmax(320px,520px) 1fr;gap:22px;padding:24px 28px}.smpi-author-search-card{padding:18px;border:1px solid #d8dee8;border-radius:14px;background:#f8fafc}.smpi-user-picker{padding:0;border:0;background:transparent;margin:12px 0 0}.smpi-user-search{width:min(100%,420px);font-size:16px;padding:8px 12px}.smpi-empty-state{padding:22px;border:1px dashed #b9c2cf;border-radius:14px;background:#fbfcfe;color:#334155}.smpi-empty-state p{margin:8px 0 0}.smpi-advanced-map{display:none}.smpi-founder-profile-panel{border-top:1px solid #e5e7eb;padding:22px 28px}.smpi-founder-header h3{margin:0 0 6px}.smpi-profile-picker{padding:18px;border:1px solid #d8dee8;border-radius:14px;background:#f8fafc}.smpi-profile-search{width:min(100%,420px);font-size:16px;padding:8px 12px}.smpi-profile-results{display:grid;gap:6px;margin-top:10px;max-width:720px}.smpi-profile-result{text-align:left;justify-content:flex-start}.smpi-founder-selected{display:grid;gap:12px;margin-top:16px}.smpi-founder-profile-card{display:flex;gap:14px;align-items:center;padding:14px;border:1px solid #e5e7eb;border-radius:12px;background:#fff}.smpi-founder-thumb img,.smpi-founder-thumb span{width:58px;height:58px;border-radius:999px;display:flex;align-items:center;justify-content:center;background:#eef2f7;object-fit:cover}.smpi-founder-info p{margin:6px 0 0}.smpi-system{margin-top:18px}.smpi-defs{margin:0}.smpi-def{display:grid;grid-template-columns:190px 1fr;gap:18px;align-items:center;padding:13px 0;border-top:1px solid #eef0f2}.smpi-def:first-child{border-top:0;padding-top:2px}.smpi-def-block{align-items:start}.smpi-defs dt{margin:0;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#646970}.smpi-defs dd{margin:0}.smpi-defs code{background:#f0f1f3;border-radius:6px;padding:4px 9px;font-size:13px;color:#1d2327;word-break:break-all}@media(max-width:782px){.smpi-def{grid-template-columns:1fr;gap:6px}}.smpi-feature-card{padding:22px;border:1px solid #d8dee8;border-radius:18px;background:#fff;margin:18px 0;box-shadow:0 10px 28px rgba(15,23,42,.05)}.smpi-feature-card.smpi-feature-card--core-collapsible{background:transparent;border:0;border-radius:0;box-shadow:none;margin:0;padding:0}.smpi-feature-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;border-bottom:1px solid #eef0f2;padding-bottom:16px;margin-bottom:16px}.smpi-feature-head h2{font-size:22px;margin:0}.smpi-feature-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}.smpi-feature-grid section,.smpi-feature-controls{border:1px solid #eef0f2;border-radius:14px;background:#f8fafc;padding:14px}.smpi-feature-report,.smpi-feature-activity{grid-column:1/-1;overflow-x:auto}.smpi-feature-report table{min-width:720px;max-width:100%}.smpi-feature-report .widefat{width:100%}.smpi-feature-grid h3,.smpi-control-group h3{margin:0 0 9px;font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:#475569}.smpi-choice-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:10px}.smpi-control-group:has(input[data-key="muckrack_verified_style"]) .smpi-choice-grid,.smpi-control-group:has(input[data-key="muckrack_icon_style"]) .smpi-choice-grid,.smpi-control-group:has(input[data-key="publication_muckrack_style"]) .smpi-choice-grid{grid-template-columns:1fr}.smpi-control-group:has(input[data-key="muckrack_verified_style"]) .smpi-choice-preview,.smpi-control-group:has(input[data-key="muckrack_icon_style"]) .smpi-choice-preview,.smpi-control-group:has(input[data-key="publication_muckrack_style"]) .smpi-choice-preview{max-width:620px}.smpi-control-group:has(input[data-key="muckrack_icon_style"]) .smpi-choice-preview{display:flex;align-items:center;gap:10px}.smpi-control-group:has(input[data-key="muckrack_icon_style"]) .smpi-choice-preview:before{content:"Jane Reporter";font-weight:700;color:#1f2937}.smpi-control-group:has(input[data-key="muckrack_icon_style"]) .smpi-choice-preview:after{content:"Verified by MuckRack editorial team";font-size:12px;color:#64748b}.smpi-choice-list{display:grid;grid-template-columns:1fr;gap:10px}.smpi-choice-card{display:flex;gap:12px;align-items:flex-start;position:relative;padding:14px 16px;border:1px solid #d8dee8;border-radius:14px;background:#fff;cursor:pointer;box-shadow:inset 0 0 0 1px transparent}.smpi-choice-card input{margin-top:3px}.smpi-choice-card strong{display:block;color:#1f2937}.smpi-choice-card small{display:block;margin-top:3px;color:#64748b;line-height:1.35}.smpi-choice-body{min-width:0;flex:1}.smpi-selected-pill{margin-left:auto;align-self:flex-start;background:#2271b1;color:#fff;border-radius:999px;padding:2px 8px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}.smpi-choice-card.is-selected,.smpi-choice-card:has(input:checked){border-color:#2271b1;background:#eef6fb;box-shadow:inset 0 0 0 1px #2271b1}.smpi-choice-preview{display:block;margin-top:10px;padding:12px;border:1px solid #e2e8f0;border-radius:10px;background:#fff}.smpi-preview-stack,.smpi-publication-preview-list{display:grid;gap:12px}.smpi-mode-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}.smpi-mode-grid>div,.smpi-shortcode-row{padding:12px;border:1px solid #d8dee8;border-radius:12px;background:#fff}.smpi-shortcode-list{display:grid;gap:10px}.smpi-shortcode-row{display:grid;grid-template-columns:minmax(180px,240px) minmax(260px,1fr);gap:8px 14px;align-items:start}.smpi-shortcode-row code{white-space:normal;word-break:break-word}.smpi-shortcode-row small{grid-column:2;color:#64748b}.smpi-shortcode-reference{margin-bottom:14px}.smpi-preview-demo,.smpi-publication-preview-item{padding:12px;border:1px solid #d8dee8;border-radius:12px;background:#fff}.smpi-tooltip-demo{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.smpi-tooltip-bubble{background:#111827;color:#fff;border-radius:8px;padding:6px 8px;font-size:12px;white-space:nowrap}.smpi-author-inline-demo{display:inline-block}.smpi-author-block-demo{display:inline-flex;align-items:center;gap:.25em;border-left:2px solid var(--smpi-muckrack-author-accent,#2d5277);background:#f5f8fb;color:#64748b;padding:6px 8px;font-size:11px;line-height:1.25}.smpi-author-block-demo strong{color:var(--smpi-muckrack-author-accent,#2d5277)}.smpi-publication-preview-block{display:block;border-left:3px solid var(--smpi-muckrack-publication-accent,#2d5277);background:#f5f8fb;padding:8px 10px;font-size:12px;line-height:1.3;max-width:520px}.smpi-publication-preview-mini_block{display:block;border-left:2px solid var(--smpi-muckrack-publication-accent,#2d5277);background:#f6f8fb;padding:6px 9px;font-size:11px;line-height:1.25;max-width:520px;color:#475569}.smpi-publication-preview-compact{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--smpi-muckrack-publication-accent,#2d5277);border-radius:999px;padding:4px 9px;background:#fff;font-size:12px;line-height:1.25}.smpi-publication-preview-minimalist{display:inline;color:#334155;font-size:12px;line-height:1.3}.smpi-publication-preview-brand{color:var(--smpi-muckrack-publication-accent,#2d5277);font-weight:700}.smpi-switch{display:inline-flex;gap:10px;align-items:center}.smpi-switch input{position:absolute;opacity:0}.smpi-switch span{width:42px;height:24px;border-radius:999px;background:#cbd5e1;position:relative;display:inline-block}.smpi-switch span:before{content:"";width:18px;height:18px;border-radius:999px;background:#fff;position:absolute;left:3px;top:3px;transition:.18s}.smpi-switch input:checked+span{background:#2271b1}.smpi-switch input:checked+span:before{transform:translateX(18px)}.smpi-control-row{margin:10px 0}.smpi-color-control{align-items:center;display:flex;gap:10px;flex-wrap:wrap}.smpi-color-control input[type=color]{height:38px;width:54px}.smpi-color-control code{background:#eef0f3;border-radius:4px;min-width:76px;padding:5px 8px;text-align:center}.smpi-color-control .hpc-button,.smpi-color-control .button{padding:7px 10px}.smpi-color-rgb{background:#eef0f3;border-radius:4px;min-width:128px;padding:5px 8px;text-align:center}.smpi-brand-color-tools .smpi-feature-grid{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}.smpi-color-swatch{display:inline-block;width:32px;height:32px;border-radius:8px;border:1px solid #cbd5e1;vertical-align:middle}.smpi-icon-preview{display:flex;gap:10px;margin-top:8px}.smpi-muckrack-preview-circle,.smpi-muckrack-preview-outline,.smpi-muckrack-preview-check{display:inline-flex;align-items:center;justify-content:center;color:var(--smpi-muckrack-author-accent,#2d5277);line-height:1}.smpi-muckrack-preview-circle svg,.smpi-muckrack-preview-outline svg,.smpi-muckrack-preview-check svg{display:block;width:1em;height:1em}.smpi-ico{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;min-width:20px;border-radius:999px;font-size:12px;font-weight:700;line-height:1;margin-right:8px;vertical-align:middle}.smpi-ico--ok{background:#e6f4ea;color:#137333}.smpi-ico--bad{background:#fce8e6;color:#c5221f}.smpi-ico--warn{background:#fef7e0;color:#9a6700}.smpi-status-line{display:flex;align-items:center;margin:8px 0}.smpi-status-line span,.smpi-status-row span{color:#1f2937}.smpi-status-rows{display:grid;gap:10px;margin:14px 0}.smpi-status-row{display:flex;align-items:center;font-weight:600}.smpi-pill{display:inline-flex;align-items:center;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}.smpi-pill--saved{background:#e6f4ea;color:#137333}.smpi-author-binding-layout{display:block;padding:24px 28px}.smpi-author-search-card{padding:18px;border:1px solid #d8dee8;border-radius:14px;background:#f8fafc;max-width:760px}.smpi-user-picker.is-locked .smpi-edit-view{display:none}.smpi-user-picker:not(.is-locked) .smpi-locked-view{display:none}.smpi-locked-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 16px;border:1px solid #cfe3d6;background:#f3faf5;border-radius:12px}.smpi-locked-label{font-weight:700;color:#0f5132}.smpi-locked-bar .smpi-change-user{margin-left:auto}.smpi-edit-actions{display:flex;align-items:center;gap:14px;margin-top:12px}.smpi-user-result{display:block;width:100%;text-align:left;padding:8px 12px;height:auto;line-height:1.5}.smpi-save-state.is-saved{color:#137333}.smpi-dashboard a[target="_blank"]::after{content:"\2197";font-size:.82em;margin-left:3px;line-height:1;opacity:.6;font-weight:700;text-decoration:none}.smpi-number-control{display:flex;align-items:center;gap:8px}.smpi-number-control input{width:90px}.smpi-context-override-list{display:grid;gap:10px}.smpi-context-override-row{display:grid;grid-template-columns:minmax(220px,1fr) minmax(180px,220px) minmax(160px,200px);gap:12px;align-items:center;padding:12px;border:1px solid #d8dee8;border-radius:12px;background:#fff}.smpi-context-override-row strong,.smpi-context-override-row small{display:block}.smpi-context-override-row small{color:#64748b;margin-top:3px;line-height:1.35}.smpi-context-override-row input[type=text]{width:100%;max-width:150px}.smpi-context-override-row input[type=color]{width:54px}.smpi-context-override-row input[type=number]{width:80px}.smpi-control-group:has(input[data-key="table_of_contents_style"]) .smpi-choice-grid,.smpi-control-group:has(input[data-key="inline_photo_treatment"]) .smpi-choice-grid,.smpi-control-group:has(input[data-key="featured_image_caption_template"]) .smpi-choice-grid,.smpi-control-group:has(input[data-key="post_summary_style"]) .smpi-choice-grid,.smpi-control-group:has(input[data-key="post_faqs_style"]) .smpi-choice-grid{grid-template-columns:1fr}.smpi-design-preview{display:block;max-width:640px;color:#334155}.smpi-design-preview ol,.smpi-design-preview ul{margin:8px 0 0;padding-left:20px}.smpi-design-photo{margin:0}.smpi-photo-block{display:block;width:100%;height:92px;background:linear-gradient(135deg,#d8dee8,#f8fafc);border-radius:10px}.smpi-design-photo figcaption{margin-top:9px;font-size:12px;line-height:1.45;color:#64748b}.smpi-design-fig1 .smpi-photo-block{box-shadow:0 14px 28px -22px #111;border-radius:14px}.smpi-design-fig1 figcaption{padding-left:12px;border-left:3px solid #d63428;font-family:Georgia,serif;font-style:italic;color:#1f2937}.smpi-design-fig2{border-radius:14px;overflow:hidden;box-shadow:0 16px 34px -28px #111}.smpi-design-fig2 .smpi-photo-block{border-radius:0}.smpi-design-fig2 figcaption{background:#fafafa;border-top:3px solid #d63428;padding:12px}.smpi-design-fig4{position:relative;border-radius:14px;overflow:hidden}.smpi-design-fig4 .smpi-photo-block{height:110px;border-radius:0}.smpi-design-fig4 figcaption{position:absolute;left:0;right:0;bottom:0;color:#fff;background:linear-gradient(transparent,rgba(0,0,0,.78));padding:38px 14px 12px}.smpi-design-fig5{border:1px solid #e5e7eb;border-radius:14px;padding:10px;box-shadow:0 14px 30px -24px #111}.smpi-plugin-registry .button{margin:0 4px 6px 0}.smpi-design-photo figcaption{color:var(--smpi-inline-photo-caption-color,#272727);font-size:var(--smpi-inline-photo-caption-size,16px);font-style:var(--smpi-inline-photo-caption-style,italic)}.smpi-design-fig1 figcaption{border-left-color:var(--smpi-inline-photo-accent,#d63428)}.smpi-design-fig2 figcaption{border-top-color:var(--smpi-inline-photo-accent,#d63428)}.smpi-design-fig5{border-color:var(--smpi-inline-photo-accent,#d63428)}.smpi-page-detail-wrap{margin-top:14px}.smpi-page-detail{border:1px solid #d8dee8;border-radius:14px;background:#f8fafc;padding:16px;margin-top:12px}.smpi-page-detail-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;border-bottom:1px solid #e5e7eb;padding-bottom:12px;margin-bottom:12px}.smpi-page-detail h3{margin:0 0 4px;font-size:16px}.smpi-page-meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px 16px;margin:0}.smpi-page-meta div{padding:10px;border:1px solid #e5e7eb;border-radius:10px;background:#fff}.smpi-page-meta dt{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#64748b;margin:0 0 4px}.smpi-page-meta dd{margin:0;word-break:break-word}.smpi-page-meta-wide{grid-column:1/-1}.smpi-page-slug-row dd{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.smpi-page-slug-input{max-width:360px}.smpi-page-actions{margin:12px 0 0}.smpi-page-detail-missing{border-color:#f0c36d;background:#fff8e5}</style>
+        <style id="smpi-author-badge-spacing-admin-css">.smpi-context-overrides .smpi-context-override-row{align-items:start;grid-template-columns:minmax(190px,.8fr) minmax(460px,2fr) repeat(3,minmax(108px,132px));}.smpi-context-overrides .smpi-context-override-row>label{align-items:center;display:flex;flex-wrap:wrap;gap:6px;padding-top:26px}.smpi-context-overrides .smpi-context-override-row input[type=number]{width:82px}.smpi-context-overrides .smpi-context-color-control{min-width:0}.smpi-context-overrides .smpi-context-color-control .hpc-color-row{align-items:end}@media(max-width:1500px){.smpi-context-overrides .smpi-context-override-row{grid-template-columns:1fr repeat(3,minmax(110px,140px))}.smpi-context-overrides .smpi-context-override-copy,.smpi-context-overrides .smpi-context-color-control{grid-column:1/-1}.smpi-context-overrides .smpi-context-override-row>label{padding-top:0}}@media(max-width:900px){.smpi-context-overrides .smpi-context-override-row{grid-template-columns:1fr 1fr}.smpi-context-overrides .smpi-context-override-copy,.smpi-context-overrides .smpi-context-color-control{grid-column:1/-1}}@media(max-width:782px){.smpi-context-overrides .smpi-context-override-row{grid-template-columns:1fr}.smpi-context-overrides .smpi-context-override-row>label{padding-top:0}}</style>
+        <style id="smpi-muckrack-preview-contract-css">.smpi-author-inline-demo .smpi-muckrack-brand,.smpi-author-block-demo .smpi-muckrack-brand{color:var(--smpi-muckrack-author-accent,#2d5277);font-weight:700}</style>
+        <style id="smpi-article-heading-admin-css">.smpi-control-group:has(input[data-key="article_heading_style"]) .smpi-choice-grid{grid-template-columns:1fr}.smpi-control-group:has(input[data-key="article_heading_style"]) .smpi-choice-card{min-height:0;overflow:hidden}.smpi-control-group:has(input[data-key="article_heading_style"]) .smpi-choice-body{min-width:0}.smpi-control-group:has(input[data-key="article_heading_style"]) .smpi-choice-preview{background:transparent;border:0;box-sizing:border-box;display:block;max-width:820px;overflow:hidden;padding:0;width:100%}.smpi-control-group:has(input[data-key="article_heading_style"]) .smpi-ah-preview-stack{width:100%;max-width:820px;overflow:hidden}.smpi-control-group:has(input[data-key="article_heading_style"]) .smpi-ah-preview{overflow:hidden;position:relative;width:100%}.smpi-choice-preview .smpi-ah-preview .smpi-article-heading{text-transform:none;letter-spacing:0}</style>
         <style id="smpi-feature-save-feedback-css">.smpi-feature-save-banner{display:none;border-radius:12px;font-weight:800;margin:-4px 0 16px;padding:12px 14px}.smpi-feature-save-banner.is-visible{display:block}.smpi-feature-save-banner.is-saving{background:#eef2f7;color:#334155}.smpi-feature-save-banner.is-saved{background:#e6f4ea;color:#137333}.smpi-feature-save-banner.is-error{background:#fce8e6;color:#b32d2e}.smpi-feature-card.is-saving{outline:2px solid #2271b1;outline-offset:2px}.smpi-save-toast{align-items:center;background:#111827;border:1px solid rgba(255,255,255,.16);border-radius:14px;bottom:24px;box-shadow:0 18px 45px rgba(15,23,42,.32);color:#fff;display:flex;font-size:14px;font-weight:800;gap:11px;line-height:1.35;max-width:min(420px,calc(100vw - 36px));min-width:300px;opacity:0;padding:14px 16px;pointer-events:none;position:fixed;right:24px;transform:translateY(14px);transition:opacity .18s ease,transform .18s ease,background .18s ease;z-index:999999}.smpi-save-toast.is-visible{opacity:1;transform:translateY(0)}.smpi-save-toast.is-saved{background:#0f5132}.smpi-save-toast.is-error{background:#7f1d1d}.smpi-save-toast-spinner{animation:smpi-toast-spin .8s linear infinite;border:3px solid rgba(255,255,255,.32);border-top-color:#fff;border-radius:999px;display:inline-block;height:19px;min-width:19px;width:19px}.smpi-save-toast.is-saved .smpi-save-toast-spinner,.smpi-save-toast.is-error .smpi-save-toast-spinner{animation:none;border:0;display:inline-flex;align-items:center;justify-content:center}.smpi-save-toast.is-saved .smpi-save-toast-spinner:before{content:"✓"}.smpi-save-toast.is-error .smpi-save-toast-spinner:before{content:"!"}@keyframes smpi-toast-spin{to{transform:rotate(360deg)}}.smpi-control-group:has(input[data-key="breadcrumbs_style"]) .smpi-choice-grid,.smpi-control-group:has(input[data-key="multi_authors_loop_output"]) .smpi-choice-grid{grid-template-columns:1fr}.smpi-control-group:has(input[data-key="breadcrumbs_style"]) .smpi-choice-preview,.smpi-control-group:has(input[data-key="multi_authors_loop_output"]) .smpi-choice-preview{max-width:720px}.smpi-loop-author-preview{display:inline-block;font-weight:700;letter-spacing:.05em;text-transform:uppercase}.smpi-loop-author-preview--lines{line-height:1.55}.smpi-inline-test-row{align-items:center;display:flex;gap:8px;flex-wrap:wrap}.smpi-multi-author-test-result{margin-top:12px}.smpi-multi-author-test-result .widefat{margin-top:8px}.smpi-test-proof-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:10px 0}.smpi-test-proof-grid>div{background:#fff;border:1px solid #d8dee8;border-radius:10px;padding:10px}.smpi-detected-unit-warning{border-color:#f0c36d;background:#fff8e5;color:#664d03}</style>
+        <style id="smpi-font-family-preview-css">
+            .smpi-font-family-control{min-width:0}
+            .smpi-font-family-control .hpc-font-family-select{max-width:520px}
+        </style>
     <?php }
 }

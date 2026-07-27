@@ -12,6 +12,7 @@ use smp_publication_integration\Admin;
 use smp_publication_integration\Config;
 use smp_publication_integration\Content;
 use smp_publication_integration\Support\Dependencies;
+use smp_publication_integration\Settings\SettingsMigrations;
 
 final class Plugin {
     private bool $booted = false;
@@ -41,6 +42,9 @@ final class Plugin {
         );
 
         $core = new CoreBootstrap( $context );
+        $core->add_module( Content\PublicationContentTypes::content_types() );
+        $core->add_module( Content\PublicationContentTypes::acf_groups() );
+        $core->add_module( Content\PublicationTaxonomies::registry() );
         foreach ( $this->content_modules() as $module ) {
             $core->add_module( new ModuleAdapter( $module ) );
         }
@@ -64,6 +68,7 @@ final class Plugin {
      */
     private function content_modules(): array {
         return [
+            new SettingsMigrations(),
             new Content\AcfFields(),
             new Content\Shortcodes(),
             new Content\MultiAuthors(),
@@ -75,6 +80,7 @@ final class Plugin {
             new Content\PostTime(),
             new Content\EstimatedReadTime(),
             new Content\ElementorCssCacheBusting(),
+            new Content\ElementorPrimaryCategory(),
             new Content\MuckRackVerification(),
             new Content\AuthorSocialCleanup(),
             new Content\Breadcrumbs(),
@@ -82,6 +88,8 @@ final class Plugin {
             new Content\InlinePhotoTreatments(),
             new Content\FeaturedImageCaptions(),
             new Content\ArticleStyles(),
+            new Content\PostSummaryPlacement(),
+            new Content\PostFaqPlacement(),
             new Content\PostHygiene(),
             new Content\ContentGeneration(),
             new Content\GoingLiveChecklist(),

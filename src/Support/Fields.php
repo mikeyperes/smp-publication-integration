@@ -1,11 +1,15 @@
 <?php
 namespace smp_publication_integration\Support;
 
+use Hexa\PluginCore\EntitySources\CanonicalEntityResolver;
+
 if ( ! defined( "ABSPATH" ) ) {
     exit;
 }
 
 final class Fields {
+    private static array|null|false $canonical_entity = false;
+
     public static function get( int $post_id, string $field, $default = "" ) {
         $aliases = self::aliases()[ $field ] ?? [ $field ];
 
@@ -23,7 +27,7 @@ final class Fields {
         return [
             "mission_statement" => [ "mission_statement", "publication_mission_statement", "smpi_mission_statement", "smpi_mission_statement_override" ],
             "mission_statement_extended" => [ "mission_statement_extended", "publication_mission_statement_extended", "smpi_mission_statement_extended" ],
-            "summary" => [ "short_summary", "publication_summary", "summary", "description", "smpi_publication_summary" ],
+            "summary" => [ "short_summary", "short_description", "publication_summary", "summary", "description", "company_description", "smpi_publication_summary" ],
             "website" => [ "url", "website", "publication_website", "smpi_publication_website" ],
             "logo" => [ "logo", "publication_logo", "smpi_publication_logo" ],
             "brand_assets" => [ "brand_assets", "publication_brand_assets", "brand_assets_gallery", "smpi_brand_assets" ],
@@ -39,7 +43,7 @@ final class Fields {
             "founding_date_extended" => [ "founding_date_extended", "smpi_founding_date_extended" ],
             "headquarters_extended" => [ "headquarters_extended", "smpi_headquarters_extended" ],
             "contact" => [ "contact", "publication_contact", "smpi_contact" ],
-            "contact_email" => [ "contact_email", "public_contact_email", "smpi_contact_email" ],
+            "contact_email" => [ "contact_email", "public_contact_email", "email", "smpi_contact_email" ],
             "dmca" => [ "dmca", "dmca_policy", "smpi_dmca" ],
             "terms" => [ "terms_of_use", "terms", "smpi_terms_of_use" ],
             "privacy" => [ "privacy_policy", "privacy", "smpi_privacy_policy" ],
@@ -93,6 +97,14 @@ final class Fields {
     }
 
     public static function raw_option( string $field ) {
+        $entity = self::canonical_entity();
+        if ( $entity ) {
+            $value = CanonicalEntityResolver::field( $entity, $field, null );
+            if ( self::has_value( $value ) ) {
+                return $value;
+            }
+        }
+
         if ( function_exists( "get_field" ) ) {
             $value = get_field( $field, "option" );
             if ( self::has_value( $value ) ) {
@@ -106,6 +118,17 @@ final class Fields {
         }
 
         return get_option( $field, "" );
+    }
+
+    public static function canonical_entity(): ?array {
+        if ( false !== self::$canonical_entity ) {
+            return self::$canonical_entity;
+        }
+        $entity = class_exists( CanonicalEntityResolver::class ) ? CanonicalEntityResolver::resolve() : null;
+        self::$canonical_entity = is_array( $entity ) && in_array( (string) ( $entity['entity_type'] ?? '' ), [ 'publication', 'organization' ], true )
+            ? $entity
+            : null;
+        return self::$canonical_entity;
     }
 
     public static function raw( int $post_id, string $field ) {

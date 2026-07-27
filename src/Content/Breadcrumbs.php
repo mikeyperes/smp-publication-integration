@@ -11,6 +11,10 @@ if ( ! defined( "ABSPATH" ) ) {
 
 final class Breadcrumbs {
     public const SHORTCODE = "smp_breadcrumbs";
+    public const CSS_SETTING = "breadcrumbs_css_override";
+    public const CSS_SELECTOR = 'body .smpi-breadcrumbs-band';
+    public const CSS_SCOPE_MARKER = '.smpi-breadcrumbs-band';
+    public const LEGACY_CSS_SCOPE_MARKER = '.smpi-breadcrumbs[class*="smpi-bc-"]';
 
     public function register(): void {
         add_shortcode( self::SHORTCODE, [ $this, "render_shortcode" ] );
@@ -85,14 +89,13 @@ final class Breadcrumbs {
             return "";
         }
 
-        $vars = ArticleStyles::breadcrumb_var_values();
-        $classes = "smpi-breadcrumbs smpi-" . $style;
-        $style_attr = "--smpi-bc-accent:" . $vars["accent"] . ";--smpi-bc-tint:" . $vars["tint"] . ";--smpi-bc-font-size:" . $vars["size"];
+        $crumbs = TemplateMarkup::decorate_breadcrumbs( $crumbs );
+        $classes = TemplateMarkup::root_classes( "breadcrumbs", [ "smpi-breadcrumbs", "smpi-" . $style ] );
         $title = self::current_title();
-        $title_html = in_array( $style, [ "bc-b1", "bc-b5" ], true ) && "" !== $title ? "<div class=\"pt\">" . esc_html( $title ) . "</div>" : "";
+        $title_html = in_array( $style, [ "bc-b1", "bc-b5" ], true ) && "" !== $title ? "<div class=\"smpi-template-title smpi-breadcrumb-title\">" . esc_html( $title ) . "</div>" : "";
         $content = "bc-b5" === $style ? $crumbs . $title_html : $title_html . $crumbs;
 
-        return "<div class=\"" . esc_attr( $classes ) . "\" style=\"" . esc_attr( $style_attr ) . "\" data-smpi-breadcrumbs data-smpi-breadcrumbs-style=\"" . esc_attr( $style ) . "\">" . self::safe_markup( $content ) . "</div>";
+        return "<div class=\"smpi-breadcrumbs-band\" data-smpi-breadcrumbs-band data-smpi-breadcrumbs-style=\"" . esc_attr( $style ) . "\"><div class=\"" . esc_attr( $classes ) . "\" data-smpi-breadcrumbs data-smpi-breadcrumbs-style=\"" . esc_attr( $style ) . "\">" . self::safe_markup( $content ) . "</div></div>";
     }
 
     public static function integrity_report(): array {
@@ -109,6 +112,49 @@ final class Breadcrumbs {
             "shortcode" => "[" . self::SHORTCODE . "]",
             "sample_url" => $sample instanceof \WP_Post ? get_permalink( $sample ) : "",
         ];
+    }
+
+    public static function custom_css(): string {
+        $result = self::validate_custom_css( (string) Settings::get( self::CSS_SETTING, "" ) );
+        return ! empty( $result["valid"] ) ? (string) $result["css"] : "";
+    }
+
+    public static function validate_custom_css( string $css ): array {
+        $css = trim( str_replace( [ chr( 13 ), chr( 0 ) ], "", $css ) );
+        if ( "" === $css ) {
+            return [ "valid" => true, "css" => "", "message" => "" ];
+        }
+        if ( strlen( $css ) > 20000 ) {
+            return [ "valid" => false, "css" => "", "message" => "Breadcrumb CSS must be 20,000 characters or fewer." ];
+        }
+        if ( preg_match( '~<|@(?:import|charset|namespace)\b|javascript\s*:|expression\s*\(|behavior\s*:|-moz-binding\s*:~i', $css ) ) {
+            return [ "valid" => false, "css" => "", "message" => "The CSS contains a blocked directive or unsafe value." ];
+        }
+        if ( substr_count( $css, "{" ) !== substr_count( $css, "}" ) ) {
+            return [ "valid" => false, "css" => "", "message" => "The CSS has unbalanced braces." ];
+        }
+
+        $scan = preg_replace( '~/\*.*?\*/~s', "", $css );
+        preg_match_all( '~(?:^|(?<=[{}]))\s*([^{}]+?)\s*\{~s', (string) $scan, $matches );
+        foreach ( (array) ( $matches[1] ?? [] ) as $prelude ) {
+            $prelude = trim( (string) $prelude );
+            if ( "" === $prelude ) {
+                continue;
+            }
+            if ( "@" === $prelude[0] ) {
+                if ( ! preg_match( '~^@(media|supports|container|layer)\b~i', $prelude ) ) {
+                    return [ "valid" => false, "css" => "", "message" => "Only media, supports, container, and layer wrappers are allowed." ];
+                }
+                continue;
+            }
+            foreach ( preg_split( '~,(?![^()]*\))~', $prelude ) ?: [] as $selector ) {
+                if ( ! str_contains( trim( (string) $selector ), self::CSS_SCOPE_MARKER ) && ! str_contains( trim( (string) $selector ), self::LEGACY_CSS_SCOPE_MARKER ) ) {
+                    return [ "valid" => false, "css" => "", "message" => "Every selector must include " . self::CSS_SCOPE_MARKER . " or " . self::LEGACY_CSS_SCOPE_MARKER . "." ];
+                }
+            }
+        }
+
+        return [ "valid" => true, "css" => $css, "message" => "" ];
     }
 
     private static function rank_math_markup(): string {
@@ -169,15 +215,15 @@ final class Breadcrumbs {
         if ( count( $items ) < 2 ) {
             return "";
         }
-        $html = "<nav aria-label=\"breadcrumbs\" class=\"rank-math-breadcrumb\"><p>";
+        $html = "<nav aria-label=\"breadcrumbs\" class=\"rank-math-breadcrumb smpi-template-content smpi-breadcrumb-nav\"><p class=\"smpi-template-list smpi-breadcrumb-list\">";
         foreach ( $items as $index => $item ) {
             if ( $index > 0 ) {
-                $html .= "<span class=\"separator\"> - </span>";
+                $html .= "<span class=\"separator smpi-breadcrumb-separator\"> - </span>";
             }
             if ( $index === count( $items ) - 1 || "" === $item["url"] ) {
-                $html .= "<span class=\"last\">" . esc_html( $item["label"] ) . "</span>";
+                $html .= "<span class=\"last smpi-template-item smpi-breadcrumb-item smpi-breadcrumb-current\">" . esc_html( $item["label"] ) . "</span>";
             } else {
-                $html .= "<a href=\"" . esc_url( $item["url"] ) . "\">" . esc_html( $item["label"] ) . "</a>";
+                $html .= "<a class=\"smpi-template-item smpi-template-link smpi-breadcrumb-item smpi-breadcrumb-link\" href=\"" . esc_url( $item["url"] ) . "\">" . esc_html( $item["label"] ) . "</a>";
             }
         }
         return $html . "</p></nav>";
