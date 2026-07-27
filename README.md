@@ -7,7 +7,7 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.6.248`
+- Version: `0.6.249`
 
 ## Architecture
 
@@ -22,6 +22,11 @@ WordPress plugin for Scale My Publication publication profiles.
 - `Support`: integration adapters and stable legacy helpers.
 
 The bundled `Hexa\PluginCore` package is registered through the shared package resolver. One selected Core root owns the namespace when multiple Hexa plugins are active.
+
+## 0.6.249 Updates
+
+- Stabilized Elementor Table of Contents loading with a compact placeholder, removed nested overflow scrolling, and added a heading-list fallback when Elementor's delayed script cannot load.
+- Applied the configured breadcrumb template color consistently to linked and non-linked items in template B6.
 
 ## 0.6.248 Updates
 

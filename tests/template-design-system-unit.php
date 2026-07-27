@@ -318,7 +318,7 @@ $breadcrumb_contracts = [
     "bc-b3" => ".smpi-bc-b3::after{content:\"\";position:absolute;left:24px;bottom:-1px;width:46px;height:2px;background:var(--smpi-bc-accent,#d63428)",
     "bc-b4" => ".smpi-bc-b4 .smpi-breadcrumb-current{background:var(--smpi-bc-accent,#d63428)",
     "bc-b5" => ".smpi-bc-b5 .smpi-breadcrumb-link{color:var(--smpi-bc-accent,#d63428)",
-    "bc-b6" => ".smpi-bc-b6 .smpi-breadcrumb-link{color:var(--smpi-bc-accent,#d63428)",
+    "bc-b6" => ".smpi-bc-b6 .smpi-breadcrumb-link,.smpi-bc-b6 .smpi-breadcrumb-current{color:var(--smpi-bc-accent,#d63428)",
 ];
 foreach ( $breadcrumb_contracts as $template => $needle ) {
     template_design_assert( str_contains( $breadcrumb_css, $needle ), "Breadcrumb " . $template . " is not wired to its original decorative color surface." );
