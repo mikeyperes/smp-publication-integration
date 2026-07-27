@@ -7,7 +7,7 @@ WordPress plugin for Scale My Publication publication profiles.
 - Plugin slug: `smp-publication-integration`
 - GitHub slug: `mikeyperes/smp-publication-integration`
 - PHP namespace: `smp_publication_integration`
-- Version: `0.6.252`
+- Version: `0.6.253`
 
 ## Architecture
 
@@ -22,6 +22,13 @@ WordPress plugin for Scale My Publication publication profiles.
 - `Support`: integration adapters and stable legacy helpers.
 
 The bundled `Hexa\PluginCore` package is registered through the shared package resolver. One selected Core root owns the namespace when multiple Hexa plugins are active.
+
+## 0.6.253 Updates
+
+- Added Numbered article list styles with five clearly labeled, one-row templates for top-level ordered lists while leaving nested and plugin-owned lists unchanged.
+- Registered numbered-list color and typography through the same Hexa WP Core controls used by the other Article Design surfaces and added the feature to Quick Start.
+- Added the bordered Summary template with a compact What to know label and diamond bullets while limiting selected-color changes to its intended accent areas.
+- Renamed Article Design cards and new template choices with clear, visible-treatment labels without changing internal setting or template keys.
 
 ## 0.6.252 Updates
 

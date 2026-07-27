@@ -126,10 +126,11 @@ $expected_templates = [
     "breadcrumbs" => [ "bc-b1", "bc-b2", "bc-b3", "bc-b4", "bc-b5", "bc-b6" ],
     "table_of_contents" => [ "none", "toc00", "toc01", "toc02", "toc03", "toc04" ],
     "article_heading" => [ "none", "h2-tick", "h2-leftrule", "h2-underline", "h2-topline", "h2-dot", "h2-trailingrule", "h2-serif", "h2-uppercase", "h2-gradient", "h2-bracket", "h2-number", "h2-square", "h2-highlight", "h2-double", "h2-corner_tick" ],
+    "article_numbered_list" => [ "none", "nlist01", "nlist02", "nlist03", "nlist04", "nlist05" ],
     "article_drop_cap" => [ "dropcap-classic", "dropcap-highlight", "dropcap-outline", "dropcap-side-rule", "dropcap-soft-tile", "dropcap-script-classic", "dropcap-script-tile", "dropcap-script-round", "dropcap-script-underline", "dropcap-script-shadow" ],
     "inline_photo_caption" => [ "none", "fig1", "fig2", "fig4", "fig5" ],
     "featured_image_caption" => [ "none", "fig1", "fig2", "fig4", "fig5" ],
-    "post_summary" => [ "none", "sum00", "sum01", "sum02", "sum03", "sum04" ],
+    "post_summary" => [ "none", "sum00", "sum01", "sum02", "sum03", "sum04", "sum05" ],
     "post_faqs" => [ "none", "faq00", "faq01", "faq02", "faq03", "faq04" ],
     "muckrack_verified" => [ "tooltip", "text", "compact_block" ],
     "publication_muckrack" => [ "block", "mini_block", "compact", "minimalist" ],
@@ -138,23 +139,24 @@ $expected_native_accents = [
     "breadcrumbs" => array_fill_keys( $expected_templates["breadcrumbs"], "#d63428" ),
     "table_of_contents" => [ "none" => "#9ca3af", "toc00" => "#2563eb", "toc01" => "#2563eb", "toc02" => "#2563eb", "toc03" => "#2563eb", "toc04" => "#2563eb" ],
     "article_heading" => array_replace( array_fill_keys( $expected_templates["article_heading"], "#d63428" ), [ "h2-topline" => "#e5e7eb", "h2-trailingrule" => "#e5e7eb" ] ),
+    "article_numbered_list" => [ "none" => "#9ca3af", "nlist01" => "#00ff41", "nlist02" => "#2563eb", "nlist03" => "#d63428", "nlist04" => "#111827", "nlist05" => "#a16207" ],
     "article_drop_cap" => array_replace( array_fill_keys( $expected_templates["article_drop_cap"], "#111111" ), [ "dropcap-highlight" => "#facc15" ] ),
     "inline_photo_caption" => [ "none" => "#d63428", "fig1" => "#d63428", "fig2" => "#d63428", "fig4" => "#0a0a0c", "fig5" => "#e9e9e9" ],
     "featured_image_caption" => [ "none" => "#d63428", "fig1" => "#d63428", "fig2" => "#d63428", "fig4" => "#0a0a0c", "fig5" => "#e9e9e9" ],
-    "post_summary" => [ "none" => "#2563eb", "sum00" => "#1f2937", "sum01" => "#2563eb", "sum02" => "#0a0a0a", "sum03" => "#0a0a0a", "sum04" => "#2563eb" ],
+    "post_summary" => [ "none" => "#2563eb", "sum00" => "#1f2937", "sum01" => "#2563eb", "sum02" => "#0a0a0a", "sum03" => "#0a0a0a", "sum04" => "#2563eb", "sum05" => "#00ff41" ],
     "post_faqs" => [ "none" => "#2563eb", "faq00" => "#e5e7eb", "faq01" => "#e5e7eb", "faq02" => "#e5e7eb", "faq03" => "#2563eb", "faq04" => "#2563eb" ],
     "muckrack_verified" => array_fill_keys( $expected_templates["muckrack_verified"], "#2d5277" ),
     "publication_muckrack" => array_fill_keys( $expected_templates["publication_muckrack"], "#2d5277" ),
 ];
 
 $definitions = TemplateDesignRegistry::definitions();
-template_design_assert( array_keys( $expected_templates ) === array_keys( $definitions ), "The ten design surfaces changed without updating the canonical matrix." );
+template_design_assert( array_keys( $expected_templates ) === array_keys( $definitions ), "The eleven design surfaces changed without updating the canonical matrix." );
 template_design_assert(
     TemplateDesignRegistry::custom_color_setting_keys() === SettingsRepository::brand_primary_color_keys(),
     "The legacy brand-primary color key API does not return the registered custom template color keys."
 );
 $dashboard_source = (string) file_get_contents( $root . "/src/Admin/Dashboard/DashboardController.php" );
-template_design_assert( 10 === substr_count( $dashboard_source, 'template_color_setting_html( "' ), "Every design surface must render through the shared Core template color control." );
+template_design_assert( 11 === substr_count( $dashboard_source, 'template_color_setting_html( "' ), "Every design surface must render through the shared Core template color control." );
 $core_template_color_source = (string) file_get_contents( $core . "/src/WpAdminComponents/TemplateColorControl.php" );
 template_design_assert(
     str_contains( $core_template_color_source, 'var explicit=hex(color);if(!explicit)syncCustomDisplay(control);color=explicit||base(control,mode)' ),
@@ -254,9 +256,9 @@ foreach ( $definitions as $surface => $definition ) {
     }
 }
 
-template_design_assert( 67 === $template_count, "Expected exactly 67 registered template choices; found " . $template_count . "." );
-template_design_assert( 268 === $color_case_count, "Expected exactly 268 color mode/template cases; ran " . $color_case_count . "." );
-template_design_assert( 201 === $typography_case_count, "Expected exactly 201 typography mode/template cases; ran " . $typography_case_count . "." );
+template_design_assert( 74 === $template_count, "Expected exactly 74 registered template choices; found " . $template_count . "." );
+template_design_assert( 296 === $color_case_count, "Expected exactly 296 color mode/template cases; ran " . $color_case_count . "." );
+template_design_assert( 222 === $typography_case_count, "Expected exactly 222 typography mode/template cases; ran " . $typography_case_count . "." );
 
 foreach ( $definitions as $surface => $definition ) {
     foreach ( array_keys( $definition["variables"] ) as $variable ) {
@@ -277,6 +279,20 @@ foreach ( array_diff( $expected_templates["article_heading"], [ "none" ] ) as $t
     ++$mapped_contract_count;
 }
 template_design_assert( "" === ArticleStyles::article_heading_rules( "none", ".article", ".article h2", ".article h3", $native_typography ), "Heading None unexpectedly emits template CSS." );
+
+$numbered_list_contracts = [
+    "nlist01" => "color:var(--smpi-numbered-list-accent,#00ff41)",
+    "nlist02" => "background:var(--smpi-numbered-list-accent,#2563eb)",
+    "nlist03" => "border-left:3px solid var(--smpi-numbered-list-accent,#d63428)",
+    "nlist04" => "border-top:3px solid var(--smpi-numbered-list-accent,#111827)",
+    "nlist05" => "border:1px solid var(--smpi-numbered-list-accent,#a16207)",
+];
+foreach ( $numbered_list_contracts as $template => $needle ) {
+    $css = ArticleStyles::article_numbered_list_rules( $template, ".article-list", false );
+    template_design_assert( str_contains( $css, $needle ), "Numbered list " . $template . " is not wired to its original decorative color surface." );
+    ++$mapped_contract_count;
+}
+template_design_assert( "" === ArticleStyles::article_numbered_list_rules( "none", ".article-list", false ), "Numbered list None unexpectedly emits template CSS." );
 
 $drop_cap_variables = array_keys( $definitions["article_drop_cap"]["variables"] );
 foreach ( $expected_templates["article_drop_cap"] as $template ) {
@@ -348,6 +364,7 @@ $content_block_contracts = [
     "sum02" => ".smpi-sum02{background:var(--smpi-summary-background,transparent);border:1px solid var(--smpi-summary-accent-soft,rgba(10,10,10,.12));border-top:3px solid var(--smpi-summary-accent,#0a0a0a)",
     "sum03" => ".smpi-sum03 .smpi-post-summary-title{margin:0;background:var(--smpi-summary-accent,#0a0a0a);color:var(--smpi-summary-accent-ink,#fff)",
     "sum04" => ".smpi-sum04{background:var(--smpi-summary-background,var(--smpi-summary-accent-soft,#eff4ff))",
+    "sum05" => ".smpi-sum05 .smpi-post-summary-title{align-items:center;color:var(--smpi-summary-accent,#00ff41)",
     "faq00" => ".smpi-faq00 .smpi-post-faqs-content,.smpi-faq01 .smpi-post-faqs-content{border-top:1px solid var(--smpi-faq-accent,#e5e7eb)",
     "faq01" => ".smpi-faq00 .smpi-post-faq-item,.smpi-faq01 .smpi-post-faq-item{border-bottom:1px solid var(--smpi-faq-accent,#e5e7eb)",
     "faq02" => ".smpi-faq02 .smpi-post-faq-item{border:1px solid var(--smpi-faq-accent,#e5e7eb)",
@@ -374,8 +391,8 @@ foreach ( $muckrack_contracts as $template => $needle ) {
     ++$mapped_contract_count;
 }
 
-template_design_assert( 62 === $mapped_contract_count, "Expected 62 color-bearing templates; verified " . $mapped_contract_count . "." );
-template_design_assert( 5 === $template_count - $mapped_contract_count, "Only the five explicit None templates may have no decorative color mapping." );
+template_design_assert( 68 === $mapped_contract_count, "Expected 68 color-bearing templates; verified " . $mapped_contract_count . "." );
+template_design_assert( 6 === $template_count - $mapped_contract_count, "Only the six explicit None templates may have no decorative color mapping." );
 
 foreach ( ArticleStyles::article_drop_cap_script_template_fonts() as $style => $font_key ) {
     $font = ArticleStyles::article_drop_cap_script_fonts()[ $font_key ];
@@ -433,4 +450,4 @@ $publication_custom = MuckRackVerification::publication_verification_markup( "",
 template_design_assert( ! str_contains( $publication_default, "style=" ) && ! str_contains( $publication_default, "--smpi-muckrack-author-accent" ), "MuckRack emitted a default inline publication color." );
 template_design_assert( str_contains( $publication_custom, 'style="--smpi-muckrack-publication-accent:#abcdef"' ) && ! str_contains( $publication_custom, "--smpi-muckrack-author-accent" ), "MuckRack did not isolate an explicit shortcode color to the publication accent." );
 
-echo "PASS: 67 templates, 268 color cases, 201 typography cases, 62 frontend color contracts, migration, Quick Start, script fonts, and MuckRack inline-color isolation.\n";
+echo "PASS: 74 templates, 296 color cases, 222 typography cases, 68 frontend color contracts, migration, Quick Start, script fonts, and MuckRack inline-color isolation.\n";

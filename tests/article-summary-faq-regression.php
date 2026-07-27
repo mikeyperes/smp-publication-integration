@@ -51,6 +51,10 @@ $checks = [
     "Summary sum04 maps its panel tint, title, and icon." => str_contains( $article, ".smpi-sum04{background:var(--smpi-summary-background,var(--smpi-summary-accent-soft,#eff4ff))" )
         && str_contains( $article, ".smpi-sum04 .smpi-post-summary-title{margin:0 0 14px;font-size:1.05rem;font-weight:800;color:var(--smpi-summary-accent,#1e3a8a)" )
         && str_contains( $article, '.smpi-sum04 .smpi-post-summary-title:before{content:\"\";width:18px;height:18px;border-radius:5px;background:var(--smpi-summary-accent,#2563eb)' ),
+    "Summary sum05 maps only its title and diamond bullet accents." => str_contains( $article, ".smpi-sum05{background:var(--smpi-summary-background,#fff);border:1px solid #d8dee8" )
+        && str_contains( $article, ".smpi-sum05 .smpi-post-summary-title{align-items:center;color:var(--smpi-summary-accent,#00ff41)" )
+        && str_contains( $article, ".smpi-sum05 .smpi-post-summary-item::before{border:1px solid var(--smpi-summary-accent,#00ff41)" )
+        && ! str_contains( $article, ".smpi-sum05{background:var(--smpi-summary-accent" ),
     "Summary background reuses the Core picker and supports template, none, and custom modes." => str_contains( $dashboard, 'ColorControl::render( [' )
         && str_contains( $dashboard, '"key" => "post_summary_background_color"' )
         && str_contains( $dashboard, 'summary_background_setting_html( $settings )' )
@@ -59,9 +63,9 @@ $checks = [
         && str_contains( $background, 'self::CUSTOM' )
         && str_contains( $ajax, '"post_summary_background_mode"' )
         && str_contains( $ajax, "'post_summary_background_color'" ),
-    "Summary and FAQ are independent feature cards." => str_contains( $dashboard, '"Article Summary",' )
+    "Summary and FAQ are independent feature cards." => str_contains( $dashboard, '"Article summary block",' )
         && str_contains( $dashboard, '"post_summary_acf_enabled",' )
-        && str_contains( $dashboard, '"Article FAQs",' )
+        && str_contains( $dashboard, '"Article FAQ block",' )
         && str_contains( $dashboard, '"post_faqs_acf_enabled",' )
         && ! str_contains( $dashboard, '"Article Summary & FAQ Blocks"' ),
     "Both cards expose visible use instructions and canonical shortcodes." => str_contains( $dashboard, 'shortcode_usage_html(' )
