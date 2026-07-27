@@ -122,6 +122,22 @@ if ( 'dropcap-classic' !== $settings['article_drop_cap_style'] ) {
 }
 
 $defaults = SettingsRepository::defaults();
+if ( false !== $defaults['reading_progress_enabled'] || 'thin' !== $defaults['reading_progress_style'] || '#00ff41' !== $defaults['reading_progress_color'] ) {
+    fwrite( STDERR, "FAIL: Reading progress defaults are not isolated and reference-compatible.\n" );
+    exit( 1 );
+}
+$settings = Settings::update( [ 'reading_progress_enabled' => true, 'reading_progress_style' => 'segmented', 'reading_progress_color' => '#A1B2C3' ] );
+if ( true !== $settings['reading_progress_enabled'] || 'segmented' !== $settings['reading_progress_style'] || '#a1b2c3' !== $settings['reading_progress_color'] ) {
+    fwrite( STDERR, "FAIL: Valid reading progress settings were not normalized and saved.\n" );
+    exit( 1 );
+}
+$settings = Settings::update( [ 'reading_progress_style' => 'invalid-design', 'reading_progress_color' => 'invalid-color' ] );
+if ( 'thin' !== $settings['reading_progress_style'] || '#00ff41' !== $settings['reading_progress_color'] ) {
+    fwrite( STDERR, "FAIL: Invalid reading progress settings did not restore safe defaults.\n" );
+    exit( 1 );
+}
+
+$defaults = SettingsRepository::defaults();
 foreach ( \smp_publication_integration\Design\TemplateDesignRegistry::definitions() as $surface => $definition ) {
     if ( 'template_default' !== $defaults[ $definition['source_key'] ] || 'template_default' !== $defaults[ $surface . '_typography_mode' ] ) {
         fwrite( STDERR, "FAIL: New installations must default every design surface to Template Default.\n" );

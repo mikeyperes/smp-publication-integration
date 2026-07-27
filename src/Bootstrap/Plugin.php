@@ -82,6 +82,7 @@ final class Plugin {
             new Content\AuthorSocialCleanup(),
             new Content\Breadcrumbs(),
             new Content\TableOfContents(),
+            new Content\ReadingProgress(),
             new Content\InlinePhotoTreatments(),
             new Content\FeaturedImageCaptions(),
             new Content\ArticleStyles(),
