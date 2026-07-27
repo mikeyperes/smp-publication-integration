@@ -68,6 +68,7 @@ require $root . "/lib/hexa-wordpress-plugin-core/src/BrandColors/TemplateColorRe
 require $root . "/lib/hexa-wordpress-plugin-core/src/Typography/TypographyPreservation.php";
 require $root . "/lib/hexa-wordpress-plugin-core/src/Typography/TemplateTypography.php";
 require $root . "/src/Design/TemplateDesignRegistry.php";
+require $root . "/src/Design/TemplateBackground.php";
 require $root . "/src/Settings/SettingsRepository.php";
 require $root . "/src/Support/Settings.php";
 require $root . "/src/Content/ArticleStyles.php";

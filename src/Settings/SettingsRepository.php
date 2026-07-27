@@ -10,6 +10,7 @@ use Hexa\PluginCore\BrandColors\FontWeightProvider;
 use Hexa\PluginCore\BrandColors\TemplateColorResolver;
 use Hexa\PluginCore\Typography\TemplateTypography;
 use Hexa\PluginCore\Typography\TypographyPreservation;
+use smp_publication_integration\Design\TemplateBackground;
 use smp_publication_integration\Design\TemplateDesignRegistry;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -146,6 +147,8 @@ class SettingsRepository {
             "post_summary_font_family" => "template",
             "post_summary_font_weight" => "inherit",
             "post_summary_accent_color" => '',
+            "post_summary_background_mode" => TemplateBackground::TEMPLATE,
+            "post_summary_background_color" => "#ffffff",
             "post_summary_text_color" => $colors["post_summary_text_color"],
             "post_summary_font_size" => 16,
             "post_summary_placement" => "manual",
@@ -361,6 +364,7 @@ class SettingsRepository {
             "featured_image_caption_accent_color" => $brand,
             "featured_image_caption_text_color" => "#272727",
             "post_summary_accent_color" => $brand,
+            "post_summary_background_color" => "#ffffff",
             "post_summary_text_color" => "#1f2937",
             "post_faqs_accent_color" => $brand,
             "post_faqs_text_color" => "#1f2937",
@@ -399,6 +403,7 @@ class SettingsRepository {
             "featured_image_caption_accent_color",
             "featured_image_caption_text_color",
             "post_summary_accent_color",
+            "post_summary_background_color",
             "post_summary_text_color",
             "post_faqs_accent_color",
             "post_faqs_text_color",
@@ -509,6 +514,7 @@ class SettingsRepository {
                 "inline_photo_treatment" => [ "none", "fig1", "fig2", "fig4", "fig5" ],
                 "featured_image_caption_template" => [ "none", "fig1", "fig2", "fig4", "fig5" ],
                 "post_summary_style" => [ "none", "sum00", "sum01", "sum02", "sum03", "sum04" ],
+                "post_summary_background_mode" => array_keys( TemplateBackground::options() ),
                 "post_summary_placement" => [ "manual", "above_content", "below_content" ],
                 "post_faqs_style" => [ "none", "faq00", "faq01", "faq02", "faq03", "faq04" ],
                 "post_faqs_placement" => [ "manual", "below_content", "below_author" ],
@@ -586,7 +592,7 @@ class SettingsRepository {
                 continue;
             }
 
-            if ( in_array( $key, [ "breadcrumbs_text_color", "table_of_contents_text_color", "reading_progress_color", "article_heading_text_color", "inline_photo_caption_text_color", "featured_image_caption_text_color", "post_summary_text_color", "post_faqs_text_color", "muckrack_verified_text_color", "publication_muckrack_text_color" ], true ) ) {
+            if ( in_array( $key, [ "breadcrumbs_text_color", "table_of_contents_text_color", "reading_progress_color", "article_heading_text_color", "inline_photo_caption_text_color", "featured_image_caption_text_color", "post_summary_background_color", "post_summary_text_color", "post_faqs_text_color", "muckrack_verified_text_color", "publication_muckrack_text_color" ], true ) ) {
                 $color = sanitize_hex_color( (string) $value );
                 $settings[ $key ] = $color ?: self::color_default( $key );
                 continue;

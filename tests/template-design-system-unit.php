@@ -96,6 +96,7 @@ require $core . "/src/Typography/TypographyPreservation.php";
 require $core . "/src/Typography/TemplateTypography.php";
 require $core . "/src/GettingStartedChecklist/ChecklistReportBuilder.php";
 require $root . "/src/Design/TemplateDesignRegistry.php";
+require $root . "/src/Design/TemplateBackground.php";
 require $root . "/src/Settings/SettingsRepository.php";
 require $root . "/src/Settings/SettingsMigrations.php";
 require $root . "/src/Support/Settings.php";
@@ -343,10 +344,10 @@ foreach ( $toc_contracts as $template => $needle ) {
 $content_block_css = ArticleStyles::post_acf_css( false );
 $content_block_contracts = [
     "sum00" => ".smpi-sum00 .smpi-post-summary-title{margin:0;font-size:1.3rem;font-weight:800;color:var(--smpi-summary-accent,#1f2937)",
-    "sum01" => ".smpi-sum01{border:1px solid #e5e7eb;border-left:4px solid var(--smpi-summary-accent,#2563eb)",
-    "sum02" => ".smpi-sum02{padding:18px 0;border-top:2px solid var(--smpi-summary-accent,#0a0a0a)",
+    "sum01" => ".smpi-sum01{background:var(--smpi-summary-background,#fff);border:1px solid #e5e7eb;border-left:4px solid var(--smpi-summary-accent,#2563eb)",
+    "sum02" => ".smpi-sum02{background:var(--smpi-summary-background,transparent);border:1px solid var(--smpi-summary-accent-soft,rgba(10,10,10,.12));border-top:3px solid var(--smpi-summary-accent,#0a0a0a)",
     "sum03" => ".smpi-sum03 .smpi-post-summary-title{margin:0;background:var(--smpi-summary-accent,#0a0a0a);color:var(--smpi-summary-accent-ink,#fff)",
-    "sum04" => ".smpi-sum04{background:var(--smpi-summary-accent-soft,#eff4ff)",
+    "sum04" => ".smpi-sum04{background:var(--smpi-summary-background,var(--smpi-summary-accent-soft,#eff4ff))",
     "faq00" => ".smpi-faq00 .smpi-post-faqs-content,.smpi-faq01 .smpi-post-faqs-content{border-top:1px solid var(--smpi-faq-accent,#e5e7eb)",
     "faq01" => ".smpi-faq00 .smpi-post-faq-item,.smpi-faq01 .smpi-post-faq-item{border-bottom:1px solid var(--smpi-faq-accent,#e5e7eb)",
     "faq02" => ".smpi-faq02 .smpi-post-faq-item{border:1px solid var(--smpi-faq-accent,#e5e7eb)",

@@ -37,6 +37,7 @@ use smp_publication_integration\Content\MuckRackVerification;
 use smp_publication_integration\Content\MultiAuthors;
 use smp_publication_integration\Content\ReadingProgress;
 use smp_publication_integration\Content\Schema;
+use smp_publication_integration\Design\TemplateBackground;
 use smp_publication_integration\Design\TemplateDesignRegistry;
 use smp_publication_integration\Support\Dependencies;
 use smp_publication_integration\Support\ArticleCleanup;
@@ -1467,6 +1468,7 @@ class DashboardController {
             . $this->select_setting_html( "post_summary_style", $this->post_summary_style_options(), $settings, "Summary output style" )
             . $this->select_setting_html( "post_summary_placement", $this->post_summary_placement_options(), $settings, "Summary placement" )
             . $this->template_color_setting_html( "post_summary", "Summary design color", $settings )
+            . $this->summary_background_setting_html( $settings )
             . $this->typography_surface_control_html( "post_summary", $settings )
             . $this->shortcode_usage_html(
                 "Both shortcodes use the selected Summary design. Choose Manual placement when positioning the block in Elementor or post content.",
@@ -2088,6 +2090,52 @@ CSS;
         ] ) . "</div>";
     }
 
+    private function summary_background_setting_html( array $settings ): string {
+        $mode = TemplateBackground::normalize_mode( (string) ( $settings["post_summary_background_mode"] ?? TemplateBackground::TEMPLATE ) );
+        $color = sanitize_hex_color( (string) ( $settings["post_summary_background_color"] ?? "#ffffff" ) ) ?: "#ffffff";
+        $options = "";
+        foreach ( TemplateBackground::options() as $value => $option ) {
+            $selected = $mode === $value;
+            $options .= '<label class="smpi-summary-background-mode-option' . ( $selected ? ' is-selected' : '' ) . '">'
+                . '<input class="smpi-setting" type="radio" name="smpi_post_summary_background_mode" data-key="post_summary_background_mode" value="' . esc_attr( $value ) . '" ' . checked( $selected, true, false ) . '>'
+                . '<span><strong>' . esc_html( (string) $option["label"] ) . '</strong><small>' . esc_html( (string) $option["description"] ) . '</small></span>'
+                . '</label>';
+        }
+        $picker = ColorControl::render( [
+            "key" => "post_summary_background_color",
+            "label" => "Background color",
+            "description" => "Used only when Custom background is selected.",
+            "value" => $color,
+            "default" => "#ffffff",
+            "allow_inherit" => false,
+            "import_brand" => false,
+            "control_class" => "smpi-color-core-control",
+            "hex_input_class" => "smpi-setting smpi-color-setting",
+            "picker_class" => "smpi-color-picker-control",
+            "preview_scope" => ".smpi-design-host",
+            "preview_variables" => [ "--smpi-summary-background" => "color" ],
+            "status_html" => "<span class=spinner></span><span class=\"smpi-save-state\" aria-live=\"polite\"></span>",
+        ] );
+
+        return '<div class="smpi-control-group smpi-summary-background-control" data-smpi-summary-background-control>'
+            . '<h3>Summary background</h3><div class="smpi-summary-background-mode-options">' . $options . '</div>'
+            . '<div class="smpi-summary-background-picker" data-smpi-summary-background-picker>' . $picker . '</div>'
+            . self::summary_background_assets()
+            . '</div>';
+    }
+
+    private static function summary_background_assets(): string {
+        static $rendered = false;
+        if ( $rendered ) {
+            return "";
+        }
+        $rendered = true;
+        return <<<'HTML'
+<style id="smpi-summary-background-control-css">.smpi-summary-background-mode-options{display:grid;gap:8px;grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:14px}.smpi-summary-background-mode-option{align-items:flex-start;background:#fff;border:1px solid #d8dee8;border-radius:6px;cursor:pointer;display:flex;gap:9px;padding:11px 12px}.smpi-summary-background-mode-option input{margin-top:2px}.smpi-summary-background-mode-option strong,.smpi-summary-background-mode-option small{display:block}.smpi-summary-background-mode-option small{color:#64748b;line-height:1.35;margin-top:2px}.smpi-summary-background-mode-option:has(input:checked){background:#f1f5fb;border-color:#3157d5;box-shadow:inset 0 0 0 1px #3157d5}.smpi-summary-background-picker{transition:opacity .15s ease}.smpi-summary-background-control:not(.is-custom) .smpi-summary-background-picker{opacity:.48}@media(max-width:900px){.smpi-summary-background-mode-options{grid-template-columns:1fr}}</style>
+<script id="smpi-summary-background-control-js">(function(){if(window.smpiSummaryBackgroundReady)return;window.smpiSummaryBackgroundReady=true;function mode(root){var input=root?root.querySelector('input[data-key="post_summary_background_mode"]:checked'):null;return input?input.value:"template"}function color(root){var control=root?root.querySelector('[data-hpc-color-control][data-key="post_summary_background_color"]'):null;return control?String(control.getAttribute("data-hpc-color-effective")||"#ffffff"):"#ffffff"}function sync(root){if(!root)return;var current=mode(root),picker=root.querySelector("[data-smpi-summary-background-picker]"),host=root.closest(".smpi-design-host");root.classList.toggle("is-custom",current==="custom");if(picker)picker.querySelectorAll("input,button").forEach(function(input){input.disabled=current!=="custom";input.setAttribute("aria-disabled",current==="custom"?"false":"true")});if(host){if(current==="none")host.style.setProperty("--smpi-summary-background","transparent");else if(current==="custom")host.style.setProperty("--smpi-summary-background",color(root));else host.style.removeProperty("--smpi-summary-background")}}function init(root){(root||document).querySelectorAll("[data-smpi-summary-background-control]").forEach(sync)}document.addEventListener("change",function(event){var root=event.target.closest("[data-smpi-summary-background-control]");if(root)sync(root)});document.addEventListener("hexa-color-change",function(event){var control=event.detail&&event.detail.control,root=control?control.closest("[data-smpi-summary-background-control]"):null;if(root)sync(root)});document.addEventListener("hexa-core-host-tab-loaded",function(event){init(event.detail&&event.detail.panel?event.detail.panel:document)});if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",function(){init(document)});else init(document)})();</script>
+HTML;
+    }
+
     private function typography_surface_control_html( string $prefix, array $settings ): string {
         $args = TemplateDesignRegistry::typography_definition( $prefix );
         if ( [] === $args ) {
@@ -2139,6 +2187,13 @@ CSS;
         $breadcrumb_background = sanitize_hex_color( (string) ( $all_settings["breadcrumbs_background_color"] ?? "" ) );
         if ( $breadcrumb_background ) {
             $variables["--smpi-bc-background"] = $breadcrumb_background;
+        }
+        $summary_background = TemplateBackground::css_value(
+            (string) ( $all_settings["post_summary_background_mode"] ?? TemplateBackground::TEMPLATE ),
+            (string) ( $all_settings["post_summary_background_color"] ?? "#ffffff" )
+        );
+        if ( "" !== $summary_background ) {
+            $variables["--smpi-summary-background"] = $summary_background;
         }
         $declarations = [];
         foreach ( $variables as $variable => $value ) {

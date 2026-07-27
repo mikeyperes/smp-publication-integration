@@ -26,6 +26,7 @@ require dirname( __DIR__ ) . '/lib/hexa-wordpress-plugin-core/src/BrandColors/Te
 require dirname( __DIR__ ) . '/lib/hexa-wordpress-plugin-core/src/Typography/TypographyPreservation.php';
 require dirname( __DIR__ ) . '/lib/hexa-wordpress-plugin-core/src/Typography/TemplateTypography.php';
 require dirname( __DIR__ ) . '/src/Design/TemplateDesignRegistry.php';
+require dirname( __DIR__ ) . '/src/Design/TemplateBackground.php';
 require dirname( __DIR__ ) . '/src/Settings/SettingsRepository.php';
 require dirname( __DIR__ ) . '/src/Settings/SettingsMigrations.php';
 require dirname( __DIR__ ) . '/src/Support/Settings.php';
@@ -72,6 +73,30 @@ if ( '#a1b2c3' !== $settings['article_heading_accent_color'] ) {
 $settings = Settings::update( [ 'post_summary_accent_color' => '#A1B2C3' ] );
 if ( '#a1b2c3' !== $settings['post_summary_accent_color'] ) {
     fwrite( STDERR, "FAIL: Summary design color was not normalized and saved.\n" );
+    exit( 1 );
+}
+
+$settings = Settings::update( [
+    'post_summary_background_mode' => 'custom',
+    'post_summary_background_color' => '#F0E1D2',
+] );
+if ( 'custom' !== $settings['post_summary_background_mode'] || '#f0e1d2' !== $settings['post_summary_background_color'] ) {
+    fwrite( STDERR, "FAIL: Custom Summary background mode and color were not normalized and saved.\n" );
+    exit( 1 );
+}
+
+$settings = Settings::update( [ 'post_summary_background_mode' => 'none' ] );
+if ( 'none' !== $settings['post_summary_background_mode'] ) {
+    fwrite( STDERR, "FAIL: Transparent Summary background mode was not saved.\n" );
+    exit( 1 );
+}
+
+$settings = Settings::update( [
+    'post_summary_background_mode' => 'invalid',
+    'post_summary_background_color' => 'invalid',
+] );
+if ( 'template' !== $settings['post_summary_background_mode'] || '#ffffff' !== $settings['post_summary_background_color'] ) {
+    fwrite( STDERR, "FAIL: Invalid Summary background settings did not restore safe defaults.\n" );
     exit( 1 );
 }
 

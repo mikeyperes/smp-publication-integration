@@ -23,6 +23,7 @@ $summary_placement = (string) file_get_contents( $root . "/src/Content/PostSumma
 $faq_placement = (string) file_get_contents( $root . "/src/Content/PostFaqPlacement.php" );
 $shortcodes = (string) file_get_contents( $root . "/src/Content/Shortcodes.php" );
 $registry = (string) file_get_contents( $root . "/src/Design/TemplateDesignRegistry.php" );
+$background = (string) file_get_contents( $root . "/src/Design/TemplateBackground.php" );
 
 $checks = [
     "Summary design color uses the shared template color source contract." => str_contains( $registry, '"source_key" => "post_summary_color_source"' )
@@ -40,14 +41,24 @@ $checks = [
         && str_contains( $dashboard, "Original Template matches the preview." ),
     "Summary sum00 maps its title and underline colors." => str_contains( $article, ".smpi-sum00 .smpi-post-summary-title{margin:0;font-size:1.3rem;font-weight:800;color:var(--smpi-summary-accent,#1f2937)" )
         && str_contains( $article, "border-bottom:3px solid var(--smpi-summary-accent,#111827)" ),
-    "Summary sum01 maps its original blue rule and title." => str_contains( $article, ".smpi-sum01{border:1px solid #e5e7eb;border-left:4px solid var(--smpi-summary-accent,#2563eb)" )
+    "Summary sum01 maps its original blue rule and title." => str_contains( $article, ".smpi-sum01{background:var(--smpi-summary-background,#fff);border:1px solid #e5e7eb;border-left:4px solid var(--smpi-summary-accent,#2563eb)" )
         && str_contains( $article, ".smpi-sum01 .smpi-post-summary-title{margin:0 0 10px;font-size:.78rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--smpi-summary-accent,#2563eb)" ),
-    "Summary sum02 maps its original top rule and title." => str_contains( $article, ".smpi-sum02{padding:18px 0;border-top:2px solid var(--smpi-summary-accent,#0a0a0a);border-bottom:1px solid #e5e7eb" )
-        && str_contains( $article, ".smpi-sum02 .smpi-post-summary-title{margin:0 0 12px;font-size:.78rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--smpi-summary-accent,#0a0a0a)" ),
+    "Summary sum02 uses compact typography and a restrained accent border." => str_contains( $article, ".smpi-sum02{background:var(--smpi-summary-background,transparent);border:1px solid var(--smpi-summary-accent-soft,rgba(10,10,10,.12));border-top:3px solid var(--smpi-summary-accent,#0a0a0a);border-radius:4px" )
+        && str_contains( $article, 'font-family:var(--smpi-summary-font,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,' )
+        && str_contains( $article, 'sans-serif);font-size:14px' )
+        && str_contains( $article, ".smpi-sum02 .smpi-post-summary-title{margin:0 0 10px;font-size:11px" ),
     "Summary sum03 maps its header and contrast text." => str_contains( $article, ".smpi-sum03 .smpi-post-summary-title{margin:0;background:var(--smpi-summary-accent,#0a0a0a);color:var(--smpi-summary-accent-ink,#fff)" ),
-    "Summary sum04 maps its panel tint, title, and icon." => str_contains( $article, ".smpi-sum04{background:var(--smpi-summary-accent-soft,#eff4ff)" )
+    "Summary sum04 maps its panel tint, title, and icon." => str_contains( $article, ".smpi-sum04{background:var(--smpi-summary-background,var(--smpi-summary-accent-soft,#eff4ff))" )
         && str_contains( $article, ".smpi-sum04 .smpi-post-summary-title{margin:0 0 14px;font-size:1.05rem;font-weight:800;color:var(--smpi-summary-accent,#1e3a8a)" )
         && str_contains( $article, '.smpi-sum04 .smpi-post-summary-title:before{content:\"\";width:18px;height:18px;border-radius:5px;background:var(--smpi-summary-accent,#2563eb)' ),
+    "Summary background reuses the Core picker and supports template, none, and custom modes." => str_contains( $dashboard, 'ColorControl::render( [' )
+        && str_contains( $dashboard, '"key" => "post_summary_background_color"' )
+        && str_contains( $dashboard, 'summary_background_setting_html( $settings )' )
+        && str_contains( $background, 'self::TEMPLATE' )
+        && str_contains( $background, 'self::NONE' )
+        && str_contains( $background, 'self::CUSTOM' )
+        && str_contains( $ajax, '"post_summary_background_mode"' )
+        && str_contains( $ajax, "'post_summary_background_color'" ),
     "Summary and FAQ are independent feature cards." => str_contains( $dashboard, '"Article Summary",' )
         && str_contains( $dashboard, '"post_summary_acf_enabled",' )
         && str_contains( $dashboard, '"Article FAQs",' )

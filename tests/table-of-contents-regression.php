@@ -6,6 +6,7 @@ $root = dirname( __DIR__ );
 $article = (string) file_get_contents( $root . "/src/Content/ArticleStyles.php" );
 $dashboard = (string) file_get_contents( $root . "/src/Admin/Dashboard/DashboardController.php" );
 $table = (string) file_get_contents( $root . "/src/Content/TableOfContents.php" );
+$compatibility = (string) file_get_contents( $root . "/src/Content/ElementorFrontendCompatibility.php" );
 $registry = (string) file_get_contents( $root . "/src/Design/TemplateDesignRegistry.php" );
 
 $start = strpos( $article, "* Table of contents" );
@@ -34,11 +35,20 @@ $checks = [
         && str_contains( $dashboard, "Turn off automatic placement when positioning it manually." ),
     "TOC template CSS has one frontend owner." => str_contains( $table, 'ArticleStyles::toc_css()' )
         && ! str_contains( substr( $article, 0, (int) strpos( $article, "public function decorate_article_content" ) ), 'self::toc_css()' ),
-    "Native Elementor TOC markup, loading state, and anchors remain owned by Elementor." => ! str_contains( $table, '.elementor-widget-table-of-contents' )
+    "Native Elementor TOC markup and anchors remain owned by Elementor." => ! str_contains( $table, '.elementor-widget-table-of-contents' )
         && ! str_contains( $table, 'print_elementor_compatibility_script' )
         && ! str_contains( $table, 'smpi-elementor-toc-bridge' )
         && ! str_contains( $table, 'smpi-elementor-toc-fallback' )
         && ! str_contains( $table, 'smpi-elementor-toc-' ),
+    "Native Elementor TOC loading is compact and cannot create a nested scroll area." => str_contains( $compatibility, '.elementor-widget-table-of-contents .elementor-toc__body{max-height:none!important;overflow:visible!important}' )
+        && str_contains( $compatibility, '.elementor-widget-table-of-contents .elementor-toc__spinner{display:none!important}' )
+        && str_contains( $compatibility, 'box-shadow:0 14px 0 currentColor,0 28px 0 currentColor' ),
+    "Elementor compatibility remains CSS-only and does not replace native TOC output." => ! str_contains( $compatibility, 'wp_footer' )
+        && ! str_contains( $compatibility, 'MutationObserver' )
+        && ! str_contains( $compatibility, 'replaceChildren' )
+        && ! str_contains( $compatibility, 'smpi-elementor-toc-' ),
+    "Elementor sticky menu clones cannot expose duplicate submenu arrows." => str_contains( $compatibility, '.elementor-sticky__spacer{pointer-events:none!important;visibility:hidden!important}' )
+        && str_contains( $compatibility, '.elementor-widget-nav-menu a>.sub-arrow~.sub-arrow{display:none!important}' ),
 ];
 
 foreach ( $checks as $message => $passed ) {
@@ -48,4 +58,4 @@ foreach ( $checks as $message => $passed ) {
     }
 }
 
-echo "PASS: TOC colors, previews, shortcode guidance, and full-width output share one stylesheet.\n";
+echo "PASS: TOC output, native Elementor loading, and menu compatibility remain isolated.\n";
