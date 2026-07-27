@@ -39,7 +39,9 @@ use smp_publication_integration\Content\Breadcrumbs;
 use smp_publication_integration\Content\MuckRackVerification;
 use smp_publication_integration\Content\MultiAuthors;
 use smp_publication_integration\Content\PublicationContentTypes;
+use smp_publication_integration\Content\ReadingProgress;
 use smp_publication_integration\Content\Schema;
+use smp_publication_integration\Design\TemplateBackground;
 use smp_publication_integration\Design\TemplateDesignRegistry;
 use smp_publication_integration\Support\Dependencies;
 use smp_publication_integration\Support\ArticleCleanup;
@@ -1373,6 +1375,7 @@ class DashboardController {
         echo "<div class=\"smpi-section-intro\"><h2>Features</h2><p>Enable publication features and configure their output.</p></div>";
         echo \smp_publication_integration\Content\ArticleStyles::script_font_preview_link_html();
         echo "<style id=smpi-design-preview-css>" . \smp_publication_integration\Content\ArticleStyles::preview_bundle_css() . TemplateDesignRegistry::preview_typography_state_css() . "</style>";
+        echo "<style id=smpi-reading-progress-preview-css>" . ReadingProgress::preview_css() . "</style>";
         echo $this->feature_layout_styles_html();
         echo CoreUi::collection_filter(
             [
@@ -1410,7 +1413,7 @@ class DashboardController {
     }
 
     private function render_article_design_feature_group( array $settings ): void {
-        $this->feature_group_open( "article-design", "Article design", "Article navigation, headings, images, and structured content blocks." );
+        $this->feature_group_open( "article-design", "Article design", "Article navigation, reading progress, headings, images, and structured content blocks." );
 
         $breadcrumb_controls = $this->breadcrumb_controls_html( $settings );
         $this->feature_card(
@@ -1448,6 +1451,19 @@ class DashboardController {
             $this->table_of_contents_report_html(),
             $this->activity_log_html(),
             $toc_controls
+        );
+
+        $reading_progress_controls = $this->select_setting_html( "reading_progress_style", $this->reading_progress_style_options(), $settings, "Progress design" )
+            . $this->color_setting_html( ReadingProgress::COLOR_SETTING, "Progress color", $settings, ReadingProgress::DEFAULT_COLOR );
+        $this->feature_card(
+            "Article reading progress",
+            "reading_progress_enabled",
+            "No ACF changes. Runs only on public single-post pages.",
+            "Shows a fixed page-progress indicator at the top of single articles and updates it as the reader scrolls.",
+            "No shortcode needed. Enable the feature, choose a design, and select the progress color.",
+            $this->reading_progress_report_html(),
+            $this->activity_log_html(),
+            $reading_progress_controls
         );
 
         $article_heading_controls = $this->select_setting_html( "article_heading_style", $this->article_heading_style_options(), $settings, "Article H2/H3 template" )
@@ -1510,6 +1526,7 @@ class DashboardController {
             . $this->select_setting_html( "post_summary_style", $this->post_summary_style_options(), $settings, "Summary output style" )
             . $this->select_setting_html( "post_summary_placement", $this->post_summary_placement_options(), $settings, "Summary placement" )
             . $this->template_color_setting_html( "post_summary", "Summary design color", $settings )
+            . $this->summary_background_setting_html( $settings )
             . $this->typography_surface_control_html( "post_summary", $settings )
             . $this->shortcode_usage_html(
                 "Both shortcodes use the selected Summary design. Choose Manual placement when positioning the block in Elementor or post content.",
@@ -1732,6 +1749,8 @@ class DashboardController {
 .smpi-feature-before-activity,.smpi-feature-activity{min-width:0}
 .smpi-feature-diagnostics .widefat{max-width:100%}
 .smpi-feature-card pre,.smpi-feature-card code{max-width:100%}
+.smpi-control-group:has(input[data-key="reading_progress_style"]) .smpi-choice-grid{grid-template-columns:minmax(0,1fr)}
+.smpi-control-group:has(input[data-key="reading_progress_style"]) .smpi-choice-preview{max-width:720px}
 @media(max-width:782px){
 .smpi-feature-groups{gap:26px;margin-top:22px}
 .smpi-feature-group-head h2{font-size:17px}
@@ -2083,6 +2102,30 @@ CSS;
         ] ) . "</div>";
     }
 
+    private function color_setting_html( string $key, string $label, array $settings, string $default ): string {
+        $color = sanitize_hex_color( (string) ( $settings[ $key ] ?? $default ) ) ?: $default;
+        return "<div class=\"smpi-control-group smpi-color-control-group\">" . ColorControl::render( [
+            "key" => $key,
+            "label" => $label,
+            "description" => "Choose the color used by the selected progress design.",
+            "value" => $color,
+            "default" => $default,
+            "allow_inherit" => false,
+            "import_brand" => true,
+            "import_label" => "Use HWS primary",
+            "control_class" => "smpi-color-core-control",
+            "hex_input_class" => "smpi-setting smpi-color-setting",
+            "picker_class" => "smpi-color-picker-control",
+            "preview_scope" => ".smpi-design-host",
+            "preview_variables" => [
+                "--smpi-reading-progress-color" => "color",
+                "--smpi-reading-progress-soft" => "rgba:0.18",
+                "--smpi-reading-progress-glow" => "rgba:0.55",
+            ],
+            "status_html" => "<span class=spinner></span><span class=\"smpi-save-state\" aria-live=\"polite\"></span>",
+        ] ) . "</div>";
+    }
+
     private function optional_color_setting_html( string $key, string $label, array $settings, string $inherit_label ): string {
         $default = Settings::color_default( $key );
         $color = sanitize_hex_color( (string) ( $settings[ $key ] ?? "" ) ) ?: "";
@@ -2103,6 +2146,53 @@ CSS;
             "preview_variables" => [ "--smpi-bc-background" => "color" ],
             "status_html" => "<span class=spinner></span><span class=\"smpi-save-state\" aria-live=\"polite\"></span>",
         ] ) . "</div>";
+    }
+
+    private function summary_background_setting_html( array $settings ): string {
+        $mode = TemplateBackground::normalize_mode( (string) ( $settings["post_summary_background_mode"] ?? TemplateBackground::TEMPLATE ) );
+        $color = sanitize_hex_color( (string) ( $settings["post_summary_background_color"] ?? "#ffffff" ) ) ?: "#ffffff";
+        $options = "";
+        foreach ( TemplateBackground::options() as $value => $option ) {
+            $selected = $mode === $value;
+            $options .= '<label class="smpi-summary-background-mode-option' . ( $selected ? ' is-selected' : '' ) . '">'
+                . '<input class="smpi-setting" type="radio" name="smpi_post_summary_background_mode" data-key="post_summary_background_mode" value="' . esc_attr( $value ) . '" ' . checked( $selected, true, false ) . '>'
+                . '<span><strong>' . esc_html( (string) $option["label"] ) . '</strong><small>' . esc_html( (string) $option["description"] ) . '</small></span>'
+                . '</label>';
+        }
+        $picker = ColorControl::render( [
+            "key" => "post_summary_background_color",
+            "label" => "Background color",
+            "description" => "Used only when Custom background is selected.",
+            "value" => $color,
+            "default" => "#ffffff",
+            "allow_inherit" => false,
+            "import_brand" => false,
+            "control_class" => "smpi-color-core-control",
+            "hex_input_class" => "smpi-color-setting",
+            "value_input_class" => "smpi-setting smpi-color-hidden",
+            "picker_class" => "smpi-color-picker-control",
+            "preview_scope" => ".smpi-design-host",
+            "preview_variables" => [ "--smpi-summary-background" => "color" ],
+            "status_html" => "<span class=spinner></span><span class=\"smpi-save-state\" aria-live=\"polite\"></span>",
+        ] );
+
+        return '<div class="smpi-control-group smpi-summary-background-control" data-smpi-summary-background-control>'
+            . '<h3>Summary background</h3><div class="smpi-summary-background-mode-options">' . $options . '</div>'
+            . '<div class="smpi-summary-background-picker" data-smpi-summary-background-picker>' . $picker . '</div>'
+            . self::summary_background_assets()
+            . '</div>';
+    }
+
+    private static function summary_background_assets(): string {
+        static $rendered = false;
+        if ( $rendered ) {
+            return "";
+        }
+        $rendered = true;
+        return <<<'HTML'
+<style id="smpi-summary-background-control-css">.smpi-summary-background-mode-options{display:grid;gap:8px;grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:14px}.smpi-summary-background-mode-option{align-items:flex-start;background:#fff;border:1px solid #d8dee8;border-radius:6px;cursor:pointer;display:flex;gap:9px;padding:11px 12px}.smpi-summary-background-mode-option input{margin-top:2px}.smpi-summary-background-mode-option strong,.smpi-summary-background-mode-option small{display:block}.smpi-summary-background-mode-option small{color:#64748b;line-height:1.35;margin-top:2px}.smpi-summary-background-mode-option:has(input:checked){background:#f1f5fb;border-color:#3157d5;box-shadow:inset 0 0 0 1px #3157d5}.smpi-summary-background-picker{transition:opacity .15s ease}.smpi-summary-background-control:not(.is-custom) .smpi-summary-background-picker{opacity:.48}@media(max-width:900px){.smpi-summary-background-mode-options{grid-template-columns:1fr}}</style>
+<script id="smpi-summary-background-control-js">(function(){if(window.smpiSummaryBackgroundReady)return;window.smpiSummaryBackgroundReady=true;function mode(root){var input=root?root.querySelector('input[data-key="post_summary_background_mode"]:checked'):null;return input?input.value:"template"}function color(root){var control=root?root.querySelector('[data-hpc-color-control][data-key="post_summary_background_color"]'):null;return control?String(control.getAttribute("data-hpc-color-effective")||"#ffffff"):"#ffffff"}function sync(root){if(!root)return;var current=mode(root),picker=root.querySelector("[data-smpi-summary-background-picker]"),host=root.closest(".smpi-design-host");root.classList.toggle("is-custom",current==="custom");if(picker)picker.querySelectorAll("input,button").forEach(function(input){input.disabled=current!=="custom";input.setAttribute("aria-disabled",current==="custom"?"false":"true")});if(host){if(current==="none")host.style.setProperty("--smpi-summary-background","transparent");else if(current==="custom")host.style.setProperty("--smpi-summary-background",color(root));else host.style.removeProperty("--smpi-summary-background")}}function init(root){(root||document).querySelectorAll("[data-smpi-summary-background-control]").forEach(sync)}document.addEventListener("change",function(event){var root=event.target.closest("[data-smpi-summary-background-control]");if(root)sync(root)});document.addEventListener("hexa-color-change",function(event){var control=event.detail&&event.detail.control,root=control?control.closest("[data-smpi-summary-background-control]"):null;if(root)sync(root)});document.addEventListener("hexa-core-host-tab-loaded",function(event){init(event.detail&&event.detail.panel?event.detail.panel:document)});if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",function(){init(document)});else init(document)})();</script>
+HTML;
     }
 
     private function typography_surface_control_html( string $prefix, array $settings ): string {
@@ -2156,6 +2246,13 @@ CSS;
         $breadcrumb_background = sanitize_hex_color( (string) ( $all_settings["breadcrumbs_background_color"] ?? "" ) );
         if ( $breadcrumb_background ) {
             $variables["--smpi-bc-background"] = $breadcrumb_background;
+        }
+        $summary_background = TemplateBackground::css_value(
+            (string) ( $all_settings["post_summary_background_mode"] ?? TemplateBackground::TEMPLATE ),
+            (string) ( $all_settings["post_summary_background_color"] ?? "#ffffff" )
+        );
+        if ( "" !== $summary_background ) {
+            $variables["--smpi-summary-background"] = $summary_background;
         }
         $declarations = [];
         foreach ( $variables as $variable => $value ) {
@@ -2248,6 +2345,18 @@ CSS;
             "toc03" => [ "label" => "Numbered Rows", "description" => "Divided rows with blue indexes.", "preview" => $this->toc_design_preview_html( "toc03" ) ],
             "toc04" => [ "label" => "Jump Pills", "description" => "Horizontal pill links.", "preview" => $this->toc_design_preview_html( "toc04" ) ],
         ];
+    }
+
+    private function reading_progress_style_options(): array {
+        $options = [];
+        foreach ( ReadingProgress::designs() as $style => $design ) {
+            $options[ $style ] = [
+                "label" => (string) ( $design["label"] ?? $style ),
+                "description" => (string) ( $design["description"] ?? "" ),
+                "preview" => ReadingProgress::preview_html( (string) $style ),
+            ];
+        }
+        return $options;
     }
 
     private function article_drop_cap_style_options(): array {
@@ -2658,6 +2767,18 @@ CSS;
 
     private function simple_status_html( bool $ok, string $message ): string {
         return "<p class=\"smpi-status-line\">" . self::ico( $ok ) . "<span>" . esc_html( $message ) . "</span></p>";
+    }
+
+    private function reading_progress_report_html(): string {
+        $settings = Settings::all();
+        $style = ReadingProgress::normalize_style( (string) ( $settings[ ReadingProgress::STYLE_SETTING ] ?? ReadingProgress::DEFAULT_STYLE ) );
+        $design = ReadingProgress::designs()[ $style ] ?? [];
+        $label = (string) ( $design["label"] ?? $style );
+        $color = sanitize_hex_color( (string) ( $settings[ ReadingProgress::COLOR_SETTING ] ?? ReadingProgress::DEFAULT_COLOR ) ) ?: ReadingProgress::DEFAULT_COLOR;
+        return $this->simple_status_html(
+            Settings::bool( ReadingProgress::ENABLED_SETTING ),
+            "Single posts use " . $label . " with " . $color . "."
+        );
     }
 
     private function typography_preserved_label( string $prefix ): string {

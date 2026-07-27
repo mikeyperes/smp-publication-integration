@@ -561,6 +561,8 @@ final class QuickStartFeatures {
                     "post_summary_font_family" => "template",
                     "post_summary_font_weight" => "inherit",
                     "post_summary_accent_color" => "#000033",
+                    "post_summary_background_mode" => "template",
+                    "post_summary_background_color" => "#ffffff",
                     "post_summary_font_size" => 16,
                 ] ),
                 "details" => [

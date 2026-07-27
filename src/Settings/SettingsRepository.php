@@ -10,6 +10,7 @@ use Hexa\PluginCore\BrandColors\FontWeightProvider;
 use Hexa\PluginCore\BrandColors\TemplateColorResolver;
 use Hexa\PluginCore\Typography\TemplateTypography;
 use Hexa\PluginCore\Typography\TypographyPreservation;
+use smp_publication_integration\Design\TemplateBackground;
 use smp_publication_integration\Design\TemplateDesignRegistry;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -108,6 +109,9 @@ class SettingsRepository {
             "table_of_contents_text_color" => $colors["table_of_contents_text_color"],
             "table_of_contents_font_family" => "template",
             "table_of_contents_font_weight" => "inherit",
+            "reading_progress_enabled" => false,
+            "reading_progress_style" => "thin",
+            "reading_progress_color" => "#00ff41",
             "article_heading_styles_enabled" => false,
             "article_heading_style" => "h2-tick",
             "article_heading_accent_color" => '',
@@ -143,6 +147,8 @@ class SettingsRepository {
             "post_summary_font_family" => "template",
             "post_summary_font_weight" => "inherit",
             "post_summary_accent_color" => '',
+            "post_summary_background_mode" => TemplateBackground::TEMPLATE,
+            "post_summary_background_color" => "#ffffff",
             "post_summary_text_color" => $colors["post_summary_text_color"],
             "post_summary_font_size" => 16,
             "post_summary_placement" => "manual",
@@ -349,6 +355,7 @@ class SettingsRepository {
             "breadcrumbs_text_color" => "#374151",
             "table_of_contents_accent_color" => $brand,
             "table_of_contents_text_color" => "#1f2937",
+            "reading_progress_color" => "#00ff41",
             "article_heading_accent_color" => $brand,
             "article_heading_text_color" => "#111827",
             "article_drop_cap_color" => $brand,
@@ -357,6 +364,7 @@ class SettingsRepository {
             "featured_image_caption_accent_color" => $brand,
             "featured_image_caption_text_color" => "#272727",
             "post_summary_accent_color" => $brand,
+            "post_summary_background_color" => "#ffffff",
             "post_summary_text_color" => "#1f2937",
             "post_faqs_accent_color" => $brand,
             "post_faqs_text_color" => "#1f2937",
@@ -386,6 +394,7 @@ class SettingsRepository {
             "breadcrumbs_text_color",
             "table_of_contents_accent_color",
             "table_of_contents_text_color",
+            "reading_progress_color",
             "article_heading_accent_color",
             "article_heading_text_color",
             "article_drop_cap_color",
@@ -394,6 +403,7 @@ class SettingsRepository {
             "featured_image_caption_accent_color",
             "featured_image_caption_text_color",
             "post_summary_accent_color",
+            "post_summary_background_color",
             "post_summary_text_color",
             "post_faqs_accent_color",
             "post_faqs_text_color",
@@ -497,12 +507,14 @@ class SettingsRepository {
             $style_options = [
                 "breadcrumbs_style" => [ "bc-b1", "bc-b2", "bc-b3", "bc-b4", "bc-b5", "bc-b6" ],
                 "table_of_contents_style" => [ "none", "toc00", "toc01", "toc02", "toc03", "toc04" ],
+                "reading_progress_style" => [ "thin", "track", "glow", "floating", "segmented" ],
                 "article_heading_style" => [ "none", "h2-tick", "h2-leftrule", "h2-underline", "h2-topline", "h2-dot", "h2-trailingrule", "h2-serif", "h2-uppercase", "h2-gradient", "h2-bracket", "h2-number", "h2-square", "h2-highlight", "h2-double", "h2-corner_tick" ],
                 "article_drop_cap_style" => [ "dropcap-classic", "dropcap-highlight", "dropcap-outline", "dropcap-side-rule", "dropcap-soft-tile", "dropcap-script-classic", "dropcap-script-tile", "dropcap-script-round", "dropcap-script-underline", "dropcap-script-shadow" ],
                 "article_drop_cap_script_font" => [ "dancing-script", "great-vibes", "parisienne", "pinyon-script", "allura" ],
                 "inline_photo_treatment" => [ "none", "fig1", "fig2", "fig4", "fig5" ],
                 "featured_image_caption_template" => [ "none", "fig1", "fig2", "fig4", "fig5" ],
                 "post_summary_style" => [ "none", "sum00", "sum01", "sum02", "sum03", "sum04" ],
+                "post_summary_background_mode" => array_keys( TemplateBackground::options() ),
                 "post_summary_placement" => [ "manual", "above_content", "below_content" ],
                 "post_faqs_style" => [ "none", "faq00", "faq01", "faq02", "faq03", "faq04" ],
                 "post_faqs_placement" => [ "manual", "below_content", "below_author" ],
@@ -528,7 +540,7 @@ class SettingsRepository {
                 continue;
             }
 
-            if ( in_array( $key, [ 'founders_enabled', 'shadow_posts_enabled', 'shadow_press_releases', 'post_list_defaults_enabled', 'hide_home_posts_without_featured_image', 'post_featured_image_required', 'author_social_cleanup', 'public_debug_enabled', 'estimated_read_time_enabled', 'elementor_css_cache_busting', 'elementor_primary_category_enabled', 'elementor_primary_category_exclude_default', 'publication_social_cleanup', 'muckrack_verified_enabled', 'muckrack_author_always_show', 'publication_muckrack_verified_enabled', 'multi_authors_enabled', 'multi_authors_disable_loop_cards', 'press_release_include_enabled', 'post_summary_acf_enabled', 'post_faqs_acf_enabled', 'article_types_enabled', 'breadcrumbs_enabled', 'breadcrumbs_hide_home', 'breadcrumbs_hide_term_archives', 'table_of_contents_enabled', 'table_of_contents_auto_single', 'table_of_contents_include_summary', 'article_drop_cap_enabled', 'rank_math_breadcrumb_check_enabled', 'hws_masked_admin_report_enabled', "content_generation_enabled", "post_hygiene_enabled", "post_hygiene_strip_inline_styles", "post_hygiene_unwrap_spans", "post_hygiene_remove_font_tags", "post_hygiene_strip_classes_ids", "post_hygiene_strip_empty_tags", "post_hygiene_clean_heading_children" ], true ) ) {
+            if ( in_array( $key, [ 'founders_enabled', 'shadow_posts_enabled', 'shadow_press_releases', 'post_list_defaults_enabled', 'hide_home_posts_without_featured_image', 'post_featured_image_required', 'author_social_cleanup', 'public_debug_enabled', 'estimated_read_time_enabled', 'elementor_css_cache_busting', 'elementor_primary_category_enabled', 'elementor_primary_category_exclude_default', 'publication_social_cleanup', 'muckrack_verified_enabled', 'muckrack_author_always_show', 'publication_muckrack_verified_enabled', 'multi_authors_enabled', 'multi_authors_disable_loop_cards', 'press_release_include_enabled', 'post_summary_acf_enabled', 'post_faqs_acf_enabled', 'article_types_enabled', 'breadcrumbs_enabled', 'breadcrumbs_hide_home', 'breadcrumbs_hide_term_archives', 'table_of_contents_enabled', 'table_of_contents_auto_single', 'table_of_contents_include_summary', 'reading_progress_enabled', 'article_drop_cap_enabled', 'rank_math_breadcrumb_check_enabled', 'hws_masked_admin_report_enabled', "content_generation_enabled", "post_hygiene_enabled", "post_hygiene_strip_inline_styles", "post_hygiene_unwrap_spans", "post_hygiene_remove_font_tags", "post_hygiene_strip_classes_ids", "post_hygiene_strip_empty_tags", "post_hygiene_clean_heading_children" ], true ) ) {
                 $settings[ $key ] = (bool) $value;
                 continue;
             }
@@ -580,7 +592,7 @@ class SettingsRepository {
                 continue;
             }
 
-            if ( in_array( $key, [ "breadcrumbs_text_color", "table_of_contents_text_color", "article_heading_text_color", "inline_photo_caption_text_color", "featured_image_caption_text_color", "post_summary_text_color", "post_faqs_text_color", "muckrack_verified_text_color", "publication_muckrack_text_color" ], true ) ) {
+            if ( in_array( $key, [ "breadcrumbs_text_color", "table_of_contents_text_color", "reading_progress_color", "article_heading_text_color", "inline_photo_caption_text_color", "featured_image_caption_text_color", "post_summary_background_color", "post_summary_text_color", "post_faqs_text_color", "muckrack_verified_text_color", "publication_muckrack_text_color" ], true ) ) {
                 $color = sanitize_hex_color( (string) $value );
                 $settings[ $key ] = $color ?: self::color_default( $key );
                 continue;

@@ -8,7 +8,7 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `0.6.250`
+- Version: `0.6.253`
 
 ## Ownership
 
@@ -94,6 +94,13 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 0.6.253
+
+- Preserved the live reading-progress, Elementor frontend compatibility, and configurable Summary background features.
+- Kept CPT, entity, FAQ rendering, and schema infrastructure on their canonical Hexa WP Core paths.
+- Removed SMP's Elementor TOC markup replacement so Elementor remains the sole owner of native TOC output.
+- Extended regression coverage for the combined Core and live feature contracts.
 
 ### 0.6.250
 

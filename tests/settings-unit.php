@@ -26,6 +26,7 @@ require dirname( __DIR__ ) . '/lib/hexa-wordpress-plugin-core/src/BrandColors/Te
 require dirname( __DIR__ ) . '/lib/hexa-wordpress-plugin-core/src/Typography/TypographyPreservation.php';
 require dirname( __DIR__ ) . '/lib/hexa-wordpress-plugin-core/src/Typography/TemplateTypography.php';
 require dirname( __DIR__ ) . '/src/Design/TemplateDesignRegistry.php';
+require dirname( __DIR__ ) . '/src/Design/TemplateBackground.php';
 require dirname( __DIR__ ) . '/src/Settings/SettingsRepository.php';
 require dirname( __DIR__ ) . '/src/Settings/SettingsMigrations.php';
 require dirname( __DIR__ ) . '/src/Support/Settings.php';
@@ -75,6 +76,30 @@ if ( '#a1b2c3' !== $settings['post_summary_accent_color'] ) {
     exit( 1 );
 }
 
+$settings = Settings::update( [
+    'post_summary_background_mode' => 'custom',
+    'post_summary_background_color' => '#F0E1D2',
+] );
+if ( 'custom' !== $settings['post_summary_background_mode'] || '#f0e1d2' !== $settings['post_summary_background_color'] ) {
+    fwrite( STDERR, "FAIL: Custom Summary background mode and color were not normalized and saved.\n" );
+    exit( 1 );
+}
+
+$settings = Settings::update( [ 'post_summary_background_mode' => 'none' ] );
+if ( 'none' !== $settings['post_summary_background_mode'] ) {
+    fwrite( STDERR, "FAIL: Transparent Summary background mode was not saved.\n" );
+    exit( 1 );
+}
+
+$settings = Settings::update( [
+    'post_summary_background_mode' => 'invalid',
+    'post_summary_background_color' => 'invalid',
+] );
+if ( 'template' !== $settings['post_summary_background_mode'] || '#ffffff' !== $settings['post_summary_background_color'] ) {
+    fwrite( STDERR, "FAIL: Invalid Summary background settings did not restore safe defaults.\n" );
+    exit( 1 );
+}
+
 $settings = Settings::update( [ 'post_summary_placement' => 'above_content' ] );
 if ( 'above_content' !== $settings['post_summary_placement'] ) {
     fwrite( STDERR, "FAIL: Valid Summary placement was not saved.\n" );
@@ -118,6 +143,22 @@ if ( 'dropcap-highlight' !== $settings['article_drop_cap_style'] ) {
 $settings = Settings::update( [ 'article_drop_cap_style' => 'not-a-template' ] );
 if ( 'dropcap-classic' !== $settings['article_drop_cap_style'] ) {
     fwrite( STDERR, "FAIL: Invalid drop-cap template did not fall back to the classic template.\n" );
+    exit( 1 );
+}
+
+$defaults = SettingsRepository::defaults();
+if ( false !== $defaults['reading_progress_enabled'] || 'thin' !== $defaults['reading_progress_style'] || '#00ff41' !== $defaults['reading_progress_color'] ) {
+    fwrite( STDERR, "FAIL: Reading progress defaults are not isolated and reference-compatible.\n" );
+    exit( 1 );
+}
+$settings = Settings::update( [ 'reading_progress_enabled' => true, 'reading_progress_style' => 'segmented', 'reading_progress_color' => '#A1B2C3' ] );
+if ( true !== $settings['reading_progress_enabled'] || 'segmented' !== $settings['reading_progress_style'] || '#a1b2c3' !== $settings['reading_progress_color'] ) {
+    fwrite( STDERR, "FAIL: Valid reading progress settings were not normalized and saved.\n" );
+    exit( 1 );
+}
+$settings = Settings::update( [ 'reading_progress_style' => 'invalid-design', 'reading_progress_color' => 'invalid-color' ] );
+if ( 'thin' !== $settings['reading_progress_style'] || '#00ff41' !== $settings['reading_progress_color'] ) {
+    fwrite( STDERR, "FAIL: Invalid reading progress settings did not restore safe defaults.\n" );
     exit( 1 );
 }
 
