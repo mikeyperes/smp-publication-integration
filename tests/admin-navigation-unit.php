@@ -29,6 +29,7 @@ $expected_tabs = [
     'quick_run'           => 'Quick Start',
     'publication_options' => 'Publication Settings',
     'profiles'            => 'Publication Fields',
+    'founder_profiles'    => 'Founder Profiles',
     'brand'               => 'Brand Settings',
     'pages'               => 'Pages',
     'menu'                => 'Menus',
@@ -107,6 +108,7 @@ $legacy_areas = [
     'quick_run'           => 'overview',
     'publication_options' => 'publication',
     'profiles'            => 'publication',
+    'founder_profiles'    => 'publication',
     'brand'               => 'publication',
     'pages'               => 'publication',
     'menu'                => 'publication',
@@ -168,4 +170,4 @@ if ( 'advanced' !== $extension->area() || 'extension_diagnostics' !== $extension
     exit( 1 );
 }
 
-echo "PASS: 24 ordered tabs use the Core registry and preserve legacy routes.\n";
+echo "PASS: 25 ordered tabs use the Core registry and preserve legacy routes.\n";

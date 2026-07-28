@@ -11,6 +11,7 @@ final class AdminNavigation {
         'quick_run'           => 'Quick Start',
         'publication_options' => 'Publication Settings',
         'profiles'            => 'Publication Fields',
+        'founder_profiles'    => 'Founder Profiles',
         'brand'               => 'Brand Settings',
         'pages'               => 'Pages',
         'menu'                => 'Menus',
@@ -50,6 +51,7 @@ final class AdminNavigation {
         'publication' => [
             'publication_options' => 'Publication Options',
             'profiles'            => 'Publication Profiles',
+            'founder_profiles'    => 'Founder Profiles',
             'brand'               => 'Brand',
             'pages'               => 'Pages',
             'menu'                => 'Menu',

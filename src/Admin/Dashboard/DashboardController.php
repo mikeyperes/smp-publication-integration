@@ -236,6 +236,7 @@ class DashboardController {
 
         if ( 'publication_options' === $id ) { $this->publication_options(); return; }
         if ( 'profiles' === $id ) { $this->profiles(); return; }
+        if ( 'founder_profiles' === $id ) { $this->founder_profiles(); return; }
         if ( 'brand' === $id ) { $this->brand(); return; }
         if ( 'shortcodes' === $id ) { $this->shortcodes(); return; }
         if ( 'schema' === $id ) { $this->schema(); return; }
@@ -312,7 +313,6 @@ class DashboardController {
                 echo ' <a class="button" href="' . esc_url( (string) $canonical['edit_url'] ) . '">Edit source record</a>';
             }
             echo '</p></div></div>';
-            $this->founder_profiles_panel();
             echo '</div>';
             return;
         }
@@ -334,33 +334,46 @@ class DashboardController {
         echo "<div class=\"smpi-edit-actions\">" . ( $locked ? "<button type=\"button\" class=\"button smpi-cancel-user\">Cancel</button>" : "" ) . "<button type=\"button\" class=\"button-link smpi-clear-user\">Clear selection</button><span class=\"spinner\"></span><span class=\"smpi-save-state\"></span></div>";
         echo "</div></div>";
         echo "</div></div>";
-        $this->founder_profiles_panel();
         echo "</div>";
     }
 
-    private function founder_profiles_panel(): void {
-        echo "<div class=\"smpi-founder-profile-panel\"><div class=\"smpi-founder-header\"><h3>Founder Profiles</h3><p class=\"smpi-muted\">Requires the Verified Profiles integration. Select founder records from the profile post type.</p></div>";
-
+    private function founder_profiles(): void {
         $readiness = Dependencies::verified_profiles_readiness();
+        $ready = ! empty( $readiness["plugin_active"] ) && ! empty( $readiness["profile_cpt"] ) && ! empty( $readiness["profile_acf"] );
+        $ids = $ready ? $this->founder_profile_ids() : [];
+        ?>
+        <div class="smpi-founder-page">
+            <header class="smpi-founder-page-head">
+                <div>
+                    <p class="smpi-kicker">Publication people</p>
+                    <h2>Founder Profiles</h2>
+                    <p>Connect Verified Profile records to this publication. Search, add, and remove founders without leaving this screen.</p>
+                </div>
+                <div class="smpi-founder-count" aria-live="polite">
+                    <strong data-smpi-founder-count><?php echo esc_html( (string) count( $ids ) ); ?></strong>
+                    <span>Selected</span>
+                </div>
+            </header>
+        <?php
         if ( empty( $readiness["plugin_active"] ) || empty( $readiness["profile_cpt"] ) || empty( $readiness["profile_acf"] ) ) {
-            echo "<div class=\"smpi-alert smpi-alert-warning\"><strong>Verified Profiles setup required.</strong><p>Founder selection unlocks once all three requirements below are met.</p><div class=\"smpi-status-rows\"><div class=\"smpi-status-row\">" . self::ico( ! empty( $readiness["plugin_active"] ), true ) . "<span>Verified Profiles plugin active</span></div><div class=\"smpi-status-row\">" . self::ico( ! empty( $readiness["profile_cpt"] ), true ) . "<span>Profile content type active</span></div><div class=\"smpi-status-row\">" . self::ico( ! empty( $readiness["profile_acf"] ), true ) . "<span>Profile ACF fields enabled</span></div></div>" . $this->verified_profiles_setup_actions_html( $readiness ) . "</div></div>";
+            echo "<div class=\"smpi-founder-readiness smpi-founder-readiness--warning\"><div><strong>Verified Profiles setup required</strong><p>Founder selection unlocks once the plugin, Profile content type, and Profile ACF fields are active.</p><div class=\"smpi-status-rows\"><div class=\"smpi-status-row\">" . self::ico( ! empty( $readiness["plugin_active"] ), true ) . "<span>Verified Profiles plugin active</span></div><div class=\"smpi-status-row\">" . self::ico( ! empty( $readiness["profile_cpt"] ), true ) . "<span>Profile content type active</span></div><div class=\"smpi-status-row\">" . self::ico( ! empty( $readiness["profile_acf"] ), true ) . "<span>Profile ACF fields enabled</span></div></div></div>" . $this->verified_profiles_setup_actions_html( $readiness ) . "</div></div>";
             return;
         }
 
-        $ids = $this->founder_profile_ids();
-        echo "<div class=\"smpi-profile-picker\"><div class=\"smpi-smart-profile-search\">";
+        echo "<div class=\"smpi-founder-readiness smpi-founder-readiness--ready\"><div><span class=\"smpi-founder-status-dot\" aria-hidden=\"true\"></span><strong>Verified Profiles connected</strong><span>Profile records are available for founder assignment.</span></div><a class=\"button\" target=\"_blank\" rel=\"noopener noreferrer\" href=\"" . esc_url( $readiness["settings_url"] ?? admin_url( "options-general.php?page=smp-verified-profiles" ) ) . "\">Manage Verified Profiles</a></div>";
+        echo "<div class=\"smpi-profile-picker smpi-founder-workspace\"><section class=\"smpi-founder-search-section\"><div class=\"smpi-founder-section-copy\"><h3>Add a founder</h3><p>Search published Verified Profile records by name.</p></div><div class=\"smpi-smart-profile-search\">";
         ( new SmartSearchRenderer() )->render(
             [
                 "id"          => "smpi-founder-profile-core-search",
-                "label"       => "Add founder profile",
-                "placeholder" => "Search verified profile records",
+                "label"       => "Search Verified Profiles",
+                "placeholder" => "Search by profile name",
                 "source"      => "smpi_profiles",
                 "post_type"   => "profile",
                 "limit"       => 20,
             ]
         );
-        echo "<p class=\"smpi-muted\">Search verified profile posts by name, then add the founder profile to this publication.</p></div><span class=\"spinner\"></span><span class=\"smpi-save-state\"></span><div class=\"smpi-profile-results\" aria-live=\"polite\"></div>";
-        echo "<div class=\"smpi-founder-selected\">";
+        echo "</div><div class=\"smpi-founder-feedback\"><span class=\"spinner\"></span><span class=\"smpi-save-state\" aria-live=\"polite\"></span></div><div class=\"smpi-profile-results\" aria-live=\"polite\"></div></section>";
+        echo "<section class=\"smpi-founder-selection-section\"><div class=\"smpi-founder-section-copy\"><h3>Selected founders</h3><p>These profiles feed publication founder output and structured data.</p></div><div class=\"smpi-founder-selected\">";
         if ( empty( $ids ) ) {
             echo $this->empty_founder_profiles_html();
         } else {
@@ -368,7 +381,7 @@ class DashboardController {
                 echo $this->founder_profile_card_html( $id );
             }
         }
-        echo "</div></div></div>";
+        echo "</div></section></div></div>";
     }
 
     private function verified_profiles_setup_actions_html( array $readiness ): string {
@@ -434,13 +447,15 @@ class DashboardController {
         if ( ! $post || "profile" !== get_post_type( $post ) ) {
             return "";
         }
+        $title = get_the_title( $post ) ?: "Profile #" . (string) $profile_id;
+        $status = get_post_status( $post ) ?: "unknown";
         $thumb = get_the_post_thumbnail_url( $post, "thumbnail" );
-        $media = $thumb ? "<img src=\"" . esc_url( $thumb ) . "\" alt=\"\">" : "<span class=\"dashicons dashicons-id-alt\"></span>";
-        return "<div class=\"smpi-founder-profile-card\" data-profile-id=\"" . esc_attr( (string) $profile_id ) . "\"><div class=\"smpi-founder-thumb\">" . $media . "</div><div class=\"smpi-founder-info\"><strong>" . esc_html( get_the_title( $post ) ) . "</strong><p class=\"smpi-muted\">Profile #" . esc_html( (string) $profile_id ) . "</p><p><a class=\"button button-secondary\" target=\"_blank\" rel=\"noopener noreferrer\" href=\"" . esc_url( get_edit_post_link( $profile_id, "raw" ) ) . "\">Edit Profile</a> <a class=\"button button-secondary\" target=\"_blank\" rel=\"noopener noreferrer\" href=\"" . esc_url( get_permalink( $profile_id ) ) . "\">View Profile</a> <button type=\"button\" class=\"button smpi-remove-founder-profile\">Remove</button></p></div></div>";
+        $media = $thumb ? "<img src=\"" . esc_url( $thumb ) . "\" alt=\"" . esc_attr( $title . " profile photo" ) . "\">" : "<span class=\"dashicons dashicons-id-alt\" aria-hidden=\"true\"></span>";
+        return "<article class=\"smpi-founder-profile-card\" data-profile-id=\"" . esc_attr( (string) $profile_id ) . "\"><div class=\"smpi-founder-thumb\">" . $media . "</div><div class=\"smpi-founder-info\"><strong>" . esc_html( $title ) . "</strong><span>Verified Profile #" . esc_html( (string) $profile_id ) . " &middot; " . esc_html( ucfirst( $status ) ) . "</span></div><div class=\"smpi-founder-actions\"><a class=\"button button-secondary\" target=\"_blank\" rel=\"noopener noreferrer\" href=\"" . esc_url( get_edit_post_link( $profile_id, "raw" ) ) . "\">Edit</a><a class=\"button button-secondary\" target=\"_blank\" rel=\"noopener noreferrer\" href=\"" . esc_url( get_permalink( $profile_id ) ) . "\">View</a><button type=\"button\" class=\"button-link-delete smpi-remove-founder-profile\">Remove</button></div></article>";
     }
 
     private function empty_founder_profiles_html(): string {
-        return "<div class=\"smpi-empty-state smpi-empty-founder-profiles\"><strong>No founder profiles selected.</strong><p>Use the search above to add founder records from Verified Profiles.</p></div>";
+        return "<div class=\"smpi-empty-founder-profiles\"><span class=\"dashicons dashicons-groups\" aria-hidden=\"true\"></span><div><strong>No founder profiles selected</strong><p>Search above to connect the first Verified Profile.</p></div></div>";
     }
 
 
@@ -3546,11 +3561,12 @@ HTML;
             $(document).on(`click` ,`.smpi-shortcode-user-result`,function(){var u=$(this).data(`user`),wrap=$(this).closest(`.smpi-shortcode-user-picker`);wrap.find(`.smpi-shortcode-user-results`).empty();wrap.find(`.smpi-shortcode-user-search`).val(u.name||u.label);smpiLoadShortcodeUser(wrap,u)});
 
             function founderIds(panel){return panel.find(`.smpi-founder-profile-card`).map(function(){return $(this).data(`profile-id`)}).get()}
-            function founderEmptyHtml(){return `<div class="smpi-empty-state smpi-empty-founder-profiles"><strong>No founder profiles selected.</strong><p>Use the search above to add founder records from Verified Profiles.</p></div>`}
-            function profileCard(p){var id=parseInt(p.id,10)||0,media=p.thumbnail?`<img src="${smpiAttr(smpiSafeUrl(p.thumbnail))}" alt="">`:`<span class="dashicons dashicons-id-alt"></span>`;return `<div class="smpi-founder-profile-card" data-profile-id="${id}"><div class="smpi-founder-thumb">${media}</div><div class="smpi-founder-info"><strong>${smpiEscape(p.label||(`Profile #`+id))}</strong><p class="smpi-muted">Profile #${id}</p><p><a class="button button-secondary" target="_blank" rel="noopener noreferrer" href="${smpiAttr(smpiSafeUrl(p.edit_url))}">Edit Profile</a> <a class="button button-secondary" target="_blank" rel="noopener noreferrer" href="${smpiAttr(smpiSafeUrl(p.view_url))}">View Profile</a> <button type="button" class="button smpi-remove-founder-profile">Remove</button></p></div></div>`}
+            function founderEmptyHtml(){return `<div class="smpi-empty-founder-profiles"><span class="dashicons dashicons-groups" aria-hidden="true"></span><div><strong>No founder profiles selected</strong><p>Search above to connect the first Verified Profile.</p></div></div>`}
+            function updateFounderCount(panel){var page=panel.closest(`.smpi-founder-page`),count=founderIds(panel).length;page.find(`[data-smpi-founder-count]`).text(count)}
+            function profileCard(p){var id=parseInt(p.id,10)||0,label=p.label||(`Profile #`+id),status=p.status?String(p.status).charAt(0).toUpperCase()+String(p.status).slice(1):`Published`,media=p.thumbnail?`<img src="${smpiAttr(smpiSafeUrl(p.thumbnail))}" alt="${smpiAttr(label+` profile photo`)}">`:`<span class="dashicons dashicons-id-alt" aria-hidden="true"></span>`;return `<article class="smpi-founder-profile-card" data-profile-id="${id}"><div class="smpi-founder-thumb">${media}</div><div class="smpi-founder-info"><strong>${smpiEscape(label)}</strong><span>Verified Profile #${id} &middot; ${smpiEscape(status)}</span></div><div class="smpi-founder-actions"><a class="button button-secondary" target="_blank" rel="noopener noreferrer" href="${smpiAttr(smpiSafeUrl(p.edit_url))}">Edit</a><a class="button button-secondary" target="_blank" rel="noopener noreferrer" href="${smpiAttr(smpiSafeUrl(p.view_url))}">View</a><button type="button" class="button-link-delete smpi-remove-founder-profile">Remove</button></div></article>`}
             function smpiProfileFromCoreItem(item){var id=parseInt(item.id||item.value,10)||0;return{id:id,label:item.label||item.name||(`Profile #`+id),status:item.status||``,edit_url:item.edit_url||item.url||``,view_url:item.view_url||``,thumbnail:item.thumbnail||``}}
             document.addEventListener("hexa-search-selected",function(ev){if(!ev.detail||ev.detail.component_id!=="smpi-founder-profile-core-search")return;var p=smpiProfileFromCoreItem(ev.detail.item||{});if(!p.id)return;var wrap=$("#smpi-founder-profile-core-search").closest(".smpi-profile-picker"),selected=wrap.find(".smpi-founder-selected");if(!selected.find(".smpi-founder-profile-card[data-profile-id=\""+p.id+"\"]").length){selected.find(".smpi-empty-founder-profiles").remove();selected.append(profileCard(p));saveFounderProfiles(selected)}wrap.find(".hpc-smart-search-input").val("");wrap.find(".hpc-smart-search-selected").attr("hidden",true).empty();wrap.find(".hpc-smart-search-status").text("Added founder profile.")});
-            function saveFounderProfiles(panel){var ids=founderIds(panel),wrap=panel.closest(`.smpi-profile-picker`);wrap.find(`.spinner`).addClass(`is-active`);$.post(smpiAdmin.ajaxUrl,{action:`smpi_save_founder_profiles`,nonce:smpiAdmin.nonce,founder_profile_ids:ids}).done(function(x){wrap.find(`.smpi-save-state`).text(x.success?` Saved`:` Error`)}).always(function(){wrap.find(`.spinner`).removeClass(`is-active`)})}
+            function saveFounderProfiles(panel){var ids=founderIds(panel),wrap=panel.closest(`.smpi-profile-picker`),state=wrap.find(`.smpi-save-state`).first();updateFounderCount(panel);wrap.find(`.spinner`).addClass(`is-active`);state.removeClass(`is-saved is-error`).addClass(`is-saving`).text(`Saving...`);$.post(smpiAdmin.ajaxUrl,{action:`smpi_save_founder_profiles`,nonce:smpiAdmin.nonce,founder_profile_ids:ids}).done(function(x){var ok=!!(x&&x.success);state.removeClass(`is-saving`).addClass(ok?`is-saved`:`is-error`).text(ok?`Saved`:`Could not save`)}).fail(function(){state.removeClass(`is-saving`).addClass(`is-error`).text(`Could not save`)}).always(function(){wrap.find(`.spinner`).removeClass(`is-active`)})}
             var profileTimer=null;
             $(document).on(`input`,`.smpi-profile-search`,function(){var input=$(this),wrap=input.closest(`.smpi-profile-picker`),box=wrap.find(`.smpi-profile-results`),term=input.val();clearTimeout(profileTimer);if(term.length<2){box.empty();return}profileTimer=setTimeout(function(){wrap.find(`.spinner`).addClass(`is-active`);$.post(smpiAdmin.ajaxUrl,{action:`smpi_search_profiles`,nonce:smpiAdmin.nonce,term:term}).done(function(x){box.empty();if(!x.success||!x.data.profiles.length){box.html(`<p class="smpi-muted">No matching profiles.</p>`);return}$.each(x.data.profiles,function(i,p){var b=$(`<button type="button" class="button smpi-profile-result"></button>`).text(p.label+` (#`+p.id+`)`).data(`profile`,p);box.append(b)})}).always(function(){wrap.find(`.spinner`).removeClass(`is-active`)})},250)});
             $(document).on(`click`,`.smpi-profile-result`,function(){var p=$(this).data(`profile`),id=parseInt(p&&p.id,10)||0,wrap=$(this).closest(`.smpi-profile-picker`),selected=wrap.find(`.smpi-founder-selected`);if(id&&!selected.find(`.smpi-founder-profile-card[data-profile-id="${id}"]`).length){selected.find(`.smpi-empty-founder-profiles`).remove();selected.append(profileCard(p));saveFounderProfiles(selected)}wrap.find(`.smpi-profile-search`).val(``);wrap.find(`.smpi-profile-results`).empty()});

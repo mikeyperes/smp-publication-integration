@@ -8,7 +8,7 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `1.0.2`
+- Version: `1.0.3`
 
 ## Ownership
 
@@ -93,6 +93,12 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 1.0.3
+
+- Moved Founder Profiles from the Overview publication card into a dedicated Publication sidebar tab.
+- Rebuilt founder management as a compact, responsive screen while preserving Hexa WP Core search and AJAX assignment behavior.
+- Corrected the empty Core search-selection state and added live selected-profile counts and clearer save feedback.
 
 ### 1.0.2
 
