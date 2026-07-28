@@ -30,9 +30,19 @@ namespace {
     final class WP_Query {
         public array $posts = [];
         public int $found_posts = 0;
+        public $queried_object = null;
+        public int $queried_object_id = 0;
+        private array $query_vars = [];
+        private bool $author_archive = false;
         public function __construct( array $args = [] ) {
             $this->posts = [];
+            $this->author_archive = (bool) ( $args["is_author"] ?? false );
+            unset( $args["is_author"] );
+            $this->query_vars = $args;
         }
+        public function get( string $key, $default = "" ) { return $this->query_vars[ $key ] ?? $default; }
+        public function set( string $key, $value ): void { $this->query_vars[ $key ] = $value; }
+        public function is_author(): bool { return $this->author_archive; }
     }
 
     final class TestWpdb {
@@ -243,6 +253,7 @@ namespace {
 
     use smp_publication_integration\Authorship\AuthorAssignmentRepository;
     use smp_publication_integration\Authorship\AuthorContext;
+    use smp_publication_integration\Authorship\AuthorQueryIntegration;
     use smp_publication_integration\Authorship\ElementorAuthorRenderer;
     use smp_publication_integration\Authorship\LoopBylineRenderer;
     use smp_publication_integration\Content\MuckRackVerification;
@@ -255,6 +266,12 @@ namespace {
     }
 
     $repository = new AuthorAssignmentRepository();
+    $author_query = new WP_Query( [ "is_author" => true, "author_name" => "beta-author", "post_type" => "post" ] );
+    ( new AuthorQueryIntegration( $repository ) )->prepare_author_query( $author_query );
+    expect_same( 2, $author_query->queried_object_id, "Author archive identity is restored before Elementor evaluates Theme Builder conditions." );
+    expect_same( $GLOBALS["test_users"][2], $author_query->queried_object, "The early archive object is the requested WordPress author." );
+    expect_same( "", $author_query->get( "author_name" ), "Native author query variables are cleared only after the archive object is restored." );
+
     expect_same( [ 2, 1 ], $repository->normalize_ids( [ 2, 1, 2, 999, 0 ] ), "IDs retain order and remove duplicates/invalid users." );
     expect_same( [ 1, 2 ], $repository->ids_for_post( 10, false ), "Legacy ACF values are readable before migration." );
 

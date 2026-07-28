@@ -38,6 +38,15 @@ final class AuthorQueryIntegration {
             return;
         }
 
+        $author = get_user_by( "id", $author_id );
+        if ( ! $author instanceof \WP_User ) {
+            return;
+        }
+
+        // Elementor resolves archive conditions before the later wp action runs.
+        $query->queried_object = $author;
+        $query->queried_object_id = $author_id;
+
         $query->set( self::QUERY_VAR, $author_id );
         $query->set( "author", "" );
         $query->set( "author_name", "" );

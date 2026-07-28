@@ -8,7 +8,7 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `1.0.5`
+- Version: `1.0.6`
 
 ## Ownership
 
@@ -93,6 +93,10 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 1.0.6
+
+- Restored the native queried author object during `pre_get_posts` so Elementor Theme Builder author-archive conditions work consistently for cached, uncached, and authenticated requests.
 
 ### 1.0.5
 
