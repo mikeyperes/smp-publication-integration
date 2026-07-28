@@ -48,9 +48,10 @@ $checks = [
         && str_contains( $article, 'sans-serif);font-size:14px' )
         && str_contains( $article, ".smpi-sum02 .smpi-post-summary-title{margin:0 0 10px;font-size:11px" ),
     "Summary sum03 maps its header and contrast text." => str_contains( $article, ".smpi-sum03 .smpi-post-summary-title{margin:0;background:var(--smpi-summary-accent,#0a0a0a);color:var(--smpi-summary-accent-ink,#fff)" ),
-    "Summary sum04 maps its panel tint, title, and icon." => str_contains( $article, ".smpi-sum04{background:var(--smpi-summary-background,var(--smpi-summary-accent-soft,#eff4ff))" )
-        && str_contains( $article, ".smpi-sum04 .smpi-post-summary-title{margin:0 0 14px;font-size:1.05rem;font-weight:800;color:var(--smpi-summary-accent,#1e3a8a)" )
-        && str_contains( $article, '.smpi-sum04 .smpi-post-summary-title:before{content:\"\";width:18px;height:18px;border-radius:5px;background:var(--smpi-summary-accent,#2563eb)' ),
+    "Summary sum04 uses a compact secondary-content treatment with mapped accents." => str_contains( $article, ".smpi-sum04{background:var(--smpi-summary-background,var(--smpi-summary-accent-soft,#eff4ff));border:1px solid rgba(15,23,42,.08);border-radius:6px;box-shadow:none;font-size:14px;line-height:1.45;padding:18px 20px}" )
+        && str_contains( $article, ".smpi-sum04 .smpi-post-summary-title{align-items:center;color:var(--smpi-summary-accent,#1e3a8a);display:flex;font-size:12px;font-weight:700" )
+        && str_contains( $article, '.smpi-sum04 .smpi-post-summary-title:before{background:var(--smpi-summary-accent,#2563eb);border-radius:2px;content:\"\";height:10px;width:10px}' )
+        && str_contains( $article, ".smpi-sum04 .smpi-post-summary-item{line-height:1.45;margin:0 0 4px}" ),
     "Summary sum05 maps only its title and diamond bullet accents." => str_contains( $article, ".smpi-sum05{background:var(--smpi-summary-background,#fff);border:1px solid #d8dee8" )
         && str_contains( $article, ".smpi-sum05 .smpi-post-summary-title{align-items:center;color:var(--smpi-summary-accent,#00ff41)" )
         && str_contains( $article, ".smpi-sum05 .smpi-post-summary-item::before{border:1px solid var(--smpi-summary-accent,#00ff41)" )

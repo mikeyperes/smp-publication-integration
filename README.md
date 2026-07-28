@@ -8,7 +8,7 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `1.0.4`
+- Version: `1.0.5`
 
 ## Ownership
 
@@ -93,6 +93,10 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 1.0.5
+
+- Refined the soft-tint Summary template as compact secondary content with smaller typography, tighter spacing, sharper corners, and a restrained border and title marker.
 
 ### 1.0.4
 
