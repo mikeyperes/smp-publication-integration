@@ -31,5 +31,24 @@ assert_muckrack_placement(
     false !== strpos( $source, 'pair.querySelector(":scope > .smpi-muckrack-author-label")' ),
     "Badge cleanup must unwrap generated author labels before reinjection."
 );
+assert_muckrack_placement(
+    false !== strpos( $source, "function isProseNameTarget(el)" )
+        && false !== strpos( $source, ".smpi-author-bio,.elementor-author-box__bio,.elementor-author-box__text" )
+        && false === strpos( $source, '.elementor-icon-list-text,.elementor-author-box__name,*' ),
+    "Author-name detection must reject biography prose instead of scanning every descendant."
+);
+assert_muckrack_placement(
+    false !== strpos( $source, "function containsLoop(el)" )
+        && false !== strpos( $source, "isLoop(el)||containsLoop(el)" )
+        && false !== strpos( $source, 'footerInLoop=icon.classList.contains("smpi-muckrack-context-single_footer")&&isLoop(icon)' ),
+    "Footer author detection must reject related-post loops and remove misplaced footer badges."
+);
+assert_muckrack_placement(
+    false !== strpos( $source, "function bestNameTarget(root,name)" )
+        && false !== strpos( $source, "if(target)return [{el:target,root:cards[i]}]" )
+        && false !== strpos( $source, "fallback=exactTextTargets(document,data.authorName).filter" )
+        && false !== strpos( $source, "!isLoop(el)&&(floor===null||y(el)>=floor-2)" ),
+    "Footer author detection must select one highest-ranked semantic name target."
+);
 
 echo "PASS: MuckRack pagination cleanup preserves the existing author-page placement flow." . PHP_EOL;

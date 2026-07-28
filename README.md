@@ -8,7 +8,7 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `1.0.6`
+- Version: `1.0.7`
 
 ## Ownership
 
@@ -93,6 +93,12 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 1.0.7
+
+- Replaced wildcard MuckRack author-name matching with ranked semantic targets for author links, headings, author boxes, image/icon-box titles, and bylines.
+- Excluded biographies, excerpts, article copy, pagination, and post loops from author badge placement.
+- Limited footer verification to one author-name target so badges stay beside the displayed author title across custom Elementor layouts.
 
 ### 1.0.6
 

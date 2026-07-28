@@ -117,8 +117,12 @@ $checks = [
     'Frontend injection does not promote author text to a card-wide link.' => str_contains( $muckrack, 'norm(link.textContent)===norm(el.textContent)' )
         && ! str_contains( $muckrack, 'el.closest("a[href]")||el' ),
     'Repeated placement passes do not append a second badge to a pair.' => str_contains( $muckrack, 'if(existing){if(hasBadge(existing))return false;' ),
-    'Single-post header placement supports exact author text without requiring a link.' => str_contains( $muckrack, 'exactTextTargets(document,data.authorName).forEach' )
-        && str_contains( $muckrack, 'link===el||link.contains(el)||el.contains(link)' ),
+    'Single-post placement ranks semantic author-name targets without requiring a link.' => str_contains( $muckrack, 'function nameTargetScore(el)' )
+        && str_contains( $muckrack, 'function bestNameTarget(root,name)' )
+        && str_contains( $muckrack, 'exactTextTargets(document,data.authorName).forEach' ),
+    'Biography prose is excluded from author badge targeting.' => str_contains( $muckrack, 'function isProseNameTarget(el)' )
+        && str_contains( $muckrack, '.smpi-author-bio,.elementor-author-box__bio,.elementor-author-box__text' )
+        && ! str_contains( $muckrack, '.elementor-icon-list-text,.elementor-author-box__name,*' ),
     'Badge pairs override Elementor full-width links without collapsing author names.' => str_contains( $muckrack, '.smpi-muckrack-inline-pair>.smpi-muckrack-author-label{min-width:min-content;word-break:normal;overflow-wrap:normal}' )
         && str_contains( $muckrack, '.smpi-muckrack-inline-pair>.smpi-muckrack-link{width:auto!important;max-width:none}' ),
     'Elementor-cloned authors use the same pair contract.' => str_contains( $elementor, '$pair->setAttribute( "class", "smpi-muckrack-inline-pair" )' ),
