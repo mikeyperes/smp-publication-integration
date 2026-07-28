@@ -229,7 +229,6 @@ class SchemaManager {
             "about" => [ "@id" => $org_id ],
             "publisher" => [ "@id" => $org_id ],
             "mainEntity" => [ "@id" => $list_id ],
-            "hasPart" => [ [ "@id" => $list_id ] ],
             "inLanguage" => get_bloginfo( "language" ) ?: "en-US",
             "dateModified" => $last_modified,
         ] );

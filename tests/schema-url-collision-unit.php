@@ -43,6 +43,11 @@ namespace {
     function attachment_url_to_postid( string $url ): int { return 0; }
     function get_user_meta( int $user_id, string $field, bool $single = true ) { return ''; }
     function get_permalink( int $post_id = 0 ): string { return $post_id > 0 ? 'https://herforward.com/page-' . $post_id . '/' : ''; }
+    function get_lastpostmodified( string $timezone = 'server' ): string { return '2026-07-28 20:43:10'; }
+    function mysql2date( string $format, string $date, bool $translate = true ): string { return '2026-07-28T20:43:10+00:00'; }
+    function current_time( string $type, bool $gmt = false ): string { return '2026-07-28T20:43:10+00:00'; }
+    function post_type_exists( string $post_type ): bool { return false; }
+    function get_posts( array $args = [] ): array { return []; }
 }
 
 namespace smp_publication_integration\Support {
@@ -95,5 +100,23 @@ namespace {
         $fail( 'The publication entity retained malformed schema URL values.' );
     }
 
-    echo "PASS: SMP rejects colliding ACF option groups and emits a valid publication URL.\n";
+    $home_schema = $manager->generate_home_schema_array();
+    $collection  = [];
+    $item_list   = [];
+    foreach ( $home_schema['@graph'] ?? [] as $node ) {
+        if ( 'CollectionPage' === ( $node['@type'] ?? '' ) ) {
+            $collection = $node;
+        }
+        if ( 'ItemList' === ( $node['@type'] ?? '' ) ) {
+            $item_list = $node;
+        }
+    }
+    if ( '' === (string) ( $item_list['@id'] ?? '' ) || ( $collection['mainEntity']['@id'] ?? '' ) !== $item_list['@id'] ) {
+        $fail( 'CollectionPage.mainEntity does not resolve to the homepage ItemList.' );
+    }
+    if ( isset( $collection['hasPart'] ) ) {
+        $fail( 'CollectionPage.hasPart must not reference ItemList, which is not a CreativeWork.' );
+    }
+
+    echo "PASS: SMP rejects colliding ACF option groups and emits valid publication and homepage relationships.\n";
 }
