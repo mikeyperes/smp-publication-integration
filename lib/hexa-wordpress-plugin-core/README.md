@@ -44,6 +44,7 @@ hexa-wordpress-plugin-core/
     FaqSets/            -> Hexa\PluginCore\FaqSets
     GettingStartedChecklist/
                         -> Hexa\PluginCore\GettingStartedChecklist
+    IntegrationTests/   -> Hexa\PluginCore\IntegrationTests
     LogFiles/           -> Hexa\PluginCore\LogFiles
     MediaUploads/       -> Hexa\PluginCore\MediaUploads
     ObjectCache/        -> Hexa\PluginCore\ObjectCache
@@ -72,6 +73,12 @@ hexa-wordpress-plugin-core/
 
 Version 1.0.0 establishes the shared Core contracts as the stable major baseline for Hexa WordPress plugins. It consolidates reusable content-type and ACF registration, optional canonical entity sources, schema document handling, admin UI, AJAX, updater, search, cleanup, and frontend display infrastructure behind the `Hexa\PluginCore` namespace.
 
+Version 1.1.2 renders canonical-entity social links as labeled rows with complete clickable URLs and makes disabled Core-managed ACF groups suppress active database copies that share the same group key.
+
+Version 1.1.3 separates the complete WordPress/ACF entity field inventory into a reusable renderer so host plugins can place it in their field-management area without duplicating it inside the primary-entity selector.
+
+Version 1.1.4 adds an opt-in unconfigured website-type state, an intentional empty primary-entity presentation, and reliable hidden-state styling for empty Smart Search selections.
+
 ## Schema Tools
 
 The 1.x line includes reusable schema graph helpers and a generic schema dashboard renderer. Host plugins can build their own schema objects, expose debug JSON, show ideal-vs-actual graph examples, provide validator links, render collapsed shortcode cards, and pass plugin-specific schema action panels through HexaWP Core instead of duplicating dashboard UI.
@@ -92,11 +99,12 @@ Do not create `HWS\BaseTools\PluginCore`, `HexaWordPressPluginCore`, `Hexa\Core`
 - `ContentTypes`: immutable WordPress post-type keys with reusable registration, editable labels and rewrite slugs, ACF group toggles, guarded AJAX persistence, and a shared collapsed-by-default management UI.
 - `CredentialVault`: encrypted API-key/secret storage, masking, and credential field examples.
 - `DatabaseCleanup`: guarded provider-backed cleanup sessions, per-task cleanup, per-table optimization, pre/post provider state restoration, and live AJAX progress.
-- `EntitySources`: optional canonical website/entity selection, legacy migration, user/post resolution, attached-author extraction, field inspection, and reusable admin UI.
+- `EntitySources`: optional canonical website/entity selection, derived semantic types, legacy migration, user/post resolution, complete author/profile cards, attached-author extraction, field inspection, and reusable admin UI.
 - `FieldStructures`: reusable ACF group registration and settings panels plus displays and status checks for ACF groups, custom post types, taxonomies, and option-backed feature structures.
 - `FrontendForms`: canonical public field schemas plus WordPress-safe WYSIWYG normalization and plain-text projection.
 - `FaqSets`: shared FAQ set sanitizing, item normalization, primary-set resolution, safe answer links, FAQPage schema, and reusable list or accordion output.
 - `GettingStartedChecklist`: reusable plugin startup/onboarding checklist UI, collapsible parent steps, typed step/subtask registration, guarded AJAX execution, sequential subtask processing, request metadata payloads, spinner/check/X states, callback result normalization, reusable destructive sample runner, deleted-post/deleted-file reports, image preview report assets, and collapsed dark technical activity logs.
+- `IntegrationTests`: automatic Core and host release checks, plugin-defined test registration, exception-safe pass/fail execution, capability-protected HTML and JSON report URLs, detailed expected/actual output, and per-test timing.
 - `LogFiles`: shared error-log source definitions, tail readers, classifiers, search/highlight UI, and renderers.
 - `MediaUploads`: reusable image MIME, extension, and size policy plus guarded WordPress Media Library storage.
 - `ObjectCache`: provider-specific object-cache status and activation adapters, including verified LiteSpeed Redis checks.
@@ -106,8 +114,8 @@ Do not create `HWS\BaseTools\PluginCore`, `HexaWordPressPluginCore`, `Hexa\Core`
 - `SnippetRegistry`: shared snippet definitions, option toggles, test rules, related snippets, related shortcodes, basic README rendering, generic AJAX handlers, and the canonical snippets table UI.
 - `ShortcodeRegistry`: shortcode definition registry, dashboard display renderer, examples, live output, and test runner contracts.
 - `SiteStructure`: reusable critical page blueprint management, assigned page storage, WordPress navigation menu creation, custom menu-item creation, add-all-assigned-pages actions, menu structure attachment, and page-to-menu-item tools.
-- `SchemaDetection`: reusable JSON-LD URL scans, source detection, duplicate schema conflict checks, FAQ validation, and dark admin report rendering.
-- `SchemaTools`: shared schema-document normalization, graph-node deduplication, JSON-LD rendering, and one-shot WordPress output injection while host plugins retain their schema builders.
+- `SchemaDetection`: reusable JSON-LD URL scans, source detection, semantic property validation, duplicate schema conflict checks, FAQ validation, and dark admin report rendering.
+- `SchemaTools`: shared schema-document normalization, typed HTTP(S) URL guards, fail-closed URL-property sanitization, graph-node deduplication, JSON-LD rendering, and one-shot WordPress output injection while host plugins retain their schema builders.
 - `SearchDisplay`: five reusable front-end WordPress search-form templates with shared markup, CSS, and accessible interactions.
 - `SearchQuery`: bounded native WordPress result matching for all/any/exact terms, whole/prefix/contains word modes, selected post types and sources, one-query-only SQL hooks, and guarded JetEngine search-template bridging.
 - `SmartSearch`: smart search/X-Search AJAX endpoint and reusable typeahead renderer.
@@ -186,6 +194,7 @@ Before adding implementations in another Codex or Claude chat, read:
 - `docs/folder-map.md`
 - `docs/setup-protocol.md`
 - `docs/implementation-checklist.md`
+- `docs/integration-tests.md`
 - `docs/new-plugin-master-checklist.md`
 - `docs/content-cleanup.md`
 - `docs/content-types.md`
@@ -779,7 +788,7 @@ The sidebar is expanded by default, uses a 214px desktop rail, collapses to an i
 
 ## Schema Detection
 
-`Hexa\PluginCore\SchemaDetection\SchemaPageScanner` fetches public URLs and extracts JSON-LD schema blocks into structured payloads. `Hexa\PluginCore\SchemaDetection\SchemaScanRenderer` renders those payloads as a dark admin report with source labels, duplicate-type conflict warnings, invalid JSON rows, and FAQPage validation. Host plugins keep their own expectations and pass those expected rows into the renderer. See `docs/schema-detection.md`.
+`Hexa\PluginCore\SchemaDetection\SchemaPageScanner` fetches public URLs and extracts JSON-LD schema blocks into structured payloads. It also uses `SchemaGraph::validation_issues()` so malformed URL-property values fail even when the JSON itself is valid. `Hexa\PluginCore\SchemaDetection\SchemaScanRenderer` renders those payloads as a dark admin report with source labels, semantic property paths, duplicate-type conflict warnings, invalid JSON rows, and FAQPage validation. Host plugins keep their own expectations and pass those expected rows into the renderer. See `docs/schema-detection.md`.
 
 ```php
 echo ( new \Hexa\PluginCore\SchemaDetection\SchemaScanRenderer() )->renderReport( [ $scan ], [ "title" => "Schema Detection Results" ] );

@@ -8,7 +8,7 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `1.0.7`
+- Version: `1.0.8`
 
 ## Ownership
 
@@ -64,7 +64,7 @@ Quick Start contains only the reusable checklist workflow and is the second tab.
 
 `smp-publication-integration.php` is the canonical plugin entry. `initialization.php` is a compatibility loader for older active-plugin records.
 
-Namespaced domain code lives under `src/`. Reusable UI, AJAX, updater, CPT, ACF, entity, FAQ, schema, taxonomy, activity-log, color, typography, and template infrastructure comes from Hexa WordPress Plugin Core 1.0.0.
+Namespaced domain code lives under `src/`. Reusable UI, AJAX, updater, CPT, ACF, entity, FAQ, schema, taxonomy, activity-log, color, typography, and template infrastructure comes from Hexa WordPress Plugin Core 1.1.5.
 
 The plugin updater targets the repository's canonical `main` branch and registers `Hexa\PluginCore\PluginUpdates\GitHubPluginUpdater` directly.
 
@@ -74,7 +74,7 @@ The plugin updater targets the repository's canonical `main` branch and register
 | --- | --- |
 | WordPress | 5.0 |
 | PHP | 8.0 |
-| Hexa WP Core bundle | 1.0.0 |
+| Hexa WP Core bundle | 1.1.5 |
 
 ACF Pro is required for publication option and content field groups. Feature-specific integrations require their corresponding plugins.
 
@@ -93,6 +93,13 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 1.0.8
+
+- Added typed publication URL resolution that skips malformed option values and continues through valid aliases and sources before using the current site URL.
+- Added fail-closed schema URL sanitization after graph filters plus semantic integrity reporting for syntactically valid JSON-LD with invalid property types.
+- Prevented unrelated ACF option groups from leaking into schema, publication profile, and MuckRack URLs.
+- Updated the complete bundled Hexa WordPress Plugin Core package to 1.1.5 with URL guards and semantic schema scan reporting.
 
 ### 1.0.7
 

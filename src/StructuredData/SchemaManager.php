@@ -234,7 +234,7 @@ class SchemaManager {
             "dateModified" => $last_modified,
         ] );
 
-        return [ "@context" => "https://schema.org", "@graph" => [ $org, $website, $collection, $item_list ] ];
+        return $this->clean_schema( [ "@context" => "https://schema.org", "@graph" => [ $org, $website, $collection, $item_list ] ] );
     }
 
     public function generate_single_schema_array( int $post_id ): array {
@@ -340,7 +340,8 @@ class SchemaManager {
 
         $graph = array_values( array_filter( array_merge( [ $org, $website, $webpage, $article ], $authors, [ $image, $breadcrumb, $faq ] ) ) );
         $schema = [ "@context" => "https://schema.org", "@graph" => $graph ];
-        return apply_filters( "smpi_single_schema_array", $schema, $post_id );
+        $filtered = apply_filters( "smpi_single_schema_array", $schema, $post_id );
+        return $this->clean_schema( is_array( $filtered ) ? $filtered : $schema );
     }
 
     public static function schema_types( array $schema ): array {
@@ -362,9 +363,9 @@ class SchemaManager {
         }
 
         $org = $schema["@graph"][0] ?? [];
-        foreach ( [ "name", "url", "logo" ] as $property ) {
-            $checks[] = [ "label" => "Publisher " . $property . " populated", "status" => ! empty( $org[ $property ] ) ? "green" : "yellow" ];
-        }
+        $checks[] = [ "label" => "Publisher name populated", "status" => ! empty( $org["name"] ) ? "green" : "yellow" ];
+        $checks[] = [ "label" => "Publisher URL is a valid HTTP(S) URL", "status" => "" !== SchemaGraph::web_url( $org["url"] ?? "" ) ? "green" : "red" ];
+        $checks[] = [ "label" => "Publisher logo populated", "status" => ! empty( $org["logo"] ) ? "green" : "yellow" ];
         foreach ( [ "publishingPrinciples", "verificationFactCheckingPolicy", "correctionsPolicy", "ethicsPolicy", "masthead", "ownershipFundingInfo" ] as $property ) {
             $checks[] = [ "label" => "Publisher " . $property . " populated", "status" => ! empty( $org[ $property ] ) ? "green" : "yellow" ];
         }
@@ -379,7 +380,13 @@ class SchemaManager {
             ];
         }
 
-        return [ "context" => $post_id ? "single" : "home", "post_id" => $post_id, "types" => $types, "checks" => $checks ];
+        $semantic_issues = SchemaGraph::validation_issues( $schema );
+        $checks[] = [
+            "label" => $semantic_issues ? count( $semantic_issues ) . " malformed schema property value(s) detected" : "Schema property values are semantically valid",
+            "status" => $semantic_issues ? "red" : "green",
+        ];
+
+        return [ "context" => $post_id ? "single" : "home", "post_id" => $post_id, "types" => $types, "checks" => $checks, "semantic_issues" => $semantic_issues ];
     }
 
     public static function faq_rows_for_post( int $post_id, bool $schema_only = true ): array {
@@ -404,7 +411,7 @@ class SchemaManager {
 
     private function publication_entity(): array {
         $canonical = Fields::canonical_entity();
-        $website = Fields::option( "website", home_url( "/" ) );
+        $website = Fields::option_url( "website", home_url( "/" ) );
         $summary = Fields::raw_option( "smpi_publication_summary" );
         if ( ! Fields::has_value( $summary ) ) {
             $summary = Fields::option( "summary" );
@@ -440,7 +447,7 @@ class SchemaManager {
             "name" => $canonical ? (string) $canonical['name'] : get_bloginfo( "name" ),
             "legalName" => $this->text_field( "legal_name" ),
             "alternateName" => $this->csv_field( "alternate_name" ),
-            "url" => $website ?: home_url( "/" ),
+            "url" => $website,
             "description" => wp_strip_all_tags( (string) ( $summary ?: $mission ?: get_bloginfo( "description" ) ) ),
             "slogan" => wp_strip_all_tags( (string) $mission ),
             "logo" => $logo,
@@ -654,14 +661,14 @@ class SchemaManager {
         $height = null;
         $attachment_id = 0;
         if ( is_array( $logo ) && ! empty( $logo["url"] ) ) {
-            $url = esc_url_raw( (string) $logo["url"] );
+            $url = SchemaGraph::web_url( $logo["url"] );
             $width = isset( $logo["width"] ) ? (int) $logo["width"] : null;
             $height = isset( $logo["height"] ) ? (int) $logo["height"] : null;
             $attachment_id = absint( $logo["ID"] ?? $logo["id"] ?? 0 );
         } elseif ( is_numeric( $logo ) ) {
             $attachment_id = absint( $logo );
         } elseif ( is_string( $logo ) ) {
-            $url = esc_url_raw( $logo );
+            $url = SchemaGraph::web_url( $logo );
         }
 
         if ( ! $attachment_id && $url && function_exists( "attachment_url_to_postid" ) ) {
@@ -670,7 +677,7 @@ class SchemaManager {
         if ( $attachment_id && ( ! $url || ! $width || ! $height ) ) {
             $src = wp_get_attachment_image_src( $attachment_id, "full" );
             if ( $src ) {
-                $url = $url ?: esc_url_raw( (string) $src[0] );
+                $url = $url ?: SchemaGraph::web_url( $src[0] ?? "" );
                 $width = $width ?: ( isset( $src[1] ) ? (int) $src[1] : null );
                 $height = $height ?: ( isset( $src[2] ) ? (int) $src[2] : null );
             }
@@ -679,11 +686,11 @@ class SchemaManager {
             $site_icon_id = absint( get_option( "site_icon" ) );
             $src = $site_icon_id ? wp_get_attachment_image_src( $site_icon_id, "full" ) : false;
             if ( $src ) {
-                $url = esc_url_raw( (string) $src[0] );
+                $url = SchemaGraph::web_url( $src[0] ?? "" );
                 $width = isset( $src[1] ) ? (int) $src[1] : null;
                 $height = isset( $src[2] ) ? (int) $src[2] : null;
             } else {
-                $url = get_site_icon_url( 512 );
+                $url = SchemaGraph::web_url( get_site_icon_url( 512 ) );
                 if ( $url ) {
                     $width = 512;
                     $height = 512;
@@ -760,8 +767,8 @@ class SchemaManager {
         if ( is_numeric( $value ) ) {
             return (string) get_permalink( (int) $value );
         }
-        if ( is_string( $value ) && filter_var( $value, FILTER_VALIDATE_URL ) ) {
-            return esc_url_raw( $value );
+        if ( is_string( $value ) ) {
+            return SchemaGraph::web_url( $value );
         }
         return "";
     }
@@ -771,7 +778,7 @@ class SchemaManager {
         if ( ! $name ) {
             return [];
         }
-        return $this->clean_schema( [ "@type" => "Place", "name" => wp_strip_all_tags( (string) $name ), "sameAs" => Fields::option( "headquarters_wikipedia_url" ) ] );
+        return $this->clean_schema( [ "@type" => "Place", "name" => wp_strip_all_tags( (string) $name ), "sameAs" => Fields::option_url( "headquarters_wikipedia_url" ) ] );
     }
 
     private function place_from_fields( string $name_field, string $url_field ): array {
@@ -779,7 +786,7 @@ class SchemaManager {
         if ( ! $name ) {
             return [];
         }
-        return $this->clean_schema( [ "@type" => "Place", "name" => wp_strip_all_tags( (string) $name ), "sameAs" => Fields::option( $url_field ) ] );
+        return $this->clean_schema( [ "@type" => "Place", "name" => wp_strip_all_tags( (string) $name ), "sameAs" => Fields::option_url( $url_field ) ] );
     }
 
     private function postal_address(): array {
@@ -800,13 +807,13 @@ class SchemaManager {
     private function parent_organization(): array {
         $group = Fields::option( "parent_organization", [] );
         $name = is_array( $group ) ? ( $group["name"] ?? "" ) : "";
-        $url = is_array( $group ) ? ( $group["url"] ?? "" ) : "";
+        $url = is_array( $group ) ? SchemaGraph::web_url( $group["url"] ?? "" ) : "";
 
         if ( ! $name ) {
             $name = Fields::option( "parent_organization_name" );
         }
         if ( ! $url ) {
-            $url = Fields::option( "parent_organization_url" );
+            $url = Fields::option_url( "parent_organization_url" );
         }
         if ( ! $name && ! $url ) {
             return [];
@@ -824,13 +831,13 @@ class SchemaManager {
             if ( ! is_array( $row ) ) {
                 continue;
             }
-            $items[] = $this->clean_schema( [ "@type" => "ContactPoint", "contactType" => $row["contact_type"] ?? "", "email" => $row["email"] ?? "", "telephone" => $row["telephone"] ?? "", "url" => $row["url"] ?? "" ] );
+            $items[] = $this->clean_schema( [ "@type" => "ContactPoint", "contactType" => $row["contact_type"] ?? "", "email" => $row["email"] ?? "", "telephone" => $row["telephone"] ?? "", "url" => SchemaGraph::web_url( $row["url"] ?? "" ) ] );
         }
         return array_values( array_filter( $items ) );
     }
 
     private function publication_same_as( int $user_id ): array {
-        $items = array_values( array_filter( [ Fields::option( "google_news_url" ), Fields::option( "headquarters_wikipedia_url" ), Fields::option( "publication_muckrack_url" ) ] ) );
+        $items = array_values( array_filter( [ Fields::option_url( "google_news_url" ), Fields::option_url( "headquarters_wikipedia_url" ), Fields::option_url( "publication_muckrack_url" ) ] ) );
         return array_values( array_unique( array_merge( $items, $this->user_same_as( $user_id ) ) ) );
     }
 
@@ -843,8 +850,9 @@ class SchemaManager {
             $value = \Hexa\PluginCore\EntitySources\CanonicalEntityResolver::field( $entity, $field, [] );
             foreach ( is_array( $value ) ? $value : [ $value ] as $item ) {
                 $url = is_array( $item ) ? (string) ( $item['url'] ?? $item['same_as'] ?? '' ) : (string) $item;
-                if ( filter_var( $url, FILTER_VALIDATE_URL ) ) {
-                    $items[] = esc_url_raw( $url );
+                $url = SchemaGraph::web_url( $url );
+                if ( "" !== $url ) {
+                    $items[] = $url;
                 }
             }
         }
@@ -859,8 +867,9 @@ class SchemaManager {
         $items = [];
         foreach ( $fields as $field ) {
             $value = $this->user_field( $user_id, $field );
-            if ( is_scalar( $value ) && $value && filter_var( (string) $value, FILTER_VALIDATE_URL ) ) {
-                $items[] = esc_url_raw( (string) $value );
+            $url = SchemaGraph::web_url( $value );
+            if ( "" !== $url ) {
+                $items[] = $url;
             }
         }
         return array_values( array_unique( $items ) );
@@ -877,6 +886,6 @@ class SchemaManager {
     }
 
     private function clean_schema( array $schema ): array {
-        return SchemaGraph::clean( $schema );
+        return SchemaGraph::sanitize_urls( $schema );
     }
 }

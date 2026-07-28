@@ -43,6 +43,7 @@ The package version is stored in the root `VERSION` file. Root `bootstrap.php` s
 | `src/FrontendForms/` | `Hexa\PluginCore\FrontendForms` | Canonical public form-field schemas, WYSIWYG sanitization, and plain-text projection. |
 | `src/FaqSets/` | `Hexa\PluginCore\FaqSets` | FAQ set sanitizing, item normalization, primary-set resolution, safe answer links, FAQPage schema, and reusable list or accordion output. |
 | `src/GettingStartedChecklist/` | `Hexa\PluginCore\GettingStartedChecklist` | Reusable getting-started checklist config, step/subtask definitions, guarded AJAX runner, sequential setup UI, and technical activity logs. |
+| `src/IntegrationTests/` | `Hexa\PluginCore\IntegrationTests` | Core/host release assertions, deterministic runner, protected HTML/JSON endpoint, and detailed pass/fail report UI. |
 | `src/LogFiles/` | `Hexa\PluginCore\LogFiles` | Error-log sources, readers, classifiers, and reusable viewer panels. |
 | `src/MediaUploads/` | `Hexa\PluginCore\MediaUploads` | Reusable image validation and guarded WordPress Media Library storage. |
 | `src/ObjectCache/` | `Hexa\PluginCore\ObjectCache` | Object-cache provider status and activation adapters. |

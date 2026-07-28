@@ -46,6 +46,7 @@ src/EntitySources/      Hexa\PluginCore\EntitySources
 src/FaqSets/            Hexa\PluginCore\FaqSets
 src/FieldStructures/    Hexa\PluginCore\FieldStructures
 src/FrontendForms/      Hexa\PluginCore\FrontendForms
+src/IntegrationTests/   Hexa\PluginCore\IntegrationTests
 src/LogFiles/           Hexa\PluginCore\LogFiles
 src/MediaUploads/       Hexa\PluginCore\MediaUploads
 src/ObjectCache/        Hexa\PluginCore\ObjectCache
@@ -88,6 +89,7 @@ Never make a module boot itself at file include time. Modules register hooks fro
 - Put runtime value objects and version metadata in `src/CoreRuntime`.
 - Put reusable immutable-key CPT definitions, settings, registration, AJAX, and UI in `src/ContentTypes`; hosts own the actual content-type definitions and business rules.
 - Put optional canonical website/entity selection, attached-user resolution, source migration, field inspection, and UI in `src/EntitySources`.
+- Put non-mutating Core/host release checks, pass/fail normalization, protected report endpoints, and report UI in `src/IntegrationTests`; hosts register only their plugin-specific assertions.
 - Put reusable database cleanup sessions, table optimization, provider activation, and live row reporting in `src/DatabaseCleanup`.
 - Put reusable object-cache provider status and activation adapters in `src/ObjectCache`.
 - Put admin tab abstractions in `src/WpAdminTabs`.

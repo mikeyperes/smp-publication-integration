@@ -23,7 +23,7 @@ FieldStructureManager
 FieldStructureRenderer
 ```
 
-`AcfFieldGroupRegistry` is the single registration path for host-owned local ACF groups. A host supplies established group arrays or callbacks, option names, capability, and AJAX names. Core owns the `acf/init` hook, enable-state persistence, generic toggle UI, and guarded save response. `AcfSettingsPanel` embeds selected existing ACF groups inside a host dashboard tab while preserving their option storage.
+`AcfFieldGroupRegistry` is the single registration path for host-owned local ACF groups. A host supplies established group arrays or callbacks, option names, capability, and AJAX names. Core owns the `acf/init` hook, enable-state persistence, generic toggle UI, and guarded save response. When a managed group is disabled, Core also marks a database-imported copy with the same group key inactive so old ACF imports cannot bypass the toggle. `AcfSettingsPanel` embeds selected existing ACF groups inside a host dashboard tab while preserving their option storage.
 
 ## ACF Field Factory
 

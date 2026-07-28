@@ -4,6 +4,7 @@ namespace Hexa\PluginCore\CoreBootstrap;
 
 use Hexa\PluginCore\CoreContracts\ModuleInterface;
 use Hexa\PluginCore\CoreContracts\PluginContextInterface;
+use Hexa\PluginCore\IntegrationTests\IntegrationTestRuntime;
 
 final class CoreBootstrap {
     private PluginContextInterface $context;
@@ -34,6 +35,8 @@ final class CoreBootstrap {
             return;
         }
 
+        IntegrationTestRuntime::register_host( $this->context );
+
         foreach ( $this->modules as $module ) {
             $module->register();
         }
@@ -41,4 +44,3 @@ final class CoreBootstrap {
         $this->booted = true;
     }
 }
-

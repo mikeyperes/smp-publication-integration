@@ -95,6 +95,7 @@ require $core . "/src/BrandColors/TemplateColorResolver.php";
 require $core . "/src/Typography/TypographyPreservation.php";
 require $core . "/src/Typography/TemplateTypography.php";
 require $core . "/src/GettingStartedChecklist/ChecklistReportBuilder.php";
+require $core . "/src/SchemaTools/SchemaGraph.php";
 require $root . "/src/Design/TemplateDesignRegistry.php";
 require $root . "/src/Design/TemplateBackground.php";
 require $root . "/src/Settings/SettingsRepository.php";

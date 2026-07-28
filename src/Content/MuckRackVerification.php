@@ -526,7 +526,7 @@ SMPI_JS;
     public static function publication_verification_markup( string $class = "", string $style_override = "", string $color_override = "" ): string {
         $mode = (string) Settings::get( "publication_muckrack_text_mode", "news_outlet" );
         $label = "publication_name" === $mode ? get_bloginfo( "name" ) : "News outlet";
-        $url = trim( (string) Fields::option( "publication_muckrack_url" ) );
+        $url = Fields::option_url( "publication_muckrack_url" );
         $target = "" !== $url ? $url : "https://muckrack.com/";
         $style = sanitize_key( "" !== $style_override ? $style_override : (string) Settings::get( "publication_muckrack_style", "block" ) );
         if ( ! in_array( $style, [ "block", "mini_block", "compact", "minimalist" ], true ) ) {
@@ -564,7 +564,7 @@ SMPI_JS;
             "font_weight" => Settings::font_weight_label( "publication_muckrack_font_weight" ),
             "preserved" => array_keys( array_filter( $preservation ) ),
             "placements" => Settings::array( "publication_muckrack_placements" ),
-            "url" => trim( (string) Fields::option( "publication_muckrack_url" ) ),
+            "url" => Fields::option_url( "publication_muckrack_url" ),
             "shortcode" => "[smp_publication_muckrack_verified]",
             "preview" => wp_strip_all_tags( self::publication_verification_text() ),
             "preview_html" => self::publication_verification_text(),

@@ -59,7 +59,7 @@ final class Shortcodes {
             return "";
         }
 
-        $value = Fields::option( $field );
+        $value = "website" === $field ? Fields::option_url( $field ) : Fields::option( $field );
         $value = $this->extract_indexed_value( $value, (string) $atts["row"], (string) $atts["index"] );
         $value = $this->extract_sub_field( $value, sanitize_key( (string) $atts["sub_field"] ) );
         if ( $this->is_empty_value( $value ) && "" !== (string) $atts["fallback"] ) {
@@ -185,7 +185,7 @@ final class Shortcodes {
     }
 
     public function render_profile( array $atts = [] ): string {
-        $website = Fields::option( "website", home_url( "/" ) );
+        $website = Fields::option_url( "website", home_url( "/" ) );
         $summary = Fields::option( "summary" );
         $mission = Fields::option( "mission_statement" );
         $founders = $this->render_founders();

@@ -25,7 +25,7 @@ if ( ! str_contains( $bootstrap, 'PublicationContentTypes::content_types()' ) ||
     $fail( 'SMP does not boot both Core-managed CPT and ACF registries.' );
 }
 
-foreach ( [ 'CoreSchemaInjector', 'SchemaDocumentRenderer', 'SchemaGraph::clean', 'FaqSourceResolver', 'FaqSetManager' ] as $needle ) {
+foreach ( [ 'CoreSchemaInjector', 'SchemaDocumentRenderer', 'SchemaGraph::sanitize_urls', 'FaqSourceResolver', 'FaqSetManager' ] as $needle ) {
     if ( ! str_contains( $schema, $needle ) ) {
         $fail( "SMP schema is not delegated to Core {$needle}." );
     }

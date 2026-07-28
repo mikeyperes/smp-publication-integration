@@ -2,6 +2,7 @@
 namespace smp_publication_integration\Support;
 
 use Hexa\PluginCore\EntitySources\CanonicalEntityResolver;
+use Hexa\PluginCore\SchemaTools\SchemaGraph;
 
 if ( ! defined( "ABSPATH" ) ) {
     exit;
@@ -28,7 +29,7 @@ final class Fields {
             "mission_statement" => [ "mission_statement", "publication_mission_statement", "smpi_mission_statement", "smpi_mission_statement_override" ],
             "mission_statement_extended" => [ "mission_statement_extended", "publication_mission_statement_extended", "smpi_mission_statement_extended" ],
             "summary" => [ "short_summary", "short_description", "publication_summary", "summary", "description", "company_description", "smpi_publication_summary" ],
-            "website" => [ "url", "website", "publication_website", "smpi_publication_website" ],
+            "website" => [ "smpi_publication_website", "publication_website", "url", "website" ],
             "logo" => [ "logo", "publication_logo", "smpi_publication_logo" ],
             "brand_assets" => [ "brand_assets", "publication_brand_assets", "brand_assets_gallery", "smpi_brand_assets" ],
             "publication_user" => [ "publication_user", "smpi_publication_user" ],
@@ -96,28 +97,46 @@ final class Fields {
         return $default;
     }
 
+    public static function option_url( string $field, string $default = "" ): string {
+        $aliases = self::aliases()[ $field ] ?? [ $field ];
+
+        foreach ( $aliases as $alias ) {
+            foreach ( self::raw_option_candidates( $alias ) as $candidate ) {
+                $url = SchemaGraph::web_url( $candidate );
+                if ( "" !== $url ) {
+                    return $url;
+                }
+            }
+        }
+
+        return SchemaGraph::web_url( $default );
+    }
+
     public static function raw_option( string $field ) {
-        $entity = self::canonical_entity();
-        if ( $entity ) {
-            $value = CanonicalEntityResolver::field( $entity, $field, null );
+        foreach ( self::raw_option_candidates( $field ) as $value ) {
             if ( self::has_value( $value ) ) {
                 return $value;
             }
+        }
+
+        return "";
+    }
+
+    private static function raw_option_candidates( string $field ): array {
+        $candidates = [];
+        $entity = self::canonical_entity();
+        if ( $entity ) {
+            $candidates[] = CanonicalEntityResolver::field( $entity, $field, null );
         }
 
         if ( function_exists( "get_field" ) ) {
-            $value = get_field( $field, "option" );
-            if ( self::has_value( $value ) ) {
-                return $value;
-            }
+            $candidates[] = get_field( $field, "option" );
         }
 
-        $value = get_option( "options_" . $field, null );
-        if ( self::has_value( $value ) ) {
-            return $value;
-        }
+        $candidates[] = get_option( "options_" . $field, null );
+        $candidates[] = get_option( $field, null );
 
-        return get_option( $field, "" );
+        return $candidates;
     }
 
     public static function canonical_entity(): ?array {
