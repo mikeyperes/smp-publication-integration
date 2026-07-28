@@ -2465,13 +2465,13 @@ HTML;
 
     private function post_summary_style_options(): array {
         return [
-            "none" => [ "label" => "No style", "description" => "Render the field exactly as entered.", "preview" => $this->summary_design_preview_html( "none" ) ],
-            "sum00" => [ "label" => "Reuters Plate", "description" => "Gray summary plate with strong heading underline.", "preview" => $this->summary_design_preview_html( "sum00" ) ],
-            "sum01" => [ "label" => "Key Points Card", "description" => "White card with a selected-color accent edge.", "preview" => $this->summary_design_preview_html( "sum01" ) ],
-            "sum02" => [ "label" => "Eyebrow Bullets", "description" => "Minimal rules and compact bullets.", "preview" => $this->summary_design_preview_html( "sum02" ) ],
-            "sum03" => [ "label" => "Numbered Brief", "description" => "Selected-color header and briefing structure.", "preview" => $this->summary_design_preview_html( "sum03" ) ],
-            "sum04" => [ "label" => "Highlight Callout", "description" => "Soft selected-color callout box.", "preview" => $this->summary_design_preview_html( "sum04" ) ],
-            "sum05" => [ "label" => "Bordered summary with diamond bullets", "description" => "A thin bordered block with a compact What to know label and outlined diamond bullets.", "preview" => $this->summary_design_preview_html( "sum05" ) ],
+            "none" => [ "label" => "Site content with no SMP styling", "description" => "Render the Summary exactly as entered using the active site's content styles.", "preview" => $this->summary_design_preview_html( "none" ) ],
+            "sum00" => [ "label" => "Gray panel with underlined heading", "description" => "Flat gray panel with a strong selected-color heading underline.", "preview" => $this->summary_design_preview_html( "sum00" ) ],
+            "sum01" => [ "label" => "White card with left accent", "description" => "White bordered card with a selected-color rule along the left edge.", "preview" => $this->summary_design_preview_html( "sum01" ) ],
+            "sum02" => [ "label" => "Compact bullets with top rule", "description" => "Compact bullet list inside a thin border with a selected-color top rule.", "preview" => $this->summary_design_preview_html( "sum02" ) ],
+            "sum03" => [ "label" => "Solid-color header card", "description" => "Bordered white card topped by a solid selected-color header bar.", "preview" => $this->summary_design_preview_html( "sum03" ) ],
+            "sum04" => [ "label" => "Soft-tint icon callout", "description" => "Soft selected-color panel with a small matching title icon.", "preview" => $this->summary_design_preview_html( "sum04" ) ],
+            "sum05" => [ "label" => "Bordered block with diamond bullets", "description" => "Thin bordered block with a compact What to know label and outlined diamond bullets.", "preview" => $this->summary_design_preview_html( "sum05" ) ],
         ];
     }
 

@@ -8,7 +8,7 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `1.0.1`
+- Version: `1.0.2`
 
 ## Ownership
 
@@ -93,6 +93,12 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 1.0.2
+
+- Removed excessive implicit grid rows from the divider, number-tile, and circular-marker ordered-list designs.
+- Kept arbitrary direct list-item content in the text column so classic-editor markup remains compact and aligned.
+- Replaced every Summary template name with a clear description of its visible treatment.
 
 ### 1.0.1
 

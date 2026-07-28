@@ -744,14 +744,14 @@ final class ArticleStyles {
         if ( "nlist01" === $style ) {
             $css .= $list . "{border-top:1px solid #d8dee8;margin:34px 0 8px;padding:0}";
             $css .= $item . "{display:grid;grid-template-columns:52px minmax(0,1fr);gap:8px 18px;padding:25px 0;border-bottom:1px solid #e5e7eb}";
-            $css .= $item . "::before{content:counter(smpi-numbered-list,decimal-leading-zero);grid-column:1;grid-row:1 / span 20;color:var(--smpi-numbered-list-accent,#00ff41);font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:11px;font-weight:600;letter-spacing:.14em;line-height:1.4;padding-top:5px}";
-            $css .= $title . "," . $text . "{grid-column:2}";
+            $css .= $item . "::before{content:counter(smpi-numbered-list,decimal-leading-zero);grid-column:1;grid-row:1;color:var(--smpi-numbered-list-accent,#00ff41);font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:11px;font-weight:600;letter-spacing:.14em;line-height:1.4;padding-top:5px}";
+            $css .= $item . " > *{grid-column:2;min-width:0}";
             $css .= "@media(max-width:680px){" . $item . "{grid-template-columns:38px minmax(0,1fr);column-gap:11px}}";
         } elseif ( "nlist02" === $style ) {
             $css .= $list . "{display:grid;gap:12px;margin:30px 0;padding:0}";
             $css .= $item . "{display:grid;grid-template-columns:42px minmax(0,1fr);gap:7px 16px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;padding:18px 20px}";
-            $css .= $item . "::before{align-items:center;background:var(--smpi-numbered-list-accent,#2563eb);border-radius:5px;color:var(--smpi-numbered-list-accent-ink,#fff);content:counter(smpi-numbered-list,decimal-leading-zero);display:flex;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:11px;font-weight:800;grid-column:1;grid-row:1 / span 20;height:34px;justify-content:center;letter-spacing:.06em;width:34px}";
-            $css .= $title . "," . $text . "{grid-column:2}";
+            $css .= $item . "::before{align-items:center;background:var(--smpi-numbered-list-accent,#2563eb);border-radius:5px;color:var(--smpi-numbered-list-accent-ink,#fff);content:counter(smpi-numbered-list,decimal-leading-zero);display:flex;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:11px;font-weight:800;grid-column:1;grid-row:1;height:34px;justify-content:center;letter-spacing:.06em;width:34px}";
+            $css .= $item . " > *{grid-column:2;min-width:0}";
             $css .= "@media(max-width:680px){" . $item . "{grid-template-columns:38px minmax(0,1fr);column-gap:11px;padding:16px}}";
         } elseif ( "nlist03" === $style ) {
             $css .= $list . "{display:grid;margin:30px 0;padding:0}";
@@ -768,8 +768,8 @@ final class ArticleStyles {
         } else {
             $css .= $list . "{border-bottom:1px solid #d8dee8;border-top:1px solid #d8dee8;margin:30px 0;padding:0}";
             $css .= $item . "{display:grid;grid-template-columns:38px minmax(0,1fr);gap:6px 14px;padding:17px 0;border-bottom:1px solid #e5e7eb}" . $item . ":last-child{border-bottom:0}";
-            $css .= $item . "::before{align-items:center;border:1px solid var(--smpi-numbered-list-accent,#a16207);border-radius:999px;color:var(--smpi-numbered-list-accent,#a16207);content:counter(smpi-numbered-list);display:flex;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:11px;font-weight:800;grid-column:1;grid-row:1 / span 20;height:28px;justify-content:center;width:28px}";
-            $css .= $title . "," . $text . "{grid-column:2}";
+            $css .= $item . "::before{align-items:center;border:1px solid var(--smpi-numbered-list-accent,#a16207);border-radius:999px;color:var(--smpi-numbered-list-accent,#a16207);content:counter(smpi-numbered-list);display:flex;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:11px;font-weight:800;grid-column:1;grid-row:1;height:28px;justify-content:center;width:28px}";
+            $css .= $item . " > *{grid-column:2;min-width:0}";
             $css .= "@media(max-width:680px){" . $item . "{grid-template-columns:34px minmax(0,1fr);column-gap:10px}}";
         }
         return $respect_preservation ? self::remove_preserved_typography( $css, "article_numbered_list", [ $list, $item, $title, $text ] ) : $css;

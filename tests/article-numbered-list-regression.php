@@ -43,6 +43,10 @@ foreach ( $contracts as $style => $accent_contract ) {
     numbered_list_assert( str_contains( $css, $selector . " > .smpi-numbered-list-item" ), $style . " does not target direct list items." );
     numbered_list_assert( str_contains( $css, $accent_contract ), $style . " does not map its intended accent area." );
     numbered_list_assert( ! str_contains( $css, $selector . "{grid-template-columns:repeat" ), $style . " renders list items in multiple columns." );
+    numbered_list_assert( ! str_contains( $css, "span 20" ), $style . " creates excessive implicit grid rows." );
+    if ( in_array( $style, [ "nlist01", "nlist02", "nlist05" ], true ) ) {
+        numbered_list_assert( str_contains( $css, $selector . " > .smpi-numbered-list-item > *{grid-column:2;min-width:0}" ), $style . " does not place arbitrary editor markup in the content column." );
+    }
 }
 
 $template = (string) file_get_contents( $root . "/src/Content/TemplateMarkup.php" );

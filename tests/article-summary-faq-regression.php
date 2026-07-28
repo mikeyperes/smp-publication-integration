@@ -55,6 +55,13 @@ $checks = [
         && str_contains( $article, ".smpi-sum05 .smpi-post-summary-title{align-items:center;color:var(--smpi-summary-accent,#00ff41)" )
         && str_contains( $article, ".smpi-sum05 .smpi-post-summary-item::before{border:1px solid var(--smpi-summary-accent,#00ff41)" )
         && ! str_contains( $article, ".smpi-sum05{background:var(--smpi-summary-accent" ),
+    "Every Summary choice label states its visible treatment." => str_contains( $dashboard, '"label" => "Site content with no SMP styling"' )
+        && str_contains( $dashboard, '"label" => "Gray panel with underlined heading"' )
+        && str_contains( $dashboard, '"label" => "White card with left accent"' )
+        && str_contains( $dashboard, '"label" => "Compact bullets with top rule"' )
+        && str_contains( $dashboard, '"label" => "Solid-color header card"' )
+        && str_contains( $dashboard, '"label" => "Soft-tint icon callout"' )
+        && str_contains( $dashboard, '"label" => "Bordered block with diamond bullets"' ),
     "Summary background reuses the Core picker and supports template, none, and custom modes." => str_contains( $dashboard, 'ColorControl::render( [' )
         && str_contains( $dashboard, '"key" => "post_summary_background_color"' )
         && str_contains( $dashboard, 'summary_background_setting_html( $settings )' )
