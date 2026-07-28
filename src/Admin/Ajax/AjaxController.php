@@ -10,6 +10,7 @@ use Hexa\PluginCore\WpAdminAjax\AjaxFailure;
 use Hexa\PluginCore\WpAdminAjax\AjaxGuard;
 use Hexa\PluginCore\WpAdminAjax\AjaxRequest;
 use smp_publication_integration\Admin\Dashboard;
+use smp_publication_integration\Admin\FounderProfiles\FounderProfilePresenter;
 use smp_publication_integration\Content\AcfFields;
 use smp_publication_integration\Content\Breadcrumbs;
 use smp_publication_integration\Content\MuckRackVerification;
@@ -810,7 +811,11 @@ class AjaxController {
             }
         }
 
-        return [ "ids" => $ids, "profiles" => $profiles ];
+        return [
+            "ids"      => $ids,
+            "profiles" => $profiles,
+            "html"     => ( new FounderProfilePresenter() )->collection_html( $ids ),
+        ];
     }
 
     private function require_verified_profiles(): void {

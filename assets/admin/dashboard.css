@@ -66,13 +66,44 @@
 .smpi-dashboard .smpi-founder-page .smpi-save-state{margin:0}
 .smpi-dashboard .smpi-founder-page .smpi-profile-results:empty{display:none}
 .smpi-dashboard .smpi-founder-selected{display:grid;gap:8px;margin:0;min-width:0}
-.smpi-dashboard .smpi-founder-profile-card{align-items:center;background:#fff;border:1px solid #dcdcde;border-radius:6px;display:grid;gap:14px;grid-template-columns:48px minmax(0,1fr) auto;margin:0;min-width:0;padding:12px 14px}
-.smpi-dashboard .smpi-founder-thumb img,.smpi-dashboard .smpi-founder-thumb span{align-items:center;background:#f0f0f1;border-radius:50%;display:flex;height:48px;justify-content:center;object-fit:cover;width:48px}
-.smpi-dashboard .smpi-founder-info{display:grid;gap:3px;min-width:0}
-.smpi-dashboard .smpi-founder-info strong{color:#1d2327;font-size:14px;overflow-wrap:anywhere}
-.smpi-dashboard .smpi-founder-info span{color:#646970;font-size:12px}
+.smpi-dashboard .smpi-founder-selected.is-updating{opacity:.62;pointer-events:none}
+.smpi-dashboard .smpi-founder-profile-card{background:#fff;border:1px solid #c3c4c7;border-radius:6px;box-sizing:border-box;display:block;margin:0;min-width:0;overflow:hidden;width:100%}
+.smpi-dashboard .smpi-founder-profile-card.is-removing{opacity:.5}
+.smpi-dashboard .smpi-founder-profile-head{align-items:center;display:grid;gap:16px;grid-template-columns:72px minmax(0,1fr) auto;padding:18px}
+.smpi-dashboard .smpi-founder-thumb img,.smpi-dashboard .smpi-founder-thumb span{align-items:center;background:#f0f0f1;border-radius:50%;display:flex;height:72px;justify-content:center;object-fit:cover;width:72px}
+.smpi-dashboard .smpi-founder-info{display:grid;gap:4px;min-width:0}
+.smpi-dashboard .smpi-founder-info h4{color:#1d2327;font-size:18px;letter-spacing:0;line-height:1.25;margin:0;overflow-wrap:anywhere}
+.smpi-dashboard .smpi-founder-role{color:#314056;font-size:13px;font-weight:600;line-height:1.4;margin:0}
+.smpi-dashboard .smpi-founder-record-line{color:#646970;font-size:12px;margin:0}
 .smpi-dashboard .smpi-founder-actions{align-items:center;display:flex;gap:7px;justify-content:flex-end}
 .smpi-dashboard .smpi-founder-actions .button-link-delete{padding:6px}
+.smpi-dashboard .smpi-founder-overview{background:#f6f7f7;border-top:1px solid #dcdcde;display:grid;gap:24px;grid-template-columns:minmax(0,1.4fr) minmax(240px,.8fr);padding:18px}
+.smpi-dashboard .smpi-founder-summary h5,.smpi-dashboard .smpi-founder-detail-heading h5{font-size:12px;letter-spacing:0;margin:0;text-transform:uppercase}
+.smpi-dashboard .smpi-founder-summary p{color:#3c434a;line-height:1.55;margin:7px 0 0}
+.smpi-dashboard .smpi-founder-primary-links{display:grid;gap:10px;margin:0;min-width:0}
+.smpi-dashboard .smpi-founder-detail-groups{border-top:1px solid #dcdcde}
+.smpi-dashboard .smpi-founder-detail-group{display:grid;gap:14px;grid-template-columns:190px minmax(0,1fr);padding:18px}
+.smpi-dashboard .smpi-founder-detail-group+.smpi-founder-detail-group{border-top:1px solid #dcdcde}
+.smpi-dashboard .smpi-founder-detail-heading{align-items:flex-start;display:flex;flex-wrap:wrap;gap:8px}
+.smpi-dashboard .smpi-founder-detail-heading .hpc-pill{font-size:10px;white-space:nowrap}
+.smpi-dashboard .smpi-founder-field-list{display:grid;gap:0;grid-template-columns:repeat(2,minmax(0,1fr));margin:0;min-width:0}
+.smpi-dashboard .smpi-founder-field{border-bottom:1px solid #e7e8ea;min-width:0;padding:0 16px 12px 0}
+.smpi-dashboard .smpi-founder-field:nth-last-child(-n+2){border-bottom:0;padding-bottom:0}
+.smpi-dashboard .smpi-founder-field dt{color:#646970;font-size:11px;font-weight:700;line-height:1.35;margin:0 0 4px;text-transform:uppercase}
+.smpi-dashboard .smpi-founder-field dd{color:#1d2327;line-height:1.5;margin:0;min-width:0;overflow-wrap:anywhere}
+.smpi-dashboard .smpi-founder-field a{overflow-wrap:anywhere;word-break:break-word}
+.smpi-dashboard .smpi-founder-field code{white-space:normal;word-break:break-word}
+.smpi-dashboard .smpi-founder-long-value p{margin:0 0 10px}
+.smpi-dashboard .smpi-founder-long-value p:last-child{margin-bottom:0}
+.smpi-dashboard .smpi-founder-value-meta{color:#646970;font-size:12px}
+.smpi-dashboard .smpi-founder-value-list{margin:0;padding-left:18px}
+.smpi-dashboard .smpi-founder-media-grid{display:grid;gap:8px;grid-template-columns:repeat(auto-fill,minmax(72px,1fr))}
+.smpi-dashboard .smpi-founder-media-grid img{height:auto;max-width:100%;object-fit:cover}
+.smpi-dashboard .smpi-founder-repeater{display:grid;gap:10px}
+.smpi-dashboard .smpi-founder-repeater-row{display:grid;gap:10px;grid-template-columns:26px minmax(0,1fr)}
+.smpi-dashboard .smpi-founder-repeater-index{align-items:center;background:#eef2f7;border-radius:50%;color:#314056;display:flex;font-size:11px;font-weight:700;height:26px;justify-content:center;width:26px}
+.smpi-dashboard .smpi-founder-repeater-row dl{display:grid;gap:8px;grid-template-columns:repeat(2,minmax(0,1fr));margin:0}
+.smpi-dashboard .smpi-founder-repeater-row .smpi-founder-field{border:0;padding:0}
 .smpi-dashboard .smpi-empty-founder-profiles{align-items:center;background:#f6f7f7;border-radius:6px;color:#3c434a;display:flex;gap:13px;padding:16px}
 .smpi-dashboard .smpi-empty-founder-profiles>.dashicons{color:#646970;font-size:28px;height:28px;width:28px}
 .smpi-dashboard .smpi-empty-founder-profiles strong{display:block;font-size:14px}
@@ -97,6 +128,11 @@
     .smpi-dashboard .smpi-founder-readiness{align-items:flex-start;display:grid}
     .smpi-dashboard .smpi-founder-search-section,.smpi-dashboard .smpi-founder-selection-section{grid-template-columns:minmax(0,1fr);padding:18px}
     .smpi-dashboard .smpi-founder-feedback{grid-column:1;margin-top:-18px}
-    .smpi-dashboard .smpi-founder-profile-card{align-items:start;grid-template-columns:48px minmax(0,1fr)}
+    .smpi-dashboard .smpi-founder-profile-head{align-items:start;grid-template-columns:56px minmax(0,1fr)}
+    .smpi-dashboard .smpi-founder-thumb img,.smpi-dashboard .smpi-founder-thumb span{height:56px;width:56px}
     .smpi-dashboard .smpi-founder-actions{grid-column:1/-1;justify-content:flex-start}
+    .smpi-dashboard .smpi-founder-overview,.smpi-dashboard .smpi-founder-detail-group{grid-template-columns:minmax(0,1fr)}
+    .smpi-dashboard .smpi-founder-field-list,.smpi-dashboard .smpi-founder-repeater-row dl{grid-template-columns:minmax(0,1fr)}
+    .smpi-dashboard .smpi-founder-field,.smpi-dashboard .smpi-founder-field:nth-last-child(-n+2){border-bottom:1px solid #e7e8ea;padding:0 0 12px}
+    .smpi-dashboard .smpi-founder-field:last-child{border-bottom:0;padding-bottom:0}
 }

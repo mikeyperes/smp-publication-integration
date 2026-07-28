@@ -30,6 +30,7 @@ use Hexa\PluginCore\SiteStructure\SiteStructureRenderer;
 use Hexa\PluginCore\SchemaDetection\SchemaPageScanner;
 use Hexa\PluginCore\SchemaDetection\SchemaScanRenderer;
 use smp_publication_integration\Admin\Ajax;
+use smp_publication_integration\Admin\FounderProfiles\FounderProfilePresenter;
 use smp_publication_integration\Admin\QuickStartCleanupWorkflow;
 use smp_publication_integration\Admin\UiCleanup;
 use smp_publication_integration\Admin\Navigation\AdminNavigation;
@@ -373,14 +374,8 @@ class DashboardController {
             ]
         );
         echo "</div><div class=\"smpi-founder-feedback\"><span class=\"spinner\"></span><span class=\"smpi-save-state\" aria-live=\"polite\"></span></div><div class=\"smpi-profile-results\" aria-live=\"polite\"></div></section>";
-        echo "<section class=\"smpi-founder-selection-section\"><div class=\"smpi-founder-section-copy\"><h3>Selected founders</h3><p>These profiles feed publication founder output and structured data.</p></div><div class=\"smpi-founder-selected\">";
-        if ( empty( $ids ) ) {
-            echo $this->empty_founder_profiles_html();
-        } else {
-            foreach ( $ids as $id ) {
-                echo $this->founder_profile_card_html( $id );
-            }
-        }
+        echo "<section class=\"smpi-founder-selection-section\"><div class=\"smpi-founder-section-copy\"><h3>Selected founders</h3><p>Each selected record shows every populated profile field used by Verified Profiles and publication structured data.</p></div><div class=\"smpi-founder-selected\">";
+        echo ( new FounderProfilePresenter() )->collection_html( $ids );
         echo "</div></section></div></div>";
     }
 
@@ -441,23 +436,6 @@ class DashboardController {
 
         return array_values( array_unique( $ids ) );
     }
-
-    private function founder_profile_card_html( int $profile_id ): string {
-        $post = get_post( $profile_id );
-        if ( ! $post || "profile" !== get_post_type( $post ) ) {
-            return "";
-        }
-        $title = get_the_title( $post ) ?: "Profile #" . (string) $profile_id;
-        $status = get_post_status( $post ) ?: "unknown";
-        $thumb = get_the_post_thumbnail_url( $post, "thumbnail" );
-        $media = $thumb ? "<img src=\"" . esc_url( $thumb ) . "\" alt=\"" . esc_attr( $title . " profile photo" ) . "\">" : "<span class=\"dashicons dashicons-id-alt\" aria-hidden=\"true\"></span>";
-        return "<article class=\"smpi-founder-profile-card\" data-profile-id=\"" . esc_attr( (string) $profile_id ) . "\"><div class=\"smpi-founder-thumb\">" . $media . "</div><div class=\"smpi-founder-info\"><strong>" . esc_html( $title ) . "</strong><span>Verified Profile #" . esc_html( (string) $profile_id ) . " &middot; " . esc_html( ucfirst( $status ) ) . "</span></div><div class=\"smpi-founder-actions\"><a class=\"button button-secondary\" target=\"_blank\" rel=\"noopener noreferrer\" href=\"" . esc_url( get_edit_post_link( $profile_id, "raw" ) ) . "\">Edit</a><a class=\"button button-secondary\" target=\"_blank\" rel=\"noopener noreferrer\" href=\"" . esc_url( get_permalink( $profile_id ) ) . "\">View</a><button type=\"button\" class=\"button-link-delete smpi-remove-founder-profile\">Remove</button></div></article>";
-    }
-
-    private function empty_founder_profiles_html(): string {
-        return "<div class=\"smpi-empty-founder-profiles\"><span class=\"dashicons dashicons-groups\" aria-hidden=\"true\"></span><div><strong>No founder profiles selected</strong><p>Search above to connect the first Verified Profile.</p></div></div>";
-    }
-
 
     private function publication_user_card_html( int $user_id ): string {
         $user = $user_id ? get_user_by( "id", $user_id ) : false;
@@ -3562,15 +3540,14 @@ HTML;
 
             function founderIds(panel){return panel.find(`.smpi-founder-profile-card`).map(function(){return $(this).data(`profile-id`)}).get()}
             function founderEmptyHtml(){return `<div class="smpi-empty-founder-profiles"><span class="dashicons dashicons-groups" aria-hidden="true"></span><div><strong>No founder profiles selected</strong><p>Search above to connect the first Verified Profile.</p></div></div>`}
-            function updateFounderCount(panel){var page=panel.closest(`.smpi-founder-page`),count=founderIds(panel).length;page.find(`[data-smpi-founder-count]`).text(count)}
-            function profileCard(p){var id=parseInt(p.id,10)||0,label=p.label||(`Profile #`+id),status=p.status?String(p.status).charAt(0).toUpperCase()+String(p.status).slice(1):`Published`,media=p.thumbnail?`<img src="${smpiAttr(smpiSafeUrl(p.thumbnail))}" alt="${smpiAttr(label+` profile photo`)}">`:`<span class="dashicons dashicons-id-alt" aria-hidden="true"></span>`;return `<article class="smpi-founder-profile-card" data-profile-id="${id}"><div class="smpi-founder-thumb">${media}</div><div class="smpi-founder-info"><strong>${smpiEscape(label)}</strong><span>Verified Profile #${id} &middot; ${smpiEscape(status)}</span></div><div class="smpi-founder-actions"><a class="button button-secondary" target="_blank" rel="noopener noreferrer" href="${smpiAttr(smpiSafeUrl(p.edit_url))}">Edit</a><a class="button button-secondary" target="_blank" rel="noopener noreferrer" href="${smpiAttr(smpiSafeUrl(p.view_url))}">View</a><button type="button" class="button-link-delete smpi-remove-founder-profile">Remove</button></div></article>`}
+            function updateFounderCount(panel,count){var page=panel.closest(`.smpi-founder-page`);if(typeof count===`undefined`)count=founderIds(panel).length;page.find(`[data-smpi-founder-count]`).text(count)}
             function smpiProfileFromCoreItem(item){var id=parseInt(item.id||item.value,10)||0;return{id:id,label:item.label||item.name||(`Profile #`+id),status:item.status||``,edit_url:item.edit_url||item.url||``,view_url:item.view_url||``,thumbnail:item.thumbnail||``}}
-            document.addEventListener("hexa-search-selected",function(ev){if(!ev.detail||ev.detail.component_id!=="smpi-founder-profile-core-search")return;var p=smpiProfileFromCoreItem(ev.detail.item||{});if(!p.id)return;var wrap=$("#smpi-founder-profile-core-search").closest(".smpi-profile-picker"),selected=wrap.find(".smpi-founder-selected");if(!selected.find(".smpi-founder-profile-card[data-profile-id=\""+p.id+"\"]").length){selected.find(".smpi-empty-founder-profiles").remove();selected.append(profileCard(p));saveFounderProfiles(selected)}wrap.find(".hpc-smart-search-input").val("");wrap.find(".hpc-smart-search-selected").attr("hidden",true).empty();wrap.find(".hpc-smart-search-status").text("Added founder profile.")});
-            function saveFounderProfiles(panel){var ids=founderIds(panel),wrap=panel.closest(`.smpi-profile-picker`),state=wrap.find(`.smpi-save-state`).first();updateFounderCount(panel);wrap.find(`.spinner`).addClass(`is-active`);state.removeClass(`is-saved is-error`).addClass(`is-saving`).text(`Saving...`);$.post(smpiAdmin.ajaxUrl,{action:`smpi_save_founder_profiles`,nonce:smpiAdmin.nonce,founder_profile_ids:ids}).done(function(x){var ok=!!(x&&x.success);state.removeClass(`is-saving`).addClass(ok?`is-saved`:`is-error`).text(ok?`Saved`:`Could not save`)}).fail(function(){state.removeClass(`is-saving`).addClass(`is-error`).text(`Could not save`)}).always(function(){wrap.find(`.spinner`).removeClass(`is-active`)})}
+            document.addEventListener("hexa-search-selected",function(ev){if(!ev.detail||ev.detail.component_id!=="smpi-founder-profile-core-search")return;var p=smpiProfileFromCoreItem(ev.detail.item||{});if(!p.id)return;var wrap=$("#smpi-founder-profile-core-search").closest(".smpi-profile-picker"),selected=wrap.find(".smpi-founder-selected"),ids=founderIds(selected);if(ids.indexOf(p.id)===-1){ids.push(p.id);saveFounderProfiles(selected,ids,`Added ${p.label||`founder profile`}.`)}wrap.find(".hpc-smart-search-input").val("");wrap.find(".hpc-smart-search-selected").attr("hidden",true).empty()});
+            function saveFounderProfiles(panel,requestedIds,successMessage){var ids=Array.isArray(requestedIds)?requestedIds:founderIds(panel),wrap=panel.closest(`.smpi-profile-picker`),state=wrap.find(`.smpi-save-state`).first();panel.addClass(`is-updating`);wrap.find(`.spinner`).addClass(`is-active`);state.removeClass(`is-saved is-error`).addClass(`is-saving`).text(`Loading profile details...`);$.post(smpiAdmin.ajaxUrl,{action:`smpi_save_founder_profiles`,nonce:smpiAdmin.nonce,founder_profile_ids:ids}).done(function(x){var ok=!!(x&&x.success);if(ok&&x.data){panel.html(typeof x.data.html===`string`?x.data.html:(ids.length?panel.html():founderEmptyHtml()));updateFounderCount(panel,Array.isArray(x.data.ids)?x.data.ids.length:ids.length);var searchStatus=wrap.find(`.hpc-smart-search-status`);if(searchStatus.length&&successMessage)searchStatus.text(successMessage)}state.removeClass(`is-saving`).addClass(ok?`is-saved`:`is-error`).text(ok?`Saved`:`Could not save`)}).fail(function(){state.removeClass(`is-saving`).addClass(`is-error`).text(`Could not save`)}).always(function(){panel.removeClass(`is-updating`);wrap.find(`.spinner`).removeClass(`is-active`)})}
             var profileTimer=null;
             $(document).on(`input`,`.smpi-profile-search`,function(){var input=$(this),wrap=input.closest(`.smpi-profile-picker`),box=wrap.find(`.smpi-profile-results`),term=input.val();clearTimeout(profileTimer);if(term.length<2){box.empty();return}profileTimer=setTimeout(function(){wrap.find(`.spinner`).addClass(`is-active`);$.post(smpiAdmin.ajaxUrl,{action:`smpi_search_profiles`,nonce:smpiAdmin.nonce,term:term}).done(function(x){box.empty();if(!x.success||!x.data.profiles.length){box.html(`<p class="smpi-muted">No matching profiles.</p>`);return}$.each(x.data.profiles,function(i,p){var b=$(`<button type="button" class="button smpi-profile-result"></button>`).text(p.label+` (#`+p.id+`)`).data(`profile`,p);box.append(b)})}).always(function(){wrap.find(`.spinner`).removeClass(`is-active`)})},250)});
-            $(document).on(`click`,`.smpi-profile-result`,function(){var p=$(this).data(`profile`),id=parseInt(p&&p.id,10)||0,wrap=$(this).closest(`.smpi-profile-picker`),selected=wrap.find(`.smpi-founder-selected`);if(id&&!selected.find(`.smpi-founder-profile-card[data-profile-id="${id}"]`).length){selected.find(`.smpi-empty-founder-profiles`).remove();selected.append(profileCard(p));saveFounderProfiles(selected)}wrap.find(`.smpi-profile-search`).val(``);wrap.find(`.smpi-profile-results`).empty()});
-            $(document).on(`click`,`.smpi-remove-founder-profile`,function(){var selected=$(this).closest(`.smpi-founder-selected`);$(this).closest(`.smpi-founder-profile-card`).remove();if(!selected.find(`.smpi-founder-profile-card`).length){selected.html(founderEmptyHtml())}saveFounderProfiles(selected)});
+            $(document).on(`click`,`.smpi-profile-result`,function(){var p=$(this).data(`profile`),id=parseInt(p&&p.id,10)||0,wrap=$(this).closest(`.smpi-profile-picker`),selected=wrap.find(`.smpi-founder-selected`),ids=founderIds(selected);if(id&&ids.indexOf(id)===-1){ids.push(id);saveFounderProfiles(selected,ids,`Added ${p.label||`founder profile`}.`)}wrap.find(`.smpi-profile-search`).val(``);wrap.find(`.smpi-profile-results`).empty()});
+            $(document).on(`click`,`.smpi-remove-founder-profile`,function(){var card=$(this).closest(`.smpi-founder-profile-card`),selected=card.closest(`.smpi-founder-selected`),removedId=parseInt(card.data(`profile-id`),10)||0,ids=founderIds(selected).filter(function(id){return parseInt(id,10)!==removedId});card.addClass(`is-removing`);saveFounderProfiles(selected,ids,`Removed founder profile.`)});
             $(document).on(`click`,`#smpi-refresh-optimization`,function(){var s=$(this).next(`.spinner`);s.addClass(`is-active`);$.post(smpiAdmin.ajaxUrl,{action:`smpi_refresh_optimization`,nonce:smpiAdmin.nonce}).done(function(x){if(x.success)$(`#smpi-optimization-report`).html(x.data.html)}).always(function(){s.removeClass(`is-active`)})});
             var o=0,bs=20,total=0;$(document).on(`click`,`#smpi-reprocess-schema`,function(){o=0;total=0;$(this).prop(`disabled`,true);$(`#smpi-schema-report`).empty().append(`<p>Starting...</p>`);p()});function p(){$.post(ajaxurl,{action:`smpi_reprocess_schema`,nonce:smpiAdmin.nonce,offset:o,batch_size:bs}).done(function(x){if(!x||!x.success){$(`#smpi-reprocess-schema`).prop(`disabled`,false);return}total=x.data.total||0;$.each(x.data.items||[],function(i,it){$(`#smpi-schema-report`).append(`<pre class="smpi-code">${$(`<div>`).text(it.schema||``).html()}</pre>`)});o+=bs;if(o<total)p();else $(`#smpi-reprocess-schema`).prop(`disabled`,false)})}
         });</script>
