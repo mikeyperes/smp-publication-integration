@@ -518,7 +518,7 @@ class SettingsRepository {
 
             $style_options = [
                 "breadcrumbs_style" => [ "bc-b1", "bc-b2", "bc-b3", "bc-b4", "bc-b5", "bc-b6" ],
-                "table_of_contents_style" => [ "none", "toc00", "toc01", "toc02", "toc03", "toc04" ],
+                "table_of_contents_style" => [ "unstyled", "none", "toc00", "toc01", "toc02", "toc03", "toc04" ],
                 "reading_progress_style" => [ "thin", "track", "glow", "floating", "segmented" ],
                 "article_heading_style" => [ "none", "h2-tick", "h2-leftrule", "h2-underline", "h2-topline", "h2-dot", "h2-trailingrule", "h2-serif", "h2-uppercase", "h2-gradient", "h2-bracket", "h2-number", "h2-square", "h2-highlight", "h2-double", "h2-corner_tick" ],
                 "article_numbered_list_style" => [ "none", "nlist01", "nlist02", "nlist03", "nlist04", "nlist05" ],
@@ -526,7 +526,7 @@ class SettingsRepository {
                 "article_drop_cap_script_font" => [ "dancing-script", "great-vibes", "parisienne", "pinyon-script", "allura" ],
                 "inline_photo_treatment" => [ "none", "fig1", "fig2", "fig4", "fig5" ],
                 "featured_image_caption_template" => [ "none", "fig1", "fig2", "fig4", "fig5" ],
-                "post_summary_style" => [ "none", "sum00", "sum01", "sum02", "sum03", "sum04" ],
+                "post_summary_style" => [ "unstyled", "none", "sum00", "sum01", "sum02", "sum03", "sum04", "sum05" ],
                 "post_summary_background_mode" => array_keys( TemplateBackground::options() ),
                 "post_summary_placement" => [ "manual", "above_content", "below_content" ],
                 "post_faqs_style" => [ "none", "faq00", "faq01", "faq02", "faq03", "faq04" ],

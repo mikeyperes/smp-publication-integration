@@ -8,7 +8,7 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `1.0.11`
+- Version: `1.0.13`
 
 ## Ownership
 
@@ -93,6 +93,11 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 1.0.13
+
+- Added explicit `Strip all design (Elementor)` modes for article summaries and tables of contents.
+- Preserved semantic markup, headings, anchors, ARIA behavior, and shortcode hooks while excluding stripped components from all plugin-owned presentation and typography selectors.
 
 ### 1.0.11
 

@@ -33,6 +33,9 @@ $checks = [
         && ! str_contains( $dashboard, ".smpi-design-preview a{color:#2563eb" ),
     "The TOC shortcode and use instructions are visible in its feature settings." => str_contains( $dashboard, '"Default", "[smp_table_of_contents]"' )
         && str_contains( $dashboard, "Turn off automatic placement when positioning it manually." ),
+    "The TOC exposes a genuine Elementor stripped mode." => str_contains( $dashboard, '"unstyled" => [ "label" => "Strip all design (Elementor)"' )
+        && str_contains( $table, 'data-smpi-skin' )
+        && str_contains( $article, '.smpi-table-of-contents:not(.smpi-unstyled)' ),
     "TOC template CSS has one frontend owner." => str_contains( $table, 'ArticleStyles::toc_css()' )
         && ! str_contains( substr( $article, 0, (int) strpos( $article, "public function decorate_article_content" ) ), 'self::toc_css()' ),
     "Native Elementor TOC markup and anchors remain owned by Elementor." => ! str_contains( $table, '.elementor-widget-table-of-contents' )

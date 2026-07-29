@@ -344,7 +344,8 @@ foreach ( $breadcrumb_contracts as $template => $needle ) {
 }
 
 $toc_css = ArticleStyles::toc_css( false );
-template_design_assert( str_contains( $toc_css, ".smpi-table-of-contents .smpi-toc-caret{border-color:var(--smpi-toc-accent,#9ca3af)}" ), "The table of contents caret is not wired to the selected design color." );
+template_design_assert( str_contains( $toc_css, ".smpi-table-of-contents:not(.smpi-unstyled) .smpi-toc-caret{border-color:var(--smpi-toc-accent,#9ca3af)}" ), "The table of contents caret is not wired to the selected design color." );
+template_design_assert( ! str_contains( $toc_css, ".smpi-table-of-contents{" ) && ! str_contains( $toc_css, ".smpi-table-of-contents ." ), "The stripped TOC can still inherit plugin presentation." );
 $toc_contracts = [
     "none" => ".smpi-toc-caret{flex:0 0 auto;width:8px;height:8px;border-right:2px solid var(--smpi-toc-accent,#2563eb)",
     "toc00" => ".smpi-toc00 .smpi-toc-link:hover{color:var(--smpi-toc-accent,#2563eb)",
@@ -359,6 +360,7 @@ foreach ( $toc_contracts as $template => $needle ) {
 }
 
 $content_block_css = ArticleStyles::post_acf_css( false );
+template_design_assert( ! str_contains( $content_block_css, ".smpi-post-summary{" ) && ! str_contains( $content_block_css, ".smpi-post-summary ." ), "The stripped Summary can still inherit plugin presentation." );
 $content_block_contracts = [
     "sum00" => ".smpi-sum00 .smpi-post-summary-title{margin:0;font-size:1.3rem;font-weight:800;color:var(--smpi-summary-accent,#1f2937)",
     "sum01" => ".smpi-sum01{background:var(--smpi-summary-background,#fff);border:1px solid #e5e7eb;border-left:4px solid var(--smpi-summary-accent,#2563eb)",

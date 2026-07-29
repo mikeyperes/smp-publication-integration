@@ -122,7 +122,7 @@ final class ArticleStyles {
 
     public static function normalize_toc_style( string $style = "" ): string {
         $style = sanitize_key( "" !== $style ? $style : (string) Settings::get( "table_of_contents_style", "toc02" ) );
-        return in_array( $style, [ "none", "toc00", "toc01", "toc02", "toc03", "toc04" ], true ) ? $style : "toc02";
+        return in_array( $style, [ "unstyled", "none", "toc00", "toc01", "toc02", "toc03", "toc04" ], true ) ? $style : "toc02";
     }
 
     public static function normalize_breadcrumb_style( string $style = "" ): string {
@@ -282,7 +282,7 @@ final class ArticleStyles {
 
     public static function normalize_summary_style( string $style = "" ): string {
         $style = sanitize_key( "" !== $style ? $style : (string) Settings::get( "post_summary_style", "none" ) );
-        return in_array( $style, [ "none", "sum00", "sum01", "sum02", "sum03", "sum04", "sum05" ], true ) ? $style : "none";
+        return in_array( $style, [ "unstyled", "none", "sum00", "sum01", "sum02", "sum03", "sum04", "sum05" ], true ) ? $style : "none";
     }
 
     public static function normalize_faq_style( string $style = "" ): string {
@@ -300,7 +300,8 @@ final class ArticleStyles {
         }
         $html = TemplateMarkup::decorate_rich_text( $html, "post-summary" );
         $classes = TemplateMarkup::root_classes( "article-summary", [ "smpi-post-summary", "smpi-" . $style ] );
-        return "<aside class=\"" . esc_attr( $classes ) . "\"><h2 class=\"smpi-template-title smpi-post-summary-title\">" . esc_html( self::summary_title( $style ) ) . "</h2><div class=\"smpi-template-content smpi-post-summary-content\">" . wp_kses_post( $html ) . "</div></aside>";
+        $skin = "unstyled" === $style ? "unstyled" : "styled";
+        return "<aside class=\"" . esc_attr( $classes ) . "\" data-smpi-skin=\"" . esc_attr( $skin ) . "\"><h2 class=\"smpi-template-title smpi-post-summary-title\">" . esc_html( self::summary_title( $style ) ) . "</h2><div class=\"smpi-template-content smpi-post-summary-content\">" . wp_kses_post( $html ) . "</div></aside>";
     }
 
     public static function wrap_post_faqs( string $html, string $style = "" ): string {
@@ -317,7 +318,7 @@ final class ArticleStyles {
     }
 
     public static function summary_title( string $style ): string {
-        return "sum03" === $style ? "The Brief" : ( in_array( $style, [ "sum01", "sum02", "sum04", "sum05" ], true ) ? "What to know" : "Summary" );
+        return "sum03" === $style ? "The Brief" : ( in_array( $style, [ "unstyled", "sum01", "sum02", "sum04", "sum05" ], true ) ? "What to know" : "Summary" );
     }
 
     public static function faq_title( string $style ): string {
@@ -333,13 +334,13 @@ final class ArticleStyles {
         $css = "";
         $selectors = [
             "breadcrumbs" => ".smpi-breadcrumbs-band,.smpi-breadcrumbs",
-            "table_of_contents" => ".smpi-table-of-contents",
+            "table_of_contents" => ".smpi-table-of-contents:not(.smpi-unstyled)",
             "article_heading" => "body.single-post",
             "article_numbered_list" => "body.single-post",
             "article_drop_cap" => "body.single-post",
             "inline_photo_caption" => "body.single-post,body.single-press-release",
             "featured_image_caption" => "body.single-post,body.single-press-release",
-            "post_summary" => ".smpi-post-summary",
+            "post_summary" => ".smpi-post-summary:not(.smpi-unstyled)",
             "post_faqs" => ".smpi-post-faqs",
         ];
         foreach ( $selectors as $surface => $selector ) {
@@ -396,10 +397,10 @@ final class ArticleStyles {
                 "font_family" => "table_of_contents_font_family",
                 "font_weight" => "table_of_contents_font_weight",
                 "rules" => [
-                    "font_family" => [ [ ".smpi-table-of-contents,.smpi-table-of-contents .smpi-toc-label,.smpi-table-of-contents .smpi-toc-link" ] ],
-                    "font_weight" => [ [ ".smpi-table-of-contents,.smpi-table-of-contents .smpi-toc-label,.smpi-table-of-contents .smpi-toc-link" ] ],
-                    "font_color" => [ [ ".smpi-table-of-contents .smpi-toc-label,.smpi-table-of-contents .smpi-toc-link:not(:hover)", "var(--smpi-toc-text,#1f2937)" ] ],
-                    "font_size" => [ [ ".smpi-table-of-contents .smpi-toc-label,.smpi-table-of-contents .smpi-toc-link", "var(--smpi-toc-size,15px)" ] ],
+                    "font_family" => [ [ ".smpi-table-of-contents:not(.smpi-unstyled),.smpi-table-of-contents:not(.smpi-unstyled) .smpi-toc-label,.smpi-table-of-contents:not(.smpi-unstyled) .smpi-toc-link" ] ],
+                    "font_weight" => [ [ ".smpi-table-of-contents:not(.smpi-unstyled),.smpi-table-of-contents:not(.smpi-unstyled) .smpi-toc-label,.smpi-table-of-contents:not(.smpi-unstyled) .smpi-toc-link" ] ],
+                    "font_color" => [ [ ".smpi-table-of-contents:not(.smpi-unstyled) .smpi-toc-label,.smpi-table-of-contents:not(.smpi-unstyled) .smpi-toc-link:not(:hover)", "var(--smpi-toc-text,#1f2937)" ] ],
+                    "font_size" => [ [ ".smpi-table-of-contents:not(.smpi-unstyled) .smpi-toc-label,.smpi-table-of-contents:not(.smpi-unstyled) .smpi-toc-link", "var(--smpi-toc-size,15px)" ] ],
                 ],
             ],
             "article_heading" => [
@@ -459,10 +460,10 @@ final class ArticleStyles {
                 "font_family" => "post_summary_font_family",
                 "font_weight" => "post_summary_font_weight",
                 "rules" => [
-                    "font_family" => [ [ ".smpi-post-summary,.smpi-post-summary .smpi-template-title,.smpi-post-summary .smpi-template-content,.smpi-post-summary .smpi-template-content *" ] ],
-                    "font_weight" => [ [ ".smpi-post-summary,.smpi-post-summary .smpi-template-title,.smpi-post-summary .smpi-template-content,.smpi-post-summary .smpi-template-content *" ] ],
-                    "font_color" => [ [ ".smpi-post-summary .smpi-template-content,.smpi-post-summary .smpi-template-content *", "var(--smpi-summary-text,#1f2937)" ] ],
-                    "font_size" => [ [ ".smpi-post-summary,.smpi-post-summary .smpi-template-title,.smpi-post-summary .smpi-template-content,.smpi-post-summary .smpi-template-content *", "var(--smpi-summary-size,16px)" ] ],
+                    "font_family" => [ [ ".smpi-post-summary:not(.smpi-unstyled),.smpi-post-summary:not(.smpi-unstyled) .smpi-template-title,.smpi-post-summary:not(.smpi-unstyled) .smpi-template-content,.smpi-post-summary:not(.smpi-unstyled) .smpi-template-content *" ] ],
+                    "font_weight" => [ [ ".smpi-post-summary:not(.smpi-unstyled),.smpi-post-summary:not(.smpi-unstyled) .smpi-template-title,.smpi-post-summary:not(.smpi-unstyled) .smpi-template-content,.smpi-post-summary:not(.smpi-unstyled) .smpi-template-content *" ] ],
+                    "font_color" => [ [ ".smpi-post-summary:not(.smpi-unstyled) .smpi-template-content,.smpi-post-summary:not(.smpi-unstyled) .smpi-template-content *", "var(--smpi-summary-text,#1f2937)" ] ],
+                    "font_size" => [ [ ".smpi-post-summary:not(.smpi-unstyled),.smpi-post-summary:not(.smpi-unstyled) .smpi-template-title,.smpi-post-summary:not(.smpi-unstyled) .smpi-template-content,.smpi-post-summary:not(.smpi-unstyled) .smpi-template-content *", "var(--smpi-summary-size,16px)" ] ],
                 ],
             ],
             "post_faqs" => [
@@ -612,6 +613,22 @@ final class ArticleStyles {
     public static function toc_css( bool $respect_preservation = true ): string {
         $css = ".smpi-table-of-contents,.smpi-table-of-contents.smpi-toc00,.smpi-table-of-contents.smpi-toc01,.smpi-table-of-contents.smpi-toc02,.smpi-table-of-contents.smpi-toc03,.smpi-table-of-contents.smpi-toc04{box-sizing:border-box;margin:0;max-width:none;width:100%}.smpi-table-of-contents *{box-sizing:border-box}.smpi-table-of-contents .smpi-toc-label{display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;list-style:none;user-select:none;margin:0}.smpi-table-of-contents .smpi-toc-label::-webkit-details-marker{display:none}.smpi-table-of-contents .smpi-toc-link{text-decoration:none;font-size:var(--smpi-toc-size,15px);font-style:var(--smpi-toc-fstyle,normal)}.smpi-table-of-contents .smpi-toc-list{margin:0;padding:0}.smpi-toc-caret{flex:0 0 auto;width:8px;height:8px;border-right:2px solid var(--smpi-toc-accent,#2563eb);border-bottom:2px solid var(--smpi-toc-accent,#2563eb);transform:rotate(45deg);transition:transform .2s ease;opacity:.5}.smpi-table-of-contents[open] .smpi-toc-caret{transform:rotate(-135deg)}.smpi-table-of-contents[open] .smpi-toc-list,.smpi-table-of-contents[open] .smpi-toc-panel{margin-top:14px}.smpi-toc-none{border:1px solid #ececec;border-radius:12px;padding:14px 16px}.smpi-toc-none .smpi-toc-list{padding-left:20px}.smpi-toc00{background:#fafbfc;border-radius:12px;padding:16px 18px}.smpi-toc00 .smpi-toc-label{font-size:.72rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#9ca3af}.smpi-toc00 .smpi-toc-list{list-style:none;display:grid;gap:10px}.smpi-toc00 .smpi-toc-link{color:var(--smpi-toc-text,#111827);border-bottom:1px solid transparent}.smpi-toc00 .smpi-toc-link:hover{color:var(--smpi-toc-accent,#2563eb);border-color:var(--smpi-toc-accent,#2563eb)}.smpi-toc01{background:#fafbfc;border-radius:12px;border-left:3px solid var(--smpi-toc-accent,#2563eb);padding:14px 18px}.smpi-toc01 .smpi-toc-label{font-size:.82rem;font-weight:800;color:#0a0a0a}.smpi-toc01 .smpi-toc-list{list-style:none;display:grid;gap:11px}.smpi-toc01 .smpi-toc-link{color:var(--smpi-toc-text,#52525b)}.smpi-toc01 .smpi-toc-link:hover{color:var(--smpi-toc-accent,#2563eb)}.smpi-toc02{background:#f7f8f9;border-radius:12px;padding:18px 24px}.smpi-toc02 .smpi-toc-label{font-size:.75rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#6b7280}.smpi-toc02 .smpi-toc-list{list-style:none;display:grid;gap:12px;counter-reset:t}.smpi-toc02 .smpi-toc-item{counter-increment:t;display:flex;gap:12px;align-items:baseline}.smpi-toc02 .smpi-toc-item:before{content:counter(t,decimal-leading-zero);color:var(--smpi-toc-accent,#2563eb);font-weight:700;font-size:.85rem}.smpi-toc02 .smpi-toc-link{color:var(--smpi-toc-text,#1f2937)}.smpi-toc02 .smpi-toc-link:hover{color:var(--smpi-toc-accent,#2563eb)}.smpi-toc03{background:#f8f9fb;border-radius:14px;padding:18px 22px}.smpi-toc03 .smpi-toc-label{font-size:.6rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#8a92a0}.smpi-toc03 .smpi-toc-list{list-style:none;counter-reset:t}.smpi-toc03 .smpi-toc-item{counter-increment:t}.smpi-toc03 .smpi-toc-link{display:flex;gap:13px;align-items:baseline;padding:9px 10px;margin:0 -10px;border-radius:9px;color:var(--smpi-toc-text,#1f2937);line-height:1.4;transition:background .12s ease,color .12s ease}.smpi-toc03 .smpi-toc-link:before{content:counter(t,decimal-leading-zero);color:var(--smpi-toc-accent,#2563eb);font-weight:800;font-size:.8rem;min-width:1.6em;flex:0 0 auto}.smpi-toc03 .smpi-toc-link:hover{background:#eef1f6;color:var(--smpi-toc-accent,#2563eb)}.smpi-toc04{background:#fafbfc;border-radius:12px;padding:14px 18px}.smpi-toc04 .smpi-toc-label{font-size:.72rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#9ca3af}.smpi-toc04 .smpi-toc-panel{display:flex;flex-wrap:wrap;align-items:center;gap:8px}.smpi-toc04 .smpi-toc-link{color:var(--smpi-toc-text,#374151);border:1px solid #e5e7eb;border-radius:999px;padding:6px 14px;background:#fff;line-height:1.3}.smpi-toc04 .smpi-toc-link:hover{border-color:var(--smpi-toc-accent,#2563eb);color:var(--smpi-toc-accent,#2563eb)}";
         $css .= ".smpi-table-of-contents .smpi-toc-caret{border-color:var(--smpi-toc-accent,#9ca3af)}";
+        $css = str_replace( "}.smpi-toc-caret{", "}.smpi-table-of-contents:not(.smpi-unstyled) .smpi-toc-caret{", $css );
+        $css = str_replace(
+            [
+                ".smpi-table-of-contents,",
+                ".smpi-table-of-contents *",
+                ".smpi-table-of-contents .",
+                ".smpi-table-of-contents[open]",
+            ],
+            [
+                ".smpi-table-of-contents:not(.smpi-unstyled),",
+                ".smpi-table-of-contents:not(.smpi-unstyled) *",
+                ".smpi-table-of-contents:not(.smpi-unstyled) .",
+                ".smpi-table-of-contents:not(.smpi-unstyled)[open]",
+            ],
+            $css
+        );
         return $respect_preservation ? self::remove_preserved_typography( $css, "table_of_contents" ) : $css;
     }
 
@@ -630,6 +647,19 @@ final class ArticleStyles {
         $css .= ".smpi-faq00 .smpi-post-faqs-content,.smpi-faq01 .smpi-post-faqs-content{border-top:1px solid var(--smpi-faq-accent,#e5e7eb)}.smpi-faq00 .smpi-post-faq-item,.smpi-faq01 .smpi-post-faq-item{border-bottom:1px solid var(--smpi-faq-accent,#e5e7eb);padding:16px 0;margin:0}.smpi-faq02 .smpi-post-faq-item{border:1px solid var(--smpi-faq-accent,#e5e7eb);border-radius:12px;padding:18px 22px;margin:0 0 14px;box-shadow:0 1px 2px rgba(0,0,0,.04)}";
         $css .= ".smpi-faq03 .smpi-post-faqs-content{counter-reset:f}.smpi-faq03 .smpi-post-faq-item{counter-increment:f;position:relative;padding:12px 0 12px 58px;border-bottom:1px solid #e5e7eb}.smpi-faq03 .smpi-post-faq-item:before{content:counter(f,decimal-leading-zero);position:absolute;left:0;top:7px;font-size:2rem;font-weight:800;line-height:1;color:var(--smpi-faq-accent-soft,rgba(37,99,235,.22))}.smpi-faq03 .smpi-post-faq-item:after{content:none}";
         $css .= ".smpi-faq04 .smpi-post-faq-item{background:var(--smpi-faq-accent-tint,#f8fafc);border:1px solid var(--smpi-faq-accent-soft,#eef2f7);border-radius:12px;margin-bottom:10px;padding:16px 20px}";
+        $css = str_replace(
+            [
+                ".smpi-post-summary{",
+                ".smpi-post-summary .",
+                "}.smpi-post-summary-list{",
+            ],
+            [
+                ".smpi-post-summary:not(.smpi-unstyled){",
+                ".smpi-post-summary:not(.smpi-unstyled) .",
+                "}.smpi-post-summary:not(.smpi-unstyled) .smpi-post-summary-list{",
+            ],
+            $css
+        );
         if ( ! $respect_preservation ) {
             return $css;
         }

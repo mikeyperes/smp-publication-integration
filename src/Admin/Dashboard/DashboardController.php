@@ -2347,6 +2347,7 @@ HTML;
 
     private function toc_style_options(): array {
         return [
+            "unstyled" => [ "label" => "Strip all design (Elementor)", "description" => "Keep semantic TOC markup and anchor behavior while loading no SMP presentation on this component.", "preview" => $this->toc_design_preview_html( "unstyled" ) ],
             "none" => [ "label" => "No style", "description" => "Bare list markup only.", "preview" => $this->toc_design_preview_html( "none" ) ],
             "toc00" => [ "label" => "Minimal List", "description" => "Quiet label and plain links.", "preview" => $this->toc_design_preview_html( "toc00" ) ],
             "toc01" => [ "label" => "Side Rule", "description" => "Left margin hairline treatment.", "preview" => $this->toc_design_preview_html( "toc01" ) ],
@@ -2458,6 +2459,7 @@ HTML;
 
     private function post_summary_style_options(): array {
         return [
+            "unstyled" => [ "label" => "Strip all design (Elementor)", "description" => "Keep the What to know heading and semantic summary markup while loading no SMP presentation on this component.", "preview" => $this->summary_design_preview_html( "unstyled" ) ],
             "none" => [ "label" => "Site content with no SMP styling", "description" => "Render the Summary exactly as entered using the active site's content styles.", "preview" => $this->summary_design_preview_html( "none" ) ],
             "sum00" => [ "label" => "Gray panel with underlined heading", "description" => "Flat gray panel with a strong selected-color heading underline.", "preview" => $this->summary_design_preview_html( "sum00" ) ],
             "sum01" => [ "label" => "White card with left accent", "description" => "White bordered card with a selected-color rule along the left edge.", "preview" => $this->summary_design_preview_html( "sum01" ) ],
@@ -2521,7 +2523,7 @@ HTML;
 
     private function toc_preview_label( string $style ): string {
         if ( "toc00" === $style ) { return "In this article"; }
-        if ( "toc02" === $style ) { return "On this page"; }
+        if ( in_array( $style, [ "unstyled", "toc02" ], true ) ) { return "On this page"; }
         if ( "toc04" === $style ) { return "Jump to"; }
         return "Table of Contents";
     }

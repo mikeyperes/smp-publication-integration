@@ -63,6 +63,9 @@ $checks = [
         && str_contains( $dashboard, '"label" => "Solid-color header card"' )
         && str_contains( $dashboard, '"label" => "Soft-tint icon callout"' )
         && str_contains( $dashboard, '"label" => "Bordered block with diamond bullets"' ),
+    "The Summary exposes a genuine Elementor stripped mode." => str_contains( $dashboard, '"unstyled" => [ "label" => "Strip all design (Elementor)"' )
+        && str_contains( $article, 'data-smpi-skin' )
+        && str_contains( $article, '.smpi-post-summary:not(.smpi-unstyled)' ),
     "Summary background reuses the Core picker and supports template, none, and custom modes." => str_contains( $dashboard, 'ColorControl::render( [' )
         && str_contains( $dashboard, '"key" => "post_summary_background_color"' )
         && str_contains( $dashboard, 'summary_background_setting_html( $settings )' )

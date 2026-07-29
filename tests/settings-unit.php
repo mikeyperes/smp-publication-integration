@@ -77,6 +77,15 @@ if ( '#a1b2c3' !== $settings['post_summary_accent_color'] ) {
 }
 
 $settings = Settings::update( [
+    'table_of_contents_style' => 'unstyled',
+    'post_summary_style' => 'unstyled',
+] );
+if ( 'unstyled' !== $settings['table_of_contents_style'] || 'unstyled' !== $settings['post_summary_style'] ) {
+    fwrite( STDERR, "FAIL: Elementor stripped component modes were not normalized and saved.\n" );
+    exit( 1 );
+}
+
+$settings = Settings::update( [
     'post_summary_background_mode' => 'custom',
     'post_summary_background_color' => '#F0E1D2',
 ] );
