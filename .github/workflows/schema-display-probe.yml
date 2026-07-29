@@ -1,0 +1,26 @@
+name: Schema display root probe
+
+on:
+  push:
+    branches:
+      - codex/schema-display-probe-actions
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: curl
+      - name: Test Schema.org display layouts
+        run: php artifacts/schema-display-root-probe.php
+      - name: Upload validator proof
+        uses: actions/upload-artifact@v4
+        with:
+          name: schema-display-root-probe
+          path: artifacts/schema-display-root-probe.json
