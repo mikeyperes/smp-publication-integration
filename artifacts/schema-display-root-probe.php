@@ -165,6 +165,57 @@ $variants['all_graph_nodes_unlinked'] = $graph_markup(
     )
 );
 
+$scalarize_refs = static function ( $value ) use ( &$scalarize_refs ) {
+    if ( ! is_array( $value ) ) {
+        return $value;
+    }
+    if ( 1 === count( $value ) && isset( $value['@id'] ) && is_string( $value['@id'] ) ) {
+        return $value['@id'];
+    }
+    foreach ( $value as $key => $item ) {
+        $value[ $key ] = $scalarize_refs( $item );
+    }
+    return $value;
+};
+$variants['all_links_as_identifier_urls'] = $graph_markup( $scalarize_refs( $graph ) );
+
+$variants['identifier_urls_with_typed_article_dependencies'] = $graph_markup(
+    $mutated_graph(
+        $scalarize_refs( $graph ),
+        static function ( array &$nodes, array $indexes ): void {
+            $org = $nodes[ $indexes['NewsMediaOrganization'] ];
+            $person = $nodes[ $indexes['Person'] ];
+            $image = $nodes[ $indexes['ImageObject'] ];
+            $logo = is_array( $org['logo'] ?? null ) ? $org['logo'] : [];
+            unset( $logo['@id'] );
+            $publisher = [
+                '@type' => 'NewsMediaOrganization',
+                'name'  => $org['name'] ?? '',
+                'url'   => $org['url'] ?? '',
+                'logo'  => $logo,
+            ];
+            $author = [
+                '@type' => 'Person',
+                'name'  => $person['name'] ?? '',
+                'url'   => $person['url'] ?? '',
+            ];
+            $primary_image = [
+                '@type' => 'ImageObject',
+                'url'   => $image['url'] ?? '',
+                'width' => $image['width'] ?? null,
+                'height'=> $image['height'] ?? null,
+            ];
+            $nodes[ $indexes['WebSite'] ]['publisher'] = $publisher;
+            $nodes[ $indexes['WebPage'] ]['publisher'] = $publisher;
+            $nodes[ $indexes['WebPage'] ]['primaryImageOfPage'] = $primary_image;
+            $nodes[ $indexes['NewsArticle'] ]['publisher'] = $publisher;
+            $nodes[ $indexes['NewsArticle'] ]['copyrightHolder'] = $publisher;
+            $nodes[ $indexes['NewsArticle'] ]['author'] = $author;
+            $nodes[ $indexes['NewsArticle'] ]['image'] = $image['url'] ?? '';
+        }
+    )
+);
+
 $results = [];
 foreach ( $variants as $name => $markup ) {
     $request = curl_init( VALIDATOR_URL );
