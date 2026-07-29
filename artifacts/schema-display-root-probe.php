@@ -54,6 +54,117 @@ $variants = [
     'top_level_array' => $markup_prefix . $script( $array_documents ) . $markup_suffix,
 ];
 
+$mutated_graph = static function ( array $source_graph, callable $mutate ): array {
+    $indexes = [];
+    foreach ( $source_graph as $index => $node ) {
+        $indexes[ (string) ( $node['@type'] ?? '' ) ] = $index;
+    }
+    $mutate( $source_graph, $indexes );
+    return $source_graph;
+};
+$graph_markup = static fn( array $nodes ): string => $markup_prefix
+    . $script( [ '@context' => 'https://schema.org', '@graph' => $nodes ] )
+    . $markup_suffix;
+
+$variants['article_without_site_parent'] = $graph_markup(
+    $mutated_graph(
+        $graph,
+        static function ( array &$nodes, array $indexes ): void {
+            unset( $nodes[ $indexes['NewsArticle'] ]['isPartOf'] );
+        }
+    )
+);
+$variants['article_without_site_or_org_refs'] = $graph_markup(
+    $mutated_graph(
+        $graph,
+        static function ( array &$nodes, array $indexes ): void {
+            unset(
+                $nodes[ $indexes['NewsArticle'] ]['isPartOf'],
+                $nodes[ $indexes['NewsArticle'] ]['publisher'],
+                $nodes[ $indexes['NewsArticle'] ]['copyrightHolder']
+            );
+        }
+    )
+);
+$variants['article_with_anonymous_publisher'] = $graph_markup(
+    $mutated_graph(
+        $graph,
+        static function ( array &$nodes, array $indexes ): void {
+            $org = $nodes[ $indexes['NewsMediaOrganization'] ];
+            $publisher = [
+                '@type' => 'Organization',
+                'name'  => $org['name'] ?? '',
+                'url'   => $org['url'] ?? '',
+            ];
+            unset( $nodes[ $indexes['NewsArticle'] ]['isPartOf'] );
+            $nodes[ $indexes['NewsArticle'] ]['publisher'] = $publisher;
+            $nodes[ $indexes['NewsArticle'] ]['copyrightHolder'] = $publisher;
+        }
+    )
+);
+$variants['article_with_anonymous_dependencies'] = $graph_markup(
+    $mutated_graph(
+        $graph,
+        static function ( array &$nodes, array $indexes ): void {
+            $org = $nodes[ $indexes['NewsMediaOrganization'] ];
+            $person = $nodes[ $indexes['Person'] ];
+            $image = $nodes[ $indexes['ImageObject'] ];
+            $publisher = [ '@type' => 'Organization', 'name' => $org['name'] ?? '', 'url' => $org['url'] ?? '' ];
+            unset( $nodes[ $indexes['NewsArticle'] ]['isPartOf'] );
+            $nodes[ $indexes['NewsArticle'] ]['publisher'] = $publisher;
+            $nodes[ $indexes['NewsArticle'] ]['copyrightHolder'] = $publisher;
+            $nodes[ $indexes['NewsArticle'] ]['author'] = [ '@type' => 'Person', 'name' => $person['name'] ?? '', 'url' => $person['url'] ?? '' ];
+            $nodes[ $indexes['NewsArticle'] ]['image'] = $image['url'] ?? '';
+        }
+    )
+);
+$variants['all_links_as_url_values'] = $graph_markup(
+    $mutated_graph(
+        $graph,
+        static function ( array &$nodes, array $indexes ): void {
+            $org_url = (string) ( $nodes[ $indexes['NewsMediaOrganization'] ]['url'] ?? '' );
+            $website_url = (string) ( $nodes[ $indexes['WebSite'] ]['url'] ?? '' );
+            $person_url = (string) ( $nodes[ $indexes['Person'] ]['url'] ?? '' );
+            $image_url = (string) ( $nodes[ $indexes['ImageObject'] ]['url'] ?? '' );
+            $breadcrumb_url = (string) ( $nodes[ $indexes['BreadcrumbList'] ]['@id'] ?? '' );
+            $nodes[ $indexes['WebSite'] ]['publisher'] = $org_url;
+            $nodes[ $indexes['WebSite'] ]['about'] = $org_url;
+            $nodes[ $indexes['WebPage'] ]['isPartOf'] = $website_url;
+            $nodes[ $indexes['WebPage'] ]['about'] = $org_url;
+            $nodes[ $indexes['WebPage'] ]['publisher'] = $org_url;
+            $nodes[ $indexes['WebPage'] ]['primaryImageOfPage'] = $image_url;
+            $nodes[ $indexes['WebPage'] ]['breadcrumb'] = $breadcrumb_url;
+            $nodes[ $indexes['NewsArticle'] ]['isPartOf'] = $website_url;
+            $nodes[ $indexes['NewsArticle'] ]['author'] = $person_url;
+            $nodes[ $indexes['NewsArticle'] ]['publisher'] = $org_url;
+            $nodes[ $indexes['NewsArticle'] ]['image'] = $image_url;
+            $nodes[ $indexes['NewsArticle'] ]['copyrightHolder'] = $org_url;
+        }
+    )
+);
+$variants['all_graph_nodes_unlinked'] = $graph_markup(
+    $mutated_graph(
+        $graph,
+        static function ( array &$nodes, array $indexes ): void {
+            unset( $nodes[ $indexes['WebSite'] ]['publisher'], $nodes[ $indexes['WebSite'] ]['about'] );
+            unset(
+                $nodes[ $indexes['WebPage'] ]['isPartOf'],
+                $nodes[ $indexes['WebPage'] ]['about'],
+                $nodes[ $indexes['WebPage'] ]['publisher'],
+                $nodes[ $indexes['WebPage'] ]['primaryImageOfPage'],
+                $nodes[ $indexes['WebPage'] ]['breadcrumb']
+            );
+            unset(
+                $nodes[ $indexes['NewsArticle'] ]['isPartOf'],
+                $nodes[ $indexes['NewsArticle'] ]['author'],
+                $nodes[ $indexes['NewsArticle'] ]['publisher'],
+                $nodes[ $indexes['NewsArticle'] ]['image'],
+                $nodes[ $indexes['NewsArticle'] ]['copyrightHolder']
+            );
+        }
+    )
+);
+
 $results = [];
 foreach ( $variants as $name => $markup ) {
     $request = curl_init( VALIDATOR_URL );
@@ -99,4 +210,3 @@ $output = __DIR__ . '/schema-display-root-probe.json';
 file_put_contents( $output, json_encode( $results, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) . PHP_EOL );
 echo json_encode( $results, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) . PHP_EOL;
 echo 'PROOF=' . $output . PHP_EOL;
-
