@@ -50,5 +50,11 @@ assert_muckrack_placement(
         && false !== strpos( $source, "!isLoop(el)&&(floor===null||y(el)>=floor-2)" ),
     "Footer author detection must select one highest-ranked semantic name target."
 );
+assert_muckrack_placement(
+    false !== strpos( $source, 'aria-label=" . $quote . $link_label' )
+        && false !== strpos( $source, 'View verification details on MuckRack' )
+        && false !== strpos( $source, 'noopener noreferrer' ),
+    "Linked MuckRack verification icons must expose an explicit accessible name and safe external-link relation."
+);
 
 echo "PASS: MuckRack pagination cleanup preserves the existing author-page placement flow." . PHP_EOL;
