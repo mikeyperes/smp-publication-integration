@@ -8,7 +8,7 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `1.0.9`
+- Version: `1.0.10`
 
 ## Ownership
 
@@ -93,6 +93,11 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 1.0.10
+
+- Kept `WebPage` and article nodes as independent Schema.org validator items by using the canonical URL for `mainEntityOfPage` and `WebSite` for `isPartOf`.
+- Added regression coverage that prevents internal page/article edges from folding `NewsArticle` into `WebPage`.
 
 ### 1.0.9
 

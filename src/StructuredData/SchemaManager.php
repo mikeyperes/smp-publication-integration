@@ -254,8 +254,6 @@ class SchemaManager {
         $authors = $this->author_entities_for_post( $post_id );
         $org_ref = [ "@id" => $org_id ];
         $website_ref = [ "@id" => $website_id ];
-        $webpage_ref = [ "@id" => $webpage_id ];
-        $article_ref = [ "@id" => $article_id ];
         $image_ref = ! empty( $image["@id"] ) ? [ "@id" => (string) $image["@id"] ] : null;
         $author_ref = $authors ? array_values(
             array_filter(
@@ -295,7 +293,6 @@ class SchemaManager {
             "publisher" => $org_ref,
             "primaryImageOfPage" => $image_ref,
             "breadcrumb" => $breadcrumb_ref,
-            "mainEntity" => $article_ref,
             "hasPart" => $faq_ref ? [ $faq_ref ] : null,
             "datePublished" => get_the_date( DATE_W3C, $post ),
             "dateModified" => get_the_modified_date( DATE_W3C, $post ),
@@ -305,8 +302,8 @@ class SchemaManager {
         $article = $this->clean_schema( [
             "@type" => $article_type,
             "@id" => $article_id,
-            "mainEntityOfPage" => $webpage_ref,
-            "isPartOf" => $webpage_ref,
+            "mainEntityOfPage" => $permalink,
+            "isPartOf" => $website_ref,
             "headline" => get_the_title( $post ),
             "name" => get_the_title( $post ),
             "description" => $description,
