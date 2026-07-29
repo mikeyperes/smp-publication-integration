@@ -19,8 +19,17 @@ jobs:
           extensions: curl
       - name: Test Schema.org display layouts
         run: php artifacts/schema-display-root-probe.php
+      - name: Install browser test dependency
+        run: npm install --no-save --no-package-lock puppeteer-core@24
+      - name: Test exact Schema.org Validator URL
+        env:
+          CHROME_BIN: /usr/bin/google-chrome
+        run: node artifacts/schema-validator-exact-ui.js
       - name: Upload validator proof
         uses: actions/upload-artifact@v4
         with:
           name: schema-display-root-probe
-          path: artifacts/schema-display-root-probe.json
+          path: |
+            artifacts/schema-display-root-probe.json
+            artifacts/schema-validator-exact-ui.json
+            artifacts/schema-validator-exact-ui.png
