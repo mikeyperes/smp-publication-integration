@@ -111,8 +111,8 @@ namespace {
             $item_list = $node;
         }
     }
-    if ( '' === (string) ( $item_list['@id'] ?? '' ) || ( $collection['mainEntity']['@id'] ?? '' ) !== $item_list['@id'] ) {
-        $fail( 'CollectionPage.mainEntity does not resolve to the homepage ItemList.' );
+    if ( '' === (string) ( $item_list['@id'] ?? '' ) || ( $collection['mainEntity'] ?? '' ) !== $item_list['@id'] ) {
+        $fail( 'CollectionPage.mainEntity does not retain the standalone ItemList identifier URL.' );
     }
     if ( isset( $collection['hasPart'] ) ) {
         $fail( 'CollectionPage.hasPart must not reference ItemList, which is not a CreativeWork.' );

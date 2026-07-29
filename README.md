@@ -8,7 +8,7 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `1.0.10`
+- Version: `1.0.11`
 
 ## Ownership
 
@@ -64,7 +64,7 @@ Quick Start contains only the reusable checklist workflow and is the second tab.
 
 `smp-publication-integration.php` is the canonical plugin entry. `initialization.php` is a compatibility loader for older active-plugin records.
 
-Namespaced domain code lives under `src/`. Reusable UI, AJAX, updater, CPT, ACF, entity, FAQ, schema, taxonomy, activity-log, color, typography, and template infrastructure comes from Hexa WordPress Plugin Core 1.1.5.
+Namespaced domain code lives under `src/`. Reusable UI, AJAX, updater, CPT, ACF, entity, FAQ, schema, taxonomy, activity-log, color, typography, and template infrastructure comes from Hexa WordPress Plugin Core 1.1.6.
 
 The plugin updater targets the repository's canonical `main` branch and registers `Hexa\PluginCore\PluginUpdates\GitHubPluginUpdater` directly.
 
@@ -74,7 +74,7 @@ The plugin updater targets the repository's canonical `main` branch and register
 | --- | --- |
 | WordPress | 5.0 |
 | PHP | 8.0 |
-| Hexa WP Core bundle | 1.1.5 |
+| Hexa WP Core bundle | 1.1.6 |
 
 ACF Pro is required for publication option and content field groups. Feature-specific integrations require their corresponding plugins.
 
@@ -93,6 +93,11 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 1.0.11
+
+- Normalized SMP graphs through Hexa WP Core 1.1.6 so every top-level schema entity remains independently detectable in Schema.org Validator.
+- Retained typed author, publisher, copyright-holder, and image summaries while converting reference-only objects to identifier URL relationships.
 
 ### 1.0.10
 

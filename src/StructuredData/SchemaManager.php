@@ -233,7 +233,7 @@ class SchemaManager {
             "dateModified" => $last_modified,
         ] );
 
-        return $this->clean_schema( [ "@context" => "https://schema.org", "@graph" => [ $org, $website, $collection, $item_list ] ] );
+        return $this->standalone_schema( [ "@context" => "https://schema.org", "@graph" => [ $org, $website, $collection, $item_list ] ] );
     }
 
     public function generate_single_schema_array( int $post_id ): array {
@@ -337,7 +337,7 @@ class SchemaManager {
         $graph = array_values( array_filter( array_merge( [ $org, $website, $webpage, $article ], $authors, [ $image, $breadcrumb, $faq ] ) ) );
         $schema = [ "@context" => "https://schema.org", "@graph" => $graph ];
         $filtered = apply_filters( "smpi_single_schema_array", $schema, $post_id );
-        return $this->clean_schema( is_array( $filtered ) ? $filtered : $schema );
+        return $this->standalone_schema( is_array( $filtered ) ? $filtered : $schema );
     }
 
     public static function schema_types( array $schema ): array {
@@ -883,5 +883,10 @@ class SchemaManager {
 
     private function clean_schema( array $schema ): array {
         return SchemaGraph::sanitize_urls( $schema );
+    }
+
+    private function standalone_schema( array $schema ): array {
+        $schema = $this->clean_schema( $schema );
+        return $this->clean_schema( SchemaGraph::standalone_nodes( $schema ) );
     }
 }

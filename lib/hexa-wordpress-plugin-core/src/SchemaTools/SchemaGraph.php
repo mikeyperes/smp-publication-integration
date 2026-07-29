@@ -36,6 +36,15 @@ final class SchemaGraph {
         'actionableFeedbackPolicy',
     ];
 
+    private const STANDALONE_TYPED_REFERENCE_PROPERTIES = [
+        'author'             => [ '@type', 'name', 'url', 'image', 'sameAs' ],
+        'publisher'          => [ '@type', 'name', 'legalName', 'url', 'logo' ],
+        'copyrightHolder'    => [ '@type', 'name', 'legalName', 'url', 'logo' ],
+        'image'              => [ '@type', 'url', 'contentUrl', 'thumbnailUrl', 'width', 'height', 'name', 'caption' ],
+        'logo'               => [ '@type', 'url', 'contentUrl', 'thumbnailUrl', 'width', 'height', 'name', 'caption' ],
+        'primaryImageOfPage' => [ '@type', 'url', 'contentUrl', 'thumbnailUrl', 'width', 'height', 'name', 'caption' ],
+    ];
+
     public static function clean( array $schema ): array {
         foreach ( $schema as $key => $value ) {
             if ( is_array( $value ) ) {
@@ -86,6 +95,40 @@ final class SchemaGraph {
         }
 
         return $refs;
+    }
+
+    /**
+     * Keeps every @graph node independently detectable while retaining typed
+     * summaries for relationship properties that require a concrete entity.
+     *
+     * @param array<string,mixed>              $schema
+     * @param array<string,array<int,string>>  $typed_properties
+     * @return array<string,mixed>
+     */
+    public static function standalone_nodes( array $schema, array $typed_properties = [] ): array {
+        if ( ! isset( $schema['@graph'] ) || ! is_array( $schema['@graph'] ) ) {
+            return $schema;
+        }
+
+        $nodes_by_id = [];
+        foreach ( $schema['@graph'] as $node ) {
+            if ( ! is_array( $node ) || ! isset( $node['@id'] ) || ! is_scalar( $node['@id'] ) ) {
+                continue;
+            }
+            $id = trim( (string) $node['@id'] );
+            if ( '' !== $id ) {
+                $nodes_by_id[ $id ] = $node;
+            }
+        }
+
+        $typed_properties = array_replace( self::STANDALONE_TYPED_REFERENCE_PROPERTIES, $typed_properties );
+        foreach ( $schema['@graph'] as $index => $node ) {
+            if ( is_array( $node ) ) {
+                $schema['@graph'][ $index ] = self::standalone_value( $node, $nodes_by_id, $typed_properties );
+            }
+        }
+
+        return self::clean( $schema );
     }
 
     public static function web_url( $value, string $fallback = '' ): string {
@@ -162,6 +205,48 @@ final class SchemaGraph {
 
         $scheme = strtolower( (string) parse_url( $url, PHP_URL_SCHEME ) );
         return in_array( $scheme, [ 'http', 'https' ], true ) ? $url : '';
+    }
+
+    /** @param array<string,array<string,mixed>> $nodes_by_id @param array<string,array<int,string>> $typed_properties */
+    private static function standalone_value( $value, array $nodes_by_id, array $typed_properties, string $property = '' ) {
+        if ( ! is_array( $value ) ) {
+            return $value;
+        }
+
+        if ( self::is_reference_only( $value ) ) {
+            $id = trim( (string) $value['@id'] );
+            if ( isset( $typed_properties[ $property ], $nodes_by_id[ $id ] ) ) {
+                $summary = self::reference_summary( $nodes_by_id[ $id ], $typed_properties[ $property ] );
+                if ( [] !== $summary ) {
+                    return self::standalone_value( $summary, $nodes_by_id, $typed_properties, $property );
+                }
+            }
+            return $id;
+        }
+
+        foreach ( $value as $key => $item ) {
+            $value[ $key ] = self::standalone_value( $item, $nodes_by_id, $typed_properties, (string) $key );
+        }
+        return $value;
+    }
+
+    /** @param array<string,mixed> $node @param array<int,string> $properties @return array<string,mixed> */
+    private static function reference_summary( array $node, array $properties ): array {
+        $summary = [];
+        foreach ( $properties as $property ) {
+            if ( '@id' === $property || ! array_key_exists( $property, $node ) ) {
+                continue;
+            }
+            $summary[ $property ] = $node[ $property ];
+        }
+        return self::clean( $summary );
+    }
+
+    private static function is_reference_only( array $value ): bool {
+        return 1 === count( $value )
+            && isset( $value['@id'] )
+            && is_scalar( $value['@id'] )
+            && '' !== trim( (string) $value['@id'] );
     }
 
     private static function sanitize_url_property( string $property, $value ) {
