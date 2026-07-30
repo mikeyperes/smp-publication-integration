@@ -22,6 +22,7 @@ Host plugins should use these primitives instead of rebuilding card, button, too
 
 ```text
 CoreUi
+MediaGalleryDetailsRenderer
 ScopedCssOverride
 ColorControl
 ColorPalette
@@ -42,6 +43,7 @@ collapsible()
 pill()
 tooltip()
 copy_button()
+MediaGalleryDetailsRenderer::render()
 ScopedCssOverride::render()
 ColorControl::render()
 ColorPalette::render()
@@ -67,6 +69,22 @@ echo CoreUi::card(
     ]
 );
 ```
+
+Selectable media gallery details example:
+
+```php
+use Hexa\PluginCore\WpAdminComponents\MediaGalleryDetailsRenderer;
+
+echo MediaGalleryDetailsRenderer::render(
+    $acf_gallery_value,
+    [
+        'title'       => 'Details',
+        'persist_key' => 'profile-photo-details',
+    ]
+);
+```
+
+The renderer accepts attachment IDs, ACF image arrays, or attachment objects. It lists the full image and every generated intermediate size, renders each URL as a selectable new-tab link, uses `DynamicButton` for clipboard feedback, and provides per-image plus select-all controls. Hosts own the ACF field and attach the renderer from the appropriate field hook.
 
 Scoped CSS editor or reference example:
 
@@ -107,4 +125,4 @@ The title slug is used when `query_key` is omitted. Set `query_state => false` o
 
 ## Rule
 
-If a host plugin needs cards, subcards, collapsibles, tooltips, status pills, copy buttons, scoped CSS override editors and references, brand-aware isolated color controls, combined typography fields, typography preservation, saved color palettes, or Elementor palette detection, add the missing parameter or helper here first.
+If a host plugin needs cards, subcards, collapsibles, tooltips, status pills, copy buttons, selectable media gallery details, scoped CSS override editors and references, brand-aware isolated color controls, combined typography fields, typography preservation, saved color palettes, or Elementor palette detection, add the missing parameter or helper here first.

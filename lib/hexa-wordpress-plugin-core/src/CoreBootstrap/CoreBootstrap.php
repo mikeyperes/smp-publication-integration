@@ -5,6 +5,7 @@ namespace Hexa\PluginCore\CoreBootstrap;
 use Hexa\PluginCore\CoreContracts\ModuleInterface;
 use Hexa\PluginCore\CoreContracts\PluginContextInterface;
 use Hexa\PluginCore\IntegrationTests\IntegrationTestRuntime;
+use Hexa\PluginCore\QuerySafety\StaticFrontPageQueryGuard;
 
 final class CoreBootstrap {
     private PluginContextInterface $context;
@@ -35,6 +36,7 @@ final class CoreBootstrap {
             return;
         }
 
+        ( new StaticFrontPageQueryGuard() )->register();
         IntegrationTestRuntime::register_host( $this->context );
 
         foreach ( $this->modules as $module ) {

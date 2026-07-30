@@ -1,6 +1,8 @@
 <?php
 namespace smp_publication_integration\Content;
 
+use Hexa\PluginCore\QuerySafety\QueryEligibility;
+use Hexa\PluginCore\QuerySafety\StaticFrontPageQueryGuard;
 use smp_publication_integration\Support\Settings;
 
 if ( ! defined( "ABSPATH" ) ) {
@@ -22,11 +24,22 @@ final class FeaturedImageRequirements {
     }
 
     public function filter_home_queries( \WP_Query $query ): void {
-        if ( ! Settings::bool( "hide_home_posts_without_featured_image" ) || is_admin() || $query->is_search() || $query->is_feed() || ( function_exists( "wp_doing_ajax" ) && wp_doing_ajax() ) || ( defined( "REST_REQUEST" ) && REST_REQUEST ) ) {
+        if ( ! QueryEligibility::allows_main_or_explicit_filtered_frontend_query(
+                $query,
+                Visibility::MANAGED_CONTEXT_QUERY_VAR,
+                [ "home" ]
+            )
+            || StaticFrontPageQueryGuard::is_static_front_page_main_query( $query )
+            || $query->is_search()
+            || $query->is_feed()
+        ) {
             return;
         }
 
-        if ( ! $this->is_home_context_query( $query ) || ! $this->query_can_include_posts( $query ) ) {
+        if ( ! $this->is_home_context_query( $query )
+            || ! $this->query_can_include_posts( $query )
+            || ! Settings::bool( "hide_home_posts_without_featured_image" )
+        ) {
             return;
         }
 
@@ -34,7 +47,15 @@ final class FeaturedImageRequirements {
     }
 
     public function filter_thumbnail_where( string $where, \WP_Query $query ): string {
-        if ( ! $query->get( "smpi_require_post_thumbnail_for_posts" ) ) {
+        if ( ! QueryEligibility::allows_main_or_explicit_filtered_frontend_query(
+                $query,
+                Visibility::MANAGED_CONTEXT_QUERY_VAR,
+                [ "home" ]
+            )
+            || StaticFrontPageQueryGuard::is_static_front_page_main_query( $query )
+            || ! $this->is_home_context_query( $query )
+            || ! $query->get( "smpi_require_post_thumbnail_for_posts" )
+        ) {
             return $where;
         }
 
@@ -199,7 +220,8 @@ final class FeaturedImageRequirements {
     }
 
     private function is_home_context_query( \WP_Query $query ): bool {
-        return $query->is_home() || ( function_exists( "is_front_page" ) && is_front_page() );
+        return ( $query->is_main_query() && $query->is_home() )
+            || "home" === (string) $query->get( Visibility::MANAGED_CONTEXT_QUERY_VAR );
     }
 
     private function query_can_include_posts( \WP_Query $query ): bool {

@@ -6,14 +6,22 @@ if ( ! defined( "ABSPATH" ) ) {
 }
 
 final class RuntimeContext {
+    public static function is_background_request(): bool {
+        if ( ( function_exists( "is_admin" ) && is_admin() )
+            || ( ( function_exists( "wp_doing_ajax" ) && wp_doing_ajax() ) || ( defined( "DOING_AJAX" ) && DOING_AJAX ) )
+            || ( ( function_exists( "wp_doing_cron" ) && wp_doing_cron() ) || ( defined( "DOING_CRON" ) && DOING_CRON ) )
+            || ( defined( "WP_CLI" ) && WP_CLI )
+            || ( ( function_exists( "wp_is_serving_rest_request" ) && wp_is_serving_rest_request() ) || ( defined( "REST_REQUEST" ) && REST_REQUEST ) )
+            || ( defined( "XMLRPC_REQUEST" ) && XMLRPC_REQUEST )
+        ) {
+            return true;
+        }
+
+        return false;
+    }
+
     public static function is_public_frontend(): bool {
-        if ( is_admin() || wp_doing_ajax() || wp_doing_cron() ) {
-            return false;
-        }
-        if ( defined( "WP_CLI" ) && WP_CLI ) {
-            return false;
-        }
-        if ( defined( "REST_REQUEST" ) && REST_REQUEST ) {
+        if ( self::is_background_request() ) {
             return false;
         }
         if ( function_exists( "is_feed" ) && is_feed() ) {

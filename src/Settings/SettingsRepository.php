@@ -20,6 +20,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 class SettingsRepository {
     public const OPTION = 'smpi_settings';
 
+    private static array $request_cache = [];
+    private static bool $cache_invalidation_hooks_registered = false;
+
     public static function defaults(): array {
         $colors = self::color_defaults();
         $defaults = [
@@ -197,6 +200,13 @@ class SettingsRepository {
     }
 
     public static function all(): array {
+        self::register_cache_invalidation_hooks();
+        $cache_key = self::request_cache_key();
+
+        if ( isset( self::$request_cache[ $cache_key ] ) ) {
+            return self::$request_cache[ $cache_key ];
+        }
+
         $raw = get_option( self::OPTION, [] );
         $settings = wp_parse_args( is_array( $raw ) ? $raw : [], self::defaults() );
         $defaults = self::default_page_templates();
@@ -215,7 +225,36 @@ class SettingsRepository {
             }
         }
 
-        return $settings;
+        self::$request_cache[ $cache_key ] = $settings;
+
+        return self::$request_cache[ $cache_key ];
+    }
+
+    public static function invalidate_cache(): void {
+        unset( self::$request_cache[ self::request_cache_key() ] );
+    }
+
+    public static function invalidate_cache_for_option( string $option ): void {
+        if ( self::OPTION === $option ) {
+            self::invalidate_cache();
+        }
+    }
+
+    private static function register_cache_invalidation_hooks(): void {
+        if ( self::$cache_invalidation_hooks_registered || ! function_exists( 'add_action' ) ) {
+            return;
+        }
+
+        foreach ( [ 'added_option', 'updated_option', 'deleted_option' ] as $hook ) {
+            add_action( $hook, [ self::class, 'invalidate_cache_for_option' ], 10, 1 );
+        }
+        add_action( 'switch_blog', [ self::class, 'invalidate_cache' ], 10, 0 );
+
+        self::$cache_invalidation_hooks_registered = true;
+    }
+
+    private static function request_cache_key(): int {
+        return function_exists( 'get_current_blog_id' ) ? (int) get_current_blog_id() : 0;
     }
 
     private static function should_refresh_default_page_template( string $template ): bool {
@@ -661,6 +700,7 @@ class SettingsRepository {
         }
 
         update_option( self::OPTION, $settings, false );
+        self::invalidate_cache();
         self::log( 'Settings updated: ' . implode( ', ', array_keys( $changes ) ) );
         return $settings;
     }
@@ -678,6 +718,7 @@ class SettingsRepository {
         }
 
         update_option( self::OPTION, $settings, false );
+        self::invalidate_cache();
         self::log( 'Page assignment updated: ' . $type );
         return $settings;
     }

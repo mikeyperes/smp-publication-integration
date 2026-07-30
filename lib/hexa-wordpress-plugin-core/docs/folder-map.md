@@ -49,6 +49,7 @@ The package version is stored in the root `VERSION` file. Root `bootstrap.php` s
 | `src/ObjectCache/` | `Hexa\PluginCore\ObjectCache` | Object-cache provider status and activation adapters. |
 | `src/PluginProvisioning/` | `Hexa\PluginCore\PluginProvisioning` | Plugin discovery, status checks, WordPress.org installs, GitHub ZIP installs, folder normalization, and activation. |
 | `src/PluginUpdates/` | `Hexa\PluginCore\PluginUpdates` | Host plugin GitHub version checks, update transients, zip downloads, and updater panels. |
+| `src/QuerySafety/` | `Hexa\PluginCore\QuerySafety` | Filter/request eligibility checks plus exact static-front-page invariant capture and repair. |
 | `src/SnippetRegistry/` | `Hexa\PluginCore\SnippetRegistry` | Snippet definitions, option toggles, test rules, related snippet internals, related shortcodes, basic README rendering, and AJAX handlers. |
 | `src/ShortcodeRegistry/` | `Hexa\PluginCore\ShortcodeRegistry` | Shortcode definitions, registries, dashboard display rows, examples, live output, and testing. |
 | `src/SiteStructure/` | `Hexa\PluginCore\SiteStructure` | Critical page blueprints, callback-backed assigned page storage, starter templates, page details, WordPress navigation menu creation, custom menu items, add-all-pages actions, menu structure attachment, and page-to-menu-item tools. |
@@ -62,7 +63,7 @@ The package version is stored in the root `VERSION` file. Root `bootstrap.php` s
 | `src/Taxonomies/` | `Hexa\PluginCore\Taxonomies` | Reusable taxonomy definitions, callback-backed registration, and reference UI. |
 | `src/Typography/` | `Hexa\PluginCore\Typography` | Prefix-scoped typography-preservation setting keys, defaults, values, and preview-state classes. |
 | `src/WpAdminAjax/` | `Hexa\PluginCore\WpAdminAjax` | WordPress admin-AJAX nonce, capability, request parsing, action registration, and callback guards. |
-| `src/WpAdminComponents/` | `Hexa\PluginCore\WpAdminComponents` | Shared UI primitives: cards, subcards, buttons, pills, tooltips, collapsibles, color/font controls, and scoped CSS override references. |
+| `src/WpAdminComponents/` | `Hexa\PluginCore\WpAdminComponents` | Shared UI primitives: cards, subcards, buttons, pills, tooltips, collapsibles, selectable media gallery details, color/font controls, and scoped CSS override references. |
 | `src/WpAdminTabs/` | `Hexa\PluginCore\WpAdminTabs` | Admin tab definitions, registries, rendering contracts, and the automatic core tab. |
 | `src/WpConfigFile/` | `Hexa\PluginCore\WpConfigFile` | Safe wp-config.php constant and ini_set reads/writes with validation and rollback backup handling. |
 | `src/WpCronTasks/` | `Hexa\PluginCore\WpCronTasks` | WP-Cron interval registration, scheduling, unscheduling, event inspection, and health status payloads. |

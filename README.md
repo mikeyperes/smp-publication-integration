@@ -8,7 +8,7 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `1.0.15`
+- Version: `1.0.16`
 
 ## Ownership
 
@@ -64,7 +64,9 @@ Quick Start contains only the reusable checklist workflow and is the second tab.
 
 `smp-publication-integration.php` is the canonical plugin entry. `initialization.php` is a compatibility loader for older active-plugin records.
 
-Namespaced domain code lives under `src/`. Reusable UI, AJAX, updater, CPT, ACF, entity, FAQ, schema, taxonomy, activity-log, color, typography, and template infrastructure comes from Hexa WordPress Plugin Core 1.1.6.
+Namespaced domain code lives under `src/`. Reusable UI, AJAX, updater, CPT, ACF, entity, FAQ, schema, taxonomy, activity-log, color, typography, and template infrastructure comes from Hexa WordPress Plugin Core 1.2.0.
+
+Elementor single-post recent-content loops opt into SMP publication filtering with the exact Query ID `smpi_single_recent`. Other Posts and Loop Grid widgets remain outside SMP query mutation.
 
 The plugin updater targets the repository's canonical `main` branch and registers `Hexa\PluginCore\PluginUpdates\GitHubPluginUpdater` directly.
 
@@ -73,8 +75,8 @@ The plugin updater targets the repository's canonical `main` branch and register
 | Requirement | Minimum |
 | --- | --- |
 | WordPress | 5.0 |
-| PHP | 8.0 |
-| Hexa WP Core bundle | 1.1.6 |
+| PHP | 8.1 |
+| Hexa WP Core bundle | 1.2.0 |
 
 ACF Pro is required for publication option and content field groups. Feature-specific integrations require their corresponding plugins.
 
@@ -93,6 +95,14 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 1.0.16
+
+- Guarded SMP query mutations and paired SQL filters with shared Hexa WP Core eligibility and static-front-page checks.
+- Scoped secondary publication loops through exact host-owned Elementor Query IDs, preserved queries that suppress filters, and removed Elementor author post-ID prefetching.
+- Cached normalized SMP settings per site and request with invalidation after writes, direct option updates, and multisite blog switches.
+- Replaced author-directory full-ID scans with bounded existence queries while retaining full enumeration for user-removal workflows.
+- Updated the bundled Hexa WP Core to 1.2.0 and the minimum PHP version to 8.1.
 
 ### 1.0.15
 

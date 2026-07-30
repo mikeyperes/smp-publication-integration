@@ -28,21 +28,29 @@ namespace {
     }
 
     final class WP_Query {
+        public static int $construction_count = 0;
         public array $posts = [];
         public int $found_posts = 0;
         public $queried_object = null;
         public int $queried_object_id = 0;
         private array $query_vars = [];
         private bool $author_archive = false;
+        private bool $main_query = false;
+        private bool $feed = false;
         public function __construct( array $args = [] ) {
+            self::$construction_count++;
             $this->posts = [];
             $this->author_archive = (bool) ( $args["is_author"] ?? false );
-            unset( $args["is_author"] );
+            $this->main_query = (bool) ( $args["is_main_query"] ?? $this->author_archive );
+            $this->feed = (bool) ( $args["is_feed"] ?? false );
+            unset( $args["is_author"], $args["is_main_query"], $args["is_feed"] );
             $this->query_vars = $args;
         }
         public function get( string $key, $default = "" ) { return $this->query_vars[ $key ] ?? $default; }
         public function set( string $key, $value ): void { $this->query_vars[ $key ] = $value; }
         public function is_author(): bool { return $this->author_archive; }
+        public function is_main_query(): bool { return $this->main_query; }
+        public function is_feed(): bool { return $this->feed; }
     }
 
     final class TestWpdb {
@@ -198,8 +206,11 @@ namespace {
     function current_user_can( string $capability, ...$args ): bool { return true; }
     function get_option( string $key, $default = false ) { return $default; }
     function update_option( string $key, $value, bool $autoload = false ): bool { return true; }
-    function is_admin(): bool { return false; }
-    function is_author(): bool { return (bool) ( $GLOBALS["test_is_author"] ?? false ); }
+    function is_admin(): bool { return (bool) ( $GLOBALS["test_is_admin"] ?? false ); }
+    function is_author(): bool {
+        $GLOBALS["test_is_author_calls"] = (int) ( $GLOBALS["test_is_author_calls"] ?? 0 ) + 1;
+        return (bool) ( $GLOBALS["test_is_author"] ?? false );
+    }
     function is_singular( $types = null ): bool { return (bool) $GLOBALS["test_is_singular"]; }
     function in_the_loop(): bool { return true; }
     function get_queried_object_id(): int { return 10; }
@@ -223,11 +234,18 @@ namespace {
     function get_posts( array $args ): array { return $GLOBALS["test_get_posts"] ?? []; }
     function wp_is_post_revision( int $post_id ) { return false; }
     function wp_is_post_autosave( int $post_id ) { return false; }
+    function wp_doing_ajax(): bool { return (bool) ( $GLOBALS["test_doing_ajax"] ?? false ); }
+    function wp_doing_cron(): bool { return (bool) ( $GLOBALS["test_doing_cron"] ?? false ); }
+    function wp_is_serving_rest_request(): bool { return (bool) ( $GLOBALS["test_serving_rest_request"] ?? false ); }
+    function current_filter(): string { return (string) ( $GLOBALS["test_current_filter"] ?? "" ); }
 }
 
 namespace smp_publication_integration\Support {
     final class Settings {
+        public static int $reads = 0;
+
         public static function bool( string $key ): bool {
+            self::$reads++;
             if ( array_key_exists( $key, $GLOBALS["test_settings"] ?? [] ) ) {
                 return (bool) $GLOBALS["test_settings"][ $key ];
             }
@@ -237,9 +255,11 @@ namespace smp_publication_integration\Support {
             return ! in_array( $key, [ "multi_authors_disable_loop_cards", "muckrack_verified_enabled" ], true );
         }
         public static function get( string $key, $default = null ) {
+            self::$reads++;
             return "multi_authors_loop_output" === $key ? ( $GLOBALS["test_loop_output"] ?? "comma" ) : $default;
         }
         public static function array( string $key ): array {
+            self::$reads++;
             return "muckrack_verified_contexts" === $key ? ( $GLOBALS["test_muckrack_contexts"] ?? [] ) : [];
         }
     }
@@ -249,12 +269,27 @@ namespace smp_publication_integration\Support {
     }
 
     final class RuntimeContext {
+        public static function is_background_request(): bool {
+            return is_admin()
+                || wp_doing_ajax()
+                || wp_doing_cron()
+                || ( defined( "WP_CLI" ) && WP_CLI )
+                || wp_is_serving_rest_request()
+                || ( defined( "XMLRPC_REQUEST" ) && XMLRPC_REQUEST );
+        }
+
         public static function has_article_loop_context(): bool { return true; }
         public static function is_public_dom_context(): bool { return true; }
     }
 }
 
 namespace {
+    $core_root = dirname( __DIR__ ) . "/lib/hexa-wordpress-plugin-core";
+    if ( ! is_file( $core_root . "/src/QuerySafety/QueryEligibility.php" ) ) {
+        fwrite( STDERR, "FAIL: Bundled Hexa WP Core QuerySafety classes are unavailable.\n" );
+        exit( 1 );
+    }
+    require_once $core_root . "/src/QuerySafety/QueryEligibility.php";
     require_once dirname( __DIR__ ) . "/src/Support/Autoloader.php";
     \smp_publication_integration\Support\Autoloader::register( dirname( __DIR__ ) . "/src" );
 
@@ -264,6 +299,8 @@ namespace {
     use smp_publication_integration\Authorship\ElementorAuthorRenderer;
     use smp_publication_integration\Authorship\LoopBylineRenderer;
     use smp_publication_integration\Content\MuckRackVerification;
+    use smp_publication_integration\Content\Visibility;
+    use smp_publication_integration\Support\Settings;
 
     function expect_same( $expected, $actual, string $message ): void {
         if ( $expected !== $actual ) {
@@ -273,6 +310,33 @@ namespace {
     }
 
     $repository = new AuthorAssignmentRepository();
+
+    $runtime_context_source = file_get_contents( dirname( __DIR__ ) . "/src/Support/RuntimeContext.php" );
+    expect_same( true, is_string( $runtime_context_source ), "The production runtime-context guard remains available for safety assertions." );
+    expect_same( true, str_contains( $runtime_context_source, 'defined( "WP_CLI" ) && WP_CLI' ), "The production background guard excludes WP-CLI requests." );
+    expect_same( true, str_contains( $runtime_context_source, 'defined( "XMLRPC_REQUEST" ) && XMLRPC_REQUEST' ), "The production background guard excludes XML-RPC requests." );
+
+    $secondary_author_query = new WP_Query( [ "is_author" => true, "is_main_query" => false, "author" => 1, "post_type" => "post" ] );
+    $settings_reads_before_secondary = Settings::$reads;
+    ( new AuthorQueryIntegration( $repository ) )->prepare_author_query( $secondary_author_query );
+    expect_same( 1, $secondary_author_query->get( "author" ), "Unmarked secondary author queries are not rewritten." );
+    expect_same( $settings_reads_before_secondary, Settings::$reads, "Ineligible secondary author queries exit before reading settings." );
+
+    $suppressed_author_query = new WP_Query( [ "is_author" => true, "author" => 1, "post_type" => "post", "suppress_filters" => true ] );
+    $settings_reads_before_suppressed = Settings::$reads;
+    ( new AuthorQueryIntegration( $repository ) )->prepare_author_query( $suppressed_author_query );
+    expect_same( 1, $suppressed_author_query->get( "author" ), "Author queries that suppress SQL filters are not rewritten." );
+    expect_same( $settings_reads_before_suppressed, Settings::$reads, "Suppressed author queries exit before reading settings." );
+
+    $author_clauses = [ "where" => "BASE" ];
+    $unmarked_author_clauses_query = new WP_Query( [ "is_main_query" => false, "smpi_author_user_id" => 1 ] );
+    expect_same( $author_clauses, ( new AuthorQueryIntegration( $repository ) )->filter_author_clauses( $author_clauses, $unmarked_author_clauses_query ), "Unmarked secondary queries cannot activate author SQL." );
+    $suppressed_author_clauses_query = new WP_Query( [ "is_main_query" => false, "suppress_filters" => true, "smpi_author_user_id" => 1, Visibility::MANAGED_CONTEXT_QUERY_VAR => "author" ] );
+    expect_same( $author_clauses, ( new AuthorQueryIntegration( $repository ) )->filter_author_clauses( $author_clauses, $suppressed_author_clauses_query ), "Suppressed secondary queries cannot activate author SQL even with an injected scope." );
+    $marked_author_clauses_query = new WP_Query( [ "is_main_query" => false, "smpi_author_user_id" => 1, Visibility::MANAGED_CONTEXT_QUERY_VAR => "author" ] );
+    $marked_author_clauses = ( new AuthorQueryIntegration( $repository ) )->filter_author_clauses( $author_clauses, $marked_author_clauses_query );
+    expect_same( true, str_contains( $marked_author_clauses["where"], "smpi_tr" ), "Explicitly marked Elementor author queries retain indexed author SQL." );
+
     $author_query = new WP_Query( [ "is_author" => true, "author_name" => "beta-author", "post_type" => "post" ] );
     ( new AuthorQueryIntegration( $repository ) )->prepare_author_query( $author_query );
     expect_same( 2, $author_query->queried_object_id, "Author archive identity is restored before Elementor evaluates Theme Builder conditions." );
@@ -291,16 +355,60 @@ namespace {
     expect_same( true, (bool) $press_release_query->get( "hpr_allow_press_release_loop" ), "Enabled author press releases use Hexa PR Wire's approved query override." );
 
     $GLOBALS["test_is_author"] = true;
+    $GLOBALS["test_is_author_calls"] = 0;
     $GLOBALS["test_queried_object"] = $GLOBALS["test_users"][1];
+    $GLOBALS["test_current_filter"] = "elementor/query/query_args";
+    $background_contexts = [
+        "admin" => "test_is_admin",
+        "AJAX" => "test_doing_ajax",
+        "cron" => "test_doing_cron",
+        "REST" => "test_serving_rest_request",
+    ];
+    foreach ( $background_contexts as $context_label => $context_global ) {
+        $GLOBALS[ $context_global ] = true;
+        $background_args = [ "post_type" => "post", Visibility::MANAGED_CONTEXT_QUERY_VAR => "author" ];
+        $author_checks_before_background = (int) ( $GLOBALS["test_is_author_calls"] ?? 0 );
+        $settings_reads_before_background = Settings::$reads;
+        $background_result = ( new AuthorQueryIntegration( $repository ) )->filter_elementor_query_args( $background_args );
+        expect_same( $background_args, $background_result, "Elementor author integration leaves {$context_label} queries untouched." );
+        expect_same( $author_checks_before_background, $GLOBALS["test_is_author_calls"], "The {$context_label} guard exits before evaluating the author route." );
+        expect_same( $settings_reads_before_background, Settings::$reads, "The {$context_label} guard exits before reading settings." );
+        unset( $GLOBALS[ $context_global ] );
+    }
+
+    $unrelated_widget_args = [ "post_type" => "post", "posts_per_page" => 3 ];
+    $author_checks_before_unrelated_widget = (int) ( $GLOBALS["test_is_author_calls"] ?? 0 );
+    $settings_reads_before_unrelated_widget = Settings::$reads;
+    $unrelated_widget_result = ( new AuthorQueryIntegration( $repository ) )->filter_elementor_query_args( $unrelated_widget_args );
+    expect_same( $unrelated_widget_args, $unrelated_widget_result, "Broad Elementor hooks do not rewrite unmarked widgets on author pages." );
+    expect_same( $author_checks_before_unrelated_widget, $GLOBALS["test_is_author_calls"], "Unmarked Elementor widgets exit before evaluating the author route." );
+    expect_same( $settings_reads_before_unrelated_widget, Settings::$reads, "Unmarked Elementor widgets exit before reading settings." );
+
+    $GLOBALS["test_current_filter"] = "elementor/query/get_query_args/current_query";
+    $suppressed_elementor_args = [ "post_type" => "post", "suppress_filters" => true ];
+    $author_checks_before_suppressed_widget = (int) ( $GLOBALS["test_is_author_calls"] ?? 0 );
+    $settings_reads_before_suppressed_widget = Settings::$reads;
+    $constructions_before_suppressed_widget = WP_Query::$construction_count;
+    $suppressed_elementor_result = ( new AuthorQueryIntegration( $repository ) )->filter_elementor_query_args( $suppressed_elementor_args );
+    expect_same( $suppressed_elementor_args, $suppressed_elementor_result, "Elementor author integration never overrides an explicit suppress_filters=true contract." );
+    expect_same( $author_checks_before_suppressed_widget, $GLOBALS["test_is_author_calls"], "Suppressed Elementor queries exit before evaluating the author route." );
+    expect_same( $settings_reads_before_suppressed_widget, Settings::$reads, "Suppressed Elementor queries exit before reading settings." );
+    expect_same( $constructions_before_suppressed_widget, WP_Query::$construction_count, "Suppressed Elementor queries perform no author post-ID prefetch." );
+
     $GLOBALS["test_settings"]["author_listing_show_press_releases"] = false;
+    $constructions_before_elementor = WP_Query::$construction_count;
     $elementor_articles_only = ( new AuthorQueryIntegration( $repository ) )->filter_elementor_query_args( [ "post_type" => [ "post", "press-release" ] ] );
     expect_same( false, in_array( "press-release", $elementor_articles_only["post_type"], true ), "The author-page setting excludes press releases from Elementor author queries." );
     expect_same( false, (bool) $elementor_articles_only["hpr_allow_press_release_loop"], "Disabled Elementor author queries retain the Hexa PR Wire exclusion." );
+    expect_same( false, (bool) $elementor_articles_only["suppress_filters"], "Eligible Elementor archive queries keep SQL filters enabled." );
+    expect_same( "author", $elementor_articles_only[ Visibility::MANAGED_CONTEXT_QUERY_VAR ], "Eligible Elementor archive queries carry an explicit SMP author scope." );
+    expect_same( $constructions_before_elementor, WP_Query::$construction_count, "Elementor author filters do not prefetch post IDs." );
+    expect_same( false, array_key_exists( "post__in", $elementor_articles_only ), "Elementor author filters leave post selection to the indexed SQL clause." );
     $GLOBALS["test_settings"]["author_listing_show_press_releases"] = true;
     $elementor_with_press_releases = ( new AuthorQueryIntegration( $repository ) )->filter_elementor_query_args( [ "post_type" => [ "post" ] ] );
     expect_same( true, in_array( "press-release", $elementor_with_press_releases["post_type"], true ), "The author-page setting includes press releases in Elementor author queries." );
     expect_same( true, (bool) $elementor_with_press_releases["hpr_allow_press_release_loop"], "Enabled Elementor author queries retain press releases after Hexa PR Wire's late filter." );
-    unset( $GLOBALS["test_is_author"], $GLOBALS["test_queried_object"] );
+    unset( $GLOBALS["test_is_author"], $GLOBALS["test_is_author_calls"], $GLOBALS["test_queried_object"], $GLOBALS["test_current_filter"] );
     unset( $GLOBALS["test_settings"]["author_listing_show_press_releases"] );
 
     expect_same( [ 2, 1 ], $repository->normalize_ids( [ 2, 1, 2, 999, 0 ] ), "IDs retain order and remove duplicates/invalid users." );

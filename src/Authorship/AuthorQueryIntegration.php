@@ -1,7 +1,9 @@
 <?php
 namespace smp_publication_integration\Authorship;
 
+use Hexa\PluginCore\QuerySafety\QueryEligibility;
 use smp_publication_integration\Content\Visibility;
+use smp_publication_integration\Support\RuntimeContext;
 use smp_publication_integration\Support\Settings;
 
 if ( ! defined( "ABSPATH" ) ) {
@@ -10,6 +12,10 @@ if ( ! defined( "ABSPATH" ) ) {
 
 final class AuthorQueryIntegration {
     private const QUERY_VAR = "smpi_author_user_id";
+    private const ELEMENTOR_CURRENT_QUERY_HOOKS = [
+        "elementor/query/get_query_args/current_query",
+        "elementor_pro/query_control/get_query_args/current_query",
+    ];
 
     private AuthorAssignmentRepository $repository;
 
@@ -29,7 +35,11 @@ final class AuthorQueryIntegration {
     }
 
     public function prepare_author_query( \WP_Query $query ): void {
-        if ( is_admin() || ! Settings::bool( "multi_authors_enabled" ) || ! $query->is_author() ) {
+        if ( ! QueryEligibility::allows_main_filtered_frontend_query( $query )
+            || ! $query->is_author()
+            || $query->is_feed()
+            || ! Settings::bool( "multi_authors_enabled" )
+        ) {
             return;
         }
         $author_id = absint( $query->get( "author" ) );
@@ -90,6 +100,15 @@ final class AuthorQueryIntegration {
     }
 
     public function filter_author_clauses( array $clauses, \WP_Query $query ): array {
+        if ( ! QueryEligibility::allows_main_or_explicit_filtered_frontend_query(
+                $query,
+                Visibility::MANAGED_CONTEXT_QUERY_VAR,
+                [ "author" ]
+            )
+        ) {
+            return $clauses;
+        }
+
         $author_id = absint( $query->get( self::QUERY_VAR ) );
         if ( $author_id <= 0 ) {
             return $clauses;
@@ -118,7 +137,12 @@ final class AuthorQueryIntegration {
     }
 
     public function filter_elementor_query_args( array $query_args ): array {
-        if ( is_admin() || ! Settings::bool( "multi_authors_enabled" ) || ! is_author() ) {
+        if ( RuntimeContext::is_background_request()
+            || ! $this->is_elementor_author_archive_query( $query_args )
+            || ! empty( $query_args["suppress_filters"] )
+            || ! is_author()
+            || ! Settings::bool( "multi_authors_enabled" )
+        ) {
             return $query_args;
         }
         $author_id = self::current_archive_author_id();
@@ -126,15 +150,26 @@ final class AuthorQueryIntegration {
             return $query_args;
         }
         $post_types = $this->author_archive_post_types();
-        $ids = $this->repository->post_ids_for_user( $author_id, [ "publish" ], $post_types );
         unset( $query_args["author"], $query_args["author_name"], $query_args["author__in"], $query_args["author__not_in"] );
-        $query_args["post__in"] = ! empty( $ids ) ? $ids : [ 0 ];
         $query_args["post_type"] = $post_types;
+        $query_args["suppress_filters"] = false;
+        $query_args[ self::QUERY_VAR ] = $author_id;
         $query_args[ Visibility::HPR_ALLOW_QUERY_VAR ] = Visibility::author_press_releases_enabled();
+        $query_args[ Visibility::MANAGED_CONTEXT_QUERY_VAR ] = "author";
         if ( $query_args[ Visibility::HPR_ALLOW_QUERY_VAR ] ) {
             $query_args[ Visibility::HPR_FORCE_HIDE_QUERY_VAR ] = false;
         }
         return $query_args;
+    }
+
+    private function is_elementor_author_archive_query( array $query_args ): bool {
+        if ( "author" === (string) ( $query_args[ Visibility::MANAGED_CONTEXT_QUERY_VAR ] ?? "" ) ) {
+            return true;
+        }
+
+        $hook = function_exists( "current_filter" ) ? (string) current_filter() : "";
+
+        return in_array( $hook, self::ELEMENTOR_CURRENT_QUERY_HOOKS, true );
     }
 
     public function author_archive_post_types(): array {

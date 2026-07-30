@@ -1,8 +1,11 @@
 <?php
 namespace smp_publication_integration\Content;
 
+use Hexa\PluginCore\QuerySafety\QueryEligibility;
+use Hexa\PluginCore\QuerySafety\StaticFrontPageQueryGuard;
 use Hexa\PluginCore\WpAdminComponents\CoreUi;
 use smp_publication_integration\Support\Dependencies;
+use smp_publication_integration\Support\RuntimeContext;
 use smp_publication_integration\Support\Settings;
 
 if ( ! defined( "ABSPATH" ) ) {
@@ -12,6 +15,9 @@ if ( ! defined( "ABSPATH" ) ) {
 final class Visibility {
     public const HPR_ALLOW_QUERY_VAR = "hpr_allow_press_release_loop";
     public const HPR_FORCE_HIDE_QUERY_VAR = "hpr_force_hide_press_release";
+    public const MANAGED_CONTEXT_QUERY_VAR = "smpi_publication_query_context";
+    public const ELEMENTOR_SINGLE_RECENT_QUERY_ID = "smpi_single_recent";
+    private const ELEMENTOR_SINGLE_RECENT_QUERY_HOOK = "elementor/query/smpi_single_recent";
     private const HOME_META = "_smpi_shadow_home";
     private const ARCHIVE_META = "_smpi_shadow_archives";
     private const COMPLETE_META = "_smpi_shadow_complete";
@@ -22,6 +28,7 @@ final class Visibility {
         add_action( "save_post", [ $this, "save_meta" ], 10, 2 );
         add_action( "pre_get_posts", [ $this, "filter_queries" ], 1000 );
         add_filter( "posts_where", [ $this, "filter_press_release_where" ], 10, 2 );
+        add_action( self::ELEMENTOR_SINGLE_RECENT_QUERY_HOOK, [ $this, "mark_elementor_single_recent_query" ], 20, 2 );
     }
 
     public function register_press_release_taxonomies(): void {
@@ -131,21 +138,29 @@ final class Visibility {
     }
 
     public function filter_queries( \WP_Query $query ): void {
-        if ( is_admin() || $query->is_search() || $query->is_feed() || ( function_exists( "wp_doing_ajax" ) && wp_doing_ajax() ) || ( defined( "REST_REQUEST" ) && REST_REQUEST ) || ( $query->is_post_type_archive() && ! ( function_exists( "is_author" ) && is_author() ) ) ) {
+        if ( ! QueryEligibility::allows_main_or_explicit_filtered_frontend_query(
+                $query,
+                self::MANAGED_CONTEXT_QUERY_VAR,
+                [ "home", "category_tag", "author", "single_recent" ]
+            )
+            || StaticFrontPageQueryGuard::is_static_front_page_main_query( $query )
+            || $query->is_search()
+            || $query->is_feed()
+            || ( $query->is_post_type_archive() && ! $query->is_author() )
+        ) {
             return;
         }
         $context = $this->query_context( $query );
-        $shadow_context = $this->shadow_query_context( $query );
-        if ( Settings::bool( "shadow_posts_enabled" ) && $this->query_can_include_posts( $query ) ) {
-            if ( "home" === $shadow_context ) {
-                $query->set( "smpi_shadow_posts_home", true );
-            }
-            if ( "category_tag" === $shadow_context ) {
-                $query->set( "smpi_shadow_posts_archive", true );
-            }
-        }
         if ( "" === $context ) {
             return;
+        }
+        if ( Settings::bool( "shadow_posts_enabled" ) && $this->query_can_include_posts( $query ) ) {
+            if ( "home" === $context ) {
+                $query->set( "smpi_shadow_posts_home", true );
+            }
+            if ( "category_tag" === $context ) {
+                $query->set( "smpi_shadow_posts_archive", true );
+            }
         }
         $include_press_releases = $this->should_include_press_releases( $context, $query );
         if ( $include_press_releases ) {
@@ -164,7 +179,43 @@ final class Visibility {
         }
     }
 
+    public function mark_elementor_single_recent_query( \WP_Query $query, $widget = null ): void {
+        if ( RuntimeContext::is_background_request()
+            || ! function_exists( "current_filter" )
+            || self::ELEMENTOR_SINGLE_RECENT_QUERY_HOOK !== current_filter()
+            || $query->is_main_query()
+            || $query->get( "suppress_filters" )
+            || "" !== (string) $query->get( self::MANAGED_CONTEXT_QUERY_VAR )
+            || ! $widget instanceof \Elementor\Widget_Base
+        ) {
+            return;
+        }
+
+        $widget_name = sanitize_key( (string) $widget->get_name() );
+        if ( ! in_array( $widget_name, [ "posts", "loop-grid" ], true )
+            || ! $this->query_can_include_posts( $query )
+            || ! function_exists( "is_singular" )
+            || ! is_singular( "post" )
+        ) {
+            return;
+        }
+
+        $query->set( self::MANAGED_CONTEXT_QUERY_VAR, "single_recent" );
+    }
+
     public function filter_press_release_where( string $where, \WP_Query $query ): string {
+        if ( ! QueryEligibility::allows_main_or_explicit_filtered_frontend_query(
+                $query,
+                self::MANAGED_CONTEXT_QUERY_VAR,
+                [ "home", "category_tag", "author", "single_recent" ]
+            )
+            || StaticFrontPageQueryGuard::is_static_front_page_main_query( $query )
+            || "" === $this->query_context( $query )
+            || ! $this->has_sql_filter_marker( $query )
+        ) {
+            return $where;
+        }
+
         global $wpdb;
         if ( $query->get( "smpi_shadow_posts_home" ) ) {
             $where .= $wpdb->prepare( " AND ( {$wpdb->posts}.post_type <> %s OR NOT EXISTS ( SELECT 1 FROM {$wpdb->postmeta} smpi_shadow_home WHERE smpi_shadow_home.post_id = {$wpdb->posts}.ID AND smpi_shadow_home.meta_key IN (%s, %s) AND smpi_shadow_home.meta_value = %s ) )", "post", self::COMPLETE_META, self::HOME_META, "1" );
@@ -184,33 +235,40 @@ final class Visibility {
         return $where;
     }
 
-    private function query_context( \WP_Query $query ): string {
-        if ( $query->is_main_query() && ( $query->is_home() || is_front_page() ) ) {
-            return "home";
+    private function has_sql_filter_marker( \WP_Query $query ): bool {
+        foreach ( [
+            "smpi_shadow_posts_home",
+            "smpi_shadow_posts_archive",
+            "smpi_press_release_shadow",
+            "smpi_press_release_force_exclude",
+            "smpi_author_press_release_exclude",
+        ] as $query_var ) {
+            if ( $query->get( $query_var ) ) {
+                return true;
+            }
         }
-        if ( $query->is_main_query() && ( $query->is_category() || $query->is_tag() ) ) {
-            return "category_tag";
-        }
-        if ( $query->is_main_query() && $query->is_author() ) {
-            return "author";
-        }
-        if ( ! $query->is_main_query() && function_exists( "is_author" ) && is_author() && ! is_singular() ) {
-            return "author";
-        }
-        if ( ! $query->is_main_query() && is_singular( "post" ) ) {
-            return "single_recent";
-        }
-        return "";
+
+        return false;
     }
 
-    private function shadow_query_context( \WP_Query $query ): string {
-        if ( $query->is_home() || ( function_exists( "is_home" ) && is_home() ) || ( function_exists( "is_front_page" ) && is_front_page() ) ) {
-            return "home";
+    private function query_context( \WP_Query $query ): string {
+        if ( $query->is_main_query() ) {
+            if ( $query->is_home() ) {
+                return "home";
+            }
+            if ( $query->is_category() || $query->is_tag() ) {
+                return "category_tag";
+            }
+            if ( $query->is_author() ) {
+                return "author";
+            }
         }
-        if ( $query->is_category() || $query->is_tag() || ( ! $query->is_main_query() && ! is_singular() && ( ( function_exists( "is_category" ) && is_category() ) || ( function_exists( "is_tag" ) && is_tag() ) ) ) ) {
-            return "category_tag";
-        }
-        return "";
+
+        $explicit_context = (string) $query->get( self::MANAGED_CONTEXT_QUERY_VAR );
+
+        return in_array( $explicit_context, [ "home", "category_tag", "author", "single_recent" ], true )
+            ? $explicit_context
+            : "";
     }
 
     private function query_can_include_posts( \WP_Query $query ): bool {

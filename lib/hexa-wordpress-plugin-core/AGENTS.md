@@ -52,6 +52,7 @@ src/MediaUploads/       Hexa\PluginCore\MediaUploads
 src/ObjectCache/        Hexa\PluginCore\ObjectCache
 src/PluginProvisioning/ Hexa\PluginCore\PluginProvisioning
 src/PluginUpdates/      Hexa\PluginCore\PluginUpdates
+src/QuerySafety/        Hexa\PluginCore\QuerySafety
 src/SnippetRegistry/    Hexa\PluginCore\SnippetRegistry
 src/ShortcodeRegistry/  Hexa\PluginCore\ShortcodeRegistry
 src/SiteStructure/      Hexa\PluginCore\SiteStructure
@@ -114,6 +115,7 @@ Never make a module boot itself at file include time. Modules register hooks fro
 - Keep all three search domains separate: `SearchDisplay` renders native GET forms, `SearchQuery` changes an explicitly eligible native results query, and `SmartSearch` provides AJAX typeahead/content selection.
 - Put safe constants, INI, shell wrappers, size parsing, CPU/memory detection, and byte formatting in `src/SystemEnvironment`.
 - Put host plugin GitHub/update configuration and updater abstractions in `src/PluginUpdates`.
+- Put exact WordPress query eligibility predicates and narrowly scoped invariant repair in `src/QuerySafety`; host query callbacks must reject ineligible queries before loading settings or attaching SQL filters.
 - Put vendored core package version checks and core package update UI in `src/CorePackageUpdates`; do not treat the shared core as a WordPress plugin.
 - Put WordPress admin-AJAX nonce/capability/request parsing/action registry/handler guards in `src/WpAdminAjax`.
 - Put bootstrap/lifecycle orchestration in `src/CoreBootstrap`.
@@ -128,7 +130,9 @@ Never make a module boot itself at file include time. Modules register hooks fro
 - Do not hard-code plugin slugs, GitHub repos, admin page slugs, paths, URLs, or versions.
 - Do not duplicate credential/API-key storage or masking in host plugins.
 - Do not duplicate typeahead search UI in host plugins.
-- Never attach broad search SQL permanently. Reject admin, AJAX, REST, cron, feeds, nested queries, empty searches, and unrelated requests before loading host settings; attach `posts_search` only for one exact `WP_Query` object and remove it immediately after use.
+- Never attach broad search SQL. Reject admin, AJAX, REST, cron, feeds, nested queries, empty searches, and unrelated requests before loading host settings; use one idempotent `posts_search` dispatcher with weak exact-object state instead of query-capturing closures.
+- Call `QuerySafety\StaticFrontPageQueryGuard::is_static_front_page_main_query()` before settings or provider reads in any host callback that could change a home/front-page query. Core's final invariant repair is defense in depth, not permission to run broad callbacks first.
+- Call `QuerySafety\QueryEligibility::allows_main_filtered_frontend_query()` or `allows_main_or_explicit_filtered_frontend_query()` before pairing a query mutation with `posts_*` SQL filters. Secondary Elementor or related-content loops require an explicit host-owned query marker and strict allowed values; never infer their context from global conditional functions.
 
 ## Documentation Rule
 

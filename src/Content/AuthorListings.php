@@ -121,7 +121,7 @@ final class AuthorListings {
             return $this->article_cache[ $user_id ];
         }
         $post_types = array_values( array_diff( $this->assignments->supported_post_types(), [ "press-release" ] ) );
-        $this->article_cache[ $user_id ] = ! empty( $this->assignments->post_ids_for_user( $user_id, [ "publish" ], $post_types ) );
+        $this->article_cache[ $user_id ] = $this->assignments->has_posts_for_user( $user_id, [ "publish" ], $post_types );
         return $this->article_cache[ $user_id ];
     }
 }

@@ -13,7 +13,7 @@ Root namespace: Hexa\PluginCore\
 Source root: src/
 Version source: VERSION
 
-Current release: 1.1.6
+Current release: 1.2.0
 ```
 
 Do not rename these.
@@ -46,6 +46,7 @@ src/ObjectCache/        Hexa\PluginCore\ObjectCache
 src/PluginChecks/       Hexa\PluginCore\PluginChecks
 src/PluginProvisioning/ Hexa\PluginCore\PluginProvisioning
 src/PluginUpdates/      Hexa\PluginCore\PluginUpdates
+src/QuerySafety/        Hexa\PluginCore\QuerySafety
 src/SnippetRegistry/    Hexa\PluginCore\SnippetRegistry
 src/ShortcodeRegistry/  Hexa\PluginCore\ShortcodeRegistry
 src/SiteStructure/      Hexa\PluginCore\SiteStructure
@@ -63,6 +64,31 @@ src/WpAdminComponents/  Hexa\PluginCore\WpAdminComponents
 src/WpAdminTabs/        Hexa\PluginCore\WpAdminTabs
 src/WpConfigFile/       Hexa\PluginCore\WpConfigFile
 src/WpCronTasks/        Hexa\PluginCore\WpCronTasks
+```
+
+## Query Safety
+
+`CoreBootstrap::boot()` automatically registers `QuerySafety\StaticFrontPageQueryGuard`. It captures the exact configured static front-page main query at the earliest numeric `parse_query` priority, before any `pre_get_posts` callback can mutate it, then repairs later `page_id`, `p`, or `post_type` mutations at the latest numeric `pre_get_posts` priority. Repairs emit `hexa_plugin_core_static_front_page_query_repaired` with the query and changed variables. The compatibility filter `hexa_plugin_core_should_protect_static_front_page_query` can disable repair for an exact query; same-priority callbacks registered later can still follow the guard.
+
+The final repair is defense in depth. Every host callback that pairs query mutation with a SQL filter must first call `QueryEligibility::allows_main_filtered_frontend_query()` or `allows_main_or_explicit_filtered_frontend_query()`. Any callback that can mutate a home/front-page query must then call `StaticFrontPageQueryGuard::is_static_front_page_main_query()` before reading settings, resolving providers, setting query variables, or attaching SQL filters. Secondary loops require a private host marker with strict allowed values; global conditional functions never authorize a secondary query.
+
+```php
+use Hexa\PluginCore\QuerySafety\QueryEligibility;
+use Hexa\PluginCore\QuerySafety\StaticFrontPageQueryGuard;
+
+public function prepare_query( \WP_Query $query ): void {
+    if ( ! QueryEligibility::allows_main_or_explicit_filtered_frontend_query(
+        $query,
+        'example_query_context',
+        [ 'home', 'author' ]
+    )
+        || StaticFrontPageQueryGuard::is_static_front_page_main_query( $query )
+    ) {
+        return;
+    }
+
+    // Continue with the host's exact context and marker checks.
+}
 ```
 
 ## Public Brand And Form Primitives
@@ -86,6 +112,28 @@ Use `CoreUi::collapsible()` for expandable cards. The shared component owns the 
 Use `CoreUi::toggle()` for checkbox-style toggles. Core clips the hidden checkbox input to a 1px focusable control so the input never creates horizontal page overflow.
 
 Use `CoreUi::detail_card()` for nested expandable/collapsible subcards inside a parent tool section. It is meant for descriptions, rule explanations, scan-location lists, and other supporting details that should not dominate the page on load.
+
+Use `MediaGalleryDetailsRenderer::render()` for a host-neutral gallery inspector outside ACF. Core renders a large stable preview, every generated image size, selectable rows, external URLs, separate image-data and URL clipboard actions, and optional dynamic removal controls.
+
+Use `FieldStructures\AcfGalleryDetailsModule` when the source is an ACF gallery field. The host supplies only its field key and presentation settings. Core owns the field hook, context resolution, permissions, nonces, AJAX refresh/removal, gallery-only persistence, and immediate synchronization after native ACF add, remove, or reorder operations.
+
+```php
+use Hexa\PluginCore\FieldStructures\AcfGalleryDetailsModule;
+
+$bootstrap->add_module(
+    new AcfGalleryDetailsModule(
+        [
+            'field_key'          => 'field_host_gallery',
+            'title'              => 'Details',
+            'persist_key'        => 'host-gallery-details',
+            'preview_pixels'     => 112,
+            'preview_image_size' => 'medium',
+            'allow_remove'       => true,
+            'live_refresh'       => true,
+        ]
+    )
+);
+```
 
 Use CoreUi::collection_filter() for a client-side search control above a repeated card collection. Give every top-level item a dedicated class through the CoreUi::collapsible() class argument; do not target every nested Core section.
 
@@ -797,7 +845,7 @@ Supported behavior:
 - public post-type selection, result count from 0 to 100, and relevance/newest/oldest/title ordering
 - `shortcode` scope through a hidden marker, or deliberate `all` public-search scope
 
-Safety rules are mandatory. The engine rejects admin, AJAX, REST, cron, XML-RPC, feeds, unmarked nested queries, empty searches, suppressed filters, and disabled queries before host settings are loaded. It then checks enabled/scope state, binds `posts_search` to one exact `WP_Query` object, and removes the temporary filter immediately after that object reaches it. `JetEngineSearchAdapter` can explicitly mark a posts grid created by a search-results template; archive grids and unrelated requests stay untouched. Advanced sources use `EXISTS` subqueries and remain opt-in. Parsing is capped at eight unique terms and 80 characters per term.
+Safety rules are mandatory. The engine rejects admin, AJAX, REST, cron, XML-RPC, feeds, unmarked nested queries, empty searches, suppressed filters, and disabled queries before host settings are loaded. It then checks enabled/scope state and records weak exact-object state consumed by one idempotently registered `posts_search` dispatcher. Duplicate preparation replaces state instead of stacking callbacks, and abandoned queries are not retained. `JetEngineSearchAdapter` can explicitly mark a posts grid created by a search-results template; archive grids and unrelated requests stay untouched. Advanced sources use `EXISTS` subqueries and remain opt-in. Parsing is capped at eight unique terms and 80 characters per term.
 
 Do not copy this into host `pre_get_posts` callbacks. Do not use it for suggestions: `SmartSearch` remains the separate AJAX typeahead/content-picker system. Full protocol: `docs/search-query.md`.
 

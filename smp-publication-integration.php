@@ -4,13 +4,13 @@
  * Description: Publication profile integration for Scale My Publication systems.
  * Author: Michael Peres
  * Plugin URI: https://github.com/mikeyperes/smp-publication-integration
- * Version: 1.0.15
+ * Version: 1.0.16
  * Text Domain: smp-publication-integration
  * Domain Path: /languages
  * Author URI: https://michaelperes.com
  * GitHub Plugin URI: https://github.com/mikeyperes/smp-publication-integration/
  * GitHub Branch: main
- * Requires PHP: 8.0
+ * Requires PHP: 8.1
  */
 
 namespace smp_publication_integration;
@@ -25,7 +25,13 @@ Support\Autoloader::register( __DIR__ . '/src' );
 
 $hexa_plugin_core_root = __DIR__ . '/lib/hexa-wordpress-plugin-core';
 require_once $hexa_plugin_core_root . '/bootstrap.php';
-\hexa_plugin_core_register_package( 'smp-publication-integration', $hexa_plugin_core_root );
+\hexa_plugin_core_register_package(
+    'smp-publication-integration',
+    $hexa_plugin_core_root,
+    [
+        'minimum_version' => trim( (string) file_get_contents( $hexa_plugin_core_root . '/VERSION' ) ),
+    ]
+);
 
 require_once __DIR__ . "/src/Content/AcfFields.php";
 require_once __DIR__ . "/src/Content/Shortcodes.php";
@@ -64,7 +70,7 @@ require_once __DIR__ . "/src/Admin/UiCleanup.php";
 require_once __DIR__ . "/src/Admin/Dashboard.php";
 
 final class Config {
-    public const VERSION = "1.0.15";
+    public const VERSION = "1.0.16";
 
     public static string $plugin_name        = 'SMP Publication Integration';
     public static string $plugin_slug        = 'smp-publication-integration';
@@ -108,6 +114,7 @@ function hexa_plugin_core_updater_config(): \Hexa\PluginCore\PluginUpdates\Updat
             'github_branch'             => Config::$github_branch,
             'requires'                  => '5.0',
             'tested'                    => '7.0',
+            'requires_php'              => '8.1',
             'nonce_action'              => Admin\Ajax::NONCE,
             'nonce_param'               => 'nonce',
             'ajax_action_prefix'        => 'smpi_core_updater',

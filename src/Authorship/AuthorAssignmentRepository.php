@@ -190,6 +190,51 @@ final class AuthorAssignmentRepository {
         return array_values( array_unique( array_merge( $post_ids, array_map( "absint", $term_query->posts ) ) ) );
     }
 
+    public function has_posts_for_user( int $user_id, array $post_status = [ "publish" ], ?array $post_types = null ): bool {
+        if ( $user_id <= 0 ) {
+            return false;
+        }
+
+        $post_types = null === $post_types ? $this->supported_post_types() : array_values( array_unique( array_filter( array_map( "sanitize_key", $post_types ) ) ) );
+        if ( empty( $post_types ) ) {
+            return false;
+        }
+
+        $base_args = [
+            "post_type" => $post_types,
+            "post_status" => $post_status,
+            "posts_per_page" => 1,
+            "fields" => "ids",
+            "no_found_rows" => true,
+            "ignore_sticky_posts" => true,
+            "update_post_meta_cache" => false,
+            "update_post_term_cache" => false,
+        ];
+        $native_query = new \WP_Query( $base_args + [ "author" => $user_id ] );
+        if ( ! empty( $native_query->posts ) ) {
+            return true;
+        }
+
+        $term_id = $this->existing_term_id_for_user( $user_id );
+        if ( $term_id <= 0 ) {
+            return false;
+        }
+
+        $term_query = new \WP_Query(
+            $base_args + [
+                "tax_query" => [
+                    [
+                        "taxonomy" => self::TAXONOMY,
+                        "field" => "term_id",
+                        "terms" => [ $term_id ],
+                    ],
+                ],
+            ]
+        );
+
+        return ! empty( $term_query->posts );
+    }
+
     public function remove_user( int $user_id, int $reassign_id = 0 ): void {
         $post_ids = $this->post_ids_for_user( $user_id, [ "publish", "draft", "pending", "future", "private", "trash" ] );
         foreach ( $post_ids as $post_id ) {

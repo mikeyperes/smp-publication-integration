@@ -444,9 +444,11 @@ foreach ( $definitions as $surface => $definition ) {
 }
 
 $GLOBALS["template_design_options"][ SettingsRepository::OPTION ] = SettingsRepository::defaults();
+SettingsRepository::invalidate_cache();
 $context_color = new ReflectionMethod( MuckRackVerification::class, "author_context_color_override" );
 template_design_assert( "" === $context_color->invoke( null, "single_author" ), "MuckRack emitted a default inline author color." );
 $GLOBALS["template_design_options"][ SettingsRepository::OPTION ]["muckrack_icon_color_single_author"] = "#fedcba";
+SettingsRepository::invalidate_cache();
 template_design_assert( "#fedcba" === $context_color->invoke( null, "single_author" ), "MuckRack ignored an explicit context color override." );
 $publication_default = MuckRackVerification::publication_verification_markup();
 $publication_custom = MuckRackVerification::publication_verification_markup( "", "", "#abcdef" );

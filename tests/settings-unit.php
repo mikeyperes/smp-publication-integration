@@ -4,9 +4,38 @@ declare(strict_types=1);
 
 define( 'ABSPATH', dirname( __DIR__ ) . '/' );
 $GLOBALS['smpi_test_options'] = [];
+$GLOBALS['smpi_test_actions'] = [];
+$GLOBALS['smpi_test_option_reads'] = [];
+$GLOBALS['smpi_test_blog_id'] = 1;
 
-function get_option( string $key, mixed $default = false ): mixed { return $GLOBALS['smpi_test_options'][ $key ] ?? $default; }
-function update_option( string $key, mixed $value, bool $autoload = true ): bool { $GLOBALS['smpi_test_options'][ $key ] = $value; return true; }
+function add_action( string $hook, $callback, int $priority = 10, int $accepted_args = 1 ): void {
+    $GLOBALS['smpi_test_actions'][ $hook ][ $priority ][] = [ $callback, $accepted_args ];
+}
+function do_action( string $hook, ...$args ): void {
+    $callbacks = $GLOBALS['smpi_test_actions'][ $hook ] ?? [];
+    ksort( $callbacks );
+    foreach ( $callbacks as $priority_callbacks ) {
+        foreach ( $priority_callbacks as [ $callback, $accepted_args ] ) {
+            $callback( ...array_slice( $args, 0, $accepted_args ) );
+        }
+    }
+}
+function get_option( string $key, mixed $default = false ): mixed {
+    $GLOBALS['smpi_test_option_reads'][ $key ] = (int) ( $GLOBALS['smpi_test_option_reads'][ $key ] ?? 0 ) + 1;
+    return $GLOBALS['smpi_test_options'][ $key ] ?? $default;
+}
+function get_current_blog_id(): int { return (int) $GLOBALS['smpi_test_blog_id']; }
+function update_option( string $key, mixed $value, bool $autoload = true ): bool {
+    $exists = array_key_exists( $key, $GLOBALS['smpi_test_options'] );
+    $old = $GLOBALS['smpi_test_options'][ $key ] ?? null;
+    $GLOBALS['smpi_test_options'][ $key ] = $value;
+    if ( $exists ) {
+        do_action( 'updated_option', $key, $old, $value );
+    } else {
+        do_action( 'added_option', $key, $value );
+    }
+    return true;
+}
 function sanitize_key( string $value ): string { return strtolower( preg_replace( '/[^a-zA-Z0-9_-]/', '', $value ) ?: '' ); }
 function sanitize_text_field( mixed $value ): string { return trim( strip_tags( (string) $value ) ); }
 function sanitize_hex_color( mixed $value ): ?string {
@@ -42,6 +71,63 @@ set_error_handler(
         throw new ErrorException( $message, 0, $severity, $file, $line );
     }
 );
+
+SettingsRepository::invalidate_cache();
+$GLOBALS['smpi_test_option_reads'][ SettingsRepository::OPTION ] = 0;
+SettingsRepository::all();
+$first_settings_read_count = $GLOBALS['smpi_test_option_reads'][ SettingsRepository::OPTION ];
+SettingsRepository::all();
+if ( 1 !== $first_settings_read_count || 1 !== $GLOBALS['smpi_test_option_reads'][ SettingsRepository::OPTION ] ) {
+    fwrite( STDERR, "FAIL: Repeated settings reads were not served from the request cache.\n" );
+    exit( 1 );
+}
+if ( 1 !== count( $GLOBALS['smpi_test_actions']['updated_option'][10] ?? [] ) ) {
+    fwrite( STDERR, "FAIL: Settings cache invalidation hooks were not registered exactly once.\n" );
+    exit( 1 );
+}
+if ( 1 !== count( $GLOBALS['smpi_test_actions']['switch_blog'][10] ?? [] ) ) {
+    fwrite( STDERR, "FAIL: Multisite settings cache invalidation was not registered exactly once.\n" );
+    exit( 1 );
+}
+
+update_option( 'unrelated_option', 'value', false );
+SettingsRepository::all();
+if ( 1 !== $GLOBALS['smpi_test_option_reads'][ SettingsRepository::OPTION ] ) {
+    fwrite( STDERR, "FAIL: An unrelated option update invalidated the SMP settings cache.\n" );
+    exit( 1 );
+}
+
+update_option( SettingsRepository::OPTION, [ 'shadow_posts_enabled' => false ], false );
+if ( SettingsRepository::bool( 'shadow_posts_enabled' ) || 2 !== $GLOBALS['smpi_test_option_reads'][ SettingsRepository::OPTION ] ) {
+    fwrite( STDERR, "FAIL: updated_option did not invalidate the request settings cache.\n" );
+    exit( 1 );
+}
+
+$before_repository_save_read = $GLOBALS['smpi_test_option_reads'][ SettingsRepository::OPTION ];
+SettingsRepository::update( [ 'shadow_posts_enabled' => true ] );
+if ( ! SettingsRepository::bool( 'shadow_posts_enabled' ) || $before_repository_save_read + 1 !== $GLOBALS['smpi_test_option_reads'][ SettingsRepository::OPTION ] ) {
+    fwrite( STDERR, "FAIL: Repository saves did not invalidate and refresh the request settings cache.\n" );
+    exit( 1 );
+}
+
+$before_blog_switch_reads = $GLOBALS['smpi_test_option_reads'][ SettingsRepository::OPTION ];
+$GLOBALS['smpi_test_options'][ SettingsRepository::OPTION ] = [ 'shadow_posts_enabled' => false ];
+$GLOBALS['smpi_test_blog_id'] = 2;
+do_action( 'switch_blog', 2, 1, 'switch' );
+if ( SettingsRepository::bool( 'shadow_posts_enabled' ) || $before_blog_switch_reads + 1 !== $GLOBALS['smpi_test_option_reads'][ SettingsRepository::OPTION ] ) {
+    fwrite( STDERR, "FAIL: A switched blog reused another site's request settings cache.\n" );
+    exit( 1 );
+}
+
+$GLOBALS['smpi_test_blog_id'] = 1;
+do_action( 'switch_blog', 1, 2, 'restore' );
+if ( SettingsRepository::bool( 'shadow_posts_enabled' ) || $before_blog_switch_reads + 2 !== $GLOBALS['smpi_test_option_reads'][ SettingsRepository::OPTION ] ) {
+    fwrite( STDERR, "FAIL: Restoring a blog reused its pre-switch request settings cache.\n" );
+    exit( 1 );
+}
+
+update_option( SettingsRepository::OPTION, [], false );
+SettingsRepository::invalidate_cache();
 
 $GLOBALS['smpi_test_options']['hws_brand_primary_color'] = '#bd00ff';
 if ( '#111111' !== SettingsRepository::color_default( 'article_drop_cap_color' ) ) {

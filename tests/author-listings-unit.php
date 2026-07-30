@@ -23,6 +23,7 @@ namespace {
         public int $found_posts = 0;
 
         public function __construct( array $args = [] ) {
+            $GLOBALS["test_query_args"][] = $args;
             $author_id = (int) ( $args["author"] ?? 0 );
             $allowed_types = array_map( "strval", (array) ( $args["post_type"] ?? [ "post" ] ) );
             foreach ( $GLOBALS["test_posts"] as $post_id => $post ) {
@@ -61,6 +62,7 @@ namespace {
     $GLOBALS["test_found_avatars"] = [ 2 => false, 4 => true ];
     $GLOBALS["test_shortcodes"] = [];
     $GLOBALS["test_actions"] = [];
+    $GLOBALS["test_query_args"] = [];
 
     function add_action( string $hook, $callback, int $priority = 10, int $accepted_args = 1 ): void { $GLOBALS["test_actions"][ $hook ][ $priority ][] = $callback; }
     function add_shortcode( string $tag, $callback ): void { $GLOBALS["test_shortcodes"][ $tag ] = $callback; }
@@ -146,8 +148,14 @@ namespace {
     expect_true( str_contains( $contributors, "Contributor at Example Daily" ), "Contributor labels use the current publication name." );
 
     $GLOBALS["test_settings"]["author_listing_hide_without_articles"] = true;
+    $GLOBALS["test_query_args"] = [];
     $staff_with_articles = $listings->render_staff_grid();
     expect_true( str_contains( $staff_with_articles, "Alice Editor" ) && ! str_contains( $staff_with_articles, "Casey Contributor" ), "The article filter ignores press releases and keeps members with published articles." );
+    expect_true( ! empty( $GLOBALS["test_query_args"] ), "The article listing filter performs a bounded existence check." );
+    foreach ( $GLOBALS["test_query_args"] as $query_args ) {
+        expect_true( 1 === (int) ( $query_args["posts_per_page"] ?? 0 ), "Author listing existence checks never request every matching post." );
+        expect_true( "ids" === ( $query_args["fields"] ?? "" ) && ! empty( $query_args["no_found_rows"] ), "Author listing existence checks use IDs without row counts." );
+    }
 
     $GLOBALS["test_settings"]["author_listing_hide_without_articles"] = false;
     $GLOBALS["test_settings"]["author_listing_hide_without_featured_image"] = false;
@@ -165,6 +173,7 @@ namespace {
     $ajax = (string) file_get_contents( $root . "/src/Admin/Ajax/AjaxController.php" );
     $bootstrap = (string) file_get_contents( $root . "/src/Bootstrap/Plugin.php" );
     $author_query = (string) file_get_contents( $root . "/src/Authorship/AuthorQueryIntegration.php" );
+    $author_listings = (string) file_get_contents( $root . "/src/Content/AuthorListings.php" );
     foreach ( [ "Hide members with no articles", "Hide members without a featured image", "Show press releases attached to the author" ] as $label ) {
         expect_true( str_contains( $dashboard, $label ), "The Authors tab contains the {$label} control." );
     }
@@ -178,6 +187,7 @@ namespace {
         && str_contains( $author_query, 'PHP_INT_MAX - 5' ),
         "SMP author queries run after Hexa PR Wire across every Elementor query path."
     );
+    expect_true( str_contains( $author_listings, "has_posts_for_user" ) && ! str_contains( $author_listings, "post_ids_for_user" ), "Author listings use only the bounded repository existence API." );
 
     echo "PASS: author listing cards, filters, image detection, and shortcodes\n";
 }
