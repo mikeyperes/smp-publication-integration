@@ -21,7 +21,7 @@ final class AuthorFieldResolver {
         "crunchbase" => [ "author_crunchbase", "crunchbase", "crunchbase_url", "url_crunchbase" ],
         "muckrack" => [ "author_muckrack", "author_muck_rack", "muckrack", "muckrack_url", "muck_rack_url", "muckrack_profile" ],
         "email" => [ "author_email", "email", "user_email" ],
-        "image" => [ "author_image", "profile_photo", "profile_image", "headshot", "photo", "avatar" ],
+        "image" => [ "author_image", "profile_photo", "profile_image", "profile_picture", "featured_image", "headshot", "photo", "avatar", "profile_photo_id", "avatar_media_id", "wp_user_avatar", "simple_local_avatar", "wp_user_avatars" ],
     ];
 
     private const AVATAR_SIZES = [ 40, 80, 96, 100, 150, 300, 450 ];
@@ -119,6 +119,16 @@ final class AuthorFieldResolver {
     }
 
     public function image_url( int $user_id, string $size = "thumbnail" ): string {
+        $explicit_url = $this->explicit_image_url( $user_id, $size );
+        if ( "" !== $explicit_url ) {
+            return $explicit_url;
+        }
+        $pixels = [ "thumbnail" => 150, "medium" => 300, "medium_large" => 768, "large" => 1024, "full" => 1024 ];
+        $url = get_avatar_url( $user_id, [ "size" => $pixels[ $size ] ?? 150 ] );
+        return is_string( $url ) ? $url : "";
+    }
+
+    public function explicit_image_url( int $user_id, string $size = "thumbnail" ): string {
         foreach ( self::ALIASES["image"] as $field ) {
             $value = $this->raw_value( $user_id, $field );
             $url = $this->image_value_to_url( $value, $size );
@@ -126,9 +136,31 @@ final class AuthorFieldResolver {
                 return $url;
             }
         }
-        $pixels = [ "thumbnail" => 150, "medium" => 300, "medium_large" => 768, "large" => 1024, "full" => 1024 ];
-        $url = get_avatar_url( $user_id, [ "size" => $pixels[ $size ] ?? 150 ] );
-        return is_string( $url ) ? $url : "";
+        return "";
+    }
+
+    public function has_explicit_image( int $user_id ): bool {
+        return "" !== $this->explicit_image_url( $user_id, "thumbnail" );
+    }
+
+    /**
+     * Default avatar URLs do not count as profile images. WordPress core and
+     * avatar plugins expose the reliable found_avatar signal for remote/local
+     * avatars that are not already represented by explicit user metadata.
+     */
+    public function has_profile_image( int $user_id ): bool {
+        if ( $this->has_explicit_image( $user_id ) ) {
+            return (bool) apply_filters( "smpi_author_has_profile_image", true, $user_id, "explicit" );
+        }
+
+        $found = false;
+        if ( function_exists( "get_avatar_data" ) ) {
+            $data = get_avatar_data( $user_id, [ "size" => 96, "force_default" => false ] );
+            $url = is_array( $data ) && isset( $data["url"] ) && is_string( $data["url"] ) ? $data["url"] : "";
+            $found = is_array( $data ) && ! empty( $data["found_avatar"] ) && "" !== $url && (bool) filter_var( $url, FILTER_VALIDATE_URL );
+        }
+
+        return (bool) apply_filters( "smpi_author_has_profile_image", $found, $user_id, $found ? "found_avatar" : "default_avatar" );
     }
 
     private function raw_value( int $user_id, string $field ) {
@@ -146,16 +178,42 @@ final class AuthorFieldResolver {
     }
 
     private function image_value_to_url( $value, string $size ): string {
+        if ( is_string( $value ) && function_exists( "maybe_unserialize" ) ) {
+            $unserialized = maybe_unserialize( $value );
+            if ( $unserialized !== $value ) {
+                return $this->image_value_to_url( $unserialized, $size );
+            }
+        }
         if ( is_array( $value ) ) {
             if ( isset( $value["sizes"][ $size ] ) && is_string( $value["sizes"][ $size ] ) ) {
                 return $value["sizes"][ $size ];
             }
-            if ( isset( $value["url"] ) && is_string( $value["url"] ) ) {
-                return $value["url"];
+            if ( isset( $value["sizes"] ) && is_array( $value["sizes"] ) ) {
+                foreach ( $value["sizes"] as $candidate ) {
+                    if ( is_string( $candidate ) && filter_var( $candidate, FILTER_VALIDATE_URL ) ) {
+                        return $candidate;
+                    }
+                }
             }
-            if ( isset( $value["ID"] ) ) {
-                $url = wp_get_attachment_image_url( (int) $value["ID"], $size );
-                return is_string( $url ) ? $url : "";
+            $pixels = [ "thumbnail" => 150, "medium" => 300, "medium_large" => 768, "large" => 1024 ];
+            $url_keys = isset( $pixels[ $size ] ) ? [ $size, $pixels[ $size ], "full", "url" ] : [ $size, "full", "url" ];
+            foreach ( $url_keys as $url_key ) {
+                if ( isset( $value[ $url_key ] ) && is_string( $value[ $url_key ] ) && filter_var( $value[ $url_key ], FILTER_VALIDATE_URL ) ) {
+                    return $value[ $url_key ];
+                }
+            }
+            foreach ( $value as $key => $candidate ) {
+                if ( is_numeric( $key ) && is_string( $candidate ) && filter_var( $candidate, FILTER_VALIDATE_URL ) ) {
+                    return $candidate;
+                }
+            }
+            foreach ( [ "ID", "id", "media_id", "attachment_id" ] as $id_key ) {
+                if ( isset( $value[ $id_key ] ) && is_numeric( $value[ $id_key ] ) ) {
+                    $url = wp_get_attachment_image_url( (int) $value[ $id_key ], $size );
+                    if ( is_string( $url ) && "" !== $url ) {
+                        return $url;
+                    }
+                }
             }
         }
         if ( is_numeric( $value ) ) {

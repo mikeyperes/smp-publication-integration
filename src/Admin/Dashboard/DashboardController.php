@@ -1662,11 +1662,11 @@ class DashboardController {
             "Press-release inclusion controls",
             "press_release_include_enabled",
             "Uses the press-release CPT and <code>_smpi_pr_shadow_override</code> meta. The editor provides force-include and force-exclude choices.",
-            "Includes press releases in selected post loops. Per-item show or hide overrides remain available in the press release editor.",
+            "Includes press releases in selected post loops. Author archives use the separate switch on the Authors tab.",
             "add_action(\"pre_get_posts\", function (WP_Query \$q) { /* SMP uses the same main-query guard pattern and selected contexts. */ });",
             $this->press_release_report_html(),
             $this->activity_log_html(),
-            $this->context_select_html( "press_release_include_contexts", [ "home" => "Home page", "category_tag" => "Category and tag pages", "author" => "author.php", "single_recent" => "single.php recent article queries" ], $settings )
+            "<p class=\"smpi-muted\">Author archives are controlled on the Authors tab.</p>" . $this->context_select_html( "press_release_include_contexts", [ "home" => "Home page", "category_tag" => "Category and tag pages", "single_recent" => "single.php recent article queries" ], $settings )
         );
 
         $article_type_reference = "<p class=\"smpi-muted\">The registration toggle is in Custom Fields.</p>" . $this->article_type_selector_options_html();
@@ -2973,13 +2973,25 @@ HTML;
 
     private function multiple_authors(): void {
         $settings = Settings::all();
-        echo "<div class=\"smpi-panel\"><h2>Multiple Authors</h2><p>Author resolution, Elementor author-module cloning, loop card bylines, author archives, schema authors, and shortcode output all read the same selected WordPress authors. Empty selections fall back to the native WordPress author and do not activate the visual cloning layer.</p></div>";
+        echo "<div class=\"smpi-panel\"><h2>Authors</h2><p>Manage author listing pages, author archives, and multiple-author article output.</p></div>";
+        echo $this->author_listing_settings_html();
         echo $this->multi_author_debug_module_html();
         $this->feature_card( "Multiple post authors", "multi_authors_enabled", "Registers one ACF multi-user field on supported article editors: <code>" . esc_html( MultiAuthors::FIELD_NAME ) . "</code>. It is not a repeater.", "Use <code>smp-author</code> on the exact Elementor author unit that should repeat. The legacy class <code>smpi-author-module</code> remains supported as a fallback. If no class is present, SMP still tries the older author-link byline fallback for loop/card output.", "[smp_post_authors]
 [smp_post_authors format=\"links\"]
 [smp_post_authors format=\"lines\"]
 [author_name author_index=\"1\"]
 [acf_author_field field=\"job_title\" author_index=\"1\"]", $this->multi_authors_report_html(), $this->activity_log_html(), $this->multi_author_controls_html( $settings ), false );
+    }
+
+    private function author_listing_settings_html(): string {
+        return '<section class="smpi-panel smpi-author-listing-settings">'
+            . '<h2>In the author listing page</h2>'
+            . '<p>Choose which members and articles appear in author listings and author archives.</p>'
+            . '<div class="smpi-author-listing-toggle-list">'
+            . $this->inline_toggle_setting_html( "author_listing_hide_without_articles", "Hide members with no articles" )
+            . $this->inline_toggle_setting_html( "author_listing_hide_without_featured_image", "Hide members without a featured image" )
+            . $this->inline_toggle_setting_html( "author_listing_show_press_releases", "Show press releases attached to the author" )
+            . '</div></section>';
     }
 
     private function multi_author_controls_html( array $settings ): string {
@@ -3106,7 +3118,9 @@ HTML;
     private function press_release_report_html(): string {
         $rows = \smp_publication_integration\Content\Visibility::author_report( 10 );
         $hpr = Dependencies::hpr_active();
-        $html = $this->simple_status_html( $hpr && Settings::bool( "press_release_include_enabled" ), "Hexa PR Wire active: " . ( $hpr ? "yes" : "no" ) . ". Press-release CPT exists: " . ( post_type_exists( "press-release" ) ? "yes" : "no" ) . "." );
+        $global = Settings::bool( "press_release_include_enabled" );
+        $author = \smp_publication_integration\Content\Visibility::author_press_releases_enabled();
+        $html = $this->simple_status_html( $hpr && ( $global || $author ), "Hexa PR Wire active: " . ( $hpr ? "yes" : "no" ) . ". General loops: " . ( $global ? "enabled" : "disabled" ) . ". Author archives: " . ( $author ? "enabled" : "disabled" ) . "." );
         $html .= "<table class=\"widefat striped\"><thead><tr><th>Recent author</th><th>Posts</th><th>Press releases</th><th>Expected on author.php</th><th>Consistent</th></tr></thead><tbody>";
         foreach ( $rows as $row ) {
             $html .= "<tr><td>" . esc_html( $row["display_name"] ) . " (#" . esc_html( (string) $row["user_id"] ) . ")</td><td>" . esc_html( (string) $row["posts"] ) . "</td><td>" . esc_html( (string) $row["press_releases"] ) . "</td><td>" . ( $row["expected"] ? "YES" : "NO" ) . "</td><td>" . self::ico( (bool) $row["consistent"], true ) . "</td></tr>";

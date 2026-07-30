@@ -8,7 +8,7 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `1.0.13`
+- Version: `1.0.14`
 
 ## Ownership
 
@@ -93,6 +93,12 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 1.0.14
+
+- Added reusable author-listing controls for member image and article requirements plus author-archive press releases.
+- Made staff and contributor directory cards fully clickable and removed the separate View Member link.
+- Added explicit local-profile-image detection for ACF, Simple Local Avatars, and WP User Avatars data.
 
 ### 1.0.13
 

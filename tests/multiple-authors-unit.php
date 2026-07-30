@@ -199,11 +199,11 @@ namespace {
     function get_option( string $key, $default = false ) { return $default; }
     function update_option( string $key, $value, bool $autoload = false ): bool { return true; }
     function is_admin(): bool { return false; }
-    function is_author(): bool { return false; }
+    function is_author(): bool { return (bool) ( $GLOBALS["test_is_author"] ?? false ); }
     function is_singular( $types = null ): bool { return (bool) $GLOBALS["test_is_singular"]; }
     function in_the_loop(): bool { return true; }
     function get_queried_object_id(): int { return 10; }
-    function get_queried_object() { return null; }
+    function get_queried_object() { return $GLOBALS["test_queried_object"] ?? null; }
     function sanitize_key( string $value ): string { return strtolower( preg_replace( '/[^a-z0-9_-]/i', '', $value ) ); }
     function sanitize_title( string $value ): string { return strtolower( preg_replace( '/[^a-z0-9]+/i', '-', trim( $value ) ) ); }
     function sanitize_html_class( string $value ): string { return preg_replace( '/[^A-Za-z0-9_-]/', '', $value ); }
@@ -228,6 +228,9 @@ namespace {
 namespace smp_publication_integration\Support {
     final class Settings {
         public static function bool( string $key ): bool {
+            if ( array_key_exists( $key, $GLOBALS["test_settings"] ?? [] ) ) {
+                return (bool) $GLOBALS["test_settings"][ $key ];
+            }
             if ( "muckrack_verified_enabled" === $key ) {
                 return (bool) ( $GLOBALS["test_muckrack_enabled"] ?? false );
             }
@@ -239,6 +242,10 @@ namespace smp_publication_integration\Support {
         public static function array( string $key ): array {
             return "muckrack_verified_contexts" === $key ? ( $GLOBALS["test_muckrack_contexts"] ?? [] ) : [];
         }
+    }
+
+    final class Dependencies {
+        public static function hpr_active(): bool { return true; }
     }
 
     final class RuntimeContext {
@@ -271,6 +278,26 @@ namespace {
     expect_same( 2, $author_query->queried_object_id, "Author archive identity is restored before Elementor evaluates Theme Builder conditions." );
     expect_same( $GLOBALS["test_users"][2], $author_query->queried_object, "The early archive object is the requested WordPress author." );
     expect_same( "", $author_query->get( "author_name" ), "Native author query variables are cleared only after the archive object is restored." );
+
+    $GLOBALS["test_settings"]["author_listing_show_press_releases"] = false;
+    $articles_only_query = new WP_Query( [ "is_author" => true, "author" => 1, "post_type" => "post" ] );
+    ( new AuthorQueryIntegration( $repository ) )->prepare_author_query( $articles_only_query );
+    expect_same( false, in_array( "press-release", $articles_only_query->get( "post_type" ), true ), "The author-page setting excludes press releases from native archive queries." );
+    $GLOBALS["test_settings"]["author_listing_show_press_releases"] = true;
+    $press_release_query = new WP_Query( [ "is_author" => true, "author" => 1, "post_type" => "post" ] );
+    ( new AuthorQueryIntegration( $repository ) )->prepare_author_query( $press_release_query );
+    expect_same( true, in_array( "press-release", $press_release_query->get( "post_type" ), true ), "The author-page setting includes press releases in native archive queries." );
+
+    $GLOBALS["test_is_author"] = true;
+    $GLOBALS["test_queried_object"] = $GLOBALS["test_users"][1];
+    $GLOBALS["test_settings"]["author_listing_show_press_releases"] = false;
+    $elementor_articles_only = ( new AuthorQueryIntegration( $repository ) )->filter_elementor_query_args( [ "post_type" => [ "post", "press-release" ] ] );
+    expect_same( false, in_array( "press-release", $elementor_articles_only["post_type"], true ), "The author-page setting excludes press releases from Elementor author queries." );
+    $GLOBALS["test_settings"]["author_listing_show_press_releases"] = true;
+    $elementor_with_press_releases = ( new AuthorQueryIntegration( $repository ) )->filter_elementor_query_args( [ "post_type" => [ "post" ] ] );
+    expect_same( true, in_array( "press-release", $elementor_with_press_releases["post_type"], true ), "The author-page setting includes press releases in Elementor author queries." );
+    unset( $GLOBALS["test_is_author"], $GLOBALS["test_queried_object"] );
+    unset( $GLOBALS["test_settings"]["author_listing_show_press_releases"] );
 
     expect_same( [ 2, 1 ], $repository->normalize_ids( [ 2, 1, 2, 999, 0 ] ), "IDs retain order and remove duplicates/invalid users." );
     expect_same( [ 1, 2 ], $repository->ids_for_post( 10, false ), "Legacy ACF values are readable before migration." );

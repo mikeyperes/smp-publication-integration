@@ -145,9 +145,12 @@ final class Visibility {
         if ( "" === $context ) {
             return;
         }
-        if ( $this->should_include_press_releases( $context, $query ) ) {
+        $include_press_releases = $this->should_include_press_releases( $context, $query );
+        if ( $include_press_releases ) {
             $this->ensure_press_release_post_type( $query );
             $query->set( "smpi_press_release_force_exclude", true );
+        } elseif ( "author" === $context ) {
+            $query->set( "smpi_author_press_release_exclude", true );
         }
         if ( Settings::bool( "shadow_press_releases" ) && in_array( $context, [ "home", "category_tag" ], true ) ) {
             $this->ensure_press_release_post_type( $query );
@@ -169,6 +172,9 @@ final class Visibility {
         }
         if ( $query->get( "smpi_press_release_force_exclude" ) ) {
             $where .= $wpdb->prepare( " AND NOT EXISTS ( SELECT 1 FROM {$wpdb->postmeta} smpi_pr_hide WHERE smpi_pr_hide.post_id = {$wpdb->posts}.ID AND smpi_pr_hide.meta_key = %s AND smpi_pr_hide.meta_value = %s )", self::PR_OVERRIDE_META, "hide" );
+        }
+        if ( $query->get( "smpi_author_press_release_exclude" ) ) {
+            $where .= $wpdb->prepare( " AND {$wpdb->posts}.post_type <> %s", "press-release" );
         }
         return $where;
     }
@@ -211,6 +217,9 @@ final class Visibility {
     }
 
     private function should_include_press_releases( string $context, \WP_Query $query ): bool {
+        if ( "author" === $context ) {
+            return self::author_press_releases_enabled();
+        }
         if ( ! Settings::bool( "press_release_include_enabled" ) || ! Dependencies::hpr_active() ) {
             return false;
         }
@@ -218,6 +227,12 @@ final class Visibility {
             return false;
         }
         return !( "single_recent" === $context && $query->is_main_query() );
+    }
+
+    public static function author_press_releases_enabled(): bool {
+        return Settings::bool( "author_listing_show_press_releases" )
+            && post_type_exists( "press-release" )
+            && Dependencies::hpr_active();
     }
 
     private function ensure_press_release_post_type( \WP_Query $query ): void {
@@ -236,7 +251,7 @@ final class Visibility {
     public static function author_report( int $limit = 10 ): array {
         global $wpdb;
         $rows = $wpdb->get_results( $wpdb->prepare( "SELECT u.ID, u.display_name, MAX(p.post_date) AS latest_post, SUM(CASE WHEN p.post_type = %s THEN 1 ELSE 0 END) AS press_releases, SUM(CASE WHEN p.post_type = %s THEN 1 ELSE 0 END) AS posts FROM {$wpdb->users} u LEFT JOIN {$wpdb->posts} p ON p.post_author = u.ID AND p.post_status = %s AND p.post_type IN (%s, %s) GROUP BY u.ID HAVING latest_post IS NOT NULL ORDER BY latest_post DESC LIMIT %d", "press-release", "post", "publish", "post", "press-release", $limit ) );
-        $expected = Settings::bool( "press_release_include_enabled" ) && in_array( "author", Settings::array( "press_release_include_contexts" ), true ) && Dependencies::hpr_active();
+        $expected = self::author_press_releases_enabled();
         $out = [];
         foreach ( $rows as $row ) {
             $out[] = [ "user_id" => (int) $row->ID, "display_name" => $row->display_name, "latest_post" => $row->latest_post, "posts" => (int) $row->posts, "press_releases" => (int) $row->press_releases, "expected" => $expected, "consistent" => Dependencies::hpr_active() && post_type_exists( "press-release" ) ];

@@ -157,9 +157,13 @@ final class AuthorAssignmentRepository {
         ];
     }
 
-    public function post_ids_for_user( int $user_id, array $post_status = [ "publish" ] ): array {
+    public function post_ids_for_user( int $user_id, array $post_status = [ "publish" ], ?array $post_types = null ): array {
+        $post_types = null === $post_types ? $this->supported_post_types() : array_values( array_unique( array_filter( array_map( "sanitize_key", $post_types ) ) ) );
+        if ( empty( $post_types ) ) {
+            return [];
+        }
         $base_args = [
-            "post_type" => $this->supported_post_types(),
+            "post_type" => $post_types,
             "post_status" => $post_status,
             "posts_per_page" => -1,
             "fields" => "ids",

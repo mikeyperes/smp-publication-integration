@@ -1,6 +1,7 @@
 <?php
 namespace smp_publication_integration\Authorship;
 
+use smp_publication_integration\Content\Visibility;
 use smp_publication_integration\Support\Settings;
 
 if ( ! defined( "ABSPATH" ) ) {
@@ -52,7 +53,7 @@ final class AuthorQueryIntegration {
         $query->set( "author_name", "" );
         $current = $query->get( "post_type" );
         if ( empty( $current ) || "post" === $current ) {
-            $query->set( "post_type", $this->repository->supported_post_types() );
+            $query->set( "post_type", $this->author_archive_post_types() );
         }
     }
 
@@ -116,11 +117,22 @@ final class AuthorQueryIntegration {
         if ( $author_id <= 0 ) {
             return $query_args;
         }
-        $ids = $this->repository->post_ids_for_user( $author_id );
+        $post_types = $this->author_archive_post_types();
+        $ids = $this->repository->post_ids_for_user( $author_id, [ "publish" ], $post_types );
         unset( $query_args["author"], $query_args["author_name"], $query_args["author__in"], $query_args["author__not_in"] );
         $query_args["post__in"] = ! empty( $ids ) ? $ids : [ 0 ];
-        $query_args["post_type"] = $this->repository->supported_post_types();
+        $query_args["post_type"] = $post_types;
         return $query_args;
+    }
+
+    public function author_archive_post_types(): array {
+        $types = $this->repository->supported_post_types();
+        if ( ! Visibility::author_press_releases_enabled() ) {
+            $types = array_values( array_diff( $types, [ "press-release" ] ) );
+        } elseif ( ! in_array( "press-release", $types, true ) ) {
+            $types[] = "press-release";
+        }
+        return ! empty( $types ) ? array_values( array_unique( $types ) ) : [ "post" ];
     }
 
     public static function current_archive_author_id(): int {

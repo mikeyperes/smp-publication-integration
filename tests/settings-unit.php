@@ -155,6 +155,51 @@ if ( 'dropcap-classic' !== $settings['article_drop_cap_style'] ) {
     exit( 1 );
 }
 
+unset( $GLOBALS['smpi_test_options']['smpi_migration_author_listing_1_0_14'] );
+$GLOBALS['smpi_test_options']['smpi_settings'] = [
+    'press_release_include_enabled' => false,
+    'press_release_include_contexts' => [],
+];
+( new SettingsMigrations() )->migrate_author_listing_settings();
+if ( false !== $GLOBALS['smpi_test_options']['smpi_settings']['author_listing_show_press_releases'] ) {
+    fwrite( STDERR, "FAIL: Author listing migration did not preserve an existing press-release exclusion.\n" );
+    exit( 1 );
+}
+
+unset( $GLOBALS['smpi_test_options']['smpi_migration_author_listing_1_0_14'] );
+$GLOBALS['smpi_test_options']['smpi_settings'] = [
+    'press_release_include_enabled' => true,
+    'press_release_include_contexts' => [ 'home', 'author' ],
+];
+( new SettingsMigrations() )->migrate_author_listing_settings();
+if ( true !== $GLOBALS['smpi_test_options']['smpi_settings']['author_listing_show_press_releases'] ) {
+    fwrite( STDERR, "FAIL: Author listing migration did not preserve an existing press-release inclusion.\n" );
+    exit( 1 );
+}
+
+$defaults = SettingsRepository::defaults();
+if (
+    false !== $defaults['author_listing_hide_without_articles']
+    || false !== $defaults['author_listing_hide_without_featured_image']
+    || true !== $defaults['author_listing_show_press_releases']
+) {
+    fwrite( STDERR, "FAIL: Author listing defaults do not preserve existing site output.\n" );
+    exit( 1 );
+}
+$settings = Settings::update( [
+    'author_listing_hide_without_articles' => true,
+    'author_listing_hide_without_featured_image' => true,
+    'author_listing_show_press_releases' => false,
+] );
+if (
+    true !== $settings['author_listing_hide_without_articles']
+    || true !== $settings['author_listing_hide_without_featured_image']
+    || false !== $settings['author_listing_show_press_releases']
+) {
+    fwrite( STDERR, "FAIL: Author listing booleans were not saved.\n" );
+    exit( 1 );
+}
+
 $defaults = SettingsRepository::defaults();
 if ( false !== $defaults['reading_progress_enabled'] || 'thin' !== $defaults['reading_progress_style'] || '#00ff41' !== $defaults['reading_progress_color'] ) {
     fwrite( STDERR, "FAIL: Reading progress defaults are not isolated and reference-compatible.\n" );

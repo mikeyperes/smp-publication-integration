@@ -37,6 +37,10 @@
 .smpi-dashboard .smpi-publication-muckrack-source-actions .spinner{float:none;margin:0}
 .smpi-dashboard .smpi-publication-muckrack-source-edit{border-top:1px solid #e1e6ed;margin:18px 0 0;padding-top:14px}
 .smpi-dashboard .smpi-publication-muckrack-source-link{overflow-wrap:anywhere;word-break:break-word}
+.smpi-dashboard .smpi-author-listing-settings>p{color:#646970;margin:-4px 0 16px}
+.smpi-dashboard .smpi-author-listing-toggle-list{display:grid;gap:10px;max-width:760px}
+.smpi-dashboard .smpi-author-listing-toggle-list .smpi-control-row{align-items:center;background:#f8fafc;border:1px solid #d8dee8;border-radius:6px;display:flex;margin:0;min-height:52px;padding:12px 14px}
+.smpi-dashboard .smpi-author-listing-toggle-list .hpc-toggle{width:100%}
 .smpi-dashboard .smpi-founder-page{box-sizing:border-box;margin:0;max-width:980px;min-width:0;width:100%}
 .smpi-dashboard .smpi-founder-page-head{align-items:flex-start;border-bottom:1px solid #dcdcde;display:flex;gap:24px;justify-content:space-between;padding:4px 0 20px}
 .smpi-dashboard .smpi-founder-page-head h2{font-size:24px;letter-spacing:0;line-height:1.25;margin:0 0 7px}

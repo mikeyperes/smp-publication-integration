@@ -14,11 +14,13 @@ final class SettingsMigrations {
     private const HEADING_PRESET_MIGRATION = 'smpi_migration_heading_quick_start_0_6_191';
     private const BREADCRUMB_POST_TYPE_MIGRATION = 'smpi_migration_breadcrumb_post_types_0_6_218';
     private const TEMPLATE_DESIGN_MODE_MIGRATION = 'smpi_migration_template_design_modes_0_6_243';
+    private const AUTHOR_LISTING_MIGRATION = 'smpi_migration_author_listing_1_0_14';
 
     public function register(): void {
         add_action( 'init', [ $this, 'repair_defective_heading_quick_start_preset' ], 5 );
         add_action( 'init', [ $this, 'migrate_breadcrumb_single_post_setting' ], 6 );
         add_action( 'init', [ $this, 'migrate_template_design_modes' ], 7 );
+        add_action( 'init', [ $this, 'migrate_author_listing_settings' ], 8 );
     }
 
     public function repair_defective_heading_quick_start_preset(): void {
@@ -107,6 +109,24 @@ final class SettingsMigrations {
             update_option( SettingsRepository::OPTION, $settings, false );
         }
         update_option( self::TEMPLATE_DESIGN_MODE_MIGRATION, '0.6.243', false );
+    }
+
+    public function migrate_author_listing_settings(): void {
+        if ( get_option( self::AUTHOR_LISTING_MIGRATION, false ) ) {
+            return;
+        }
+
+        $settings = get_option( SettingsRepository::OPTION, [] );
+        if ( is_array( $settings ) && [] !== $settings && ! array_key_exists( 'author_listing_show_press_releases', $settings ) ) {
+            $contexts = isset( $settings['press_release_include_contexts'] ) && is_array( $settings['press_release_include_contexts'] )
+                ? array_map( 'sanitize_key', $settings['press_release_include_contexts'] )
+                : [];
+            $settings['author_listing_show_press_releases'] = ! empty( $settings['press_release_include_enabled'] )
+                && in_array( 'author', $contexts, true );
+            update_option( SettingsRepository::OPTION, $settings, false );
+        }
+
+        update_option( self::AUTHOR_LISTING_MIGRATION, '1.0.14', false );
     }
 
     public static function matches_defective_heading_quick_start_preset( array $settings ): bool {

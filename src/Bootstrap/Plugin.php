@@ -73,6 +73,7 @@ final class Plugin {
             new Content\Shortcodes(),
             new Content\MultiAuthors(),
             new Content\AuthorShortcodes(),
+            new Content\AuthorListings(),
             new Content\Schema(),
             new Content\ArticleTypes(),
             new Content\Visibility(),
