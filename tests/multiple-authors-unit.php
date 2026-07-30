@@ -283,19 +283,23 @@ namespace {
     $articles_only_query = new WP_Query( [ "is_author" => true, "author" => 1, "post_type" => "post" ] );
     ( new AuthorQueryIntegration( $repository ) )->prepare_author_query( $articles_only_query );
     expect_same( false, in_array( "press-release", $articles_only_query->get( "post_type" ), true ), "The author-page setting excludes press releases from native archive queries." );
+    expect_same( false, (bool) $articles_only_query->get( "hpr_allow_press_release_loop" ), "Disabled author press releases do not bypass Hexa PR Wire exclusions." );
     $GLOBALS["test_settings"]["author_listing_show_press_releases"] = true;
     $press_release_query = new WP_Query( [ "is_author" => true, "author" => 1, "post_type" => "post" ] );
     ( new AuthorQueryIntegration( $repository ) )->prepare_author_query( $press_release_query );
     expect_same( true, in_array( "press-release", $press_release_query->get( "post_type" ), true ), "The author-page setting includes press releases in native archive queries." );
+    expect_same( true, (bool) $press_release_query->get( "hpr_allow_press_release_loop" ), "Enabled author press releases use Hexa PR Wire's approved query override." );
 
     $GLOBALS["test_is_author"] = true;
     $GLOBALS["test_queried_object"] = $GLOBALS["test_users"][1];
     $GLOBALS["test_settings"]["author_listing_show_press_releases"] = false;
     $elementor_articles_only = ( new AuthorQueryIntegration( $repository ) )->filter_elementor_query_args( [ "post_type" => [ "post", "press-release" ] ] );
     expect_same( false, in_array( "press-release", $elementor_articles_only["post_type"], true ), "The author-page setting excludes press releases from Elementor author queries." );
+    expect_same( false, (bool) $elementor_articles_only["hpr_allow_press_release_loop"], "Disabled Elementor author queries retain the Hexa PR Wire exclusion." );
     $GLOBALS["test_settings"]["author_listing_show_press_releases"] = true;
     $elementor_with_press_releases = ( new AuthorQueryIntegration( $repository ) )->filter_elementor_query_args( [ "post_type" => [ "post" ] ] );
     expect_same( true, in_array( "press-release", $elementor_with_press_releases["post_type"], true ), "The author-page setting includes press releases in Elementor author queries." );
+    expect_same( true, (bool) $elementor_with_press_releases["hpr_allow_press_release_loop"], "Enabled Elementor author queries retain press releases after Hexa PR Wire's late filter." );
     unset( $GLOBALS["test_is_author"], $GLOBALS["test_queried_object"] );
     unset( $GLOBALS["test_settings"]["author_listing_show_press_releases"] );
 

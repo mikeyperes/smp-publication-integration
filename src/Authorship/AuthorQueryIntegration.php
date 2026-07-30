@@ -21,8 +21,11 @@ final class AuthorQueryIntegration {
         add_action( "pre_get_posts", [ $this, "prepare_author_query" ], 20 );
         add_action( "wp", [ $this, "restore_queried_author_object" ], 1 );
         add_filter( "posts_clauses", [ $this, "filter_author_clauses" ], 20, 2 );
-        add_filter( "elementor/query/get_query_args/current_query", [ $this, "filter_elementor_query_args" ], 20 );
-        add_filter( "elementor/query/query_args", [ $this, "filter_elementor_query_args" ], 20 );
+        $elementor_priority = PHP_INT_MAX - 5;
+        add_filter( "elementor/query/get_query_args/current_query", [ $this, "filter_elementor_query_args" ], $elementor_priority );
+        add_filter( "elementor_pro/query_control/get_query_args/current_query", [ $this, "filter_elementor_query_args" ], $elementor_priority );
+        add_filter( "elementor/query/query_args", [ $this, "filter_elementor_query_args" ], $elementor_priority );
+        add_filter( "elementor/query/fallback_query_args", [ $this, "filter_elementor_query_args" ], $elementor_priority );
     }
 
     public function prepare_author_query( \WP_Query $query ): void {
@@ -51,6 +54,11 @@ final class AuthorQueryIntegration {
         $query->set( self::QUERY_VAR, $author_id );
         $query->set( "author", "" );
         $query->set( "author_name", "" );
+        $allow_press_releases = Visibility::author_press_releases_enabled();
+        $query->set( Visibility::HPR_ALLOW_QUERY_VAR, $allow_press_releases );
+        if ( $allow_press_releases ) {
+            $query->set( Visibility::HPR_FORCE_HIDE_QUERY_VAR, false );
+        }
         $current = $query->get( "post_type" );
         if ( empty( $current ) || "post" === $current ) {
             $query->set( "post_type", $this->author_archive_post_types() );
@@ -122,6 +130,10 @@ final class AuthorQueryIntegration {
         unset( $query_args["author"], $query_args["author_name"], $query_args["author__in"], $query_args["author__not_in"] );
         $query_args["post__in"] = ! empty( $ids ) ? $ids : [ 0 ];
         $query_args["post_type"] = $post_types;
+        $query_args[ Visibility::HPR_ALLOW_QUERY_VAR ] = Visibility::author_press_releases_enabled();
+        if ( $query_args[ Visibility::HPR_ALLOW_QUERY_VAR ] ) {
+            $query_args[ Visibility::HPR_FORCE_HIDE_QUERY_VAR ] = false;
+        }
         return $query_args;
     }
 

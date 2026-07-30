@@ -38,6 +38,7 @@ namespace {
         1 => new WP_User( 1, "Alice Editor", "alice-editor", [ "author" ] ),
         2 => new WP_User( 2, "Blake Contributor", "blake-contributor", [ "contributor" ] ),
         3 => new WP_User( 3, "Casey Contributor", "casey-contributor", [ "contributor" ] ),
+        4 => new WP_User( 4, "Drew Gravatar", "drew-gravatar", [ "contributor" ] ),
     ];
     $GLOBALS["test_user_meta"] = [
         1 => [
@@ -46,6 +47,7 @@ namespace {
         ],
         2 => [ "staff_writer" => "1" ],
         3 => [ "staff_writer" => "1", "wp_user_avatars" => 303 ],
+        4 => [ "staff_writer" => "1" ],
     ];
     $GLOBALS["test_posts"] = [
         11 => [ "author" => 1, "type" => "post", "status" => "publish" ],
@@ -56,6 +58,7 @@ namespace {
         "author_listing_hide_without_articles" => false,
         "author_listing_hide_without_featured_image" => true,
     ];
+    $GLOBALS["test_found_avatars"] = [ 2 => false, 4 => true ];
     $GLOBALS["test_shortcodes"] = [];
     $GLOBALS["test_actions"] = [];
 
@@ -78,6 +81,12 @@ namespace {
     }
     function get_author_posts_url( int $user_id ): string { return "https://example.test/author/" . $GLOBALS["test_users"][ $user_id ]->user_nicename . "/"; }
     function get_avatar_url( int $user_id, array $args = [] ): string { return "https://gravatar.test/avatar-" . $user_id . ".jpg"; }
+    function get_avatar_data( int $user_id, array $args = [] ): array {
+        return [
+            "url" => get_avatar_url( $user_id, $args ),
+            "found_avatar" => (bool) ( $GLOBALS["test_found_avatars"][ $user_id ] ?? false ),
+        ];
+    }
     function wp_get_attachment_image_url( int $attachment_id, string $size ) { return "https://example.test/uploads/attachment-" . $attachment_id . "-" . $size . ".jpg"; }
     function get_bloginfo( string $show ): string { return "Example Daily"; }
     function get_terms( array $args ): array { return []; }
@@ -115,6 +124,9 @@ namespace {
     expect_true( $resolver->has_explicit_image( 1 ), "Simple Local Avatars metadata is recognized as an assigned image." );
     expect_true( ! $resolver->has_explicit_image( 2 ), "A Gravatar fallback is not treated as an assigned image." );
     expect_true( $resolver->has_explicit_image( 3 ), "Legacy WP User Avatars attachment metadata is recognized." );
+    expect_true( $resolver->has_profile_image( 4 ), "A real found Gravatar counts as a profile image." );
+    expect_true( ! $resolver->has_explicit_image( 4 ), "A Gravatar is not treated as an explicitly assigned listing image." );
+    expect_true( ! $resolver->has_profile_image( 2 ), "A default avatar does not count as a profile image." );
 
     $listings = new AuthorListings();
     $listings->register();
@@ -126,10 +138,11 @@ namespace {
     expect_true( 2 === substr_count( $staff, '<a class="user-card smpi-author-listing-card"' ), "Every visible staff card is one whole-card anchor." );
     expect_true( ! str_contains( $staff, "View Member" ), "Staff cards do not contain View Member text." );
     expect_true( ! str_contains( $staff, "Blake Contributor" ), "The image filter removes a member who only has a fallback avatar." );
+    expect_true( ! str_contains( $staff, "Drew Gravatar" ), "The featured-image filter excludes Gravatar-only members." );
     expect_true( str_contains( $staff, "Staff Writer at Example Daily" ), "Staff labels use the current publication name." );
 
     $contributors = $listings->render_contributors_grid();
-    expect_true( str_contains( $contributors, "Casey Contributor" ) && ! str_contains( $contributors, "Blake Contributor" ), "The same explicit-image rule applies to the contributor shortcode." );
+    expect_true( str_contains( $contributors, "Casey Contributor" ) && ! str_contains( $contributors, "Drew Gravatar" ) && ! str_contains( $contributors, "Blake Contributor" ), "The same assigned-image rule applies to the contributor shortcode." );
     expect_true( str_contains( $contributors, "Contributor at Example Daily" ), "Contributor labels use the current publication name." );
 
     $GLOBALS["test_settings"]["author_listing_hide_without_articles"] = true;
@@ -139,7 +152,7 @@ namespace {
     $GLOBALS["test_settings"]["author_listing_hide_without_articles"] = false;
     $GLOBALS["test_settings"]["author_listing_hide_without_featured_image"] = false;
     $staff_with_fallbacks = $listings->render_staff_grid();
-    expect_true( 3 === substr_count( $staff_with_fallbacks, 'data-smpi-user-id=' ), "Disabling both filters restores every staff member." );
+    expect_true( 4 === substr_count( $staff_with_fallbacks, 'data-smpi-user-id=' ), "Disabling both filters restores every staff member." );
     expect_true( str_contains( $staff_with_fallbacks, "https://gravatar.test/avatar-2.jpg" ), "Fallback avatars remain available when the explicit-image filter is disabled." );
 
     ob_start();
@@ -151,6 +164,7 @@ namespace {
     $dashboard = (string) file_get_contents( $root . "/src/Admin/Dashboard/DashboardController.php" );
     $ajax = (string) file_get_contents( $root . "/src/Admin/Ajax/AjaxController.php" );
     $bootstrap = (string) file_get_contents( $root . "/src/Bootstrap/Plugin.php" );
+    $author_query = (string) file_get_contents( $root . "/src/Authorship/AuthorQueryIntegration.php" );
     foreach ( [ "Hide members with no articles", "Hide members without a featured image", "Show press releases attached to the author" ] as $label ) {
         expect_true( str_contains( $dashboard, $label ), "The Authors tab contains the {$label} control." );
     }
@@ -158,6 +172,12 @@ namespace {
         expect_true( str_contains( $ajax, $setting_key ), "AJAX saving accepts {$setting_key}." );
     }
     expect_true( str_contains( $bootstrap, "new Content\\AuthorListings()" ), "The author listing module is bootstrapped by SMP." );
+    expect_true(
+        str_contains( $author_query, 'elementor_pro/query_control/get_query_args/current_query' )
+        && str_contains( $author_query, 'elementor/query/fallback_query_args' )
+        && str_contains( $author_query, 'PHP_INT_MAX - 5' ),
+        "SMP author queries run after Hexa PR Wire across every Elementor query path."
+    );
 
     echo "PASS: author listing cards, filters, image detection, and shortcodes\n";
 }

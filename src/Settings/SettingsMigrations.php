@@ -117,12 +117,15 @@ final class SettingsMigrations {
         }
 
         $settings = get_option( SettingsRepository::OPTION, [] );
-        if ( is_array( $settings ) && [] !== $settings && ! array_key_exists( 'author_listing_show_press_releases', $settings ) ) {
+        if ( is_array( $settings ) && [] !== $settings ) {
             $contexts = isset( $settings['press_release_include_contexts'] ) && is_array( $settings['press_release_include_contexts'] )
                 ? array_map( 'sanitize_key', $settings['press_release_include_contexts'] )
                 : [];
-            $settings['author_listing_show_press_releases'] = ! empty( $settings['press_release_include_enabled'] )
-                && in_array( 'author', $contexts, true );
+            if ( ! array_key_exists( 'author_listing_show_press_releases', $settings ) ) {
+                $settings['author_listing_show_press_releases'] = ! empty( $settings['press_release_include_enabled'] )
+                    && in_array( 'author', $contexts, true );
+            }
+            $settings['press_release_include_contexts'] = array_values( array_diff( $contexts, [ 'author' ] ) );
             update_option( SettingsRepository::OPTION, $settings, false );
         }
 

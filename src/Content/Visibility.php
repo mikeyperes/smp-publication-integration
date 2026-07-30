@@ -10,6 +10,8 @@ if ( ! defined( "ABSPATH" ) ) {
 }
 
 final class Visibility {
+    public const HPR_ALLOW_QUERY_VAR = "hpr_allow_press_release_loop";
+    public const HPR_FORCE_HIDE_QUERY_VAR = "hpr_force_hide_press_release";
     private const HOME_META = "_smpi_shadow_home";
     private const ARCHIVE_META = "_smpi_shadow_archives";
     private const COMPLETE_META = "_smpi_shadow_complete";
@@ -148,8 +150,11 @@ final class Visibility {
         $include_press_releases = $this->should_include_press_releases( $context, $query );
         if ( $include_press_releases ) {
             $this->ensure_press_release_post_type( $query );
+            $query->set( self::HPR_ALLOW_QUERY_VAR, true );
+            $query->set( self::HPR_FORCE_HIDE_QUERY_VAR, false );
             $query->set( "smpi_press_release_force_exclude", true );
         } elseif ( "author" === $context ) {
+            $query->set( self::HPR_ALLOW_QUERY_VAR, false );
             $query->set( "smpi_author_press_release_exclude", true );
         }
         if ( Settings::bool( "shadow_press_releases" ) && in_array( $context, [ "home", "category_tag" ], true ) ) {

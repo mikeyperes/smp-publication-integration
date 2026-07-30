@@ -172,8 +172,26 @@ $GLOBALS['smpi_test_options']['smpi_settings'] = [
     'press_release_include_contexts' => [ 'home', 'author' ],
 ];
 ( new SettingsMigrations() )->migrate_author_listing_settings();
-if ( true !== $GLOBALS['smpi_test_options']['smpi_settings']['author_listing_show_press_releases'] ) {
+if (
+    true !== $GLOBALS['smpi_test_options']['smpi_settings']['author_listing_show_press_releases']
+    || [ 'home' ] !== $GLOBALS['smpi_test_options']['smpi_settings']['press_release_include_contexts']
+) {
     fwrite( STDERR, "FAIL: Author listing migration did not preserve an existing press-release inclusion.\n" );
+    exit( 1 );
+}
+
+unset( $GLOBALS['smpi_test_options']['smpi_migration_author_listing_1_0_14'] );
+$GLOBALS['smpi_test_options']['smpi_settings'] = [
+    'press_release_include_enabled' => true,
+    'press_release_include_contexts' => [ 'home', 'author' ],
+    'author_listing_show_press_releases' => false,
+];
+( new SettingsMigrations() )->migrate_author_listing_settings();
+if (
+    false !== $GLOBALS['smpi_test_options']['smpi_settings']['author_listing_show_press_releases']
+    || [ 'home' ] !== $GLOBALS['smpi_test_options']['smpi_settings']['press_release_include_contexts']
+) {
+    fwrite( STDERR, "FAIL: Author listing migration overwrote the explicit author setting or retained the retired context.\n" );
     exit( 1 );
 }
 

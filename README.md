@@ -8,7 +8,7 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `1.0.14`
+- Version: `1.0.15`
 
 ## Ownership
 
@@ -94,11 +94,15 @@ The suite covers navigation, article defaults, article/FAQ output, authorship, t
 
 ## Changelog
 
+### 1.0.15
+
+- Made the author press-release setting override Hexa PR Wire exclusions in native and Elementor author queries.
+
 ### 1.0.14
 
 - Added reusable author-listing controls for member image and article requirements plus author-archive press releases.
 - Made staff and contributor directory cards fully clickable and removed the separate View Member link.
-- Added explicit local-profile-image detection for ACF, Simple Local Avatars, and WP User Avatars data.
+- Added real profile-image detection for ACF, Simple Local Avatars, WP User Avatars, and non-default Gravatars.
 
 ### 1.0.13
 
