@@ -8,7 +8,7 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `1.0.17`
+- Version: `1.0.18`
 
 ## Ownership
 
@@ -47,7 +47,7 @@ Article-level multi-author assignments, primary authors, Elementor bylines, auth
 
 SMP constructs publication and article nodes; Hexa WP Core owns reusable schema normalization, deduplication, safe JSON-LD encoding, and output injection. FAQ schema uses the same shared FAQ source and renderer as visible FAQ output.
 
-Rank Math coexistence, stable graph IDs, publication-logo fallbacks, article relationships, and author relationships must remain unchanged during upgrades.
+Rank Math coexistence, stable graph IDs, publication-logo fallbacks, article relationships, and author relationships must remain unchanged during upgrades. SMP replaces Rank Math schema only on the home and singular integration surfaces that already have an owning schema provider; ordinary pages, taxonomy archives, and post-type archives retain Rank Math's native graph.
 
 ## Dashboard
 
@@ -97,6 +97,10 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 1.0.18
+
+- Restored Rank Math JSON-LD on ordinary pages, taxonomy archives, and post-type archives while preserving SMP's duplicate-schema suppression on owned home and singular integration contexts.
 
 ### 1.0.17
 

@@ -45,7 +45,7 @@ class SchemaManager {
     }
 
     public function disable_rank_math_schema_output(): void {
-        if ( ! RuntimeContext::is_public_frontend() ) {
+        if ( ! RuntimeContext::is_public_frontend() || $this->should_preserve_rank_math_schema() ) {
             return;
         }
         remove_all_actions( "rank_math/head", 90 );
@@ -88,10 +88,24 @@ class SchemaManager {
     }
 
     public function filter_rank_math_schema( $data, $jsonld = null ) {
-        if ( ! RuntimeContext::is_public_frontend() ) {
+        if ( ! RuntimeContext::is_public_frontend() || $this->should_preserve_rank_math_schema() ) {
             return $data;
         }
         return [];
+    }
+
+    /**
+     * Keep Rank Math's graph on public surfaces for which SMP does not build a
+     * replacement document. Front pages and singular publication/profile
+     * integrations retain the existing suppression boundary so two providers
+     * never emit competing organization, article, or person entities.
+     */
+    private function should_preserve_rank_math_schema(): bool {
+        if ( is_front_page() || is_home() ) {
+            return false;
+        }
+
+        return is_page() || is_category() || is_tag() || is_tax() || is_post_type_archive();
     }
 
     public function rest_schema( \WP_REST_Request $request ): \WP_REST_Response {
