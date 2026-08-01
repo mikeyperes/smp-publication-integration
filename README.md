@@ -8,7 +8,7 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `1.0.16`
+- Version: `1.0.17`
 
 ## Ownership
 
@@ -68,6 +68,8 @@ Namespaced domain code lives under `src/`. Reusable UI, AJAX, updater, CPT, ACF,
 
 Elementor single-post recent-content loops opt into SMP publication filtering with the exact Query ID `smpi_single_recent`. Other Posts and Loop Grid widgets remain outside SMP query mutation.
 
+Native non-editorial singular templates can opt out of article-content decoration and its DOM fallback through `smpi_article_markup_enabled`. The filter receives the saved feature state, queried object ID, and post type; it does not disable breadcrumbs, tables of contents, or other surfaces independently.
+
 The plugin updater targets the repository's canonical `main` branch and registers `Hexa\PluginCore\PluginUpdates\GitHubPluginUpdater` directly.
 
 ## Requirements
@@ -95,6 +97,11 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 1.0.17
+
+- Added the context-aware `smpi_article_markup_enabled` filter so native podcast episode templates can suppress editorial post-content normalization without brittle cross-plugin callback removal.
+- Replaced target-only breadcrumb and article-normalizer executable blocks with one deferred, idempotent public DOM asset that preserves SSR markup and reinitializes on `smp:content-ready`.
 
 ### 1.0.16
 

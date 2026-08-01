@@ -39,12 +39,8 @@ final class Breadcrumbs {
             return;
         }
 
-        $payload = wp_json_encode( [ "headerSelectors" => self::header_selectors() ] );
         ?>
-        <div id="smpi-breadcrumbs-source" hidden><?php echo $markup; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></div>
-        <script id="smpi-breadcrumbs-inject">
-        (function(data){var source=document.getElementById("smpi-breadcrumbs-source");if(!source||document.querySelector("[data-smpi-breadcrumbs-injected]"))return;var bar=source.firstElementChild;if(!bar)return;function visible(el){var r=el.getBoundingClientRect();return r.width>1&&r.height>1&&window.getComputedStyle(el).display!=="none";}var selectors=(data&&data.headerSelectors)||[],target=null;for(var i=0;i<selectors.length;i++){var el=document.querySelector(selectors[i]);if(el&&visible(el)){target=el;break;}}bar.hidden=false;bar.setAttribute("data-smpi-breadcrumbs-injected","1");if(target&&target.parentNode){target.insertAdjacentElement("afterend",bar);}else if(document.body.firstElementChild){document.body.insertBefore(bar,document.body.firstElementChild);}else{document.body.appendChild(bar);}source.remove();})(<?php echo $payload ? $payload : "{}"; ?>);
-        </script>
+        <template data-smp-ajax-companion="smpi-breadcrumbs"><?php echo $markup; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></template>
         <?php
     }
 
@@ -95,7 +91,8 @@ final class Breadcrumbs {
         $title_html = in_array( $style, [ "bc-b1", "bc-b5" ], true ) && "" !== $title ? "<div class=\"smpi-template-title smpi-breadcrumb-title\">" . esc_html( $title ) . "</div>" : "";
         $content = "bc-b5" === $style ? $crumbs . $title_html : $title_html . $crumbs;
 
-        return "<div class=\"smpi-breadcrumbs-band\" data-smpi-breadcrumbs-band data-smpi-breadcrumbs-style=\"" . esc_attr( $style ) . "\"><div class=\"" . esc_attr( $classes ) . "\" data-smpi-breadcrumbs data-smpi-breadcrumbs-style=\"" . esc_attr( $style ) . "\">" . self::safe_markup( $content ) . "</div></div>";
+        $selectors = wp_json_encode( self::header_selectors() );
+        return "<div class=\"smpi-breadcrumbs-band\" data-smpi-breadcrumbs-band data-smpi-breadcrumbs-style=\"" . esc_attr( $style ) . "\" data-smpi-header-selectors=\"" . esc_attr( $selectors ? $selectors : '[]' ) . "\"><div class=\"" . esc_attr( $classes ) . "\" data-smpi-breadcrumbs data-smpi-breadcrumbs-style=\"" . esc_attr( $style ) . "\">" . self::safe_markup( $content ) . "</div></div>";
     }
 
     public static function integrity_report(): array {

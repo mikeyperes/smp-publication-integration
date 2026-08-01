@@ -8,6 +8,7 @@ $template = (string) file_get_contents( $root . "/src/Content/TemplateMarkup.php
 $breadcrumbs = (string) file_get_contents( $root . "/src/Content/Breadcrumbs.php" );
 $toc = (string) file_get_contents( $root . "/src/Content/TableOfContents.php" );
 $article = (string) file_get_contents( $root . "/src/Content/ArticleStyles.php" );
+$public_dom = (string) file_get_contents( $root . "/assets/frontend/public-dom.js" );
 $inline = (string) file_get_contents( $root . "/src/Content/InlinePhotoTreatments.php" );
 $featured = (string) file_get_contents( $root . "/src/Content/FeaturedImageCaptions.php" );
 $shortcodes = (string) file_get_contents( $root . "/src/Content/Shortcodes.php" );
@@ -62,17 +63,17 @@ $checks = [
     "Article content is decorated on PHP output with a dynamic-render fallback." =>
         str_contains( $article, 'add_filter( "the_content", [ $this, "decorate_article_content" ], 9 )' )
         && str_contains( $article, 'TemplateMarkup::decorate_article_content( $content )' )
-        && str_contains( $article, 'root.classList.add("smpi-template","smpi-template--article-content","smpi-template-content","smpi-article-content")' )
-        && str_contains( $article, 'smpi-template-link","smpi-article-link' )
-        && str_contains( $article, 'smpi-template-list","smpi-article-list' )
-        && str_contains( $article, 'smpi-template-item","smpi-article-list-item' )
-        && str_contains( $article, 'smpi-template-text","smpi-article-paragraph' )
-        && str_contains( $article, 'smpi-template-image","smpi-article-image' )
-        && str_contains( $article, 'smpi-template-title","smpi-article-heading' ),
+        && str_contains( $public_dom, "root.classList.add('smpi-template', 'smpi-template--article-content', 'smpi-template-content', 'smpi-article-content')" )
+        && str_contains( $public_dom, "'smpi-template-link', 'smpi-article-link'" )
+        && str_contains( $public_dom, "'smpi-template-list', 'smpi-article-list'" )
+        && str_contains( $public_dom, "'smpi-template-item', 'smpi-article-list-item'" )
+        && str_contains( $public_dom, "'smpi-template-text', 'smpi-article-paragraph'" )
+        && str_contains( $public_dom, "'smpi-template-image', 'smpi-article-image'" )
+        && str_contains( $public_dom, "'smpi-template-title', 'smpi-article-heading'" ),
 
     "Article fallback preserves the one server-selected drop cap." =>
-        str_contains( $article, 'if(cfg.dropcap&&!root.querySelector(".smpi-article-lead"))' )
-        && ! str_contains( $article, 'if(cfg.dropcap){var lead=Array.from(root.querySelectorAll("p"))' ),
+        str_contains( $public_dom, "bodyHas('smpi-runtime-article-dropcap') && !root.querySelector('.smpi-article-lead')" )
+        && ! str_contains( $public_dom, "bodyHas('smpi-runtime-article-dropcap')) {" ),
 
     "Numbered article lists share semantic classes in PHP and the dynamic-render fallback." =>
         str_contains( $template, 'public static function decorate_article_numbered_lists(' )
@@ -82,8 +83,8 @@ $checks = [
         && str_contains( $template, '"smpi-numbered-list-text"' )
         && str_contains( $template, '"smpi-numbered-list-link"' )
         && str_contains( $article, 'TemplateMarkup::decorate_article_numbered_lists( $content, $style )' )
-        && str_contains( $article, 'list.classList.add("smpi-template","smpi-template--article-numbered-list"' )
-        && str_contains( $article, 'item.classList.add("smpi-template-item","smpi-article-list-item","smpi-numbered-list-item")' ),
+        && str_contains( $public_dom, "list.classList.add('smpi-template', 'smpi-template--article-numbered-list'" )
+        && str_contains( $public_dom, "item.classList.add('smpi-template-item', 'smpi-article-list-item', 'smpi-numbered-list-item')" ),
 
     "Inline image PHP paths expose root, link, image, and caption classes." =>
         str_contains( $inline, 'TemplateMarkup::decorate_inline_photos( $html, $style )' )

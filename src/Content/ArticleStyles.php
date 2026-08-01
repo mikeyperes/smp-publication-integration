@@ -25,7 +25,6 @@ final class ArticleStyles {
     public function register(): void {
         add_filter( "the_content", [ $this, "decorate_article_content" ], 9 );
         add_action( "wp_head", [ $this, "print_styles" ], 34 );
-        add_action( "wp_footer", [ $this, "print_markup_fallback_script" ], 48 );
     }
 
     public function print_styles(): void {
@@ -52,7 +51,7 @@ final class ArticleStyles {
         if ( ! RuntimeContext::is_public_dom_context() || ! is_singular( [ "post", "press-release" ] ) ) {
             return $content;
         }
-        if ( ! $this->article_markup_enabled() ) {
+        if ( ! self::article_markup_enabled() ) {
             return $content;
         }
         $content = TemplateMarkup::decorate_article_content( $content );
@@ -65,59 +64,30 @@ final class ArticleStyles {
         return $content;
     }
 
-    public function print_markup_fallback_script(): void {
-        if ( ! RuntimeContext::is_public_dom_context() || ! is_singular( [ "post", "press-release" ] ) || ! $this->article_markup_enabled() ) {
-            return;
-        }
-        $payload = wp_json_encode(
-            [
-                "headings" => Settings::bool( "article_heading_styles_enabled" ),
-                "dropcap"  => Settings::bool( "article_drop_cap_enabled" ),
-                "numberedLists" => Settings::bool( "article_numbered_lists_enabled" ),
-                "numberedListStyle" => self::normalize_article_numbered_list_style( (string) Settings::get( "article_numbered_list_style", "nlist01" ) ),
-            ]
-        );
-        ?>
-        <script id="smpi-article-markup-normalizer">
-        (function(cfg){
-            if(!cfg)return;
-            var selectors=[".elementor-widget-theme-post-content .elementor-widget-container",".elementor-widget-theme-post-content",".elementor-widget-post-content .elementor-widget-container",".elementor-widget-post-content","article .entry-content",".entry-content",".post-content"];
-            var root=null;
-            for(var i=0;i<selectors.length;i++){root=document.querySelector(selectors[i]);if(root)break;}
-            if(!root)return;
-            root.classList.add("smpi-template","smpi-template--article-content","smpi-template-content","smpi-article-content");
-            function owned(el){return !el.closest(".smpi-post-summary,.smpi-post-faqs,.smpi-table-of-contents,.smpi-breadcrumbs");}
-            root.querySelectorAll("a").forEach(function(el){if(owned(el))el.classList.add("smpi-template-link","smpi-article-link");});
-            root.querySelectorAll("ol,ul").forEach(function(el){if(owned(el))el.classList.add("smpi-template-list","smpi-article-list");});
-            root.querySelectorAll("li").forEach(function(el){if(owned(el))el.classList.add("smpi-template-item","smpi-article-list-item");});
-            root.querySelectorAll("p").forEach(function(el){if(owned(el))el.classList.add("smpi-template-text","smpi-article-paragraph");});
-            root.querySelectorAll("img").forEach(function(el){if(owned(el))el.classList.add("smpi-template-image","smpi-article-image");});
-            if(cfg.headings){root.querySelectorAll("h2,h3,h4").forEach(function(el){if(owned(el))el.classList.add("smpi-template-title","smpi-article-heading","smpi-article-heading--"+el.tagName.toLowerCase());});}
-            if(cfg.numberedLists&&cfg.numberedListStyle!=="none"){
-                root.querySelectorAll("ol").forEach(function(list){
-                    if(!owned(list)||(list.parentElement&&list.parentElement.closest("ol"))||list.matches(".smpi-post-summary-list,.smpi-post-faq-list,.smpi-toc-list,.wp-block-footnotes"))return;
-                    list.classList.add("smpi-template","smpi-template--article-numbered-list","smpi-template-list","smpi-article-list","smpi-numbered-list","smpi-numbered-list--"+cfg.numberedListStyle);
-                    Array.from(list.children).forEach(function(item){
-                        if(item.tagName!=="LI")return;
-                        item.classList.add("smpi-template-item","smpi-article-list-item","smpi-numbered-list-item");
-                        item.querySelectorAll(":scope > h3,:scope > h4,:scope > h5,:scope > strong").forEach(function(title){title.classList.add("smpi-template-title","smpi-numbered-list-title");});
-                        item.querySelectorAll(":scope > p").forEach(function(text){text.classList.add("smpi-template-text","smpi-numbered-list-text");});
-                        item.querySelectorAll("a").forEach(function(link){link.classList.add("smpi-template-link","smpi-numbered-list-link");});
-                    });
-                });
-            }
-            if(cfg.dropcap&&!root.querySelector(".smpi-article-lead")){var lead=Array.from(root.querySelectorAll("p")).find(function(el){return owned(el)&&!el.closest("aside,blockquote,figure,nav");});if(lead)lead.classList.add("smpi-article-lead");}
-        })(<?php echo $payload ? $payload : "{}"; ?>);
-        </script>
-        <?php
-    }
-
-    private function article_markup_enabled(): bool {
-        return Settings::bool( "article_heading_styles_enabled" )
+    public static function article_markup_enabled(): bool {
+        $enabled = Settings::bool( "article_heading_styles_enabled" )
             || Settings::bool( "article_drop_cap_enabled" )
             || Settings::bool( "article_numbered_lists_enabled" )
             || Settings::bool( "inline_photo_treatments_enabled" )
             || Settings::bool( "table_of_contents_enabled" );
+
+        /**
+         * Allow a publication to opt a specific singular surface out of the
+         * article-content decorator and its DOM fallback normalizer. This is
+         * useful for native episode templates that render structured podcast
+         * components instead of an editorial post-content surface.
+         *
+         * @param bool   $enabled   Whether article markup is enabled by the
+         *                        saved feature settings.
+         * @param int    $object_id Current queried object ID, or 0.
+         * @param string $post_type Current post type, or an empty string.
+         */
+        return (bool) apply_filters(
+            "smpi_article_markup_enabled",
+            $enabled,
+            (int) get_queried_object_id(),
+            (string) get_post_type()
+        );
     }
 
     public static function normalize_toc_style( string $style = "" ): string {

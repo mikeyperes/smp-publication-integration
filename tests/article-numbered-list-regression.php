@@ -51,6 +51,7 @@ foreach ( $contracts as $style => $accent_contract ) {
 
 $template = (string) file_get_contents( $root . "/src/Content/TemplateMarkup.php" );
 $article = (string) file_get_contents( $root . "/src/Content/ArticleStyles.php" );
+$public_dom = (string) file_get_contents( $root . "/assets/frontend/public-dom.js" );
 $dashboard = (string) file_get_contents( $root . "/src/Admin/Dashboard/DashboardController.php" );
 $settings = (string) file_get_contents( $root . "/src/Settings/SettingsRepository.php" );
 $ajax = (string) file_get_contents( $root . "/src/Admin/Ajax/AjaxController.php" );
@@ -67,8 +68,8 @@ numbered_list_assert(
     "Sibling roots, nested lists, or plugin-owned ordered lists are not handled safely."
 );
 numbered_list_assert(
-    str_contains( $article, 'if(!owned(list)||(list.parentElement&&list.parentElement.closest("ol"))' )
-        && str_contains( $article, '.smpi-post-summary-list,.smpi-post-faq-list,.smpi-toc-list,.wp-block-footnotes' ),
+    str_contains( $public_dom, "(list.parentElement && list.parentElement.closest('ol'))" )
+        && str_contains( $public_dom, '.smpi-post-summary-list,.smpi-post-faq-list,.smpi-toc-list,.wp-block-footnotes' ),
     "The dynamic-render fallback does not preserve nested and plugin-owned lists."
 );
 foreach (

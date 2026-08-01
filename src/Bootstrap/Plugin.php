@@ -86,6 +86,7 @@ final class Plugin {
             new Content\MuckRackVerification(),
             new Content\AuthorSocialCleanup(),
             new Content\Breadcrumbs(),
+            new Content\PublicDomRuntime(),
             new Content\TableOfContents(),
             new Content\ReadingProgress(),
             new Content\InlinePhotoTreatments(),
