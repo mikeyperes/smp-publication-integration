@@ -8,7 +8,7 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `1.0.18`
+- Version: `1.0.19`
 
 ## Ownership
 
@@ -97,6 +97,11 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 1.0.19
+
+- Added an opt-in reading-progress scope control for posts, posts plus the front page, or the full public frontend while preserving posts-only behavior by default.
+- Made the progress indicator's accessible label reflect whether it is rendering on an article or another public page.
 
 ### 1.0.18
 

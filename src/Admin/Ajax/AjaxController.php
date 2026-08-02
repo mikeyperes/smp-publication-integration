@@ -196,7 +196,7 @@ class AjaxController {
                 $changes[ $key ] = $request->key( $key, "", "post" );
             }
         }
-        foreach ( [ "breadcrumbs_style", "table_of_contents_style", "reading_progress_style", "article_heading_style", "article_numbered_list_style", "article_drop_cap_style", "inline_photo_treatment", "featured_image_caption_template", "post_summary_style", "post_summary_background_mode", "post_summary_placement", "post_faqs_style", "post_faqs_placement", "multi_authors_loop_output", "table_of_contents_text_font_style", "inline_photo_caption_font_style", "featured_image_caption_font_style", "post_faqs_text_font_style", 'post_time_mode', 'muckrack_verified_style', 'muckrack_icon_style', 'publication_muckrack_text_mode', 'publication_muckrack_style' ] as $key ) {
+        foreach ( [ "breadcrumbs_style", "table_of_contents_style", "reading_progress_scope", "reading_progress_style", "article_heading_style", "article_numbered_list_style", "article_drop_cap_style", "inline_photo_treatment", "featured_image_caption_template", "post_summary_style", "post_summary_background_mode", "post_summary_placement", "post_faqs_style", "post_faqs_placement", "multi_authors_loop_output", "table_of_contents_text_font_style", "inline_photo_caption_font_style", "featured_image_caption_font_style", "post_faqs_text_font_style", 'post_time_mode', 'muckrack_verified_style', 'muckrack_icon_style', 'publication_muckrack_text_mode', 'publication_muckrack_style' ] as $key ) {
             if ( $request->has( $key, 'post' ) ) {
                 $changes[ $key ] = $request->key( $key, '', 'post' );
             }

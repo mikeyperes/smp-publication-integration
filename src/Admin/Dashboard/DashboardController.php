@@ -1446,14 +1446,15 @@ class DashboardController {
             $toc_controls
         );
 
-        $reading_progress_controls = $this->select_setting_html( "reading_progress_style", $this->reading_progress_style_options(), $settings, "Progress design" )
+        $reading_progress_controls = $this->select_setting_html( ReadingProgress::SCOPE_SETTING, ReadingProgress::scopes(), $settings, "Display scope" )
+            . $this->select_setting_html( "reading_progress_style", $this->reading_progress_style_options(), $settings, "Progress design" )
             . $this->color_setting_html( ReadingProgress::COLOR_SETTING, "Progress color", $settings, ReadingProgress::DEFAULT_COLOR );
         $this->feature_card(
-            "Article reading progress bar",
+            "Reading progress bar",
             "reading_progress_enabled",
-            "No ACF changes. Runs only on public single-post pages.",
-            "Shows a fixed page-progress indicator at the top of single articles and updates it as the reader scrolls.",
-            "No shortcode needed. Enable the feature, choose a design, and select the progress color.",
+            "No ACF changes. Runs on the selected public frontend scope.",
+            "Shows a fixed page-progress indicator at the top of the selected pages and updates it as the reader scrolls.",
+            "No shortcode needed. Enable the feature, choose its scope and design, then select the progress color.",
             $this->reading_progress_report_html(),
             $this->activity_log_html(),
             $reading_progress_controls
@@ -2821,13 +2822,16 @@ HTML;
 
     private function reading_progress_report_html(): string {
         $settings = Settings::all();
+        $scope = ReadingProgress::normalize_scope( (string) ( $settings[ ReadingProgress::SCOPE_SETTING ] ?? ReadingProgress::DEFAULT_SCOPE ) );
+        $scope_config = ReadingProgress::scopes()[ $scope ] ?? [];
+        $scope_label = (string) ( $scope_config["label"] ?? $scope );
         $style = ReadingProgress::normalize_style( (string) ( $settings[ ReadingProgress::STYLE_SETTING ] ?? ReadingProgress::DEFAULT_STYLE ) );
         $design = ReadingProgress::designs()[ $style ] ?? [];
         $label = (string) ( $design["label"] ?? $style );
         $color = sanitize_hex_color( (string) ( $settings[ ReadingProgress::COLOR_SETTING ] ?? ReadingProgress::DEFAULT_COLOR ) ) ?: ReadingProgress::DEFAULT_COLOR;
         return $this->simple_status_html(
             Settings::bool( ReadingProgress::ENABLED_SETTING ),
-            "Single posts use " . $label . " with " . $color . "."
+            "Scope: " . $scope_label . ". Design: " . $label . " with " . $color . "."
         );
     }
 

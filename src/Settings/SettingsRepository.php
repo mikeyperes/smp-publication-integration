@@ -116,6 +116,7 @@ class SettingsRepository {
             "table_of_contents_font_family" => "template",
             "table_of_contents_font_weight" => "inherit",
             "reading_progress_enabled" => false,
+            "reading_progress_scope" => "posts",
             "reading_progress_style" => "thin",
             "reading_progress_color" => "#00ff41",
             "article_heading_styles_enabled" => false,
@@ -561,6 +562,7 @@ class SettingsRepository {
             $style_options = [
                 "breadcrumbs_style" => [ "bc-b1", "bc-b2", "bc-b3", "bc-b4", "bc-b5", "bc-b6" ],
                 "table_of_contents_style" => [ "unstyled", "none", "toc00", "toc01", "toc02", "toc03", "toc04" ],
+                "reading_progress_scope" => [ "posts", "posts_front_page", "sitewide" ],
                 "reading_progress_style" => [ "thin", "track", "glow", "floating", "segmented" ],
                 "article_heading_style" => [ "none", "h2-tick", "h2-leftrule", "h2-underline", "h2-topline", "h2-dot", "h2-trailingrule", "h2-serif", "h2-uppercase", "h2-gradient", "h2-bracket", "h2-number", "h2-square", "h2-highlight", "h2-double", "h2-corner_tick" ],
                 "article_numbered_list_style" => [ "none", "nlist01", "nlist02", "nlist03", "nlist04", "nlist05" ],

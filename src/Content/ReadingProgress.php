@@ -11,8 +11,10 @@ if ( ! defined( "ABSPATH" ) ) {
 
 final class ReadingProgress {
     public const ENABLED_SETTING = "reading_progress_enabled";
+    public const SCOPE_SETTING = "reading_progress_scope";
     public const STYLE_SETTING = "reading_progress_style";
     public const COLOR_SETTING = "reading_progress_color";
+    public const DEFAULT_SCOPE = "posts";
     public const DEFAULT_STYLE = "thin";
     public const DEFAULT_COLOR = "#00ff41";
 
@@ -47,6 +49,45 @@ final class ReadingProgress {
                 "description" => "A 6px sequence of compact blocks that fills across the page.",
             ],
         ];
+    }
+
+    public static function scopes(): array {
+        return [
+            "posts" => [
+                "label" => "Posts only",
+                "description" => "Show the progress bar on public single-post pages.",
+            ],
+            "posts_front_page" => [
+                "label" => "Posts and front page",
+                "description" => "Show the progress bar on public single posts and the site front page.",
+            ],
+            "sitewide" => [
+                "label" => "Sitewide",
+                "description" => "Show the progress bar throughout the public frontend.",
+            ],
+        ];
+    }
+
+    public static function scope_keys(): array {
+        return array_keys( self::scopes() );
+    }
+
+    public static function normalize_scope( string $scope ): string {
+        $scope = sanitize_key( $scope );
+        return in_array( $scope, self::scope_keys(), true ) ? $scope : self::DEFAULT_SCOPE;
+    }
+
+    public static function scope_matches_current_request( string $scope ): bool {
+        $scope = self::normalize_scope( $scope );
+        if ( "sitewide" === $scope ) {
+            return true;
+        }
+
+        if ( "posts_front_page" === $scope && is_front_page() ) {
+            return true;
+        }
+
+        return is_singular( "post" );
     }
 
     public static function style_keys(): array {
@@ -84,8 +125,9 @@ final class ReadingProgress {
         $style = self::normalize_style( (string) ( $settings[ self::STYLE_SETTING ] ?? self::DEFAULT_STYLE ) );
         $color = sanitize_hex_color( (string) ( $settings[ self::COLOR_SETTING ] ?? self::DEFAULT_COLOR ) ) ?: self::DEFAULT_COLOR;
         $inline_style = "--smpi-reading-progress-scale:0;--smpi-reading-progress-value:0%;" . self::color_variables( $color );
+        $aria_label = is_singular( "post" ) ? "Article reading progress" : "Page reading progress";
 
-        echo '<div id="smpi-reading-progress" class="smpi-reading-progress smpi-reading-progress--' . esc_attr( $style ) . '" role="progressbar" aria-label="Article reading progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" style="' . esc_attr( $inline_style ) . '"><span class="smpi-reading-progress__track"><span class="smpi-reading-progress__fill"></span></span></div>';
+        echo '<div id="smpi-reading-progress" class="smpi-reading-progress smpi-reading-progress--' . esc_attr( $style ) . '" role="progressbar" aria-label="' . esc_attr( $aria_label ) . '" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" style="' . esc_attr( $inline_style ) . '"><span class="smpi-reading-progress__track"><span class="smpi-reading-progress__fill"></span></span></div>';
         $this->markup_rendered = true;
     }
 
@@ -138,9 +180,12 @@ final class ReadingProgress {
     }
 
     private function should_render(): bool {
-        return RuntimeContext::is_public_dom_context()
-            && Settings::bool( self::ENABLED_SETTING )
-            && is_singular( "post" );
+        if ( ! RuntimeContext::is_public_dom_context() || ! Settings::bool( self::ENABLED_SETTING ) ) {
+            return false;
+        }
+
+        $scope = self::normalize_scope( (string) Settings::get( self::SCOPE_SETTING, self::DEFAULT_SCOPE ) );
+        return self::scope_matches_current_request( $scope );
     }
 
     private static function frontend_css(): string {
