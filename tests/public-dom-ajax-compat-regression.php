@@ -27,8 +27,8 @@ $checks = [
     'The retired breadcrumb executable block cannot reappear from PHP.' =>
         ! str_contains( $breadcrumbs, 'smpi-breadcrumbs-inject' )
         && ! str_contains( $breadcrumbs, '<script' ),
-    'Article server decoration remains active while its footer executable block is retired.' =>
-        str_contains( $article, 'add_filter( "the_content", [ $this, "decorate_article_content" ], 9 )' )
+    'Article server decoration runs after WordPress paragraph generation while its footer executable block stays retired.' =>
+        str_contains( $article, 'add_filter( "the_content", [ $this, "decorate_article_content" ], 12 )' )
         && ! str_contains( $article, 'smpi-article-markup-normalizer' )
         && ! str_contains( $article, 'print_markup_fallback_script' ),
     'Target article configuration is represented by SSR body classes.' =>

@@ -103,6 +103,34 @@
         return !element.closest('.smpi-post-summary,.smpi-post-faqs,.smpi-table-of-contents,.smpi-breadcrumbs');
     }
 
+    function contactParagraph(element) {
+        var text = (element.textContent || '').replace(/\s+/g, ' ').trim();
+        var previous = element.previousElementSibling;
+        var followsContactHeading = previous
+            && /^H[2-6]$/.test(previous.tagName)
+            && /^(contact|contact information|media contact|press contact|for media inquiries)$/i.test((previous.textContent || '').replace(/\s+/g, ' ').trim());
+
+        return !!element.closest('address,.smpi-contact-information,.contact-information,.contact-info,.media-contact,.press-contact')
+            || followsContactHeading
+            || (text.length < 240 && !!element.querySelector('a[href^="tel:"],a[href^="mailto:"]'));
+    }
+
+    function leadParagraph(element) {
+        return owned(element)
+            && visible(element)
+            && !!(element.textContent || '').trim()
+            && !element.closest('aside,blockquote,figure,nav,footer,address')
+            && !contactParagraph(element);
+    }
+
+    function normalizeArticleLead(root) {
+        var lead = Array.prototype.find.call(root.querySelectorAll('p'), leadParagraph) || null;
+        root.querySelectorAll('.smpi-article-lead').forEach(function (element) {
+            if (element !== lead) element.classList.remove('smpi-article-lead');
+        });
+        if (lead) lead.classList.add('smpi-article-lead');
+    }
+
     function numberedListStyle() {
         var prefix = 'smpi-runtime-numbered-list-';
         var classes = document.body ? Array.prototype.slice.call(document.body.classList) : [];
@@ -161,12 +189,10 @@
             });
         }
 
-        if (bodyHas('smpi-runtime-article-dropcap') && !root.querySelector('.smpi-article-lead')) {
-            var lead = Array.prototype.find.call(root.querySelectorAll('p'), function (element) {
-                return owned(element) && !element.closest('aside,blockquote,figure,nav');
-            });
-            if (lead) lead.classList.add('smpi-article-lead');
-        }
+        if (bodyHas('smpi-runtime-article-dropcap')) normalizeArticleLead(root);
+        else root.querySelectorAll('.smpi-article-lead').forEach(function (element) {
+            element.classList.remove('smpi-article-lead');
+        });
     }
 
     function initialize(scope, navigation) {

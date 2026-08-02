@@ -8,7 +8,7 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `1.0.20`
+- Version: `1.0.21`
 
 ## Ownership
 
@@ -97,6 +97,11 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 1.0.21
+
+- Normalized article drop caps after WordPress paragraph generation so unwrapped post content cannot move the first-letter design to a later contact block.
+- Made the browser fallback remove stale lead classes and reject contact, telephone, email, hidden, and non-article paragraphs.
 
 ### 1.0.20
 

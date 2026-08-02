@@ -23,7 +23,7 @@ if ( ! defined( "ABSPATH" ) ) {
  */
 final class ArticleStyles {
     public function register(): void {
-        add_filter( "the_content", [ $this, "decorate_article_content" ], 9 );
+        add_filter( "the_content", [ $this, "decorate_article_content" ], 12 );
         add_action( "wp_head", [ $this, "print_styles" ], 34 );
     }
 

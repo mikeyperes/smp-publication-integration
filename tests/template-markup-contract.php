@@ -61,7 +61,7 @@ $checks = [
         && str_contains( $toc, 'a.className="smpi-template-link smpi-toc-link"' ),
 
     "Article content is decorated on PHP output with a dynamic-render fallback." =>
-        str_contains( $article, 'add_filter( "the_content", [ $this, "decorate_article_content" ], 9 )' )
+        str_contains( $article, 'add_filter( "the_content", [ $this, "decorate_article_content" ], 12 )' )
         && str_contains( $article, 'TemplateMarkup::decorate_article_content(' )
         && str_contains( $article, 'Settings::bool( "article_heading_styles_enabled" )' )
         && str_contains( $article, 'Settings::bool( "article_drop_cap_enabled" )' )
@@ -75,9 +75,11 @@ $checks = [
         && str_contains( $public_dom, "'smpi-template-image', 'smpi-article-image'" )
         && str_contains( $public_dom, "'smpi-template-title', 'smpi-article-heading'" ),
 
-    "Article fallback preserves the one server-selected drop cap." =>
-        str_contains( $public_dom, "bodyHas('smpi-runtime-article-dropcap') && !root.querySelector('.smpi-article-lead')" )
-        && ! str_contains( $public_dom, "bodyHas('smpi-runtime-article-dropcap')) {")
+    "Article fallback normalizes the drop cap to the first eligible article paragraph." =>
+        str_contains( $public_dom, "function normalizeArticleLead(root)" )
+        && str_contains( $public_dom, "bodyHas('smpi-runtime-article-dropcap')) normalizeArticleLead(root)" )
+        && str_contains( $public_dom, "element.classList.remove('smpi-article-lead')" )
+        && str_contains( $public_dom, "a[href^=\"tel:\"],a[href^=\"mailto:\"]" )
         && ! str_contains( $toc, 'classList.add("smpi-template-title","smpi-article-heading"' ),
 
     "Numbered article lists share semantic classes in PHP and the dynamic-render fallback." =>
