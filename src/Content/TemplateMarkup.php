@@ -52,24 +52,26 @@ final class TemplateMarkup {
         );
     }
 
-    public static function decorate_article_content( string $html, array $heading_ids = [] ): string {
+    public static function decorate_article_content( string $html, array $heading_ids = [], bool $decorate_headings = true, bool $decorate_lead = true ): string {
         $heading_index = 0;
         $lead_found = false;
 
         return self::mutate(
             $html,
-            static function ( $processor ) use ( &$heading_index, &$lead_found, $heading_ids ): array {
+            static function ( $processor ) use ( &$heading_index, &$lead_found, $heading_ids, $decorate_headings, $decorate_lead ): array {
                 $tag = $processor->get_tag();
                 if ( in_array( $tag, [ "H2", "H3", "H4" ], true ) ) {
                     if ( isset( $heading_ids[ $heading_index ] ) && "" === (string) $processor->get_attribute( "id" ) ) {
                         $processor->set_attribute( "id", (string) $heading_ids[ $heading_index ] );
                     }
                     $heading_index++;
-                    return [ self::TITLE, "smpi-article-heading", "smpi-article-heading--" . strtolower( $tag ) ];
+                    return $decorate_headings
+                        ? [ self::TITLE, "smpi-article-heading", "smpi-article-heading--" . strtolower( $tag ) ]
+                        : [];
                 }
                 if ( "P" === $tag ) {
                     $classes = [ self::TEXT, "smpi-article-paragraph" ];
-                    if ( ! $lead_found && ! self::has_blocked_article_ancestor( $processor ) ) {
+                    if ( $decorate_lead && ! $lead_found && ! self::has_blocked_article_ancestor( $processor ) ) {
                         $classes[] = "smpi-article-lead";
                         $lead_found = true;
                     }

@@ -44,7 +44,8 @@ final class ArticleStyles {
         if ( Settings::bool( "article_drop_cap_enabled" ) && self::article_drop_cap_uses_template_script_font( $drop_cap_style ) ) {
             echo self::script_font_link_html_for_style( $drop_cap_style );
         }
-        echo "<style id=smpi-article-style-controls>" . self::frontend_vars_css() . self::breadcrumbs_css() . self::article_heading_css( $heading ) . self::article_numbered_list_css( $numbered_list ) . self::article_drop_cap_css() . self::post_acf_css() . self::inline_photo_css( $photo ) . self::featured_image_caption_css( $featured ) . self::font_overrides_css() . ( "" !== $breadcrumb_override ? PHP_EOL . $breadcrumb_override : "" ) . "</style>";
+        $breadcrumbs_css = Settings::bool( "breadcrumbs_enabled" ) ? self::breadcrumbs_css() : "";
+        echo "<style id=smpi-article-style-controls>" . self::frontend_vars_css() . $breadcrumbs_css . self::article_heading_css( $heading ) . self::article_numbered_list_css( $numbered_list ) . self::article_drop_cap_css() . self::post_acf_css() . self::inline_photo_css( $photo ) . self::featured_image_caption_css( $featured ) . self::font_overrides_css() . ( "" !== $breadcrumb_override ? PHP_EOL . $breadcrumb_override : "" ) . "</style>";
     }
 
     public function decorate_article_content( string $content ): string {
@@ -54,7 +55,12 @@ final class ArticleStyles {
         if ( ! self::article_markup_enabled() ) {
             return $content;
         }
-        $content = TemplateMarkup::decorate_article_content( $content );
+        $content = TemplateMarkup::decorate_article_content(
+            $content,
+            [],
+            Settings::bool( "article_heading_styles_enabled" ),
+            Settings::bool( "article_drop_cap_enabled" )
+        );
         if ( Settings::bool( "article_numbered_lists_enabled" ) ) {
             $style = self::normalize_article_numbered_list_style( (string) Settings::get( "article_numbered_list_style", "nlist01" ) );
             if ( "none" !== $style ) {
@@ -314,6 +320,9 @@ final class ArticleStyles {
             "post_faqs" => ".smpi-post-faqs",
         ];
         foreach ( $selectors as $surface => $selector ) {
+            if ( ! self::surface_enabled( $surface ) ) {
+                continue;
+            }
             $variables = array_merge(
                 TemplateDesignRegistry::css_variables( $surface, $settings ),
                 TemplateDesignRegistry::typography_css_variables( $surface, $settings )
@@ -349,6 +358,22 @@ final class ArticleStyles {
             }
         }
         return [] === $declarations ? "" : $selector . "{" . implode( ";", $declarations ) . "}";
+    }
+
+    private static function surface_enabled( string $surface ): bool {
+        $settings = [
+            "breadcrumbs" => "breadcrumbs_enabled",
+            "table_of_contents" => "table_of_contents_enabled",
+            "article_heading" => "article_heading_styles_enabled",
+            "article_numbered_list" => "article_numbered_lists_enabled",
+            "article_drop_cap" => "article_drop_cap_enabled",
+            "inline_photo_caption" => "inline_photo_treatments_enabled",
+            "featured_image_caption" => "featured_image_caption_templates_enabled",
+            "post_summary" => "post_summary_acf_enabled",
+            "post_faqs" => "post_faqs_acf_enabled",
+        ];
+
+        return isset( $settings[ $surface ] ) && Settings::bool( $settings[ $surface ] );
     }
 
     public static function font_overrides_css(): string {
@@ -449,6 +474,9 @@ final class ArticleStyles {
         ];
         $css = "";
         foreach ( $surfaces as $prefix => $surface ) {
+            if ( ! self::surface_enabled( $prefix ) ) {
+                continue;
+            }
             if ( TemplateTypography::CUSTOM !== Settings::typography_mode( $prefix ) ) {
                 continue;
             }

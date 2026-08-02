@@ -91,6 +91,18 @@ if ( 11 !== count( $weight_keys ) ) {
 }
 $mode_keys = Settings::typography_mode_setting_keys();
 Settings::update( array_fill_keys( $mode_keys, \Hexa\PluginCore\Typography\TemplateTypography::CUSTOM ) );
+$article_surface_enabled_keys = [
+    "breadcrumbs_enabled",
+    "table_of_contents_enabled",
+    "article_heading_styles_enabled",
+    "article_numbered_lists_enabled",
+    "article_drop_cap_enabled",
+    "inline_photo_treatments_enabled",
+    "featured_image_caption_templates_enabled",
+    "post_summary_acf_enabled",
+    "post_faqs_acf_enabled",
+];
+Settings::update( array_fill_keys( $article_surface_enabled_keys, true ) );
 $preservation_keys = Settings::typography_preservation_setting_keys();
 if ( 11 !== count( Settings::typography_preservation_surfaces() ) || 44 !== count( $preservation_keys ) || 44 !== count( array_unique( $preservation_keys ) ) ) {
     fwrite( STDERR, "FAIL: Eleven typography surfaces must expose forty-four unique Core preservation settings.\n" );
@@ -143,6 +155,22 @@ if (
     fwrite( STDERR, "FAIL: All eleven design outputs did not apply the selected Core font weight.\n" );
     exit( 1 );
 }
+
+Settings::update( [
+    "article_heading_styles_enabled" => false,
+    "article_drop_cap_enabled" => false,
+] );
+$disabled_article_css = ArticleStyles::font_overrides_css()
+    . ArticleStyles::article_heading_css( "h2-tick" )
+    . ArticleStyles::article_drop_cap_css();
+if ( str_contains( $disabled_article_css, "smpi-article-heading" ) || str_contains( $disabled_article_css, "smpi-article-lead" ) ) {
+    fwrite( STDERR, "FAIL: Disabled heading and drop-cap features still emit front-end CSS.\n" );
+    exit( 1 );
+}
+Settings::update( [
+    "article_heading_styles_enabled" => true,
+    "article_drop_cap_enabled" => true,
+] );
 
 $saved = Settings::update( array_fill_keys( $preservation_keys, true ) );
 foreach ( $preservation_keys as $key ) {

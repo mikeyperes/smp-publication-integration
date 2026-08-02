@@ -8,7 +8,7 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `1.0.19`
+- Version: `1.0.20`
 
 ## Ownership
 
@@ -97,6 +97,11 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 1.0.20
+
+- Prevented disabled article heading and drop-cap features from emitting typography CSS or adding their feature-specific markup classes.
+- Kept table-of-contents anchor generation independent from article heading and drop-cap styling.
 
 ### 1.0.19
 
