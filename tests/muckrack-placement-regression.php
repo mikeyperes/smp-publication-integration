@@ -56,5 +56,11 @@ assert_muckrack_placement(
         && false !== strpos( $source, 'noopener noreferrer' ),
     "Linked MuckRack verification icons must expose an explicit accessible name and safe external-link relation."
 );
+assert_muckrack_placement(
+    false !== strpos( $source, '.smpi-muckrack-inline-pair>.smpi-muckrack-author-label{display:inline-flex;align-items:center;align-self:center;line-height:inherit;vertical-align:middle}' )
+        && false !== strpos( $source, '.smpi-muckrack-inline-pair>.smpi-muckrack-link{display:inline-flex!important;align-items:center!important;justify-content:center;line-height:1!important;vertical-align:middle}' )
+        && false !== strpos( $source, '.smpi-muckrack-inline-pair .smpi-muckrack-icon svg{display:block;align-self:center}' ),
+    "MuckRack inline pairs must center author labels, badge links, icons, and SVGs on one vertical axis."
+);
 
 echo "PASS: MuckRack pagination cleanup preserves the existing author-page placement flow." . PHP_EOL;
