@@ -165,16 +165,20 @@ final class FeaturedImageRequirements {
                     return 0;
                 }
             }
-            function hasFeaturedImage(){
-                return currentBlockId() > 0 || currentClassicId() > 0 || !!document.querySelector('#postimagediv img, .editor-post-featured-image img');
+            function hasFeaturedImage(blockId){
+                var resolvedBlockId = typeof blockId === 'number' ? blockId : currentBlockId();
+                return resolvedBlockId > 0 || currentClassicId() > 0 || !!document.querySelector('#postimagediv img, .editor-post-featured-image img');
             }
+            var lockMessage = 'Featured image required before publishing this post.';
+            var refreshQueued = false;
+            var lastBlockId = null;
             function notice(){
                 var target = document.querySelector('.edit-post-visual-editor__post-title-wrapper, .edit-post-layout__content, #post-body-content, .wrap h1');
                 var existing = document.querySelector('.smpi-featured-image-required-editor-notice');
                 if (!existing) {
                     existing = document.createElement('div');
                     existing.className = 'smpi-featured-image-required-editor-notice';
-                    existing.textContent = 'Featured image required before publishing this post.';
+                    existing.textContent = lockMessage;
                     if (target && target.parentNode) {
                         target.parentNode.insertBefore(existing, target);
                     }
@@ -183,19 +187,52 @@ final class FeaturedImageRequirements {
             }
             function setLocked(locked){
                 var item = notice();
-                if (item) item.classList.toggle('is-hidden', !locked);
+                var shouldHide = !locked;
+                if (item && item.classList.contains('is-hidden') !== shouldHide) {
+                    item.classList.toggle('is-hidden', shouldHide);
+                }
                 document.querySelectorAll('#publish, .editor-post-publish-button, .editor-post-publish-panel__toggle').forEach(function(button){
                     if (locked) {
-                        button.setAttribute('data-smpi-featured-image-lock', '1');
-                        button.setAttribute('title', 'Featured image required before publishing this post.');
+                        if (button.getAttribute('data-smpi-featured-image-lock') !== '1') {
+                            if (button.hasAttribute('title')) {
+                                button.setAttribute('data-smpi-featured-image-original-title', button.getAttribute('title'));
+                            } else {
+                                button.removeAttribute('data-smpi-featured-image-original-title');
+                            }
+                            button.setAttribute('data-smpi-featured-image-lock', '1');
+                        }
+                        if (button.getAttribute('title') !== lockMessage) {
+                            button.setAttribute('title', lockMessage);
+                        }
                     } else if (button.getAttribute('data-smpi-featured-image-lock') === '1') {
+                        if (button.hasAttribute('data-smpi-featured-image-original-title')) {
+                            button.setAttribute('title', button.getAttribute('data-smpi-featured-image-original-title'));
+                        } else {
+                            button.removeAttribute('title');
+                        }
+                        button.removeAttribute('data-smpi-featured-image-original-title');
                         button.removeAttribute('data-smpi-featured-image-lock');
-                        button.removeAttribute('title');
                     }
                 });
             }
             function refresh(){
-                setLocked(!hasFeaturedImage());
+                var blockId = currentBlockId();
+                lastBlockId = blockId;
+                setLocked(!hasFeaturedImage(blockId));
+            }
+            function queueRefresh(){
+                if (refreshQueued) return;
+                refreshQueued = true;
+                window.requestAnimationFrame(function(){
+                    refreshQueued = false;
+                    refresh();
+                });
+            }
+            function onEditorStateChange(){
+                var blockId = currentBlockId();
+                if (blockId === lastBlockId) return;
+                lastBlockId = blockId;
+                queueRefresh();
             }
             document.addEventListener('click', function(event){
                 var lockedButton = event.target.closest('[data-smpi-featured-image-lock="1"]');
@@ -206,10 +243,10 @@ final class FeaturedImageRequirements {
                 }
             }, true);
             if (window.wp && wp.data && wp.data.subscribe) {
-                wp.data.subscribe(refresh);
+                wp.data.subscribe(onEditorStateChange);
             }
             if ('MutationObserver' in window) {
-                new MutationObserver(refresh).observe(document.documentElement, { childList: true, subtree: true, attributes: true });
+                new MutationObserver(queueRefresh).observe(document.documentElement, { childList: true, subtree: true });
             }
             document.addEventListener('DOMContentLoaded', refresh);
             window.setTimeout(refresh, 500);
