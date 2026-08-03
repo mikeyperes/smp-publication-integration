@@ -66,6 +66,11 @@ $checks = [
     "The Summary exposes a genuine Elementor stripped mode." => str_contains( $dashboard, '"unstyled" => [ "label" => "Strip all design (Elementor)"' )
         && str_contains( $article, 'data-smpi-skin' )
         && str_contains( $article, '.smpi-post-summary:not(.smpi-unstyled)' ),
+    "The FAQ exposes a wrapper-preserving Elementor stripped mode." => str_contains( $dashboard, '"unstyled" => [ "label" => "Strip all design (Elementor)"' )
+        && str_contains( $article, '[ "unstyled", "none", "faq00", "faq01", "faq02", "faq03", "faq04" ]' )
+        && str_contains( $article, '.smpi-post-faqs:not(.smpi-unstyled)' )
+        && str_contains( $article, 'data-smpi-skin' )
+        && str_contains( $settings, '"post_faqs_style" => [ "unstyled", "none", "faq00", "faq01", "faq02", "faq03", "faq04" ]' ),
     "Summary background reuses the Core picker and supports template, none, and custom modes." => str_contains( $dashboard, 'ColorControl::render( [' )
         && str_contains( $dashboard, '"key" => "post_summary_background_color"' )
         && str_contains( $dashboard, 'summary_background_setting_html( $settings )' )

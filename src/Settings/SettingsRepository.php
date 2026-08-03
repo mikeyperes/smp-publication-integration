@@ -573,7 +573,7 @@ class SettingsRepository {
                 "post_summary_style" => [ "unstyled", "none", "sum00", "sum01", "sum02", "sum03", "sum04", "sum05" ],
                 "post_summary_background_mode" => array_keys( TemplateBackground::options() ),
                 "post_summary_placement" => [ "manual", "above_content", "below_content" ],
-                "post_faqs_style" => [ "none", "faq00", "faq01", "faq02", "faq03", "faq04" ],
+                "post_faqs_style" => [ "unstyled", "none", "faq00", "faq01", "faq02", "faq03", "faq04" ],
                 "post_faqs_placement" => [ "manual", "below_content", "below_author" ],
                 "multi_authors_loop_output" => [ "primary", "comma", "lines" ],
                 "table_of_contents_text_font_style" => [ "normal", "italic" ],

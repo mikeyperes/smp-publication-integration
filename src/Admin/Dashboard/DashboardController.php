@@ -2474,6 +2474,7 @@ HTML;
     private function post_faq_style_options(): array {
         return [
             "none" => [ "label" => "No style", "description" => "Render the FAQ field exactly as entered.", "preview" => $this->faq_design_preview_html( "none" ) ],
+            "unstyled" => [ "label" => "Strip all design (Elementor)", "description" => "Keep the FAQ heading and semantic FAQ markup while loading no SMP presentation on this component.", "preview" => $this->faq_design_preview_html( "unstyled" ) ],
             "faq00" => [ "label" => "Accordion", "description" => "Accessible details style when markup supports it.", "preview" => $this->faq_design_preview_html( "faq00" ) ],
             "faq01" => [ "label" => "Stacked Q and A", "description" => "Divided editorial Q and A rows.", "preview" => $this->faq_design_preview_html( "faq01" ) ],
             "faq02" => [ "label" => "Card List", "description" => "Each question in its own card.", "preview" => $this->faq_design_preview_html( "faq02" ) ],
