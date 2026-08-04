@@ -90,6 +90,15 @@ namespace {
         ];
     }
     function wp_get_attachment_image_url( int $attachment_id, string $size ) { return "https://example.test/uploads/attachment-" . $attachment_id . "-" . $size . ".jpg"; }
+    function wp_get_attachment_image( int $attachment_id, string $size, bool $icon = false, array $attributes = [] ): string {
+        $GLOBALS["test_attachment_image_calls"][] = compact( "attachment_id", "size", "attributes" );
+        return '<img class="' . esc_attr( (string) ( $attributes["class"] ?? "" ) )
+            . '" src="' . esc_url( wp_get_attachment_image_url( $attachment_id, $size ) )
+            . '" srcset="https://example.test/uploads/attachment-' . $attachment_id . '-150x150.jpg 150w, https://example.test/uploads/attachment-' . $attachment_id . '-medium.jpg 300w"'
+            . ' sizes="' . esc_attr( (string) ( $attributes["sizes"] ?? "" ) ) . '"'
+            . ' alt="' . esc_attr( (string) ( $attributes["alt"] ?? "" ) ) . '">';
+    }
+    function attachment_url_to_postid( string $url ): int { return 0; }
     function get_bloginfo( string $show ): string { return "Example Daily"; }
     function get_terms( array $args ): array { return []; }
     function post_type_exists( string $post_type ): bool { return in_array( $post_type, [ "post", "press-release" ], true ); }
@@ -124,6 +133,8 @@ namespace {
 
     $resolver = new AuthorFieldResolver();
     expect_true( $resolver->has_explicit_image( 1 ), "Simple Local Avatars metadata is recognized as an assigned image." );
+    expect_true( 101 === $resolver->explicit_image_attachment_id( 1 ), "Simple Local Avatars media IDs are exposed for responsive rendering." );
+    expect_true( "https://example.test/uploads/attachment-101-medium.jpg" === $resolver->explicit_image_url( 1, "medium" ), "A local attachment derivative takes priority over a stored full-size URL." );
     expect_true( ! $resolver->has_explicit_image( 2 ), "A Gravatar fallback is not treated as an assigned image." );
     expect_true( $resolver->has_explicit_image( 3 ), "Legacy WP User Avatars attachment metadata is recognized." );
     expect_true( $resolver->has_profile_image( 4 ), "A real found Gravatar counts as a profile image." );
@@ -142,6 +153,9 @@ namespace {
     expect_true( ! str_contains( $staff, "Blake Contributor" ), "The image filter removes a member who only has a fallback avatar." );
     expect_true( ! str_contains( $staff, "Drew Gravatar" ), "The featured-image filter excludes Gravatar-only members." );
     expect_true( str_contains( $staff, "Staff Writer at Example Daily" ), "Staff labels use the current publication name." );
+    expect_true( str_contains( $staff, 'src="https://example.test/uploads/attachment-101-medium.jpg"' ) && ! str_contains( $staff, 'src="https://example.test/uploads/alice.jpg"' ), "Local listing images render the requested WordPress derivative instead of the stored original." );
+    expect_true( str_contains( $staff, "srcset=" ) && str_contains( $staff, "sizes=" ), "Local listing images include native responsive source selection." );
+    expect_true( str_contains( $staff, "smpi-author-listing-image" ), "Responsive attachment markup preserves the listing image class contract." );
 
     $contributors = $listings->render_contributors_grid();
     expect_true( str_contains( $contributors, "Casey Contributor" ) && ! str_contains( $contributors, "Drew Gravatar" ) && ! str_contains( $contributors, "Blake Contributor" ), "The same assigned-image rule applies to the contributor shortcode." );

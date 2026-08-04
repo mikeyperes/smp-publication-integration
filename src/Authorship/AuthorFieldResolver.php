@@ -139,6 +139,16 @@ final class AuthorFieldResolver {
         return "";
     }
 
+    public function explicit_image_attachment_id( int $user_id ): int {
+        foreach ( self::ALIASES["image"] as $field ) {
+            $attachment_id = $this->image_value_to_attachment_id( $this->raw_value( $user_id, $field ) );
+            if ( 0 < $attachment_id ) {
+                return $attachment_id;
+            }
+        }
+        return 0;
+    }
+
     public function has_explicit_image( int $user_id ): bool {
         return "" !== $this->explicit_image_url( $user_id, "thumbnail" );
     }
@@ -184,6 +194,15 @@ final class AuthorFieldResolver {
                 return $this->image_value_to_url( $unserialized, $size );
             }
         }
+
+        $attachment_id = $this->image_value_to_attachment_id( $value );
+        if ( 0 < $attachment_id ) {
+            $url = wp_get_attachment_image_url( $attachment_id, $size );
+            if ( is_string( $url ) && "" !== $url ) {
+                return $url;
+            }
+        }
+
         if ( is_array( $value ) ) {
             if ( isset( $value["sizes"][ $size ] ) && is_string( $value["sizes"][ $size ] ) ) {
                 return $value["sizes"][ $size ];
@@ -207,19 +226,46 @@ final class AuthorFieldResolver {
                     return $candidate;
                 }
             }
+        }
+        return is_string( $value ) && filter_var( $value, FILTER_VALIDATE_URL ) ? $value : "";
+    }
+
+    private function image_value_to_attachment_id( $value ): int {
+        if ( is_string( $value ) && function_exists( "maybe_unserialize" ) ) {
+            $unserialized = maybe_unserialize( $value );
+            if ( $unserialized !== $value ) {
+                return $this->image_value_to_attachment_id( $unserialized );
+            }
+        }
+
+        if ( is_numeric( $value ) ) {
+            return abs( (int) $value );
+        }
+
+        if ( is_array( $value ) ) {
             foreach ( [ "ID", "id", "media_id", "attachment_id" ] as $id_key ) {
                 if ( isset( $value[ $id_key ] ) && is_numeric( $value[ $id_key ] ) ) {
-                    $url = wp_get_attachment_image_url( (int) $value[ $id_key ], $size );
-                    if ( is_string( $url ) && "" !== $url ) {
-                        return $url;
+                    return abs( (int) $value[ $id_key ] );
+                }
+            }
+
+            foreach ( [ "full", "url" ] as $url_key ) {
+                if ( isset( $value[ $url_key ] ) ) {
+                    $attachment_id = $this->attachment_id_from_url( $value[ $url_key ] );
+                    if ( 0 < $attachment_id ) {
+                        return $attachment_id;
                     }
                 }
             }
         }
-        if ( is_numeric( $value ) ) {
-            $url = wp_get_attachment_image_url( (int) $value, $size );
-            return is_string( $url ) ? $url : "";
+
+        return $this->attachment_id_from_url( $value );
+    }
+
+    private function attachment_id_from_url( $value ): int {
+        if ( ! is_string( $value ) || ! filter_var( $value, FILTER_VALIDATE_URL ) || ! function_exists( "attachment_url_to_postid" ) ) {
+            return 0;
         }
-        return is_string( $value ) && filter_var( $value, FILTER_VALIDATE_URL ) ? $value : "";
+        return abs( (int) attachment_url_to_postid( $value ) );
     }
 }

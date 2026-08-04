@@ -9,10 +9,10 @@ $readme = (string) file_get_contents( $root . '/README.md' );
 $core_version = trim( (string) file_get_contents( $root . '/lib/hexa-wordpress-plugin-core/VERSION' ) );
 
 $checks = [
-    'Keeps every plugin version surface on 1.0.25.' => str_contains( $main, 'Version: 1.0.25' )
-        && str_contains( $main, 'public const VERSION = "1.0.25";' )
-        && str_contains( $legacy, 'Version: 1.0.25' )
-        && str_contains( $readme, '- Version: `1.0.25`' ),
+    'Keeps every plugin version surface on 1.0.26.' => str_contains( $main, 'Version: 1.0.26' )
+        && str_contains( $main, 'public const VERSION = "1.0.26";' )
+        && str_contains( $legacy, 'Version: 1.0.26' )
+        && str_contains( $readme, '- Version: `1.0.26`' ),
     'Publishes the PHP 8.1 requirement through every release surface.' => str_contains( $main, 'Requires PHP: 8.1' )
         && str_contains( $main, "'requires_php'              => '8.1'" )
         && str_contains( $legacy, 'Requires PHP: 8.1' )

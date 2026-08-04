@@ -8,7 +8,7 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `1.0.25`
+- Version: `1.0.26`
 
 ## Ownership
 
@@ -97,6 +97,10 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 1.0.26
+
+- Resolved local author avatars through their media attachment before stored full-size URLs and rendered listing cards with native WordPress responsive image markup.
 
 ### 1.0.25
 

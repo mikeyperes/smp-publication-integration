@@ -73,20 +73,21 @@ final class AuthorListings {
                 continue;
             }
             $seen[ $user->ID ] = true;
+            $explicit_image_id = $this->fields->explicit_image_attachment_id( (int) $user->ID );
             $explicit_image = $this->fields->explicit_image_url( (int) $user->ID, "medium" );
-            if ( $hide_without_image && "" === $explicit_image ) {
+            if ( $hide_without_image && 0 === $explicit_image_id && "" === $explicit_image ) {
                 continue;
             }
             if ( $hide_without_articles && ! $this->has_published_article( (int) $user->ID ) ) {
                 continue;
             }
-            $cards[] = $this->render_card( $user, $listing, $explicit_image );
+            $cards[] = $this->render_card( $user, $listing, $explicit_image, $explicit_image_id );
         }
 
         return '<div class="user-grid smpi-author-listing-grid" data-smpi-author-listing="' . esc_attr( $listing ) . '">' . implode( "", $cards ) . "</div>";
     }
 
-    private function render_card( \WP_User $user, string $listing, string $explicit_image ): string {
+    private function render_card( \WP_User $user, string $listing, string $explicit_image, int $explicit_image_id ): string {
         $user_id = (int) $user->ID;
         $name = trim( (string) $user->display_name );
         $profile_url = get_author_posts_url( $user_id );
@@ -95,9 +96,19 @@ final class AuthorListings {
         $role = "staff" === $listing ? "Staff Writer" : "Contributor";
         $role_text = "" !== $site_name ? $role . " at " . $site_name : $role;
         $role_text = (string) apply_filters( "smpi_author_listing_role_text", $role_text, $user, $listing );
-        $image = "" !== $image_url
-            ? '<img class="avatar avatar-250 photo smpi-author-listing-image" src="' . esc_url( $image_url ) . '" alt="' . esc_attr( $name ) . '" width="250" height="250" loading="lazy" decoding="async">'
+        $image_attributes = [
+            "class" => "avatar avatar-250 photo smpi-author-listing-image",
+            "alt" => $name,
+            "loading" => "lazy",
+            "decoding" => "async",
+            "sizes" => "(max-width: 767px) calc(50vw - 30px), (max-width: 1024px) calc(33.333vw - 40px), 250px",
+        ];
+        $image = 0 < $explicit_image_id
+            ? (string) wp_get_attachment_image( $explicit_image_id, "medium", false, $image_attributes )
             : "";
+        if ( "" === $image && "" !== $image_url ) {
+            $image = '<img class="' . esc_attr( $image_attributes["class"] ) . '" src="' . esc_url( $image_url ) . '" alt="' . esc_attr( $name ) . '" width="250" height="250" loading="lazy" decoding="async">';
+        }
 
         return '<a class="user-card smpi-author-listing-card" href="' . esc_url( $profile_url ) . '" data-smpi-author-listing-card="' . esc_attr( $listing ) . '" data-smpi-user-id="' . esc_attr( (string) $user_id ) . '">'
             . $image
