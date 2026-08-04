@@ -14,12 +14,13 @@ $checks = [
         && ! str_contains( $main, 'Content/ReadingProgress.php' )
         && ! str_contains( $bootstrap, 'Content\\ReadingProgress' ),
     'Article Design no longer exposes duplicate reading-progress controls or previews.' => ! str_contains( $dashboard, 'Reading progress bar' )
+        && ! str_contains( $dashboard, 'reading progress' )
         && ! str_contains( $dashboard, 'reading_progress_enabled' )
         && ! str_contains( $dashboard, 'smpi-reading-progress' ),
     'SMP no longer owns reading-progress defaults or validation.' => ! str_contains( $settings, 'reading_progress_' ),
     'SMP AJAX no longer accepts reading-progress settings.' => ! str_contains( $ajax, 'reading_progress_' ),
-    'The release advances to the ownership-removal version.' => str_contains( $main, 'Version: 1.0.24' )
-        && str_contains( $main, 'public const VERSION = "1.0.24"' ),
+    'The release advances to the ownership-removal version.' => str_contains( $main, 'Version: 1.0.25' )
+        && str_contains( $main, 'public const VERSION = "1.0.25"' ),
 ];
 
 foreach ( $checks as $message => $passed ) {

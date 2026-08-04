@@ -1404,7 +1404,7 @@ class DashboardController {
     }
 
     private function render_article_design_feature_group( array $settings ): void {
-        $this->feature_group_open( "article-design", "Article design", "Article navigation, reading progress, headings, images, and structured content blocks." );
+        $this->feature_group_open( "article-design", "Article design", "Article navigation, headings, images, and structured content blocks." );
 
         $breadcrumb_controls = $this->breadcrumb_controls_html( $settings );
         $this->feature_card(
