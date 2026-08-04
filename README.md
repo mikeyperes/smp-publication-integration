@@ -8,7 +8,7 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `1.0.23`
+- Version: `1.0.24`
 
 ## Ownership
 
@@ -20,7 +20,7 @@ SMP Publication owns publication-specific behavior:
 - Publication and article schema object construction.
 - Blog-like custom post types: `knowledge-base` and `resources`.
 
-HWS Base Tools owns website classification and the optional primary entity. SMP consumes a canonical Publication or Organization entity from HWS and retains legacy publication-user settings only as migration fallback.
+HWS Base Tools owns website classification, the optional primary entity, and the generic reading-progress feature. SMP consumes a canonical Publication or Organization entity from HWS and retains legacy publication-user settings only as migration fallback. Existing reading-progress values remain stored long enough for HWS Base Tools to migrate them without a direct database rewrite.
 
 ## Custom Post Types
 
@@ -97,6 +97,10 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 1.0.24
+
+- Moved generic reading-progress rendering and configuration ownership to HWS Base Tools, removing the duplicate SMP runtime, Article Design controls, defaults, validation, and AJAX inputs while leaving existing stored values available for the HWS migration.
 
 ### 1.0.23
 

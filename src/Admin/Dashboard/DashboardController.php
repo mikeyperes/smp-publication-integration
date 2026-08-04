@@ -40,7 +40,6 @@ use smp_publication_integration\Content\Breadcrumbs;
 use smp_publication_integration\Content\MuckRackVerification;
 use smp_publication_integration\Content\MultiAuthors;
 use smp_publication_integration\Content\PublicationContentTypes;
-use smp_publication_integration\Content\ReadingProgress;
 use smp_publication_integration\Content\Schema;
 use smp_publication_integration\Design\TemplateBackground;
 use smp_publication_integration\Design\TemplateDesignRegistry;
@@ -1368,7 +1367,6 @@ class DashboardController {
         echo "<div class=\"smpi-section-intro\"><h2>Features</h2><p>Enable publication features and configure their output.</p></div>";
         echo \smp_publication_integration\Content\ArticleStyles::script_font_preview_link_html();
         echo "<style id=smpi-design-preview-css>" . \smp_publication_integration\Content\ArticleStyles::preview_bundle_css() . TemplateDesignRegistry::preview_typography_state_css() . "</style>";
-        echo "<style id=smpi-reading-progress-preview-css>" . ReadingProgress::preview_css() . "</style>";
         echo $this->feature_layout_styles_html();
         echo CoreUi::collection_filter(
             [
@@ -1444,20 +1442,6 @@ class DashboardController {
             $this->table_of_contents_report_html(),
             $this->activity_log_html(),
             $toc_controls
-        );
-
-        $reading_progress_controls = $this->select_setting_html( ReadingProgress::SCOPE_SETTING, ReadingProgress::scopes(), $settings, "Display scope" )
-            . $this->select_setting_html( "reading_progress_style", $this->reading_progress_style_options(), $settings, "Progress design" )
-            . $this->color_setting_html( ReadingProgress::COLOR_SETTING, "Progress color", $settings, ReadingProgress::DEFAULT_COLOR );
-        $this->feature_card(
-            "Reading progress bar",
-            "reading_progress_enabled",
-            "No ACF changes. Runs on the selected public frontend scope.",
-            "Shows a fixed page-progress indicator at the top of the selected pages and updates it as the reader scrolls.",
-            "No shortcode needed. Enable the feature, choose its scope and design, then select the progress color.",
-            $this->reading_progress_report_html(),
-            $this->activity_log_html(),
-            $reading_progress_controls
         );
 
         $article_heading_controls = $this->select_setting_html( "article_heading_style", $this->article_heading_style_options(), $settings, "Article H2/H3 template" )
@@ -1757,8 +1741,6 @@ class DashboardController {
 .smpi-feature-before-activity,.smpi-feature-activity{min-width:0}
 .smpi-feature-diagnostics .widefat{max-width:100%}
 .smpi-feature-card pre,.smpi-feature-card code{max-width:100%}
-.smpi-control-group:has(input[data-key="reading_progress_style"]) .smpi-choice-grid{grid-template-columns:minmax(0,1fr)}
-.smpi-control-group:has(input[data-key="reading_progress_style"]) .smpi-choice-preview{max-width:720px}
 .smpi-control-group:has(input[data-key="article_numbered_list_style"]) .smpi-choice-grid{grid-template-columns:minmax(0,1fr)}
 .smpi-control-group:has(input[data-key="article_numbered_list_style"]) .smpi-choice-preview{max-width:760px}
 @media(max-width:782px){
@@ -2112,30 +2094,6 @@ CSS;
         ] ) . "</div>";
     }
 
-    private function color_setting_html( string $key, string $label, array $settings, string $default ): string {
-        $color = sanitize_hex_color( (string) ( $settings[ $key ] ?? $default ) ) ?: $default;
-        return "<div class=\"smpi-control-group smpi-color-control-group\">" . ColorControl::render( [
-            "key" => $key,
-            "label" => $label,
-            "description" => "Choose the color used by the selected progress design.",
-            "value" => $color,
-            "default" => $default,
-            "allow_inherit" => false,
-            "import_brand" => true,
-            "import_label" => "Use HWS primary",
-            "control_class" => "smpi-color-core-control",
-            "hex_input_class" => "smpi-setting smpi-color-setting",
-            "picker_class" => "smpi-color-picker-control",
-            "preview_scope" => ".smpi-design-host",
-            "preview_variables" => [
-                "--smpi-reading-progress-color" => "color",
-                "--smpi-reading-progress-soft" => "rgba:0.18",
-                "--smpi-reading-progress-glow" => "rgba:0.55",
-            ],
-            "status_html" => "<span class=spinner></span><span class=\"smpi-save-state\" aria-live=\"polite\"></span>",
-        ] ) . "</div>";
-    }
-
     private function optional_color_setting_html( string $key, string $label, array $settings, string $inherit_label ): string {
         $default = Settings::color_default( $key );
         $color = sanitize_hex_color( (string) ( $settings[ $key ] ?? "" ) ) ?: "";
@@ -2356,18 +2314,6 @@ HTML;
             "toc03" => [ "label" => "Numbered Rows", "description" => "Divided rows with blue indexes.", "preview" => $this->toc_design_preview_html( "toc03" ) ],
             "toc04" => [ "label" => "Jump Pills", "description" => "Horizontal pill links.", "preview" => $this->toc_design_preview_html( "toc04" ) ],
         ];
-    }
-
-    private function reading_progress_style_options(): array {
-        $options = [];
-        foreach ( ReadingProgress::designs() as $style => $design ) {
-            $options[ $style ] = [
-                "label" => (string) ( $design["label"] ?? $style ),
-                "description" => (string) ( $design["description"] ?? "" ),
-                "preview" => ReadingProgress::preview_html( (string) $style ),
-            ];
-        }
-        return $options;
     }
 
     private function article_drop_cap_style_options(): array {
@@ -2819,21 +2765,6 @@ HTML;
 
     private function simple_status_html( bool $ok, string $message ): string {
         return "<p class=\"smpi-status-line\">" . self::ico( $ok ) . "<span>" . esc_html( $message ) . "</span></p>";
-    }
-
-    private function reading_progress_report_html(): string {
-        $settings = Settings::all();
-        $scope = ReadingProgress::normalize_scope( (string) ( $settings[ ReadingProgress::SCOPE_SETTING ] ?? ReadingProgress::DEFAULT_SCOPE ) );
-        $scope_config = ReadingProgress::scopes()[ $scope ] ?? [];
-        $scope_label = (string) ( $scope_config["label"] ?? $scope );
-        $style = ReadingProgress::normalize_style( (string) ( $settings[ ReadingProgress::STYLE_SETTING ] ?? ReadingProgress::DEFAULT_STYLE ) );
-        $design = ReadingProgress::designs()[ $style ] ?? [];
-        $label = (string) ( $design["label"] ?? $style );
-        $color = sanitize_hex_color( (string) ( $settings[ ReadingProgress::COLOR_SETTING ] ?? ReadingProgress::DEFAULT_COLOR ) ) ?: ReadingProgress::DEFAULT_COLOR;
-        return $this->simple_status_html(
-            Settings::bool( ReadingProgress::ENABLED_SETTING ),
-            "Scope: " . $scope_label . ". Design: " . $label . " with " . $color . "."
-        );
     }
 
     private function typography_preserved_label( string $prefix ): string {

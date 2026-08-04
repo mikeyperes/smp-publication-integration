@@ -88,7 +88,6 @@ final class Plugin {
             new Content\Breadcrumbs(),
             new Content\PublicDomRuntime(),
             new Content\TableOfContents(),
-            new Content\ReadingProgress(),
             new Content\InlinePhotoTreatments(),
             new Content\FeaturedImageCaptions(),
             new Content\ArticleStyles(),

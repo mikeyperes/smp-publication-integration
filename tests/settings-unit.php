@@ -217,29 +217,6 @@ if ( 'manual' !== $settings['post_faqs_placement'] ) {
     exit( 1 );
 }
 
-if ( 'posts' !== Settings::get( 'reading_progress_scope' ) ) {
-    fwrite( STDERR, "FAIL: Reading progress did not default to posts only.\n" );
-    exit( 1 );
-}
-
-$settings = Settings::update( [ 'reading_progress_scope' => 'posts_front_page' ] );
-if ( 'posts_front_page' !== $settings['reading_progress_scope'] ) {
-    fwrite( STDERR, "FAIL: Posts and front page was not saved as a reading-progress scope.\n" );
-    exit( 1 );
-}
-
-$settings = Settings::update( [ 'reading_progress_scope' => 'sitewide' ] );
-if ( 'sitewide' !== $settings['reading_progress_scope'] ) {
-    fwrite( STDERR, "FAIL: Sitewide was not saved as a reading-progress scope.\n" );
-    exit( 1 );
-}
-
-$settings = Settings::update( [ 'reading_progress_scope' => 'unsupported' ] );
-if ( 'posts' !== $settings['reading_progress_scope'] ) {
-    fwrite( STDERR, "FAIL: Invalid reading-progress scope did not fall back to posts only.\n" );
-    exit( 1 );
-}
-
 $settings = Settings::update( [ 'breadcrumbs_background_color' => 'invalid' ] );
 if ( '' !== $settings[ 'breadcrumbs_background_color' ] ) {
     fwrite( STDERR, "FAIL: Invalid breadcrumb background did not restore the template background.\n" );
@@ -324,22 +301,6 @@ if (
     || false !== $settings['author_listing_show_press_releases']
 ) {
     fwrite( STDERR, "FAIL: Author listing booleans were not saved.\n" );
-    exit( 1 );
-}
-
-$defaults = SettingsRepository::defaults();
-if ( false !== $defaults['reading_progress_enabled'] || 'thin' !== $defaults['reading_progress_style'] || '#00ff41' !== $defaults['reading_progress_color'] ) {
-    fwrite( STDERR, "FAIL: Reading progress defaults are not isolated and reference-compatible.\n" );
-    exit( 1 );
-}
-$settings = Settings::update( [ 'reading_progress_enabled' => true, 'reading_progress_style' => 'segmented', 'reading_progress_color' => '#A1B2C3' ] );
-if ( true !== $settings['reading_progress_enabled'] || 'segmented' !== $settings['reading_progress_style'] || '#a1b2c3' !== $settings['reading_progress_color'] ) {
-    fwrite( STDERR, "FAIL: Valid reading progress settings were not normalized and saved.\n" );
-    exit( 1 );
-}
-$settings = Settings::update( [ 'reading_progress_style' => 'invalid-design', 'reading_progress_color' => 'invalid-color' ] );
-if ( 'thin' !== $settings['reading_progress_style'] || '#00ff41' !== $settings['reading_progress_color'] ) {
-    fwrite( STDERR, "FAIL: Invalid reading progress settings did not restore safe defaults.\n" );
     exit( 1 );
 }
 
