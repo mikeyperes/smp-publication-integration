@@ -49,7 +49,7 @@
     }
 
     function removeInjectedBreadcrumbs(except) {
-        document.querySelectorAll('[data-smp-ajax-companion-rendered="smpi-breadcrumbs"],[data-smpi-breadcrumbs-injected]').forEach(function (bar) {
+        document.querySelectorAll('.smpi-breadcrumbs-band[data-smp-ajax-companion-rendered="smpi-breadcrumbs"],.smpi-breadcrumbs-band[data-smpi-breadcrumbs-injected]').forEach(function (bar) {
             if (bar !== except) bar.remove();
         });
     }

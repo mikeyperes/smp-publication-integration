@@ -598,6 +598,7 @@ final class ArticleStyles {
         $css = str_replace( ".smpi-bc-b4{padding:14px 22px;background:var(--smpi-bc-soft,#f7f8f9)", ".smpi-bc-b4{padding:14px 22px;background:var(--smpi-bc-background,var(--smpi-bc-soft,#f7f8f9))", $css );
         $css = str_replace( ".smpi-bc-b5{padding:24px;background:linear-gradient(180deg,var(--smpi-bc-tint,rgba(214,52,40,.07)),#fff)", ".smpi-bc-b5{padding:24px;background:var(--smpi-bc-background,linear-gradient(180deg,var(--smpi-bc-tint,rgba(214,52,40,.07)),#fff))", $css );
         $css = str_replace( ".smpi-breadcrumbs.smpi-bc-b1,.smpi-breadcrumbs.smpi-bc-b4,.smpi-breadcrumbs.smpi-bc-b5{background:var(--smpi-bc-background,#fff)}", "", $css );
+        $css .= '.smpi-breadcrumbs[class*="smpi-bc-"]{max-width:1140px;padding-left:50px;padding-right:50px}@media(max-width:767px){.smpi-breadcrumbs[class*="smpi-bc-"]{padding-left:20px;padding-right:20px}}';
         return $respect_preservation ? self::remove_preserved_typography( $css, "breadcrumbs" ) : $css;
     }
 

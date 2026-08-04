@@ -44,9 +44,16 @@ $checks = [
         str_contains( $javascript, 'if (window.SmpiPublicDomRuntime) return;' )
         && str_contains( $javascript, 'source.content.firstElementChild.cloneNode(true)' )
         && str_contains( $javascript, "bar.setAttribute('data-smp-ajax-companion-rendered', 'smpi-breadcrumbs')" )
-        && str_contains( $javascript, "[data-smpi-breadcrumbs-injected]" )
+        && str_contains( $javascript, '.smpi-breadcrumbs-band[data-smpi-breadcrumbs-injected]' )
         && str_contains( $javascript, "bar.setAttribute('data-smpi-breadcrumbs-injected', '1')" )
         && str_contains( $javascript, 'classList.add' ),
+    'Breadcrumb cleanup only removes SMP-owned bands and cannot remove a canonical Elementor title wrapper.' =>
+        str_contains( $javascript, '.smpi-breadcrumbs-band[data-smp-ajax-companion-rendered="smpi-breadcrumbs"]' )
+        && ! str_contains( $javascript, "],[data-smpi-breadcrumbs-injected]" ),
+    'Runtime breadcrumb content uses the canonical 1140px header grid and responsive gutters.' =>
+        str_contains( $article, 'max-width:1140px;padding-left:50px;padding-right:50px' )
+        && str_contains( $article, 'max-width:767px' )
+        && str_contains( $article, 'padding-left:20px;padding-right:20px' ),
     'The fetched-content runtime contains no dynamic code execution primitive.' =>
         ! preg_match( '/\b(?:eval|Function)\s*\(|document\.write\s*\(|innerHTML\s*=|insertAdjacentHTML\s*\(/', $javascript ),
 ];
