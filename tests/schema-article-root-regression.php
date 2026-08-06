@@ -30,8 +30,11 @@ if ( ! str_contains( $article_block, '"isPartOf" => $website_ref' ) ) {
 if ( str_contains( $article_block, '"mainEntityOfPage" => $webpage_ref' ) || str_contains( $article_block, '"isPartOf" => $webpage_ref' ) ) {
     $fail( 'Article must not retain an internal edge that folds it into WebPage.' );
 }
-if ( substr_count( $source, '$this->standalone_schema(' ) < 2 || ! str_contains( $source, 'SchemaGraph::standalone_nodes( $schema )' ) ) {
-    $fail( 'Homepage and article graphs must use the shared Core standalone-node normalization path.' );
+if ( substr_count( $source, '$this->standalone_schema(' ) < 2 || ! str_contains( $source, 'SchemaGraph::standalone_nodes( $schema, self::LINKED_REFERENCE_PROPERTIES )' ) ) {
+    $fail( 'Homepage and article graphs must use the shared Core identifier-linked standalone-node normalization path.' );
+}
+if ( ! str_contains( $source, '"publisher" => [ "@id", "@type" ]' ) || ! str_contains( $source, '"author" => [ "@id", "@type" ]' ) ) {
+    $fail( 'Article publisher and author relationships must retain their independent top-level node identifiers.' );
 }
 
-echo "PASS: SMP graphs retain canonical relationships and independently detectable Core-normalized nodes.\n";
+echo "PASS: SMP graphs retain canonical identifier relationships and independently detectable Core-normalized nodes.\n";

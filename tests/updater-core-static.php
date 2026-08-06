@@ -11,16 +11,16 @@ $updates = (string) file_get_contents( $root . '/src/Infrastructure/Updates.php'
 $core_version = trim( (string) file_get_contents( $root . '/lib/hexa-wordpress-plugin-core/VERSION' ) );
 
 $checks = [
-    'Keeps every plugin version surface on 2.0.1.' => str_contains( $main, 'Version: 2.0.1' )
-        && str_contains( $main, 'public const VERSION = "2.0.1";' )
-        && str_contains( $legacy, 'Version: 2.0.1' )
-        && str_contains( $readme, '- Version: `2.0.1`' ),
+    'Keeps every plugin version surface on 2.0.2.' => str_contains( $main, 'Version: 2.0.2' )
+        && str_contains( $main, 'public const VERSION = "2.0.2";' )
+        && str_contains( $legacy, 'Version: 2.0.2' )
+        && str_contains( $readme, '- Version: `2.0.2`' ),
     'Publishes the PHP 8.1 requirement through every release surface.' => str_contains( $main, 'Requires PHP: 8.1' )
         && str_contains( $updates, "'requires_php'              => '8.1'" )
         && str_contains( $legacy, 'Requires PHP: 8.1' )
         && str_contains( $readme, '| PHP | 8.1 |' ),
-    'Ships the documented Hexa WP Core 3.0.0 bundle.' => '3.0.0' === $core_version
-        && str_contains( $readme, '| Hexa WP Core bundle | 3.0.0 |' )
+    'Ships the documented Hexa WP Core 3.0.1 bundle.' => '3.0.1' === $core_version
+        && str_contains( $readme, '| Hexa WP Core bundle | 3.0.1 |' )
         && str_contains( $main, "'minimum_version' => trim( (string) file_get_contents( \$hexa_plugin_core_root . '/VERSION' ) )" ),
     'Targets the canonical main GitHub branch.' => str_contains( $main, 'GitHub Branch: main' )
         && str_contains( $main, "public static string \$github_branch = 'main';" ),

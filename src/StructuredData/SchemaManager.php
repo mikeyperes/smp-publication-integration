@@ -22,6 +22,14 @@ if ( ! defined( "ABSPATH" ) ) {
 class SchemaManager {
     private const REST_NS = "smpi/v1";
 
+    private const LINKED_REFERENCE_PROPERTIES = [
+        "author" => [ "@id", "@type" ],
+        "publisher" => [ "@id", "@type" ],
+        "copyrightHolder" => [ "@id", "@type" ],
+        "image" => [ "@id", "@type" ],
+        "primaryImageOfPage" => [ "@id", "@type" ],
+    ];
+
     public function register(): void {
         ( new CoreSchemaInjector(
             [ $this, 'current_schema' ],
@@ -901,6 +909,6 @@ class SchemaManager {
 
     private function standalone_schema( array $schema ): array {
         $schema = $this->clean_schema( $schema );
-        return $this->clean_schema( SchemaGraph::standalone_nodes( $schema ) );
+        return $this->clean_schema( SchemaGraph::standalone_nodes( $schema, self::LINKED_REFERENCE_PROPERTIES ) );
     }
 }
