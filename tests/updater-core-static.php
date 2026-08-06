@@ -11,10 +11,10 @@ $updates = (string) file_get_contents( $root . '/src/Infrastructure/Updates.php'
 $core_version = trim( (string) file_get_contents( $root . '/lib/hexa-wordpress-plugin-core/VERSION' ) );
 
 $checks = [
-    'Keeps every plugin version surface on 2.0.0.' => str_contains( $main, 'Version: 2.0.0' )
-        && str_contains( $main, 'public const VERSION = "2.0.0";' )
-        && str_contains( $legacy, 'Version: 2.0.0' )
-        && str_contains( $readme, '- Version: `2.0.0`' ),
+    'Keeps every plugin version surface on 2.0.1.' => str_contains( $main, 'Version: 2.0.1' )
+        && str_contains( $main, 'public const VERSION = "2.0.1";' )
+        && str_contains( $legacy, 'Version: 2.0.1' )
+        && str_contains( $readme, '- Version: `2.0.1`' ),
     'Publishes the PHP 8.1 requirement through every release surface.' => str_contains( $main, 'Requires PHP: 8.1' )
         && str_contains( $updates, "'requires_php'              => '8.1'" )
         && str_contains( $legacy, 'Requires PHP: 8.1' )

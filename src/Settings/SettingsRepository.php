@@ -34,6 +34,12 @@ class SettingsRepository {
             'post_featured_image_required' => true,
             'post_time_mode'        => 'native',
             'author_social_cleanup' => true,
+            'author_social_icons_enabled' => false,
+            'author_social_style' => 'social-solid',
+            'author_social_size' => 24,
+            'author_social_color' => '',
+            'author_social_networks' => [ 'website', 'linkedin', 'x', 'instagram', 'facebook', 'youtube', 'crunchbase', 'muckrack' ],
+            'author_social_auto_contexts' => [],
             'public_debug_enabled'  => false,
             'estimated_read_time_enabled' => true,
             'elementor_css_cache_busting' => true,
@@ -393,6 +399,7 @@ class SettingsRepository {
 
         return [
             "muckrack_icon_color" => $brand,
+            "author_social_color" => $brand,
             "muckrack_verified_text_color" => "#64748b",
             "publication_muckrack_color" => $brand,
             "publication_muckrack_text_color" => "#334155",
@@ -431,6 +438,7 @@ class SettingsRepository {
     public static function color_setting_keys(): array {
         return [
             "muckrack_icon_color",
+            "author_social_color",
             "muckrack_icon_color_single_author",
             "muckrack_icon_color_single_footer",
             "muckrack_icon_color_loop_cards",
@@ -514,8 +522,12 @@ class SettingsRepository {
                 continue;
             }
 
-            if ( in_array( $key, [ "muckrack_icon_size", "muckrack_verified_font_size", "publication_muckrack_font_size", "breadcrumbs_font_size", "table_of_contents_text_font_size", "article_heading_h2_font_size", "article_heading_h3_font_size", "article_numbered_list_font_size", "inline_photo_caption_font_size", "featured_image_caption_font_size", "post_summary_font_size", "post_faqs_text_font_size", "muckrack_icon_size_single_author", "muckrack_icon_size_single_footer", "muckrack_icon_size_loop_cards", "muckrack_icon_size_home", "muckrack_icon_size_author" ], true ) ) {
+            if ( in_array( $key, [ "author_social_size", "muckrack_icon_size", "muckrack_verified_font_size", "publication_muckrack_font_size", "breadcrumbs_font_size", "table_of_contents_text_font_size", "article_heading_h2_font_size", "article_heading_h3_font_size", "article_numbered_list_font_size", "inline_photo_caption_font_size", "featured_image_caption_font_size", "post_summary_font_size", "post_faqs_text_font_size", "muckrack_icon_size_single_author", "muckrack_icon_size_single_footer", "muckrack_icon_size_loop_cards", "muckrack_icon_size_home", "muckrack_icon_size_author" ], true ) ) {
                 $value = absint( $value );
+                if ( "author_social_size" === $key ) {
+                    $settings[ $key ] = max( 12, min( 64, $value ?: 24 ) );
+                    continue;
+                }
                 if ( 0 === strpos( $key, "muckrack_icon_size_" ) ) {
                     $settings[ $key ] = 0 === $value ? 0 : max( 8, min( 64, $value ) );
                     continue;
@@ -560,6 +572,7 @@ class SettingsRepository {
                 "article_numbered_list_style" => [ "none", "nlist01", "nlist02", "nlist03", "nlist04", "nlist05" ],
                 "article_drop_cap_style" => [ "dropcap-classic", "dropcap-highlight", "dropcap-outline", "dropcap-side-rule", "dropcap-soft-tile", "dropcap-script-classic", "dropcap-script-tile", "dropcap-script-round", "dropcap-script-underline", "dropcap-script-shadow" ],
                 "article_drop_cap_script_font" => [ "dancing-script", "great-vibes", "parisienne", "pinyon-script", "allura" ],
+                "author_social_style" => [ "social-solid", "social-outline", "social-soft", "social-pills", "social-minimal", "unstyled" ],
                 "inline_photo_treatment" => [ "none", "fig1", "fig2", "fig4", "fig5" ],
                 "featured_image_caption_template" => [ "none", "fig1", "fig2", "fig4", "fig5" ],
                 "post_summary_style" => [ "unstyled", "none", "sum00", "sum01", "sum02", "sum03", "sum04", "sum05" ],
@@ -589,7 +602,7 @@ class SettingsRepository {
                 continue;
             }
 
-            if ( in_array( $key, [ 'founders_enabled', 'shadow_posts_enabled', 'shadow_press_releases', 'post_list_defaults_enabled', 'hide_home_posts_without_featured_image', 'post_featured_image_required', 'author_social_cleanup', 'public_debug_enabled', 'estimated_read_time_enabled', 'elementor_css_cache_busting', 'elementor_primary_category_enabled', 'elementor_primary_category_exclude_default', 'publication_social_cleanup', 'muckrack_verified_enabled', 'muckrack_author_always_show', 'publication_muckrack_verified_enabled', 'multi_authors_enabled', 'multi_authors_disable_loop_cards', 'author_listing_hide_without_articles', 'author_listing_hide_without_featured_image', 'author_listing_show_press_releases', 'press_release_include_enabled', 'post_summary_acf_enabled', 'post_faqs_acf_enabled', 'article_types_enabled', 'breadcrumbs_enabled', 'breadcrumbs_hide_home', 'breadcrumbs_hide_term_archives', 'table_of_contents_enabled', 'table_of_contents_auto_single', 'table_of_contents_include_summary', 'article_numbered_lists_enabled', 'article_drop_cap_enabled', 'rank_math_breadcrumb_check_enabled', 'hws_masked_admin_report_enabled', "content_generation_enabled", "post_hygiene_enabled", "post_hygiene_strip_inline_styles", "post_hygiene_unwrap_spans", "post_hygiene_remove_font_tags", "post_hygiene_strip_classes_ids", "post_hygiene_strip_empty_tags", "post_hygiene_clean_heading_children" ], true ) ) {
+            if ( in_array( $key, [ 'founders_enabled', 'shadow_posts_enabled', 'shadow_press_releases', 'post_list_defaults_enabled', 'hide_home_posts_without_featured_image', 'post_featured_image_required', 'author_social_cleanup', 'author_social_icons_enabled', 'public_debug_enabled', 'estimated_read_time_enabled', 'elementor_css_cache_busting', 'elementor_primary_category_enabled', 'elementor_primary_category_exclude_default', 'publication_social_cleanup', 'muckrack_verified_enabled', 'muckrack_author_always_show', 'publication_muckrack_verified_enabled', 'multi_authors_enabled', 'multi_authors_disable_loop_cards', 'author_listing_hide_without_articles', 'author_listing_hide_without_featured_image', 'author_listing_show_press_releases', 'press_release_include_enabled', 'post_summary_acf_enabled', 'post_faqs_acf_enabled', 'article_types_enabled', 'breadcrumbs_enabled', 'breadcrumbs_hide_home', 'breadcrumbs_hide_term_archives', 'table_of_contents_enabled', 'table_of_contents_auto_single', 'table_of_contents_include_summary', 'article_numbered_lists_enabled', 'article_drop_cap_enabled', 'rank_math_breadcrumb_check_enabled', 'hws_masked_admin_report_enabled', "content_generation_enabled", "post_hygiene_enabled", "post_hygiene_strip_inline_styles", "post_hygiene_unwrap_spans", "post_hygiene_remove_font_tags", "post_hygiene_strip_classes_ids", "post_hygiene_strip_empty_tags", "post_hygiene_clean_heading_children" ], true ) ) {
                 $settings[ $key ] = (bool) $value;
                 continue;
             }
@@ -651,6 +664,20 @@ class SettingsRepository {
                 $allowed = [ 'single_author', 'single_footer', 'author', 'home', 'loop_cards' ];
                 $items = is_array( $value ) ? array_map( 'sanitize_key', $value ) : [];
                 $settings[ $key ] = array_values( array_intersect( $allowed, $items ) );
+                continue;
+            }
+
+            if ( 'author_social_networks' === $key ) {
+                $allowed = [ 'website', 'linkedin', 'x', 'instagram', 'facebook', 'youtube', 'crunchbase', 'muckrack' ];
+                $items = is_array( $value ) ? array_map( 'sanitize_key', $value ) : [];
+                $settings[ $key ] = array_values( array_intersect( $allowed, array_unique( $items ) ) );
+                continue;
+            }
+
+            if ( 'author_social_auto_contexts' === $key ) {
+                $allowed = [ 'single_post', 'author_archive' ];
+                $items = is_array( $value ) ? array_map( 'sanitize_key', $value ) : [];
+                $settings[ $key ] = array_values( array_intersect( $allowed, array_unique( $items ) ) );
                 continue;
             }
 

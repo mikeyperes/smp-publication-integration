@@ -134,6 +134,7 @@ $expected_templates = [
     "post_summary" => [ "none", "sum00", "sum01", "sum02", "sum03", "sum04", "sum05" ],
     "post_faqs" => [ "none", "faq00", "faq01", "faq02", "faq03", "faq04" ],
     "muckrack_verified" => [ "tooltip", "text", "compact_block" ],
+    "author_social" => [ "social-solid", "social-outline", "social-soft", "social-pills", "social-minimal", "unstyled" ],
     "publication_muckrack" => [ "block", "mini_block", "compact", "minimalist" ],
 ];
 $expected_native_accents = [
@@ -147,17 +148,18 @@ $expected_native_accents = [
     "post_summary" => [ "none" => "#2563eb", "sum00" => "#1f2937", "sum01" => "#2563eb", "sum02" => "#0a0a0a", "sum03" => "#0a0a0a", "sum04" => "#2563eb", "sum05" => "#00ff41" ],
     "post_faqs" => [ "none" => "#2563eb", "faq00" => "#e5e7eb", "faq01" => "#e5e7eb", "faq02" => "#e5e7eb", "faq03" => "#2563eb", "faq04" => "#2563eb" ],
     "muckrack_verified" => array_fill_keys( $expected_templates["muckrack_verified"], "#2d5277" ),
+    "author_social" => array_replace( array_fill_keys( $expected_templates["author_social"], "#2563eb" ), [ "social-minimal" => "#111827" ] ),
     "publication_muckrack" => array_fill_keys( $expected_templates["publication_muckrack"], "#2d5277" ),
 ];
 
 $definitions = TemplateDesignRegistry::definitions();
-template_design_assert( array_keys( $expected_templates ) === array_keys( $definitions ), "The eleven design surfaces changed without updating the canonical matrix." );
+template_design_assert( array_keys( $expected_templates ) === array_keys( $definitions ), "The twelve design surfaces changed without updating the canonical matrix." );
 template_design_assert(
     TemplateDesignRegistry::custom_color_setting_keys() === SettingsRepository::brand_primary_color_keys(),
     "The legacy brand-primary color key API does not return the registered custom template color keys."
 );
 $dashboard_source = (string) file_get_contents( $root . "/src/Admin/Dashboard/DashboardController.php" );
-template_design_assert( 11 === substr_count( $dashboard_source, 'template_color_setting_html( "' ), "Every design surface must render through the shared Core template color control." );
+template_design_assert( 12 === substr_count( $dashboard_source, 'template_color_setting_html( "' ), "Every design surface must render through the shared Core template color control." );
 $core_template_color_source = (string) file_get_contents( $core . "/src/WpAdminComponents/TemplateColorControl.php" );
 template_design_assert(
     str_contains( $core_template_color_source, 'var explicit=hex(color);if(!explicit)syncCustomDisplay(control);color=explicit||base(control,mode)' ),
@@ -172,7 +174,9 @@ $template_count = 0;
 $color_case_count = 0;
 $typography_case_count = 0;
 $production_sources = (string) file_get_contents( $root . "/src/Content/ArticleStyles.php" )
-    . (string) file_get_contents( $root . "/src/Content/MuckRackVerification.php" );
+    . (string) file_get_contents( $root . "/src/Content/MuckRackVerification.php" )
+    . (string) file_get_contents( $root . "/src/Content/AuthorSocialIcons.php" )
+    . (string) file_get_contents( $root . "/assets/frontend/author-social-icons.css" );
 
 foreach ( $definitions as $surface => $definition ) {
     $templates = array_keys( $definition["palettes"] );
@@ -223,6 +227,10 @@ foreach ( $definitions as $surface => $definition ) {
             }
         }
 
+        $typography = TemplateDesignRegistry::typography_definition( $surface );
+        if ( [] === $typography ) {
+            continue;
+        }
         foreach ( [ TemplateTypography::TEMPLATE_DEFAULT, TemplateTypography::SITE_INHERIT, TemplateTypography::CUSTOM ] as $mode ) {
             $settings = array_merge(
                 TypographyPreservation::defaults( $surface, false ),
@@ -231,7 +239,6 @@ foreach ( $definitions as $surface => $definition ) {
                     $definition["template_key"] => $template,
                 ]
             );
-            $typography = TemplateDesignRegistry::typography_definition( $surface );
             $settings[ $typography["font_family"]["key"] ] = "native_primary";
             $settings[ $typography["font_weight"]["key"] ] = "700";
             foreach ( TemplateDesignRegistry::typography_variable_definitions()[ $surface ] ?? [] as $variable_definition ) {
@@ -257,8 +264,8 @@ foreach ( $definitions as $surface => $definition ) {
     }
 }
 
-template_design_assert( 74 === $template_count, "Expected exactly 74 registered template choices; found " . $template_count . "." );
-template_design_assert( 296 === $color_case_count, "Expected exactly 296 color mode/template cases; ran " . $color_case_count . "." );
+template_design_assert( 80 === $template_count, "Expected exactly 80 registered template choices; found " . $template_count . "." );
+template_design_assert( 320 === $color_case_count, "Expected exactly 320 color mode/template cases; ran " . $color_case_count . "." );
 template_design_assert( 222 === $typography_case_count, "Expected exactly 222 typography mode/template cases; ran " . $typography_case_count . "." );
 
 foreach ( $definitions as $surface => $definition ) {
@@ -394,8 +401,22 @@ foreach ( $muckrack_contracts as $template => $needle ) {
     ++$mapped_contract_count;
 }
 
-template_design_assert( 68 === $mapped_contract_count, "Expected 68 color-bearing templates; verified " . $mapped_contract_count . "." );
-template_design_assert( 6 === $template_count - $mapped_contract_count, "Only the six explicit None templates may have no decorative color mapping." );
+$author_social_source = (string) file_get_contents( $root . "/assets/frontend/author-social-icons.css" );
+$author_social_contracts = [
+    "social-solid" => ".smpi-author-socials--social-solid .smpi-author-social-link{background:var(--smpi-author-social-color,#2563eb)",
+    "social-outline" => ".smpi-author-socials--social-outline .smpi-author-social-link{border:2px solid var(--smpi-author-social-color,#2563eb)",
+    "social-soft" => ".smpi-author-socials--social-soft .smpi-author-social-link{background:var(--smpi-author-social-soft,rgba(37,99,235,.12))",
+    "social-pills" => ".smpi-author-socials--social-pills .smpi-author-social-link{background:var(--smpi-author-social-color,#2563eb)",
+    "social-minimal" => ".smpi-author-socials--social-minimal .smpi-author-social-link{background:transparent;color:var(--smpi-author-social-color,#111827)",
+];
+foreach ( $author_social_contracts as $template => $needle ) {
+    template_design_assert( str_contains( $author_social_source, $needle ), "Author social " . $template . " is not wired to its original decorative color surface." );
+    ++$mapped_contract_count;
+}
+template_design_assert( ! str_contains( $author_social_source, ".smpi-author-socials--unstyled " ), "Author social No Style unexpectedly receives plugin presentation." );
+
+template_design_assert( 73 === $mapped_contract_count, "Expected 73 color-bearing templates; verified " . $mapped_contract_count . "." );
+template_design_assert( 7 === $template_count - $mapped_contract_count, "Only the seven explicit None/No Style templates may have no decorative color mapping." );
 
 foreach ( ArticleStyles::article_drop_cap_script_template_fonts() as $style => $font_key ) {
     $font = ArticleStyles::article_drop_cap_script_fonts()[ $font_key ];
@@ -417,7 +438,9 @@ $migrated = $GLOBALS["template_design_options"][ SettingsRepository::OPTION ];
 foreach ( $definitions as $surface => $definition ) {
     template_design_assert( TemplateColorResolver::CUSTOM === $migrated[ $definition["source_key"] ], "Existing " . $surface . " color mode was not migrated to Custom." );
     template_design_assert( "" !== (string) $migrated[ $definition["custom_key"] ], "Existing " . $surface . " color value was not preserved or populated." );
-    template_design_assert( TemplateTypography::CUSTOM === $migrated[ TemplateTypography::setting_key( $surface ) ], "Existing " . $surface . " typography mode was not migrated to Custom." );
+    if ( [] !== TemplateDesignRegistry::typography_definition( $surface ) ) {
+        template_design_assert( TemplateTypography::CUSTOM === $migrated[ TemplateTypography::setting_key( $surface ) ], "Existing " . $surface . " typography mode was not migrated to Custom." );
+    }
 }
 template_design_assert( "#13579b" === $migrated["article_heading_accent_color"], "Migration replaced an existing custom accent." );
 template_design_assert( "" === $migrated["breadcrumbs_background_color"], "Migration retained the old forced white breadcrumb background." );
@@ -427,20 +450,26 @@ unset( $GLOBALS["template_design_options"][ SettingsRepository::OPTION ], $GLOBA
 $new_install = $GLOBALS["template_design_options"][ SettingsRepository::OPTION ];
 foreach ( $definitions as $surface => $definition ) {
     template_design_assert( TemplateColorResolver::TEMPLATE_DEFAULT === $new_install[ $definition["source_key"] ], "New " . $surface . " color mode did not default to Template Default." );
-    template_design_assert( TemplateTypography::TEMPLATE_DEFAULT === $new_install[ TemplateTypography::setting_key( $surface ) ], "New " . $surface . " typography mode did not default to Template Default." );
+    if ( [] !== TemplateDesignRegistry::typography_definition( $surface ) ) {
+        template_design_assert( TemplateTypography::TEMPLATE_DEFAULT === $new_install[ TemplateTypography::setting_key( $surface ) ], "New " . $surface . " typography mode did not default to Template Default." );
+    }
 }
 
 $quick_start_items = QuickStartFeatures::items();
 foreach ( $definitions as $surface => $definition ) {
     $mode_pair_found = false;
+    $has_typography = [] !== TemplateDesignRegistry::typography_definition( $surface );
     foreach ( $quick_start_items as $item ) {
         $settings = is_array( $item["settings"] ?? null ) ? $item["settings"] : [];
-        if ( TemplateColorResolver::CUSTOM === ( $settings[ $definition["source_key"] ] ?? null ) && TemplateTypography::CUSTOM === ( $settings[ TemplateTypography::setting_key( $surface ) ] ?? null ) ) {
+        if (
+            TemplateColorResolver::CUSTOM === ( $settings[ $definition["source_key"] ] ?? null )
+            && ( ! $has_typography || TemplateTypography::CUSTOM === ( $settings[ TemplateTypography::setting_key( $surface ) ] ?? null ) )
+        ) {
             $mode_pair_found = true;
             break;
         }
     }
-    template_design_assert( $mode_pair_found, "Quick Start does not explicitly select Custom color and typography for " . $surface . "." );
+    template_design_assert( $mode_pair_found, "Quick Start does not explicitly select the supported Custom design modes for " . $surface . "." );
 }
 
 $GLOBALS["template_design_options"][ SettingsRepository::OPTION ] = SettingsRepository::defaults();
@@ -455,4 +484,4 @@ $publication_custom = MuckRackVerification::publication_verification_markup( "",
 template_design_assert( ! str_contains( $publication_default, "style=" ) && ! str_contains( $publication_default, "--smpi-muckrack-author-accent" ), "MuckRack emitted a default inline publication color." );
 template_design_assert( str_contains( $publication_custom, 'style="--smpi-muckrack-publication-accent:#abcdef"' ) && ! str_contains( $publication_custom, "--smpi-muckrack-author-accent" ), "MuckRack did not isolate an explicit shortcode color to the publication accent." );
 
-echo "PASS: 74 templates, 296 color cases, 222 typography cases, 68 frontend color contracts, migration, Quick Start, script fonts, and MuckRack inline-color isolation.\n";
+echo "PASS: 80 templates, 320 color cases, 222 typography cases, 73 frontend color contracts, migration, Quick Start, script fonts, and MuckRack inline-color isolation.\n";

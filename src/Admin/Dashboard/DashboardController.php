@@ -36,6 +36,7 @@ use smp_publication_integration\Admin\UiCleanup;
 use smp_publication_integration\Admin\Navigation\AdminNavigation;
 use smp_publication_integration\Config;
 use smp_publication_integration\Content\AcfFields;
+use smp_publication_integration\Content\AuthorSocialIcons;
 use smp_publication_integration\Content\Breadcrumbs;
 use smp_publication_integration\Content\MuckRackVerification;
 use smp_publication_integration\Content\MultiAuthors;
@@ -83,6 +84,12 @@ class DashboardController {
             'smpi-admin-navigation',
             plugins_url( 'assets/admin/dashboard.css', dirname( __DIR__, 3 ) . '/smp-publication-integration.php' ),
             [],
+            Config::VERSION
+        );
+        wp_enqueue_style(
+            'smpi-author-social-icons',
+            plugins_url( 'assets/frontend/author-social-icons.css', dirname( __DIR__, 3 ) . '/smp-publication-integration.php' ),
+            [ 'smpi-admin-navigation' ],
             Config::VERSION
         );
 
@@ -713,7 +720,7 @@ class DashboardController {
     }
 
     public static function shortcode_catalog(): array {
-        $A = "src/Content/AuthorShortcodes.php"; $S = "src/Content/Shortcodes.php"; $M = "src/Content/MultiAuthors.php"; $MR = "src/Content/MuckRackVerification.php"; $TOC = "src/Content/TableOfContents.php"; $BC = "src/Content/Breadcrumbs.php"; $RT = "src/Content/EstimatedReadTime.php";
+        $A = "src/Content/AuthorShortcodes.php"; $AS = "src/Content/AuthorSocialIcons.php"; $S = "src/Content/Shortcodes.php"; $M = "src/Content/MultiAuthors.php"; $MR = "src/Content/MuckRackVerification.php"; $TOC = "src/Content/TableOfContents.php"; $BC = "src/Content/Breadcrumbs.php"; $RT = "src/Content/EstimatedReadTime.php";
         $authDetail = function( $source, $file, $type ) use ( $A ) { return [ "field" => "user meta", "group" => "WP user profile", "source" => $source, "file" => $file, "plugin" => "SMP Publication Integration", "type" => $type, "edit" => "author" ]; };
         return [
             [ "key" => "author-identity", "title" => "Author identity & bio", "layer" => "Author layer", "live" => "author",
@@ -732,6 +739,14 @@ class DashboardController {
               "blurb" => "The author social profile URLs. Canonical form is [author url=\"network\"]; the per-network tags like [author_x] are working aliases of it. Output is a plain URL.",
               "register_file" => $A, "access" => "Single-post author box and author archive social row.",
               "items" => [
+                [ "tag" => "smp_author_social_icons", "desc" => "A complete accessible author-social icon group. Uses the enabled networks and selected template by default, and omits every network whose author profile value is empty.", "type" => "HTML block", "params" => "user_id, post_id, author_index, style, size, color, networks, class, label",
+                  "variations" => [
+                    [ "code" => "[smp_author_social_icons]", "label" => "Saved backend design" ],
+                    [ "code" => "[smp_author_social_icons style=\"unstyled\"]", "label" => "No Style for Elementor CSS" ],
+                    [ "code" => "[smp_author_social_icons style=\"social-pills\" size=\"20\"]", "label" => "Labeled pills at 20px" ],
+                    [ "code" => "[smp_author_social_icons networks=\"linkedin,x,website\"]", "label" => "Selected networks only" ],
+                  ],
+                  "detail" => $authDetail( "Resolved author social fields; empty URLs are excluded before markup is created", $AS, "HTML" ) ],
                 [ "tag" => "author", "code" => "[author url=\"x\"]", "desc" => "The author profile URL for the chosen social network. Output is a plain URL you can drop into an href.", "type" => "URL", "params" => "url (x|linkedin|facebook|instagram|youtube|website|crunchbase|muckrack), user_id", "variations_live" => true,
                   "variations" => [
                     [ "code" => "[author url=\"x\"]", "label" => "X (Twitter) profile URL" ],
@@ -1568,6 +1583,48 @@ class DashboardController {
 
     private function render_author_feature_group( array $settings ): void {
         $this->feature_group_open( "authors-verification", "Authors and verification", "Author assignment and MuckRack verification output." );
+
+        $author_social_controls = $this->context_select_html(
+            "author_social_networks",
+            AuthorSocialIcons::networks(),
+            $settings,
+            "Visible social networks"
+        )
+            . $this->select_setting_html( "author_social_style", $this->author_social_style_options( $settings ), $settings, "Visual template" )
+            . $this->template_color_setting_html( "author_social", "Author social icon color", $settings )
+            . $this->number_setting_html( "author_social_size", "Icon size", $settings, 12, 64, "px" )
+            . $this->context_select_html(
+                "author_social_auto_contexts",
+                [
+                    "single_post" => "Single post (post.php / single.php)",
+                    "author_archive" => "Author archive (author.php)",
+                ],
+                $settings,
+                "Automatic placement (optional)"
+            )
+            . $this->shortcode_usage_html(
+                "Use the shortcode in an Elementor Shortcode widget or enable an automatic context below. Automatic placement appends the same canonical output after single-post content or after the author archive description.",
+                [
+                    [ "Recommended", "[smp_author_social_icons]" ],
+                    [ "No Style", "[smp_author_social_icons style=\"unstyled\"]" ],
+                    [ "Specific author", "[smp_author_social_icons user_id=\"54\"]" ],
+                    [ "Override networks", "[smp_author_social_icons networks=\"linkedin,x,website\"]" ],
+                ]
+            )
+            . $this->author_social_no_style_html();
+        $this->feature_card(
+            "Author social icons",
+            "author_social_icons_enabled",
+            "Reads the existing author user/ACF social URL aliases for X, LinkedIn, Facebook, Instagram, YouTube, website, Crunchbase, and Muck Rack. Missing or invalid values never produce a list item.",
+            "Builds one accessible social-icon group for manual shortcode placement or optional automatic insertion on single posts and author archives.",
+            "[smp_author_social_icons]\n[smp_author_social_icons style=\"unstyled\"]\n[smp_author_social_icons user_id=\"54\" networks=\"linkedin,x,website\"]",
+            $this->author_social_report_html( $settings ),
+            $this->activity_log_html(),
+            $author_social_controls,
+            true,
+            "",
+            $this->author_social_structure_html( $settings )
+        );
 
         $author_muckrack_controls = $this->inline_toggle_setting_html( "muckrack_author_always_show", "Always show for every author" )
             . $this->context_select_html( "muckrack_verified_contexts", [ "single_author" => "single.php header author mention", "single_footer" => "single.php footer/about-author mention", "loop_cards" => "Loop card authors: show checkmark", "home" => "Home page author mention", "author" => "author.php author mention" ], $settings, "Placement contexts" )
@@ -2649,6 +2706,20 @@ HTML;
 
     private function context_description( string $key, string $value ): string {
         $descriptions = [
+            "author_social_networks" => [
+                "x" => "Shows X only when the resolved author has a usable X or Twitter value.",
+                "linkedin" => "Shows LinkedIn only when the resolved author has a usable LinkedIn value.",
+                "facebook" => "Shows Facebook only when the resolved author has a usable Facebook value.",
+                "instagram" => "Shows Instagram only when the resolved author has a usable Instagram value.",
+                "youtube" => "Shows YouTube only when the resolved author has a usable YouTube value.",
+                "website" => "Shows the author's personal website only when a usable URL exists.",
+                "crunchbase" => "Shows Crunchbase only when the resolved author has a usable Crunchbase value.",
+                "muckrack" => "Shows Muck Rack only when the resolved author has a usable Muck Rack value.",
+            ],
+            "author_social_auto_contexts" => [
+                "single_post" => "Appends the canonical icon group once after the main post content. Leave off when the shortcode is already placed in the post template.",
+                "author_archive" => "Appends the canonical icon group once after the author archive description rendered by author.php.",
+            ],
             "muckrack_verified_contexts" => [
                 "single_author" => "Adds the author verification badge beside the byline on single article templates.",
                 "single_footer" => "Adds the selected author verification badge to the footer/about-author profile name.",
@@ -2669,6 +2740,72 @@ HTML;
             "breadcrumbs_disabled_post_types" => $this->breadcrumb_post_type_descriptions(),
         ];
         return $descriptions[ $key ][ $value ] ?? "Controls where this feature is allowed to run on the front end.";
+    }
+
+    private function author_social_style_options( array $settings ): array {
+        $size = max( 12, min( 64, (int) ( $settings["author_social_size"] ?? 24 ) ) );
+        $descriptions = [
+            "social-solid" => "High-contrast filled circles for compact author cards and bylines.",
+            "social-outline" => "Lightweight circular outlines that sit cleanly on white or transparent backgrounds.",
+            "social-soft" => "Rounded tiles with a quiet color tint and a larger touch target.",
+            "social-pills" => "Full network names beside each icon for maximum clarity and accessibility.",
+            "social-minimal" => "Bare monochrome icons with no container shape.",
+            "unstyled" => "Outputs semantic HTML only. The plugin adds no design variables or template styling, so Elementor or theme CSS owns the appearance.",
+        ];
+        $options = [];
+        foreach ( AuthorSocialIcons::styles() as $style => $label ) {
+            $options[ $style ] = [
+                "label" => $label,
+                "description" => $descriptions[ $style ] ?? "Author social icon presentation.",
+                "preview" => AuthorSocialIcons::preview_html( $style, $size ),
+            ];
+        }
+        return $options;
+    }
+
+    private function author_social_report_html( array $settings ): string {
+        $enabled = Settings::bool( "author_social_icons_enabled" );
+        $style = AuthorSocialIcons::normalize_style( (string) ( $settings["author_social_style"] ?? "social-solid" ) );
+        $style_labels = AuthorSocialIcons::styles();
+        $network_labels = AuthorSocialIcons::networks();
+        $networks = AuthorSocialIcons::normalize_networks( $settings["author_social_networks"] ?? [] );
+        $contexts = isset( $settings["author_social_auto_contexts"] ) && is_array( $settings["author_social_auto_contexts"] )
+            ? array_values( array_intersect( [ "single_post", "author_archive" ], array_map( "sanitize_key", $settings["author_social_auto_contexts"] ) ) )
+            : [];
+        $network_names = array_map( static fn( string $network ): string => (string) ( $network_labels[ $network ] ?? $network ), $networks );
+        $context_names = array_map(
+            static fn( string $context ): string => "single_post" === $context ? "single post content" : "author archive description",
+            $contexts
+        );
+        $html = $this->simple_status_html( $enabled, $enabled ? "Author social icon shortcode is enabled." : "Feature is disabled; shortcode and automatic output return nothing." );
+        $html .= "<table class=\"widefat striped\"><tbody>";
+        $html .= "<tr><th>Shortcode</th><td><code>[" . esc_html( AuthorSocialIcons::SHORTCODE ) . "]</code></td></tr>";
+        $html .= "<tr><th>Template</th><td>" . esc_html( (string) ( $style_labels[ $style ] ?? $style ) ) . "</td></tr>";
+        $html .= "<tr><th>Icon size</th><td>" . esc_html( (string) max( 12, min( 64, (int) ( $settings["author_social_size"] ?? 24 ) ) ) ) . "px</td></tr>";
+        $html .= "<tr><th>Eligible networks</th><td>" . esc_html( [] !== $network_names ? implode( ", ", $network_names ) : "None selected" ) . "</td></tr>";
+        $html .= "<tr><th>Automatic placement</th><td>" . esc_html( [] !== $context_names ? implode( ", ", $context_names ) : "Off (manual shortcode only)" ) . "</td></tr>";
+        $html .= "<tr><th>Empty values</th><td>Skipped before the HTML list is built; an author with no eligible URLs produces no wrapper.</td></tr>";
+        return $html . "</tbody></table>";
+    }
+
+    private function author_social_no_style_html(): string {
+        $css = "selector .smpi-author-social-list {\n  display: flex;\n  gap: 12px;\n  list-style: none;\n  margin: 0;\n  padding: 0;\n}\n\nselector .smpi-author-social-link {\n  align-items: center;\n  display: inline-flex;\n  gap: 8px;\n  color: #111827;\n}\n\nselector .smpi-author-social-icon svg {\n  display: block;\n  height: 24px;\n  width: 24px;\n}";
+        return "<div class=\"smpi-control-group smpi-author-social-no-style\"><h3>No Style + Elementor</h3><ol><li>Choose <strong>No Style (Elementor/custom CSS)</strong> above.</li><li>Add <code>[smp_author_social_icons]</code> to an Elementor <strong>Shortcode</strong> widget.</li><li>Open that widget's <strong>Advanced &gt; Custom CSS</strong> panel.</li><li>Paste your CSS there and start every rule with <code>selector</code> so it stays scoped to that shortcode widget.</li></ol><pre class=smpi-code>" . esc_html( $css ) . "</pre></div>";
+    }
+
+    private function author_social_structure_html( array $settings ): string {
+        $size = max( 12, min( 64, (int) ( $settings["author_social_size"] ?? 24 ) ) );
+        $markup = '<nav class="smpi-template smpi-template--author-socials smpi-author-socials smpi-author-socials--unstyled smpi-unstyled" data-smpi-skin="unstyled" aria-label="Author social links">' . "\n"
+            . '  <ul class="smpi-template-list smpi-author-social-list smpi-author-socials__list" role="list">' . "\n"
+            . '    <li class="smpi-template-item smpi-author-social-item smpi-author-socials__item smpi-author-social-item--linkedin" data-network="linkedin">' . "\n"
+            . '      <a class="smpi-template-link smpi-author-social-link smpi-author-socials__link" href="https://linkedin.com/in/example" target="_blank" rel="me noopener noreferrer" aria-label="Author on LinkedIn">' . "\n"
+            . '        <span class="smpi-author-social-icon smpi-author-socials__icon" aria-hidden="true"><svg><!-- icon --></svg></span>' . "\n"
+            . '        <span class="smpi-author-social-label smpi-author-socials__label">LinkedIn</span>' . "\n"
+            . '      </a>' . "\n"
+            . '    </li>' . "\n"
+            . '  </ul>' . "\n"
+            . '</nav>';
+        return "<div class=\"smpi-author-social-structure\"><h3>Visual HTML output</h3><p>The same stable class structure is used by every template. Disabled networks and empty author values do not create list items.</p><div class=\"smpi-author-social-structure-preview\">" . AuthorSocialIcons::preview_html( "unstyled", $size ) . "</div><pre class=smpi-code>" . esc_html( $markup ) . "</pre></div>";
     }
 
     private function breadcrumb_post_type_descriptions(): array {

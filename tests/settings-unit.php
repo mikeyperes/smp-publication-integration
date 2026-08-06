@@ -306,8 +306,14 @@ if (
 
 $defaults = SettingsRepository::defaults();
 foreach ( \smp_publication_integration\Design\TemplateDesignRegistry::definitions() as $surface => $definition ) {
-    if ( 'template_default' !== $defaults[ $definition['source_key'] ] || 'template_default' !== $defaults[ $surface . '_typography_mode' ] ) {
-        fwrite( STDERR, "FAIL: New installations must default every design surface to Template Default.\n" );
+    if ( 'template_default' !== $defaults[ $definition['source_key'] ] ) {
+        fwrite( STDERR, "FAIL: New installations must default every design color surface to Template Default.\n" );
+        exit( 1 );
+    }
+}
+foreach ( array_keys( \smp_publication_integration\Design\TemplateDesignRegistry::typography_preservation_surfaces() ) as $surface ) {
+    if ( 'template_default' !== $defaults[ $surface . '_typography_mode' ] ) {
+        fwrite( STDERR, "FAIL: New installations must default every typography surface to Template Default.\n" );
         exit( 1 );
     }
 }

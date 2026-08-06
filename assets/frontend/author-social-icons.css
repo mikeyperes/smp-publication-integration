@@ -1,0 +1,22 @@
+.smpi-author-socials:not(.smpi-author-socials--unstyled){--smpi-author-social-ink:#fff;--smpi-author-social-soft:rgba(37,99,235,.12);--smpi-author-social-size:24px;--smpi-author-social-hit-size:max(44px,calc(var(--smpi-author-social-size) + 20px));display:block;margin:1rem 0}
+.smpi-author-socials:not(.smpi-author-socials--unstyled) .smpi-author-social-list{align-items:center;display:flex;flex-wrap:wrap;gap:10px;list-style:none;margin:0;padding:0}
+.smpi-author-socials:not(.smpi-author-socials--unstyled) .smpi-author-social-item{margin:0;padding:0}
+.smpi-author-socials:not(.smpi-author-socials--unstyled) .smpi-author-social-link{align-items:center;box-sizing:border-box;color:var(--smpi-author-social-color,#2563eb);display:inline-flex;justify-content:center;line-height:1;text-decoration:none;transition:background-color .16s ease,border-color .16s ease,color .16s ease,opacity .16s ease,transform .16s ease}
+.smpi-author-socials:not(.smpi-author-socials--unstyled) a.smpi-author-social-link:hover,.smpi-author-socials:not(.smpi-author-socials--unstyled) a.smpi-author-social-link:focus-visible{opacity:.82;transform:translateY(-1px)}
+.smpi-author-socials:not(.smpi-author-socials--unstyled) a.smpi-author-social-link:focus-visible{outline:2px solid currentColor;outline-offset:3px}
+.smpi-author-socials:not(.smpi-author-socials--unstyled) .smpi-author-social-icon{display:inline-flex;height:var(--smpi-author-social-size);width:var(--smpi-author-social-size)}
+.smpi-author-socials:not(.smpi-author-socials--unstyled) .smpi-author-social-icon svg{display:block;height:100%;width:100%}
+.smpi-author-socials:not(.smpi-author-socials--unstyled) .smpi-author-social-label{border:0;clip:rect(0 0 0 0);clip-path:inset(50%);height:1px;margin:-1px;overflow:hidden;padding:0;position:absolute;white-space:nowrap;width:1px}
+.smpi-author-socials--social-solid .smpi-author-social-link{background:var(--smpi-author-social-color,#2563eb);border-radius:999px;color:var(--smpi-author-social-ink,#fff)!important;height:var(--smpi-author-social-hit-size);width:var(--smpi-author-social-hit-size)}
+.smpi-author-socials--social-solid .smpi-author-social-icon{height:calc(var(--smpi-author-social-size) * .7);width:calc(var(--smpi-author-social-size) * .7)}
+.smpi-author-socials--social-outline .smpi-author-social-link{border:2px solid var(--smpi-author-social-color,#2563eb);border-radius:999px;height:var(--smpi-author-social-hit-size);width:var(--smpi-author-social-hit-size)}
+.smpi-author-socials--social-outline .smpi-author-social-icon{height:calc(var(--smpi-author-social-size) * .68);width:calc(var(--smpi-author-social-size) * .68)}
+.smpi-author-socials--social-soft .smpi-author-social-link{background:var(--smpi-author-social-soft,rgba(37,99,235,.12));border-radius:12px;height:var(--smpi-author-social-hit-size);width:var(--smpi-author-social-hit-size)}
+.smpi-author-socials--social-soft .smpi-author-social-icon{height:calc(var(--smpi-author-social-size) * .72);width:calc(var(--smpi-author-social-size) * .72)}
+.smpi-author-socials--social-pills .smpi-author-social-list{gap:8px}
+.smpi-author-socials--social-pills .smpi-author-social-link{background:var(--smpi-author-social-color,#2563eb);border-radius:999px;color:var(--smpi-author-social-ink,#fff)!important;gap:7px;min-height:var(--smpi-author-social-hit-size);padding:7px 13px}
+.smpi-author-socials--social-pills .smpi-author-social-icon{height:calc(var(--smpi-author-social-size) * .72);width:calc(var(--smpi-author-social-size) * .72)}
+.smpi-author-socials--social-pills .smpi-author-social-label{clip:auto;clip-path:none;font-size:max(12px,calc(var(--smpi-author-social-size) * .55));font-weight:700;height:auto;margin:0;overflow:visible;position:static;white-space:nowrap;width:auto}
+.smpi-author-socials--social-minimal .smpi-author-social-list{gap:14px}
+.smpi-author-socials--social-minimal .smpi-author-social-link{background:transparent;color:var(--smpi-author-social-color,#111827);height:var(--smpi-author-social-hit-size);width:var(--smpi-author-social-hit-size)}
+@media(max-width:480px){.smpi-author-socials:not(.smpi-author-socials--unstyled) .smpi-author-social-list{gap:8px}.smpi-author-socials--social-pills .smpi-author-social-link{padding-inline:11px}}

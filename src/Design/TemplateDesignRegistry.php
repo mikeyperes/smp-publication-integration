@@ -187,6 +187,26 @@ final class TemplateDesignRegistry {
                 "palettes" => array_fill_keys( [ "tooltip", "text", "compact_block" ], [ "accent" => $muckrack ] ),
                 "variables" => [ "--smpi-muckrack-author-accent" => "color" ],
             ],
+            "author_social" => [
+                "source_key" => "author_social_color_source",
+                "custom_key" => "author_social_color",
+                "template_key" => "author_social_style",
+                "default_template" => "social-solid",
+                "fallback" => $blue,
+                "palettes" => [
+                    "social-solid" => [ "accent" => $blue ],
+                    "social-outline" => [ "accent" => $blue ],
+                    "social-soft" => [ "accent" => $blue ],
+                    "social-pills" => [ "accent" => $blue ],
+                    "social-minimal" => [ "accent" => "#111827" ],
+                    "unstyled" => [ "accent" => $blue ],
+                ],
+                "variables" => [
+                    "--smpi-author-social-color" => "color",
+                    "--smpi-author-social-soft" => "rgba:0.12",
+                    "--smpi-author-social-ink" => "contrast",
+                ],
+            ],
             "publication_muckrack" => [
                 "source_key" => "publication_muckrack_color_source",
                 "custom_key" => "publication_muckrack_color",

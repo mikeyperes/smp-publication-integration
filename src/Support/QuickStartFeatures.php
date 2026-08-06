@@ -642,6 +642,26 @@ final class QuickStartFeatures {
                     [ "label" => "Scope", "value" => "Publication header/footer/global social widgets" ],
                 ],
             ],
+            "author_social_icons" => [
+                "title" => "Author social icons",
+                "description" => "Enables the author social icon shortcode with a safe manual-placement default.",
+                "settings" => [
+                    "author_social_icons_enabled" => true,
+                    "author_social_style" => "social-solid",
+                    "author_social_size" => 24,
+                    "author_social_color_source" => TemplateColorResolver::CUSTOM,
+                    "author_social_color" => "#2563eb",
+                    "author_social_networks" => [ "website", "linkedin", "x", "instagram", "facebook", "youtube", "crunchbase", "muckrack" ],
+                    "author_social_auto_contexts" => [],
+                ],
+                "details" => [
+                    [ "label" => "Shortcode", "value" => "[smp_author_social_icons]" ],
+                    [ "label" => "Template", "value" => "Solid circles" ],
+                    [ "label" => "Icon size", "value" => "24px" ],
+                    [ "label" => "Automatic placement", "value" => "Off (manual shortcode only)" ],
+                    [ "label" => "Empty social values", "value" => "Hidden" ],
+                ],
+            ],
         ];
     }
 
