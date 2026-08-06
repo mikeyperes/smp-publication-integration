@@ -19,8 +19,8 @@ $checks = [
         && ! str_contains( $dashboard, 'smpi-reading-progress' ),
     'SMP no longer owns reading-progress defaults or validation.' => ! str_contains( $settings, 'reading_progress_' ),
     'SMP AJAX no longer accepts reading-progress settings.' => ! str_contains( $ajax, 'reading_progress_' ),
-    'The current release keeps reading-progress ownership removed.' => str_contains( $main, 'Version: 2.0.2' )
-        && str_contains( $main, 'public const VERSION = "2.0.2"' ),
+    'The current release keeps reading-progress ownership removed.' => str_contains( $main, 'Version: 2.0.3' )
+        && str_contains( $main, 'public const VERSION = "2.0.3"' ),
 ];
 
 foreach ( $checks as $message => $passed ) {

@@ -22,6 +22,13 @@
 .smpi-dashboard .smpi-control-group:has(input[data-key="author_social_style"]) .smpi-choice-grid{grid-template-columns:minmax(0,1fr)}
 .smpi-dashboard .smpi-control-group:has(input[data-key="author_social_style"]) .smpi-choice-card{box-sizing:border-box;min-width:0;overflow:hidden}
 .smpi-dashboard .smpi-control-group:has(input[data-key="author_social_style"]) .smpi-choice-preview{box-sizing:border-box;max-width:760px;overflow:hidden;width:100%}
+.smpi-dashboard .smpi-control-group:has(input[data-key="author_social_style"]) .smpi-choice-preview .smpi-author-socials--unstyled{display:block;max-width:100%}
+.smpi-dashboard .smpi-control-group:has(input[data-key="author_social_style"]) .smpi-choice-preview .smpi-author-socials--unstyled .smpi-author-social-list{align-items:center;display:flex;flex-wrap:wrap;gap:12px;list-style:none;margin:0;padding:0}
+.smpi-dashboard .smpi-control-group:has(input[data-key="author_social_style"]) .smpi-choice-preview .smpi-author-socials--unstyled .smpi-author-social-item{margin:0;padding:0}
+.smpi-dashboard .smpi-control-group:has(input[data-key="author_social_style"]) .smpi-choice-preview .smpi-author-socials--unstyled .smpi-author-social-link{align-items:center;color:#1d2735;display:inline-flex;gap:6px;line-height:1.2}
+.smpi-dashboard .smpi-control-group:has(input[data-key="author_social_style"]) .smpi-choice-preview .smpi-author-socials--unstyled .smpi-author-social-icon,.smpi-dashboard .smpi-control-group:has(input[data-key="author_social_style"]) .smpi-choice-preview .smpi-author-socials--unstyled svg{display:block;flex:0 0 24px;height:24px;max-height:24px;max-width:24px;width:24px}
+.smpi-dashboard .smpi-control-group:has(input[data-key="author_social_style"]) .smpi-choice-preview .smpi-author-socials--unstyled .smpi-author-social-label{font-size:12px;font-weight:600}
+.smpi-dashboard .smpi-control-group:has(input[data-key="author_social_archive_position"]) .smpi-choice-grid{grid-template-columns:minmax(0,1fr)}
 .smpi-dashboard .smpi-author-social-no-style ol{margin:0 0 14px;padding-left:20px}
 .smpi-dashboard .smpi-author-social-no-style li+li{margin-top:6px}
 .smpi-dashboard .smpi-author-social-structure{display:grid;gap:12px;margin-top:16px}

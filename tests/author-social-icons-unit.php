@@ -19,13 +19,15 @@ namespace {
     function esc_html( $value ): string { return htmlspecialchars( (string) $value, ENT_QUOTES, "UTF-8" ); }
     function esc_url( $value ): string { return filter_var( (string) $value, FILTER_VALIDATE_URL ) ? (string) $value : ""; }
     function get_the_author_meta( string $key, int $user_id = 0 ): string { return "Example Author"; }
-    function is_author(): bool { return false; }
-    function get_queried_object_id(): int { return 0; }
+    function is_author(): bool { return ! empty( $GLOBALS["smpi_test_is_author"] ); }
+    function get_queried_object_id(): int { return (int) ( $GLOBALS["smpi_test_author_id"] ?? 0 ); }
     function is_admin(): bool { return false; }
     function is_singular( string $type = "" ): bool { return false; }
     function in_the_loop(): bool { return true; }
     function is_main_query(): bool { return true; }
     function get_the_ID(): int { return 55; }
+    function did_action( string $hook ): int { return "elementor/loaded" === $hook ? 1 : 0; }
+    function wp_json_encode( $value ): string { return (string) json_encode( $value ); }
 }
 
 namespace Hexa\PluginCore\BrandColors {
@@ -48,6 +50,7 @@ namespace smp_publication_integration\Support {
             "author_social_size" => 24,
             "author_social_networks" => [ "website", "linkedin", "x", "instagram" ],
             "author_social_auto_contexts" => [],
+            "author_social_archive_position" => "below_bio",
         ];
 
         public static function bool( string $key ): bool { return ! empty( self::$settings[ $key ] ); }
@@ -100,6 +103,12 @@ namespace {
         }
     }
 
+    final class FakeAuthorSocialElementorWidget {
+        public function __construct( private string $name, private array $settings ) {}
+        public function get_name(): string { return $this->name; }
+        public function get_settings_for_display(): array { return $this->settings; }
+    }
+
     $styles = AuthorSocialIcons::styles();
     expect_author_social( 6 === count( $styles ), "The feature exposes five styled templates plus No Style." );
     expect_author_social( isset( $styles["unstyled"] ), "No Style is a first-class template." );
@@ -130,20 +139,43 @@ namespace {
     AuthorFieldResolver::$urls = [ "website" => "https://example.test" ];
     expect_author_social( "" === $renderer->render_shortcode(), "The feature toggle disables shortcode output." );
 
+    $GLOBALS["smpi_test_is_author"] = true;
+    $GLOBALS["smpi_test_author_id"] = 9;
+    Settings::$settings["author_social_icons_enabled"] = true;
+    Settings::$settings["author_social_auto_contexts"] = [ "author_archive" ];
+    AuthorFieldResolver::$urls = [ "linkedin" => "https://linkedin.com/in/example" ];
+    $placement_widgets = [
+        "below_name" => new FakeAuthorSocialElementorWidget( "heading", [ "_title" => "Dynamic Author Name", "__dynamic__" => [ "title" => '[elementor-tag name="author-name"]' ] ] ),
+        "below_title" => new FakeAuthorSocialElementorWidget( "heading", [ "_title" => "Dynamic Author Role", "__dynamic__" => [ "title" => '[elementor-tag name="acf-text" settings="%7B%22key%22%3A%22field_example%3Asubtitle%22%7D"]' ] ] ),
+        "below_image" => new FakeAuthorSocialElementorWidget( "shortcode", [ "_title" => "Dynamic Author Portrait", "shortcode" => '[author_image class="smpi-author-image"]' ] ),
+        "below_bio" => new FakeAuthorSocialElementorWidget( "text-editor", [ "_title" => "Dynamic Author Bio", "__dynamic__" => [ "editor" => '[elementor-tag name="author-info"]' ] ] ),
+    ];
+    foreach ( $placement_widgets as $position => $widget ) {
+        Settings::$settings["author_social_archive_position"] = $position;
+        $placement_renderer = new AuthorSocialIcons();
+        $placed = $placement_renderer->inject_elementor_author_archive( "<span>Widget content</span>", $widget );
+        expect_author_social( str_contains( $placed, 'data-smpi-author-social-placement="' . $position . '"' ), "The author archive injects below " . str_replace( "below_", "", $position ) . "." );
+    }
+
     $root = dirname( __DIR__ );
     $dashboard = (string) file_get_contents( $root . "/src/Admin/Dashboard/DashboardController.php" );
     $ajax = (string) file_get_contents( $root . "/src/Admin/Ajax/AjaxController.php" );
     $runtime = (string) file_get_contents( $root . "/src/Runtime/Plugin.php" );
     $registry = (string) file_get_contents( $root . "/src/Design/TemplateDesignRegistry.php" );
     $css = (string) file_get_contents( $root . "/assets/frontend/author-social-icons.css" );
+    $admin_css = (string) file_get_contents( $root . "/assets/admin/dashboard.css" );
+    $settings_source = (string) file_get_contents( $root . "/src/Settings/SettingsRepository.php" );
     expect_author_social( str_contains( $dashboard, '"Author social icons"' ) && str_contains( $dashboard, '"author_social_icons_enabled"' ), "The Authors feature group includes the reusable feature toggle card." );
     expect_author_social( str_contains( $dashboard, '"author_social_networks"' ) && str_contains( $dashboard, '"author_social_auto_contexts"' ), "The backend exposes network visibility and optional automatic contexts." );
+    expect_author_social( str_contains( $dashboard, '"author_social_archive_position"' ) && str_contains( $dashboard, '"Below name"' ) && str_contains( $dashboard, '"Below title"' ) && str_contains( $dashboard, '"Below image"' ) && str_contains( $dashboard, '"Below bio"' ), "Selecting author.php exposes all four author archive positions." );
     expect_author_social( str_contains( $dashboard, 'Advanced &gt; Custom CSS' ) && str_contains( $dashboard, 'start every rule with <code>selector</code>' ), "The backend includes scoped Elementor No Style instructions." );
     expect_author_social( str_contains( $dashboard, 'Visual HTML output' ) && str_contains( $dashboard, 'smpi-author-socials__item' ), "The backend shows the stable HTML structure visually." );
     expect_author_social( str_contains( $ajax, 'author_social_style' ) && str_contains( $ajax, 'author_social_size' ) && str_contains( $ajax, 'author_social_color' ), "AJAX persistence allowlists every author-social design control." );
+    expect_author_social( str_contains( $ajax, 'author_social_archive_position' ) && str_contains( $settings_source, 'author_social_archive_position' ), "The author archive position is saved and normalized." );
     expect_author_social( str_contains( $runtime, 'new Content\\AuthorSocialIcons()' ), "The runtime registers the new module." );
     expect_author_social( str_contains( $registry, '"author_social" => [' ) && str_contains( $registry, '"--smpi-author-social-soft"' ), "The shared template color registry owns author-social design variables." );
     expect_author_social( str_contains( $css, 'max(44px,calc(var(--smpi-author-social-size) + 20px))' ) && str_contains( $css, ':not(.smpi-author-socials--unstyled)' ), "Styled templates keep 44px targets and exclude No Style from plugin presentation." );
+    expect_author_social( str_contains( $admin_css, 'author_social_style' ) && str_contains( $admin_css, 'max-height:24px' ), "The backend No Style preview caps its SVG size." );
 
     echo "PASS: Author social icons expose six presentation modes, accessible markup, backend visibility constraints, and empty-value suppression.\n";
 }

@@ -1584,6 +1584,22 @@ class DashboardController {
     private function render_author_feature_group( array $settings ): void {
         $this->feature_group_open( "authors-verification", "Authors and verification", "Author assignment and MuckRack verification output." );
 
+        $author_social_contexts = isset( $settings["author_social_auto_contexts"] ) && is_array( $settings["author_social_auto_contexts"] )
+            ? $settings["author_social_auto_contexts"]
+            : [];
+        $author_archive_position_controls = $this->select_setting_html(
+            "author_social_archive_position",
+            [
+                "below_name" => [ "label" => "Below name", "description" => "Place the icon group immediately after the author name." ],
+                "below_title" => [ "label" => "Below title", "description" => "Place the icon group immediately after the author role or title." ],
+                "below_image" => [ "label" => "Below image", "description" => "Place the icon group inside the author image widget, below the portrait." ],
+                "below_bio" => [ "label" => "Below bio", "description" => "Place the icon group immediately after the author biography." ],
+            ],
+            $settings,
+            "Author archive position"
+        );
+        $author_archive_position_controls = "<div class=\"smpi-author-social-archive-position\" data-smpi-author-social-archive-position" . ( in_array( "author_archive", $author_social_contexts, true ) ? "" : " hidden" ) . ">" . $author_archive_position_controls . "</div>";
+
         $author_social_controls = $this->context_select_html(
             "author_social_networks",
             AuthorSocialIcons::networks(),
@@ -1602,8 +1618,9 @@ class DashboardController {
                 $settings,
                 "Automatic placement (optional)"
             )
+            . $author_archive_position_controls
             . $this->shortcode_usage_html(
-                "Use the shortcode in an Elementor Shortcode widget or enable an automatic context below. Automatic placement appends the same canonical output after single-post content or after the author archive description.",
+                "Use the shortcode in an Elementor Shortcode widget or enable an automatic context below. Single-post placement appends after the content; author.php placement uses the selected author name, title, image, or bio target.",
                 [
                     [ "Recommended", "[smp_author_social_icons]" ],
                     [ "No Style", "[smp_author_social_icons style=\"unstyled\"]" ],
@@ -2772,9 +2789,10 @@ HTML;
         $contexts = isset( $settings["author_social_auto_contexts"] ) && is_array( $settings["author_social_auto_contexts"] )
             ? array_values( array_intersect( [ "single_post", "author_archive" ], array_map( "sanitize_key", $settings["author_social_auto_contexts"] ) ) )
             : [];
+        $archive_position = AuthorSocialIcons::normalize_archive_position( (string) ( $settings["author_social_archive_position"] ?? "below_bio" ) );
         $network_names = array_map( static fn( string $network ): string => (string) ( $network_labels[ $network ] ?? $network ), $networks );
         $context_names = array_map(
-            static fn( string $context ): string => "single_post" === $context ? "single post content" : "author archive description",
+            static fn( string $context ): string => "single_post" === $context ? "single post content" : "author archive template",
             $contexts
         );
         $html = $this->simple_status_html( $enabled, $enabled ? "Author social icon shortcode is enabled." : "Feature is disabled; shortcode and automatic output return nothing." );
@@ -2784,6 +2802,7 @@ HTML;
         $html .= "<tr><th>Icon size</th><td>" . esc_html( (string) max( 12, min( 64, (int) ( $settings["author_social_size"] ?? 24 ) ) ) ) . "px</td></tr>";
         $html .= "<tr><th>Eligible networks</th><td>" . esc_html( [] !== $network_names ? implode( ", ", $network_names ) : "None selected" ) . "</td></tr>";
         $html .= "<tr><th>Automatic placement</th><td>" . esc_html( [] !== $context_names ? implode( ", ", $context_names ) : "Off (manual shortcode only)" ) . "</td></tr>";
+        $html .= "<tr><th>Author archive position</th><td>" . esc_html( (string) ( AuthorSocialIcons::archive_positions()[ $archive_position ] ?? $archive_position ) ) . "</td></tr>";
         $html .= "<tr><th>Empty values</th><td>Skipped before the HTML list is built; an author with no eligible URLs produces no wrapper.</td></tr>";
         return $html . "</tbody></table>";
     }

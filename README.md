@@ -8,7 +8,7 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `2.0.2`
+- Version: `2.0.3`
 
 ## Ownership
 
@@ -97,6 +97,10 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.0.3
+
+- Added selectable author-archive social-icon placement below the name, title, image, or bio, with server-rendered Elementor injection and a compact No Style backend preview.
 
 ### 2.0.2
 

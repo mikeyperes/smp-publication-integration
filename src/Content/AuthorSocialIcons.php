@@ -35,6 +35,13 @@ final class AuthorSocialIcons {
         "muckrack"   => "Muck Rack",
     ];
 
+    private const ARCHIVE_POSITIONS = [
+        "below_name"  => "Below name",
+        "below_title" => "Below title",
+        "below_image" => "Below image",
+        "below_bio"   => "Below bio",
+    ];
+
     private bool $archive_injected = false;
 
     public function register(): void {
@@ -42,6 +49,7 @@ final class AuthorSocialIcons {
         add_action( "wp_enqueue_scripts", [ $this, "enqueue_styles" ] );
         add_filter( "the_content", [ $this, "inject_single_post" ], 25 );
         add_filter( "get_the_archive_description", [ $this, "inject_author_archive" ], 25 );
+        add_filter( "elementor/widget/render_content", [ $this, "inject_elementor_author_archive" ], 25, 2 );
     }
 
     public function register_shortcode(): void {
@@ -67,6 +75,15 @@ final class AuthorSocialIcons {
 
     public static function networks(): array {
         return self::NETWORKS;
+    }
+
+    public static function archive_positions(): array {
+        return self::ARCHIVE_POSITIONS;
+    }
+
+    public static function normalize_archive_position( string $position ): string {
+        $position = sanitize_key( $position );
+        return isset( self::ARCHIVE_POSITIONS[ $position ] ) ? $position : "below_bio";
     }
 
     public static function normalize_style( string $style ): string {
@@ -219,9 +236,11 @@ final class AuthorSocialIcons {
             $this->archive_injected
             || ! Settings::bool( "author_social_icons_enabled" )
             || ! $this->automatic_context_enabled( "author_archive" )
+            || "below_bio" !== $this->archive_position()
             || is_admin()
             || ! is_author()
             || false !== strpos( $description, "smpi-author-socials" )
+            || ( function_exists( "did_action" ) && did_action( "elementor/loaded" ) )
         ) {
             return $description;
         }
@@ -233,7 +252,34 @@ final class AuthorSocialIcons {
         }
 
         $this->archive_injected = true;
-        return $description . $icons;
+        return $description . $this->automatic_archive_wrapper( $icons, "below_bio" );
+    }
+
+    public function inject_elementor_author_archive( string $content, $widget ): string {
+        if (
+            $this->archive_injected
+            || ! Settings::bool( "author_social_icons_enabled" )
+            || ! $this->automatic_context_enabled( "author_archive" )
+            || is_admin()
+            || ! is_author()
+            || false !== strpos( $content, "smpi-author-socials" )
+        ) {
+            return $content;
+        }
+
+        $position = $this->archive_position();
+        if ( ! $this->elementor_widget_matches_position( $widget, $position ) ) {
+            return $content;
+        }
+
+        $author_id = (int) get_queried_object_id();
+        $icons = $this->render_for_author( $author_id );
+        if ( "" === $icons ) {
+            return $content;
+        }
+
+        $this->archive_injected = true;
+        return $content . $this->automatic_archive_wrapper( $icons, $position );
     }
 
     public static function preview_html( string $style, int $size = 24 ): string {
@@ -265,6 +311,58 @@ final class AuthorSocialIcons {
         $contexts = Settings::get( "author_social_auto_contexts", [] );
         $contexts = is_array( $contexts ) ? array_map( "sanitize_key", $contexts ) : [];
         return in_array( $context, $contexts, true );
+    }
+
+    private function archive_position(): string {
+        return self::normalize_archive_position( (string) Settings::get( "author_social_archive_position", "below_bio" ) );
+    }
+
+    private function automatic_archive_wrapper( string $icons, string $position ): string {
+        $position = self::normalize_archive_position( $position );
+        return "<div class=\"smpi-author-social-auto smpi-author-social-auto--" . esc_attr( $position ) . "\" data-smpi-author-social-placement=\"" . esc_attr( $position ) . "\">" . $icons . "</div>";
+    }
+
+    private function elementor_widget_matches_position( $widget, string $position ): bool {
+        if ( ! is_object( $widget ) ) {
+            return false;
+        }
+
+        $settings = [];
+        if ( method_exists( $widget, "get_settings_for_display" ) ) {
+            $settings = (array) $widget->get_settings_for_display();
+        } elseif ( method_exists( $widget, "get_settings" ) ) {
+            $settings = (array) $widget->get_settings();
+        }
+
+        $widget_name = method_exists( $widget, "get_name" ) ? sanitize_key( (string) $widget->get_name() ) : "";
+        $settings_json = function_exists( "wp_json_encode" ) ? wp_json_encode( $settings ) : json_encode( $settings );
+        $haystack = strtolower( rawurldecode( is_string( $settings_json ) ? $settings_json : "" ) );
+        $admin_title = strtolower( trim( (string) ( $settings["_title"] ?? "" ) ) );
+
+        if ( "below_image" === $position ) {
+            return false !== strpos( $haystack, "[author_image" )
+                || false !== strpos( $haystack, "smpi-author-image" )
+                || ( "shortcode" === $widget_name && ( false !== strpos( $admin_title, "author image" ) || false !== strpos( $admin_title, "author portrait" ) ) );
+        }
+
+        if ( "below_name" === $position ) {
+            return false !== strpos( $haystack, "[author_name" )
+                || false !== strpos( $haystack, 'name=\"author-name\"' )
+                || false !== strpos( $admin_title, "author name" );
+        }
+
+        if ( "below_title" === $position ) {
+            return false !== strpos( $haystack, "[author_title" )
+                || false !== strpos( $haystack, "job_title" )
+                || false !== strpos( $haystack, ":subtitle" )
+                || false !== strpos( $admin_title, "author title" )
+                || false !== strpos( $admin_title, "author role" );
+        }
+
+        return false !== strpos( $haystack, "[author_bio" )
+            || false !== strpos( $haystack, 'name=\"author-info\"' )
+            || false !== strpos( $admin_title, "author bio" )
+            || false !== strpos( $admin_title, "author biography" );
     }
 
     private static function icon_svg( string $network ): string {
