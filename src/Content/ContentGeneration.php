@@ -3,6 +3,9 @@ namespace smp_publication_integration\Content;
 
 use Hexa\PluginCore\CredentialVault\CredentialStore;
 use Hexa\PluginCore\WpAdminComponents\DynamicButton;
+use Hexa\PluginCore\WpAdminAjax\AjaxActionRegistry;
+use Hexa\PluginCore\WpAdminAjax\AjaxFailure;
+use Hexa\PluginCore\WpAdminAjax\AjaxRequest;
 use smp_publication_integration\Admin\Ajax;
 use smp_publication_integration\Config;
 use smp_publication_integration\Support\Settings;
@@ -25,9 +28,22 @@ final class ContentGeneration {
         add_action( "admin_footer-post.php", [ $this, "post_footer_script" ] );
         add_action( "admin_footer-post-new.php", [ $this, "post_footer_script" ] );
         add_action( "add_meta_boxes", [ $this, "add_meta_boxes" ] );
-        add_action( "wp_ajax_smpi_content_generation_save_key", [ $this, "save_key" ] );
-        add_action( "wp_ajax_smpi_content_generation_test", [ $this, "test_connection" ] );
-        add_action( "wp_ajax_smpi_generate_content", [ $this, "generate_content" ] );
+        ( new AjaxActionRegistry(
+            [
+                'capability'   => 'manage_options',
+                'nonce_action' => Ajax::NONCE,
+                'nonce_field'  => 'nonce',
+            ]
+        ) )->register(
+            [
+                'smpi_content_generation_save_key' => [ 'callback' => [ $this, 'save_key' ] ],
+                'smpi_content_generation_test'     => [ 'callback' => [ $this, 'test_connection' ] ],
+                'smpi_generate_content'            => [
+                    'capability' => '',
+                    'callback'   => [ $this, 'generate_content' ],
+                ],
+            ]
+        );
     }
 
     public function tabs( array $tabs ): array {
@@ -258,67 +274,63 @@ final class ContentGeneration {
         <?php
     }
 
-    public function save_key(): void {
-        if ( ! current_user_can( "manage_options" ) || ! check_ajax_referer( Ajax::NONCE, "nonce", false ) ) {
-            wp_send_json_error( [ "message" => "Not allowed." ], 403 );
-        }
-        $key = isset( $_POST["api_key"] ) ? trim( (string) wp_unslash( $_POST["api_key"] ) ) : "";
+    public function save_key( AjaxRequest $request ): array {
+        $raw_key = $request->raw( 'api_key', '', 'post' );
+        $key     = is_scalar( $raw_key ) ? trim( (string) $raw_key ) : '';
         $store = new CredentialStore();
         if ( "" === $key ) {
             $store->delete( self::CREDENTIAL_SLUG, self::CREDENTIAL_KEY );
-            wp_send_json_success( [ "message" => "Content API key removed.", "masked" => "" ] );
+            return [ 'message' => 'Content API key removed.', 'masked' => '' ];
         }
         $store->store( self::CREDENTIAL_SLUG, self::CREDENTIAL_KEY, $key );
-        wp_send_json_success( [ "message" => "Content API key saved.", "masked" => $store->mask( $key ) ] );
+        return [ 'message' => 'Content API key saved.', 'masked' => $store->mask( $key ) ];
     }
 
-    public function test_connection(): void {
-        if ( ! current_user_can( "manage_options" ) || ! check_ajax_referer( Ajax::NONCE, "nonce", false ) ) {
-            wp_send_json_error( [ "message" => "Not allowed." ], 403 );
-        }
+    public function test_connection( AjaxRequest $request ): array {
+        unset( $request );
         $result = $this->api_request( "/status", [ "site_url" => home_url(), "plugin_version" => Config::VERSION ], 15 );
         if ( is_wp_error( $result ) ) {
-            wp_send_json_error( [ "message" => $result->get_error_message() ] );
+            throw AjaxFailure::bad_request( $result->get_error_message(), 'content_api_error' );
         }
-        wp_send_json_success( [ "message" => "API responded.", "response" => $result ] );
+        return [ 'message' => 'API responded.', 'response' => $result ];
     }
 
-    public function generate_content(): void {
-        $post_id = isset( $_POST["post_id"] ) ? absint( $_POST["post_id"] ) : 0;
-        $target = isset( $_POST["target"] ) ? sanitize_key( (string) wp_unslash( $_POST["target"] ) ) : "";
-        if ( ! $post_id || ! in_array( $target, [ "excerpt", "summary", "faqs" ], true ) || ! current_user_can( "edit_post", $post_id ) || ! check_ajax_referer( Ajax::NONCE, "nonce", false ) ) {
-            wp_send_json_error( [ "message" => "Not allowed or invalid request." ], 403 );
+    public function generate_content( AjaxRequest $request ): array {
+        $post_id = $request->int( 'post_id', 0, 'post' );
+        $target  = $request->key( 'target', '', 'post' );
+        if ( ! $post_id || ! in_array( $target, [ 'excerpt', 'summary', 'faqs' ], true ) || ! current_user_can( 'edit_post', $post_id ) ) {
+            throw new AjaxFailure( 'Not allowed or invalid request.', 403, 'forbidden' );
         }
         if ( ! Settings::bool( "content_generation_enabled" ) ) {
-            wp_send_json_error( [ "message" => "Content generation is disabled." ] );
+            throw AjaxFailure::bad_request( 'Content generation is disabled.' );
         }
         $this->add_generation_log( $post_id, "working", "Creating " . $target . ".", $target );
         $post = get_post( $post_id );
         if ( ! $post ) {
-            wp_send_json_error( [ "message" => "Post not found." ] );
+            throw AjaxFailure::not_found( 'Post not found.' );
         }
         $payload = $this->payload_for_post( $post, $target );
         $result = $this->api_request( "/generate", $payload, (int) Settings::get( "content_generation_timeout", 45 ) );
         if ( is_wp_error( $result ) ) {
             $message = $result->get_error_message();
             $this->add_generation_log( $post_id, "error", $message, $target );
-            wp_send_json_error( [ "message" => $message, "log" => $this->generation_log( $post_id ) ] );
+            throw AjaxFailure::bad_request( $message, 'content_api_error', [ 'log' => $this->generation_log( $post_id ) ] );
         }
         $value = $this->extract_generated_value( $result, $target );
         if ( "" === $value && "faqs" !== $target ) {
             $message = "API response did not include " . $target . ".";
             $this->add_generation_log( $post_id, "error", $message, $target );
-            wp_send_json_error( [ "message" => $message, "response" => $result, "log" => $this->generation_log( $post_id ) ] );
+            throw AjaxFailure::bad_request( $message, 'content_api_response', [ 'response' => $result, 'log' => $this->generation_log( $post_id ) ] );
         }
         $saved = $this->save_generated_value( $post_id, $target, $value, $result );
         if ( is_wp_error( $saved ) ) {
             $message = $saved->get_error_message();
             $this->add_generation_log( $post_id, "error", $message, $target );
-            wp_send_json_error( [ "message" => $message, "log" => $this->generation_log( $post_id ) ] );
+            throw AjaxFailure::bad_request( $message, 'content_save_error', [ 'log' => $this->generation_log( $post_id ) ] );
         }
         $message = ucfirst( $target ) . " saved.";
         $this->add_generation_log( $post_id, "ok", $message, $target );
-        wp_send_json_success( [ "message" => $message, "value" => $value, "log" => $this->generation_log( $post_id ) ] );
+        return [ 'message' => $message, 'value' => $value, 'log' => $this->generation_log( $post_id ) ];
     }
 
 

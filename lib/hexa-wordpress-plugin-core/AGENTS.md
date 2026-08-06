@@ -42,12 +42,14 @@ src/CoreRuntime/        Hexa\PluginCore\CoreRuntime
 src/ContentTypes/       Hexa\PluginCore\ContentTypes
 src/CredentialVault/    Hexa\PluginCore\CredentialVault
 src/DatabaseCleanup/    Hexa\PluginCore\DatabaseCleanup
+src/DataNormalization/  Hexa\PluginCore\DataNormalization
 src/EntitySources/      Hexa\PluginCore\EntitySources
 src/FaqSets/            Hexa\PluginCore\FaqSets
 src/FieldStructures/    Hexa\PluginCore\FieldStructures
 src/FrontendForms/      Hexa\PluginCore\FrontendForms
 src/IntegrationTests/   Hexa\PluginCore\IntegrationTests
 src/LogFiles/           Hexa\PluginCore\LogFiles
+src/LiteSpeedCache/     Hexa\PluginCore\LiteSpeedCache
 src/MediaUploads/       Hexa\PluginCore\MediaUploads
 src/ObjectCache/        Hexa\PluginCore\ObjectCache
 src/PluginProvisioning/ Hexa\PluginCore\PluginProvisioning
@@ -67,6 +69,7 @@ src/WpAdminComponents/  Hexa\PluginCore\WpAdminComponents
 src/WpAdminTabs/        Hexa\PluginCore\WpAdminTabs
 src/WpConfigFile/       Hexa\PluginCore\WpConfigFile
 src/WpCronTasks/        Hexa\PluginCore\WpCronTasks
+src/WordPressOperations/ Hexa\PluginCore\WordPressOperations
 ```
 
 If you add a namespace, add it to `README.md`, `docs/folder-map.md`, and this file in the same change.
@@ -92,6 +95,9 @@ Never make a module boot itself at file include time. Modules register hooks fro
 - Put optional canonical website/entity selection, attached-user resolution, source migration, field inspection, and UI in `src/EntitySources`.
 - Put non-mutating Core/host release checks, pass/fail normalization, protected report endpoints, and report UI in `src/IntegrationTests`; hosts register only their plugin-specific assertions.
 - Put reusable database cleanup sessions, table optimization, provider activation, and live row reporting in `src/DatabaseCleanup`.
+- Put generic scalar, field, and media normalization in `src/DataNormalization`; hosts retain domain mapping and schema construction.
+- Put host-declared LiteSpeed option/profile audit, apply, and verification in `src/LiteSpeedCache`; Core must not define a recommended profile.
+- Put native immediate updates, future auto-update policy, discussion/comment actions, and permalink repair in `src/WordPressOperations`.
 - Put reusable object-cache provider status and activation adapters in `src/ObjectCache`.
 - Put admin tab abstractions in `src/WpAdminTabs`.
 - Put reusable visual primitives in `src/WpAdminComponents`.

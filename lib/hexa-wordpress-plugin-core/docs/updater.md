@@ -92,6 +92,24 @@ CorePackageAjaxController
 CorePackagePanelRenderer
 ```
 
+`CorePackageInstaller::run()` preserves the low-level single-host contract. `registered_hosts()` reads distinct Core roots from the bootstrap registry. `run_registered_hosts()` downloads and verifies once, stages the clean package for every registered root, then commits the fleet as one rollback unit; without candidates it falls back to `run()`. The shared AJAX updater calls the fleet method, so an update launched from any host plugin updates every registered vendored copy.
+
+```php
+$installer = new CorePackageInstaller($core_config, $progress_store);
+$result = $installer->run_registered_hosts();
+```
+
+`CoreBootstrap` also registers `CorePackageFleetSyncModule`. After a plugin
+install, update, or activation—and on a later authorized admin request—the
+module compares the fresh on-disk version and `PACKAGE_HASH` for every
+registered host. It stages every target before changing any live package,
+retains all prior packages until every target passes post-commit verification,
+removes stale files, and rolls the whole fleet back after any commit or
+verification failure. It performs no network download; a released host plugin
+must still bundle the canonical current Core package.
+
+Fleet results report `new_version`, `updated_count`, per-host `{host, core_root, new_version}` rows, and `core_roots`. Test discovery with `php tests/core-package-fleet.php`; unit tests must use temporary roots rather than production packages.
+
 ## Minimal Host Integration
 
 ```php

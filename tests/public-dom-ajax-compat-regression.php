@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 $root = dirname( __DIR__ );
 $main = (string) file_get_contents( $root . '/smp-publication-integration.php' );
-$bootstrap = (string) file_get_contents( $root . '/src/Bootstrap/Plugin.php' );
+$bootstrap = (string) file_get_contents( $root . '/src/Runtime/Plugin.php' );
 $breadcrumbs = (string) file_get_contents( $root . '/src/Content/Breadcrumbs.php' );
 $article = (string) file_get_contents( $root . '/src/Content/ArticleStyles.php' );
 $runtime = (string) file_get_contents( $root . '/src/Content/PublicDomRuntime.php' );

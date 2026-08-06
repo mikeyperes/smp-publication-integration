@@ -21,7 +21,7 @@ if ( str_contains( $controller, 'use Hexa\\PluginCore\\SnippetRegistry\\SnippetR
     exit( 1 );
 }
 
-$bootstrap = file_get_contents( $root . '/src/Bootstrap/Plugin.php' );
+$bootstrap = file_get_contents( $root . '/src/Runtime/Plugin.php' );
 if ( ! is_string( $bootstrap ) || ! str_contains( $bootstrap, "'tab_id'        => 'hexa_core'" ) ) {
     fwrite( STDERR, "FAIL: Shared Core tab module must use SMP's canonical hexa_core section ID.\n" );
     exit( 1 );

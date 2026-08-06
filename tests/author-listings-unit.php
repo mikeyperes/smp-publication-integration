@@ -185,7 +185,7 @@ namespace {
     $root = dirname( __DIR__ );
     $dashboard = (string) file_get_contents( $root . "/src/Admin/Dashboard/DashboardController.php" );
     $ajax = (string) file_get_contents( $root . "/src/Admin/Ajax/AjaxController.php" );
-    $bootstrap = (string) file_get_contents( $root . "/src/Bootstrap/Plugin.php" );
+    $bootstrap = (string) file_get_contents( $root . "/src/Runtime/Plugin.php" );
     $author_query = (string) file_get_contents( $root . "/src/Authorship/AuthorQueryIntegration.php" );
     $author_listings = (string) file_get_contents( $root . "/src/Content/AuthorListings.php" );
     foreach ( [ "Hide members with no articles", "Hide members without a featured image", "Show press releases attached to the author" ] as $label ) {

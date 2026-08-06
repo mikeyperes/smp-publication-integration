@@ -8,7 +8,7 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `1.0.27`
+- Version: `2.0.0`
 
 ## Ownership
 
@@ -64,7 +64,7 @@ Quick Start contains only the reusable checklist workflow and is the second tab.
 
 `smp-publication-integration.php` is the canonical plugin entry. `initialization.php` is a compatibility loader for older active-plugin records.
 
-Namespaced domain code lives under `src/`. Reusable UI, AJAX, updater, CPT, ACF, entity, FAQ, schema, taxonomy, activity-log, color, typography, and template infrastructure comes from Hexa WordPress Plugin Core 1.2.0.
+Namespaced domain code lives under `src/`. Reusable UI, AJAX, updater, CPT, ACF, entity, FAQ, schema, taxonomy, activity-log, color, typography, and template infrastructure comes from Hexa WordPress Plugin Core 3.0.0.
 
 Elementor single-post recent-content loops opt into SMP publication filtering with the exact Query ID `smpi_single_recent`. Other Posts and Loop Grid widgets remain outside SMP query mutation.
 
@@ -78,7 +78,7 @@ The plugin updater targets the repository's canonical `main` branch and register
 | --- | --- |
 | WordPress | 5.0 |
 | PHP | 8.1 |
-| Hexa WP Core bundle | 1.2.0 |
+| Hexa WP Core bundle | 3.0.0 |
 
 ACF Pro is required for publication option and content field groups. Feature-specific integrations require their corresponding plugins.
 
@@ -98,9 +98,14 @@ The suite covers navigation, article defaults, article/FAQ output, authorship, t
 
 ## Changelog
 
+### 2.0.0
+
+- Coordinated major release for the consolidated publication lifecycle, runtime, editorial, schema, and admin infrastructure, synchronized with Hexa WordPress Plugin Core 3.0.0.
+
 ### 1.0.27
 
 - Restricted breadcrumb companion cleanup to SMP-owned bands so Elementor page-title containers cannot be removed, and aligned generated breadcrumb content to the canonical 1140px responsive grid.
+- Consolidated plugin lifecycle, updater, registries, and admin AJAX dispatch under the shared Core bootstrap and synchronized the bundled Hexa WP Core 2.1.4 package.
 
 ### 1.0.26
 

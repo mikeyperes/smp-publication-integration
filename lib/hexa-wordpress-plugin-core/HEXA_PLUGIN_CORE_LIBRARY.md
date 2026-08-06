@@ -13,7 +13,7 @@ Root namespace: Hexa\PluginCore\
 Source root: src/
 Version source: VERSION
 
-Current release: 1.2.0
+Current release: 3.0.0
 ```
 
 Do not rename these.
@@ -33,6 +33,7 @@ src/ContentCleanup/     Hexa\PluginCore\ContentCleanup
 src/ContentTypes/       Hexa\PluginCore\ContentTypes
 src/CredentialVault/    Hexa\PluginCore\CredentialVault
 src/DatabaseCleanup/    Hexa\PluginCore\DatabaseCleanup
+src/DataNormalization/  Hexa\PluginCore\DataNormalization
 src/EntitySources/      Hexa\PluginCore\EntitySources
 src/FieldStructures/    Hexa\PluginCore\FieldStructures
 src/FrontendForms/      Hexa\PluginCore\FrontendForms
@@ -41,6 +42,7 @@ src/GettingStartedChecklist/
                         Hexa\PluginCore\GettingStartedChecklist
 src/IntegrationTests/   Hexa\PluginCore\IntegrationTests
 src/LogFiles/           Hexa\PluginCore\LogFiles
+src/LiteSpeedCache/     Hexa\PluginCore\LiteSpeedCache
 src/MediaUploads/       Hexa\PluginCore\MediaUploads
 src/ObjectCache/        Hexa\PluginCore\ObjectCache
 src/PluginChecks/       Hexa\PluginCore\PluginChecks
@@ -64,6 +66,7 @@ src/WpAdminComponents/  Hexa\PluginCore\WpAdminComponents
 src/WpAdminTabs/        Hexa\PluginCore\WpAdminTabs
 src/WpConfigFile/       Hexa\PluginCore\WpConfigFile
 src/WpCronTasks/        Hexa\PluginCore\WpCronTasks
+src/WordPressOperations/ Hexa\PluginCore\WordPressOperations
 ```
 
 ## Query Safety
@@ -1203,6 +1206,8 @@ CorePackageConfig
 CorePackageVersionClient
 CorePackageStatus
 CorePackageInstaller
+CorePackageFleetSynchronizer
+CorePackageFleetSyncModule
 CorePackageAjaxController
 CorePackagePanelRenderer
 ```
@@ -1210,6 +1215,14 @@ CorePackagePanelRenderer
 ### Vendored Core Package Updater
 
 The Hexa WordPress Plugin Core is a library, not a WordPress plugin. Its version is stored in `VERSION`.
+
+Every `CoreBootstrap` registers `CorePackageFleetSyncModule` once. After plugin
+installation, update, or activation, it uses `CorePackageFleetSynchronizer` to
+propagate the newest integrity-verified bundle already present on the site to
+older registered host copies. The same drift repair runs on a later authorized
+admin request. Directory replacement is staged and verified, removes obsolete
+files, and restores the prior directory if the final swap fails. It does not
+download Core; each released host plugin must still bundle the canonical package.
 
 Host plugins that vendor the core should place a core status panel directly under their plugin updater panel:
 
@@ -1626,3 +1639,40 @@ Core owns:
 - reusable list and accordion output
 
 Host plugins own option names, shortcode names, and any plugin-specific source of truth messaging.
+
+## Core 3.0 Additive Service Surfaces
+
+### Data Normalization
+
+`Hexa\PluginCore\DataNormalization` contains `ValueNormalizer`, `FieldReader`, and `MediaNormalizer`. The static value API is `present`, `text`, `url`, `email`, `date`, `number`, `rows`, `strings`, `urls`, and `ids`. `FieldReader(int $object_id, string $kind = 'post')` is ACF-first with meta fallback. `MediaNormalizer` exposes `attachment_id`, `image`, `gallery`, and `schema_image`. Hosts retain business mapping and schema construction.
+
+### ACF Field Factory
+
+`AcfFieldFactory::field(string $type, array $args = [])` and `text`, `textarea`, `wysiwyg`, `url`, `email`, `number`, `date`, `select`, `toggle`, `image`, `gallery`, `group`, `repeater`, `relationship`, `user`, and `tab` accept caller-owned stable keys and preserve extra ACF arguments. `multiPostObject(array $args)` is unchanged.
+
+### Persistent Getting Started State
+
+`GettingStartedChecklistConfig` accepts `persistence_enabled`, `state_option`, `status_action`, and `reset_action`. The AJAX controller registers run/status/reset. `GettingStartedChecklistStateStore` exposes `status`, `summary`, `record`, and `reset`. Steps/subtasks accept `batch_enabled` (default true), `destructive` (default false), `mutating`, and an optional additional `capability`. Host, step, and subtask capabilities are cumulative. Explicit template IDs match exactly and never fall across templates. Batch runs skip batch-disabled items, continue after read-only status failures, and stop at the first mutating failure; the browser API exposes the same normalized outcome behavior programmatically.
+
+### Registered Host Fleet Updates
+
+`CorePackageInstaller::run()` preserves single-host behavior. `registered_hosts()` discovers distinct bootstrap candidates. `run_registered_hosts()` downloads once and synchronizes each registered Core root, returning `new_version`, `updated_count`, per-host results, and `core_roots`.
+
+### WordPress Operations
+
+`Hexa\PluginCore\WordPressOperations` provides `UpdateOperations`, `AutoUpdatePolicy`, `DiscussionOperations`, and `PermalinkOperations`. Immediate update actions refresh WordPress discovery, use quiet native upgrader skins, and do not suppress maintenance mode. Future policy uses native site options and canonical sorted plugin/theme lists. Discussion actions update future defaults, process explicit lists beyond one batch, stop all-record runs that make no progress, bound item/unprocessed-ID reports, and delete comments permanently through WordPress APIs. `repair('')` preserves the current permalink structure and verifies non-empty hard-flushed rules.
+
+### LiteSpeed Cache Profiles
+
+`Hexa\PluginCore\LiteSpeedCache` provides `SettingDefinition`, `Profile`, `MissingValue`, `ConfigurationAdapterInterface`, `LiteSpeedConfAdapter`, and `LiteSpeedCacheService`. Hosts supply all setting values. Core owns casting, audit/apply/verify, result assembly, stored/effective inspection, and override/writability provenance. Its default adapter uses LiteSpeed's official `Conf` API and sends every writable difference through one `update_confs()` synchronization batch; missing or overridden option IDs remain explicit review items. Injected adapters and compatibility reader/writer callbacks remain supported. Core does not define a recommended LiteSpeed profile.
+
+Focused tests:
+
+```text
+php tests/acf-field-factory.php
+php tests/data-normalization.php
+php tests/getting-started-checklist-state.php
+php tests/core-package-fleet.php
+php tests/wordpress-operations.php
+php tests/litespeed-cache.php
+```

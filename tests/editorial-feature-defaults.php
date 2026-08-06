@@ -8,7 +8,7 @@ $ajax       = (string) file_get_contents( $root . '/src/Admin/Ajax/AjaxControlle
 $quick      = (string) file_get_contents( $root . '/src/Support/QuickStartFeatures.php' );
 $muckrack   = (string) file_get_contents( $root . '/src/Content/MuckRackVerification.php' );
 $dashboard  = (string) file_get_contents( $root . '/src/Admin/Dashboard/DashboardController.php' );
-$bootstrap  = (string) file_get_contents( $root . '/src/Bootstrap/Plugin.php' );
+$bootstrap  = (string) file_get_contents( $root . '/src/Runtime/Plugin.php' );
 
 $checks = [
     'MuckRack defaults to a 16px checkmark.' => str_contains( $settings, '"muckrack_icon_size" => 16' )

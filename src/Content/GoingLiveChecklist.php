@@ -2,6 +2,9 @@
 namespace smp_publication_integration\Content;
 
 use Hexa\PluginCore\WpAdminComponents\DynamicButton;
+use Hexa\PluginCore\WpAdminAjax\AjaxActionRegistry;
+use Hexa\PluginCore\WpAdminAjax\AjaxFailure;
+use Hexa\PluginCore\WpAdminAjax\AjaxRequest;
 use smp_publication_integration\Admin\Ajax;
 use smp_publication_integration\Support\Dependencies;
 
@@ -16,7 +19,17 @@ final class GoingLiveChecklist {
         add_action( "edit_form_after_editor", [ $this, "render" ] );
         add_action( "admin_footer-post.php", [ $this, "footer_assets" ] );
         add_action( "admin_footer-post-new.php", [ $this, "footer_assets" ] );
-        add_action( "wp_ajax_" . self::ACTION_STATUS, [ $this, "ajax_status" ] );
+        ( new AjaxActionRegistry(
+            [
+                'capability'   => '',
+                'nonce_action' => Ajax::NONCE,
+                'nonce_field'  => 'nonce',
+            ]
+        ) )->register(
+            [
+                self::ACTION_STATUS => [ 'callback' => [ $this, 'ajax_status' ] ],
+            ]
+        );
     }
 
     public function render( \WP_Post $post ): void {
@@ -202,21 +215,21 @@ final class GoingLiveChecklist {
         <?php
     }
 
-    public function ajax_status(): void {
-        $post_id = isset( $_POST["post_id"] ) ? absint( $_POST["post_id"] ) : 0;
-        if ( ! $post_id || ! current_user_can( "edit_post", $post_id ) || ! check_ajax_referer( Ajax::NONCE, "nonce", false ) ) {
-            wp_send_json_error( [ "message" => "Not allowed." ], 403 );
+    public function ajax_status( AjaxRequest $request ): array {
+        $post_id = $request->int( 'post_id', 0, 'post' );
+        if ( ! $post_id || ! current_user_can( 'edit_post', $post_id ) ) {
+            throw new AjaxFailure( 'Not allowed.', 403, 'forbidden' );
         }
         $post = get_post( $post_id );
         if ( ! $post || ! $this->supports_post( $post ) ) {
-            wp_send_json_error( [ "message" => "Unsupported post." ], 400 );
+            throw AjaxFailure::bad_request( 'Unsupported post.' );
         }
 
         $items = [];
         foreach ( $this->items_for_post( $post ) as $item ) {
             $items[ $item["key"] ] = $this->status_for_item( $item["key"], $post );
         }
-        wp_send_json_success( [ "items" => $items ] );
+        return [ 'items' => $items ];
     }
 
     private function supports_post( \WP_Post $post ): bool {

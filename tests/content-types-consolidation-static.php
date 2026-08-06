@@ -10,7 +10,7 @@ $fail = static function ( string $message ): never {
 };
 
 $registry = $read( 'src/Content/PublicationContentTypes.php' );
-$bootstrap = $read( 'src/Bootstrap/Plugin.php' );
+$bootstrap = $read( 'src/Runtime/Plugin.php' );
 $schema = $read( 'src/StructuredData/SchemaManager.php' );
 $fields = $read( 'src/Support/Fields.php' );
 $shortcodes = $read( 'src/Content/Shortcodes.php' );

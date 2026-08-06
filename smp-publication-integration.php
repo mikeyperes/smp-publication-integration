@@ -4,7 +4,7 @@
  * Description: Publication profile integration for Scale My Publication systems.
  * Author: Michael Peres
  * Plugin URI: https://github.com/mikeyperes/smp-publication-integration
- * Version: 1.0.27
+ * Version: 2.0.0
  * Text Domain: smp-publication-integration
  * Domain Path: /languages
  * Author URI: https://michaelperes.com
@@ -70,7 +70,7 @@ require_once __DIR__ . "/src/Admin/UiCleanup.php";
 require_once __DIR__ . "/src/Admin/Dashboard.php";
 
 final class Config {
-    public const VERSION = "1.0.27";
+    public const VERSION = "2.0.0";
 
     public static string $plugin_name        = 'SMP Publication Integration';
     public static string $plugin_slug        = 'smp-publication-integration';
@@ -95,72 +95,18 @@ add_action( 'smpi_refresh_schema_detection_report', [ Admin\Dashboard::class, 'r
 add_action( 'smpi_refresh_github_version', [ Support\PluginRegistry::class, 'refresh_github_version' ], 10, 2 );
 
 function hexa_plugin_core_updater_config(): \Hexa\PluginCore\PluginUpdates\UpdaterConfig {
-    static $config = null;
-
-    if ( $config instanceof \Hexa\PluginCore\PluginUpdates\UpdaterConfig ) {
-        return $config;
-    }
-
-    $config = \Hexa\PluginCore\PluginUpdates\UpdaterConfig::from_plugin_file(
-        __FILE__,
-        Config::$github_repo,
-        [
-            'plugin_slug'               => Config::$plugin_folder_name,
-            'proper_folder_name'        => Config::$plugin_folder_name,
-            'runtime_folder_name'       => Config::$plugin_folder_name,
-            'plugin_basename'           => Config::plugin_basename(),
-            'canonical_plugin_basename' => Config::$plugin_folder_name . '/' . Config::$plugin_file,
-            'plugin_starter_file'       => Config::$plugin_file,
-            'github_branch'             => Config::$github_branch,
-            'requires'                  => '5.0',
-            'tested'                    => '7.0',
-            'requires_php'              => '8.1',
-            'nonce_action'              => Admin\Ajax::NONCE,
-            'nonce_param'               => 'nonce',
-            'ajax_action_prefix'        => 'smpi_core_updater',
-            'progress_key'              => 'smpi_core_update_progress',
-        ]
-    );
-
-    return $config;
+    return \SMP\PublicationIntegration\Infrastructure\Updates::plugin_config();
 }
 
 function hexa_plugin_core_package_config(): \Hexa\PluginCore\CorePackageUpdates\CorePackageConfig {
-    static $config = null;
-
-    if ( $config instanceof \Hexa\PluginCore\CorePackageUpdates\CorePackageConfig ) {
-        return $config;
-    }
-
-    $config = \Hexa\PluginCore\CorePackageUpdates\CorePackageConfig::from_core_root(
-        __DIR__ . '/lib/hexa-wordpress-plugin-core',
-        [
-            'github_repo'        => 'mikeyperes/hexa-wordpress-plugin-core',
-            'github_branch'      => 'main',
-            'nonce_action'       => Admin\Ajax::NONCE,
-            'nonce_param'        => 'nonce',
-            'ajax_action_prefix' => 'smpi_core_package',
-            'cache_key'          => 'smpi_hexa_plugin_core_package',
-        ]
-    );
-
-    return $config;
+    return \SMP\PublicationIntegration\Infrastructure\Updates::core_config();
 }
-
-function boot_github_updater(): void {
-    if ( ! is_admin() && ! wp_doing_ajax() && ! wp_doing_cron() && ! ( defined( 'WP_CLI' ) && WP_CLI ) ) {
-        return;
-    }
-
-    ( new \Hexa\PluginCore\PluginUpdates\GitHubPluginUpdater( hexa_plugin_core_updater_config() ) )->register();
-}
-add_action( 'plugins_loaded', __NAMESPACE__ . '\\boot_github_updater', 20 );
 
 function boot_plugin(): void {
     static $plugin = null;
 
-    if ( ! $plugin instanceof Bootstrap\Plugin ) {
-        $plugin = new Bootstrap\Plugin();
+    if ( ! $plugin instanceof \SMP\PublicationIntegration\Runtime\Plugin ) {
+        $plugin = new \SMP\PublicationIntegration\Runtime\Plugin();
     }
 
     $plugin->boot();

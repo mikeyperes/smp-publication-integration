@@ -16,17 +16,19 @@ final class Autoloader {
         $base_dir = rtrim( $base_dir, '/\\' ) . DIRECTORY_SEPARATOR;
         spl_autoload_register(
             static function( string $class_name ) use ( $base_dir ): void {
-                $prefix = 'smp_publication_integration\\';
+                foreach ( [ 'smp_publication_integration\\', 'SMP\\PublicationIntegration\\' ] as $prefix ) {
+                    if ( strncmp( $class_name, $prefix, strlen( $prefix ) ) !== 0 ) {
+                        continue;
+                    }
 
-                if ( strncmp( $class_name, $prefix, strlen( $prefix ) ) !== 0 ) {
+                    $relative = substr( $class_name, strlen( $prefix ) );
+                    $path     = $base_dir . str_replace( '\\', DIRECTORY_SEPARATOR, $relative ) . '.php';
+
+                    if ( is_readable( $path ) ) {
+                        require_once $path;
+                    }
+
                     return;
-                }
-
-                $relative = substr( $class_name, strlen( $prefix ) );
-                $path     = $base_dir . str_replace( '\\', DIRECTORY_SEPARATOR, $relative ) . '.php';
-
-                if ( is_readable( $path ) ) {
-                    require_once $path;
                 }
             }
         );
@@ -34,4 +36,3 @@ final class Autoloader {
         $registered = true;
     }
 }
-

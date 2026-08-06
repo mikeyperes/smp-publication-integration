@@ -1,6 +1,8 @@
 <?php
 namespace smp_publication_integration\Content;
 
+use Hexa\PluginCore\WpAdminAjax\AjaxActionRegistry;
+use Hexa\PluginCore\WpAdminAjax\AjaxRequest;
 use smp_publication_integration\Admin\Ajax;
 use smp_publication_integration\Support\Settings;
 
@@ -15,7 +17,17 @@ final class PostHygiene {
         add_filter( "smpi_dashboard_tabs", [ $this, "tabs" ] );
         add_filter( "smpi_render_dashboard_tab", [ $this, "render_tab" ], 10, 2 );
         add_filter( "wp_insert_post_data", [ $this, "sanitize_post_data" ], 20, 2 );
-        add_action( "wp_ajax_smpi_post_hygiene_preview", [ $this, "preview" ] );
+        ( new AjaxActionRegistry(
+            [
+                'capability'   => 'manage_options',
+                'nonce_action' => Ajax::NONCE,
+                'nonce_field'  => 'nonce',
+            ]
+        ) )->register(
+            [
+                'smpi_post_hygiene_preview' => [ 'callback' => [ $this, 'preview' ] ],
+            ]
+        );
         add_action( "admin_footer", [ $this, "admin_footer_script" ] );
     }
 
@@ -153,12 +165,10 @@ final class PostHygiene {
         return trim( $html );
     }
 
-    public function preview(): void {
-        if ( ! current_user_can( "manage_options" ) || ! check_ajax_referer( Ajax::NONCE, "nonce", false ) ) {
-            wp_send_json_error( [ "message" => "Not allowed." ], 403 );
-        }
-        $html = isset( $_POST["html"] ) ? wp_unslash( (string) $_POST["html"] ) : "";
-        wp_send_json_success( [ "html" => self::sanitize_html( $html ) ] );
+    public function preview( AjaxRequest $request ): array {
+        $html = $request->raw( 'html', '', 'post' );
+
+        return [ 'html' => self::sanitize_html( is_scalar( $html ) ? (string) $html : '' ) ];
     }
 
     public function admin_footer_script(): void {

@@ -31,13 +31,14 @@ The package version is stored in the root `VERSION` file. Root `bootstrap.php` s
 | `src/BrandColors/` | `Hexa\PluginCore\BrandColors` | HWS brand color readers plus safe Elementor color and font-source discovery and resolution. |
 | `src/BrandProfiles/` | `Hexa\PluginCore\BrandProfiles` | Normalized public domain, identity, logo, color, and support-email values. |
 | `src/CoreBootstrap/` | `Hexa\PluginCore\CoreBootstrap` | Core setup, module registration, and lifecycle. |
-| `src/CoreContracts/` | `Hexa\PluginCore\CoreContracts` | Interfaces shared across modules and host plugins. |
-| `src/CorePackageUpdates/` | `Hexa\PluginCore\CorePackageUpdates` | Vendored Hexa WordPress Plugin Core version checks and package update UI. |
+| `src/CoreContracts/` | `Hexa\PluginCore\CoreContracts` | Interfaces and the generic legacy `register()` adapter shared across modules and host plugins. |
+| `src/CorePackageUpdates/` | `Hexa\PluginCore\CorePackageUpdates` | Vendored Core checks, update UI, explicit fleet downloads, and automatic verified local fleet synchronization after plugin lifecycle changes. |
 | `src/CoreRuntime/` | `Hexa\PluginCore\CoreRuntime` | Shared value objects and small helpers. |
 | `src/ContentCleanup/` | `Hexa\PluginCore\ContentCleanup` | Old content detection, filterable WordPress content scans, guarded trash/delete actions, AJAX table updates, and live cleanup activity logs. |
 | `src/ContentTypes/` | `Hexa\PluginCore\ContentTypes` | Immutable-key CPT definitions, settings, registration, ACF integration, AJAX, and management UI. |
 | `src/CredentialVault/` | `Hexa\PluginCore\CredentialVault` | Encrypted credential/API-key storage, masking, and credential field examples. |
 | `src/DatabaseCleanup/` | `Hexa\PluginCore\DatabaseCleanup` | Provider-backed database cleanup sessions and table optimization. |
+| `src/DataNormalization/` | `Hexa\PluginCore\DataNormalization` | Generic scalar, ACF/meta field, and WordPress media normalization. |
 | `src/EntitySources/` | `Hexa\PluginCore\EntitySources` | Optional canonical entity settings, user/post resolution, attached-user extraction, migration, inspection, AJAX, and UI. |
 | `src/FieldStructures/` | `Hexa\PluginCore\FieldStructures` | ACF group registration, toggles, settings panels, AJAX, and reusable field-structure displays. |
 | `src/FrontendForms/` | `Hexa\PluginCore\FrontendForms` | Canonical public form-field schemas, WYSIWYG sanitization, and plain-text projection. |
@@ -45,6 +46,7 @@ The package version is stored in the root `VERSION` file. Root `bootstrap.php` s
 | `src/GettingStartedChecklist/` | `Hexa\PluginCore\GettingStartedChecklist` | Reusable getting-started checklist config, step/subtask definitions, guarded AJAX runner, sequential setup UI, and technical activity logs. |
 | `src/IntegrationTests/` | `Hexa\PluginCore\IntegrationTests` | Core/host release assertions, deterministic runner, protected HTML/JSON endpoint, and detailed pass/fail report UI. |
 | `src/LogFiles/` | `Hexa\PluginCore\LogFiles` | Error-log sources, readers, classifiers, and reusable viewer panels. |
+| `src/LiteSpeedCache/` | `Hexa\PluginCore\LiteSpeedCache` | Host-declared profiles, generic audit/apply/verify, and the official LiteSpeed Conf adapter. |
 | `src/MediaUploads/` | `Hexa\PluginCore\MediaUploads` | Reusable image validation and guarded WordPress Media Library storage. |
 | `src/ObjectCache/` | `Hexa\PluginCore\ObjectCache` | Object-cache provider status and activation adapters. |
 | `src/PluginProvisioning/` | `Hexa\PluginCore\PluginProvisioning` | Plugin discovery, status checks, WordPress.org installs, GitHub ZIP installs, folder normalization, and activation. |
@@ -67,6 +69,7 @@ The package version is stored in the root `VERSION` file. Root `bootstrap.php` s
 | `src/WpAdminTabs/` | `Hexa\PluginCore\WpAdminTabs` | Admin tab definitions, registries, rendering contracts, and the automatic core tab. |
 | `src/WpConfigFile/` | `Hexa\PluginCore\WpConfigFile` | Safe wp-config.php constant and ini_set reads/writes with validation and rollback backup handling. |
 | `src/WpCronTasks/` | `Hexa\PluginCore\WpCronTasks` | WP-Cron interval registration, scheduling, unscheduling, event inspection, and health status payloads. |
+| `src/WordPressOperations/` | `Hexa\PluginCore\WordPressOperations` | Native WordPress update, auto-update policy, discussion/comment, and permalink status/action services. |
 
 ## Naming Rules
 
