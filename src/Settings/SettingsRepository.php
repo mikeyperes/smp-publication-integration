@@ -95,6 +95,9 @@ class SettingsRepository {
             'author_listing_hide_without_articles' => false,
             'author_listing_hide_without_featured_image' => false,
             'author_listing_show_press_releases' => true,
+            'author_archive_loading_enabled' => false,
+            'author_archive_loading_mode' => 'pagination',
+            'author_archive_loading_style' => 'none',
             'press_release_include_enabled' => true,
             'press_release_include_contexts' => [ 'home', 'category_tag', 'single_recent' ],
             'post_summary_acf_enabled' => false,
@@ -575,6 +578,8 @@ class SettingsRepository {
                 "article_drop_cap_script_font" => [ "dancing-script", "great-vibes", "parisienne", "pinyon-script", "allura" ],
                 "author_social_style" => [ "social-solid", "social-outline", "social-soft", "social-pills", "social-minimal", "unstyled" ],
                 "author_social_archive_position" => [ "below_name", "below_title", "below_image", "below_bio" ],
+                "author_archive_loading_mode" => [ "pagination", "infinite_scroll", "load_more" ],
+                "author_archive_loading_style" => [ "none", "editorial_text", "accent_underline", "hairline_outline", "solid_accent", "soft_pill" ],
                 "inline_photo_treatment" => [ "none", "fig1", "fig2", "fig4", "fig5" ],
                 "featured_image_caption_template" => [ "none", "fig1", "fig2", "fig4", "fig5" ],
                 "post_summary_style" => [ "unstyled", "none", "sum00", "sum01", "sum02", "sum03", "sum04", "sum05" ],
@@ -604,7 +609,7 @@ class SettingsRepository {
                 continue;
             }
 
-            if ( in_array( $key, [ 'founders_enabled', 'shadow_posts_enabled', 'shadow_press_releases', 'post_list_defaults_enabled', 'hide_home_posts_without_featured_image', 'post_featured_image_required', 'author_social_cleanup', 'author_social_icons_enabled', 'public_debug_enabled', 'estimated_read_time_enabled', 'elementor_css_cache_busting', 'elementor_primary_category_enabled', 'elementor_primary_category_exclude_default', 'publication_social_cleanup', 'muckrack_verified_enabled', 'muckrack_author_always_show', 'publication_muckrack_verified_enabled', 'multi_authors_enabled', 'multi_authors_disable_loop_cards', 'author_listing_hide_without_articles', 'author_listing_hide_without_featured_image', 'author_listing_show_press_releases', 'press_release_include_enabled', 'post_summary_acf_enabled', 'post_faqs_acf_enabled', 'article_types_enabled', 'breadcrumbs_enabled', 'breadcrumbs_hide_home', 'breadcrumbs_hide_term_archives', 'table_of_contents_enabled', 'table_of_contents_auto_single', 'table_of_contents_include_summary', 'article_numbered_lists_enabled', 'article_drop_cap_enabled', 'rank_math_breadcrumb_check_enabled', 'hws_masked_admin_report_enabled', "content_generation_enabled", "post_hygiene_enabled", "post_hygiene_strip_inline_styles", "post_hygiene_unwrap_spans", "post_hygiene_remove_font_tags", "post_hygiene_strip_classes_ids", "post_hygiene_strip_empty_tags", "post_hygiene_clean_heading_children" ], true ) ) {
+            if ( in_array( $key, [ 'founders_enabled', 'shadow_posts_enabled', 'shadow_press_releases', 'post_list_defaults_enabled', 'hide_home_posts_without_featured_image', 'post_featured_image_required', 'author_social_cleanup', 'author_social_icons_enabled', 'public_debug_enabled', 'estimated_read_time_enabled', 'elementor_css_cache_busting', 'elementor_primary_category_enabled', 'elementor_primary_category_exclude_default', 'publication_social_cleanup', 'muckrack_verified_enabled', 'muckrack_author_always_show', 'publication_muckrack_verified_enabled', 'multi_authors_enabled', 'multi_authors_disable_loop_cards', 'author_listing_hide_without_articles', 'author_listing_hide_without_featured_image', 'author_listing_show_press_releases', 'author_archive_loading_enabled', 'press_release_include_enabled', 'post_summary_acf_enabled', 'post_faqs_acf_enabled', 'article_types_enabled', 'breadcrumbs_enabled', 'breadcrumbs_hide_home', 'breadcrumbs_hide_term_archives', 'table_of_contents_enabled', 'table_of_contents_auto_single', 'table_of_contents_include_summary', 'article_numbered_lists_enabled', 'article_drop_cap_enabled', 'rank_math_breadcrumb_check_enabled', 'hws_masked_admin_report_enabled', "content_generation_enabled", "post_hygiene_enabled", "post_hygiene_strip_inline_styles", "post_hygiene_unwrap_spans", "post_hygiene_remove_font_tags", "post_hygiene_strip_classes_ids", "post_hygiene_strip_empty_tags", "post_hygiene_clean_heading_children" ], true ) ) {
                 $settings[ $key ] = (bool) $value;
                 continue;
             }

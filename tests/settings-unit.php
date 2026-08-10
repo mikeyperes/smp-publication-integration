@@ -172,6 +172,28 @@ if ( 'unstyled' !== $settings['table_of_contents_style'] || 'unstyled' !== $sett
 }
 
 $settings = Settings::update( [
+    'author_archive_loading_enabled' => true,
+    'author_archive_loading_mode' => 'infinite_scroll',
+    'author_archive_loading_style' => 'hairline_outline',
+] );
+if ( ! $settings['author_archive_loading_enabled']
+    || 'infinite_scroll' !== $settings['author_archive_loading_mode']
+    || 'hairline_outline' !== $settings['author_archive_loading_style']
+) {
+    fwrite( STDERR, "FAIL: Valid author archive loading settings were not normalized and saved.\n" );
+    exit( 1 );
+}
+
+$settings = Settings::update( [
+    'author_archive_loading_mode' => 'custom-javascript',
+    'author_archive_loading_style' => 'theme-global',
+] );
+if ( 'pagination' !== $settings['author_archive_loading_mode'] || 'none' !== $settings['author_archive_loading_style'] ) {
+    fwrite( STDERR, "FAIL: Invalid author archive loading settings did not restore safe native defaults.\n" );
+    exit( 1 );
+}
+
+$settings = Settings::update( [
     'post_summary_background_mode' => 'custom',
     'post_summary_background_color' => '#F0E1D2',
 ] );

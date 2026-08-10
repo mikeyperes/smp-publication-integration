@@ -37,6 +37,7 @@ use smp_publication_integration\Admin\Navigation\AdminNavigation;
 use smp_publication_integration\Config;
 use smp_publication_integration\Content\AcfFields;
 use smp_publication_integration\Content\AuthorSocialIcons;
+use smp_publication_integration\Content\AuthorArchiveLoading;
 use smp_publication_integration\Content\Breadcrumbs;
 use smp_publication_integration\Content\MuckRackVerification;
 use smp_publication_integration\Content\MultiAuthors;
@@ -3067,6 +3068,7 @@ HTML;
         $settings = Settings::all();
         echo "<div class=\"smpi-panel\"><h2>Authors</h2><p>Manage author listing pages, author archives, and multiple-author article output.</p></div>";
         echo $this->author_listing_settings_html();
+        echo $this->author_archive_loading_settings_html();
         echo $this->multi_author_debug_module_html();
         $this->feature_card( "Multiple post authors", "multi_authors_enabled", "Registers one ACF multi-user field on supported article editors: <code>" . esc_html( MultiAuthors::FIELD_NAME ) . "</code>. It is not a repeater.", "Use <code>smp-author</code> on the exact Elementor author unit that should repeat. The legacy class <code>smpi-author-module</code> remains supported as a fallback. If no class is present, SMP still tries the older author-link byline fallback for loop/card output.", "[smp_post_authors]
 [smp_post_authors format=\"links\"]
@@ -3084,6 +3086,76 @@ HTML;
             . $this->inline_toggle_setting_html( "author_listing_hide_without_featured_image", "Hide members without a featured image" )
             . $this->inline_toggle_setting_html( "author_listing_show_press_releases", "Show press releases attached to the author" )
             . '</div></section>';
+    }
+
+    private function author_archive_loading_settings_html(): string {
+        $settings = Settings::all();
+        $mode_options = [
+            AuthorArchiveLoading::MODE_PAGINATION => [
+                'label' => 'Pagination',
+                'description' => 'Reloads the archive with numbered pages plus Previous and Next links.',
+                'preview' => '<span class="smpi-author-mode-preview"><span>Previous</span><b>1</b><span>2</span><span>3</span><span>Next</span></span>',
+            ],
+            AuthorArchiveLoading::MODE_INFINITE_SCROLL => [
+                'label' => 'Infinite scroll',
+                'description' => 'Uses Elementor Pro to fetch the next page automatically near the end of the loop.',
+                'preview' => '<span class="smpi-author-mode-preview"><span class="smpi-author-mode-dots">● ● ●</span><span>Loads automatically</span></span>',
+            ],
+            AuthorArchiveLoading::MODE_LOAD_MORE => [
+                'label' => 'Load more button',
+                'description' => 'Keeps visitors in control and uses Elementor Pro AJAX to append the next page.',
+                'preview' => '<span class="smpi-author-mode-preview"><b>Load more articles</b></span>',
+            ],
+        ];
+        $style_options = [
+            AuthorArchiveLoading::STYLE_NONE => [
+                'label' => 'No style',
+                'description' => 'Elementor and element-level Custom CSS remain the only presentation owners.',
+                'preview' => AuthorArchiveLoading::preview_html( AuthorArchiveLoading::STYLE_NONE ),
+            ],
+            AuthorArchiveLoading::STYLE_EDITORIAL_TEXT => [
+                'label' => 'Editorial Text',
+                'description' => 'Transparent text controls with a restrained underline for hover and current states.',
+                'preview' => AuthorArchiveLoading::preview_html( AuthorArchiveLoading::STYLE_EDITORIAL_TEXT ),
+            ],
+            AuthorArchiveLoading::STYLE_ACCENT_UNDERLINE => [
+                'label' => 'Accent Underline',
+                'description' => 'Minimal text controls with a two-pixel publication-accent rule.',
+                'preview' => AuthorArchiveLoading::preview_html( AuthorArchiveLoading::STYLE_ACCENT_UNDERLINE ),
+            ],
+            AuthorArchiveLoading::STYLE_HAIRLINE_OUTLINE => [
+                'label' => 'Hairline Outline',
+                'description' => 'Quiet one-pixel borders, two-pixel corners, and no inherited button shadow.',
+                'preview' => AuthorArchiveLoading::preview_html( AuthorArchiveLoading::STYLE_HAIRLINE_OUTLINE ),
+            ],
+            AuthorArchiveLoading::STYLE_SOLID_ACCENT => [
+                'label' => 'Solid Accent',
+                'description' => 'A compact publication-color action; numbered pagination fills only the current page.',
+                'preview' => AuthorArchiveLoading::preview_html( AuthorArchiveLoading::STYLE_SOLID_ACCENT ),
+            ],
+            AuthorArchiveLoading::STYLE_SOFT_PILL => [
+                'label' => 'Soft Pill',
+                'description' => 'A subtle soft-surface treatment with rounded controls and a defined current state.',
+                'preview' => AuthorArchiveLoading::preview_html( AuthorArchiveLoading::STYLE_SOFT_PILL ),
+            ],
+        ];
+        $structure = '<div class="smpi-author-loading-structure"><h3>Stable Elementor wrapper structure</h3>'
+            . '<p>The plugin changes Elementor Pro control values and adds scoped classes to the real Loop Grid. Elementor continues to own its query, AJAX anchor, live message, and accessible pagination markup.</p>'
+            . '<pre class="smpi-code">&lt;div class="elementor-widget-loop-grid smpi-author-loading\n'
+            . '  smpi-author-loading--mode-{pagination|infinite_scroll|load_more}\n'
+            . '  smpi-author-loading--style-{selected-style}"&gt;\n'
+            . '  &lt;div class="elementor-widget-container"&gt;...Elementor native controls...&lt;/div&gt;\n'
+            . '&lt;/div&gt;</pre></div>';
+
+        return '<section class="smpi-panel smpi-author-loading-settings"><h2>Author archive post loading</h2>'
+            . '<p>Choose one native Elementor Pro loading method for current-query post loops on author archives. Disable this feature to leave every Loop Grid setting untouched.</p>'
+            . $this->inline_toggle_setting_html( 'author_archive_loading_enabled', 'Enable author archive loading override' )
+            . $this->select_setting_html( 'author_archive_loading_mode', $mode_options, $settings, 'Loading method' )
+            . $this->select_setting_html( 'author_archive_loading_style', $style_options, $settings, 'Minimalist design' )
+            . $structure
+            . '<style id="smpi-author-loading-preview-css">' . AuthorArchiveLoading::preview_css()
+            . '.smpi-author-mode-preview{align-items:center;display:flex;flex-wrap:wrap;gap:8px;min-height:42px}.smpi-author-mode-preview span,.smpi-author-mode-preview b{font-size:12px}.smpi-author-mode-preview b{border:1px solid #e5e1dd;border-radius:2px;padding:8px 10px}.smpi-author-mode-dots{color:#923131;letter-spacing:3px}.smpi-author-loading-structure{border-top:1px solid #e6eaf0;margin-top:16px;padding-top:16px}.smpi-author-loading-structure h3{margin-top:0}'
+            . '</style></section>';
     }
 
     private function multi_author_controls_html( array $settings ): string {

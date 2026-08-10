@@ -109,6 +109,7 @@ final class Plugin {
             new Content\AuthorShortcodes(),
             new Content\AuthorSocialIcons(),
             new Content\AuthorListings(),
+            new Content\AuthorArchiveLoading(),
             new Content\Schema(),
             new Content\ArticleTypes(),
             new Content\Visibility(),

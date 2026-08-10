@@ -8,7 +8,7 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `2.0.3`
+- Version: `2.0.4`
 
 ## Ownership
 
@@ -97,6 +97,11 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.0.4
+
+- Added an opt-in author-archive loading policy that maps pagination, infinite scroll, or load-more selection to Elementor Pro's native current-query Loop Grid controls.
+- Added five scoped minimalist loading-control designs plus a true No Style option, with backend visual previews and stable wrapper class documentation.
 
 ### 2.0.3
 
