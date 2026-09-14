@@ -8,7 +8,7 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `2.0.4`
+- Version: `2.0.5`
 
 ## Ownership
 
@@ -97,6 +97,11 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.0.5
+
+- Added the public `/wp-json/smpi/v1/publication-manifest` endpoint for sanitized publication identity, Elementor homepage structure and query categories, taxonomy policy, recent content, authors, publishing requirements, media, SEO, schema, and delivery capability data.
+- Added deterministic manifest caching, invalidation hooks, ETags, fingerprints, and reserved/excluded taxonomy policy so downstream campaign setup can collect publication data without AI calls or HTML guessing.
 
 ### 2.0.4
 
