@@ -199,6 +199,19 @@ expect_manifest( 10 === count( $homepage['campaign_categories'] ), 'Digital Maga
 expect_manifest( ! in_array( 9999, array_column( $homepage['categories'], 'id' ), true ), 'Menu/header taxonomy references must be excluded.' );
 expect_manifest( in_array( 1496, array_column( $homepage['categories'], 'id' ), true ), 'Elementor category:ID query tokens must resolve.' );
 
+$loop_widget = static fn( string $id, string $type, array $settings ): array => [
+    'id'       => 'section-' . $id,
+    'elType'   => 'container',
+    'settings' => [ '_title' => 'Loop ' . $id ],
+    'elements' => [ [ 'id' => $id, 'elType' => 'widget', 'widgetType' => $type, 'settings' => $settings, 'elements' => [] ] ],
+];
+$loop_ids = static fn( array $elements ): array => array_column( ( new HomepageCollector() )->collect_from_elements( 43, $elements )['categories'], 'id' );
+// CAMPAIGN-BUG-008: Elementor Pro loop query controls store plain term IDs.
+expect_manifest( [ 1496 ] === $loop_ids( [ $loop_widget( 'grid', 'loop-grid', [ 'post_query_include' => [ 'terms' ], 'post_query_include_term_ids' => [ '1496' ] ] ) ] ), 'Loop Grid include term IDs must resolve.' );
+expect_manifest( [ 1496 ] === $loop_ids( [ $loop_widget( 'carousel', 'loop-carousel', [ 'post_query_include' => [ 'terms' ], 'post_query_include_term_ids' => [ '1496' ] ] ) ] ), 'Loop Carousel include term IDs must resolve.' );
+expect_manifest( [] === $loop_ids( [ $loop_widget( 'off', 'loop-grid', [ 'post_query_include' => [], 'post_query_include_term_ids' => [ '1496' ] ] ) ] ), 'Term IDs without the terms include mode must be ignored.' );
+expect_manifest( [] === $loop_ids( [ $loop_widget( 'exclude', 'loop-grid', [ 'post_query_exclude_term_ids' => [ '1496' ] ] ) ] ), 'Excluded term IDs must not become categories.' );
+
 $digital_magazine = current( array_filter( $homepage['categories'], static fn( array $category ): bool => 7548 === $category['id'] ) );
 expect_manifest( is_array( $digital_magazine ) && 'reserved' === $digital_magazine['campaign_policy']['status'], 'Digital Magazine must be marked reserved.' );
 

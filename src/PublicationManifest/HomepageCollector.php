@@ -173,6 +173,7 @@ final class HomepageCollector {
         $references = [];
         $this->find_taxonomy_clauses( $settings, $references );
         $this->find_elementor_term_tokens( $settings, $references );
+        $this->find_elementor_query_include_terms( $settings, $references );
 
         $unique = [];
         foreach ( $references as $reference ) {
@@ -234,6 +235,37 @@ final class HomepageCollector {
         }
     }
 
+    /**
+     * CRITICAL — see laravel-hexa-app-publish BUGLOG.md CAMPAIGN-BUG-008.
+     * Elementor Pro Loop Grid and Loop Carousel query controls store plain term
+     * IDs in `<prefix>_include_term_ids`, applied only when `<prefix>_include`
+     * selects "terms". Without this, those homepages report no categories.
+     * Exclusion lists (`_exclude_term_ids`) are intentionally ignored.
+     *
+     * @param array<string,mixed> $settings
+     * @param array<int,array{taxonomy:string,field:string,terms:array<int,string|int>}> $references
+     */
+    private function find_elementor_query_include_terms( array $settings, array &$references ): void {
+        foreach ( $settings as $key => $value ) {
+            if ( ! is_string( $key ) || ! preg_match( '/^(.+)_include_term_ids$/', $key, $match ) ) {
+                continue;
+            }
+            $include = $settings[ $match[1] . '_include' ] ?? null;
+            if ( null !== $include && ! in_array( 'terms', (array) $include, true ) ) {
+                continue;
+            }
+            // `category:ID` tokens are handled by find_elementor_term_tokens(); absint() drops them here.
+            $ids = array_values( array_filter( array_map( 'absint', (array) $value ) ) );
+            if ( ! empty( $ids ) ) {
+                $references[] = [
+                    'taxonomy' => 'category',
+                    'field'    => 'term_id',
+                    'terms'    => $ids,
+                ];
+            }
+        }
+    }
+
     /** @return array<int,string|int> */
     private function normalize_terms( $terms ): array {
         if ( is_string( $terms ) ) {
@@ -275,7 +307,7 @@ final class HomepageCollector {
         if ( '' === $widget_type ) {
             return false;
         }
-        return in_array( $widget_type, [ 'posts', 'loop-grid', 'archive-posts', 'jet-listing-grid', 'jet-smart-listing', 'dynamic-posts-base' ], true )
+        return in_array( $widget_type, [ 'posts', 'loop-grid', 'archive-posts', 'jet-listing-grid', 'jet-smart-listing', 'dynamic-posts-base', 'loop-carousel' ], true )
             || str_contains( $widget_type, 'post-list' );
     }
 
