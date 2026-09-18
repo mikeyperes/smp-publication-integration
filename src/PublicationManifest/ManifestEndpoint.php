@@ -4,11 +4,11 @@ declare( strict_types=1 );
 
 namespace SMP\PublicationIntegration\PublicationManifest;
 
+use smp_publication_integration\Config;
+
 defined( 'ABSPATH' ) || exit;
 
 final class ManifestEndpoint {
-    private const CACHE_KEY = 'smpi_publication_manifest_v1';
-
     private ManifestBuilder $builder;
 
     public function __construct( ?ManifestBuilder $builder = null ) {
@@ -57,10 +57,10 @@ final class ManifestEndpoint {
     }
 
     public function render( \WP_REST_Request $request ): \WP_REST_Response {
-        $manifest = get_transient( self::CACHE_KEY );
+        $manifest = get_transient( self::cache_key() );
         if ( ! is_array( $manifest ) || empty( $manifest['meta']['fingerprint'] ) ) {
             $manifest = $this->builder->build();
-            set_transient( self::CACHE_KEY, $manifest, self::cache_ttl() );
+            set_transient( self::cache_key(), $manifest, self::cache_ttl() );
         }
 
         $etag    = '"' . (string) $manifest['meta']['fingerprint'] . '"';
@@ -79,7 +79,7 @@ final class ManifestEndpoint {
     }
 
     public function invalidate( ...$unused ): void {
-        delete_transient( self::CACHE_KEY );
+        delete_transient( self::cache_key() );
     }
 
     public function invalidate_term( int $term_id = 0, int $term_taxonomy_id = 0, string $taxonomy = '', ...$unused ): void {
@@ -95,5 +95,9 @@ final class ManifestEndpoint {
             $ttl = (int) apply_filters( 'smpi_publication_manifest_cache_ttl', $ttl );
         }
         return max( 300, min( 3600, $ttl ) );
+    }
+
+    private static function cache_key(): string {
+        return 'smpi_publication_manifest_v1_' . str_replace( '.', '_', Config::VERSION );
     }
 }

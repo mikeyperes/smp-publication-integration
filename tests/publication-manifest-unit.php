@@ -7,6 +7,7 @@ define( 'ABSPATH', dirname( __DIR__ ) . '/' );
 $GLOBALS['smpi_manifest_actions'] = [];
 $GLOBALS['smpi_manifest_route']   = [];
 $GLOBALS['smpi_manifest_terms']   = [];
+$GLOBALS['smpi_manifest_object_taxonomies'] = [ 'post' => [ 'category', 'post_tag' ] ];
 
 final class WP_Error {}
 final class WP_REST_Request {}
@@ -38,6 +39,24 @@ function get_term_link( object $term ): string {
 
 function is_wp_error( $value ): bool {
     return $value instanceof WP_Error;
+}
+
+function post_type_exists( string $post_type ): bool {
+    return 'post' === $post_type;
+}
+
+function get_object_taxonomies( string $post_type, string $output = 'names' ): array {
+    return $GLOBALS['smpi_manifest_object_taxonomies'][ $post_type ] ?? [];
+}
+
+function taxonomy_exists( string $taxonomy ): bool {
+    foreach ( $GLOBALS['smpi_manifest_object_taxonomies'] as $taxonomies ) {
+        if ( in_array( $taxonomy, $taxonomies, true ) ) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 function get_term( int $term_id, string $taxonomy ) {
@@ -119,6 +138,8 @@ foreach ( $term_fixtures as $id => [ $name, $slug ] ) {
 
 require_once dirname( __DIR__ ) . '/src/PublicationManifest/TaxonomyPolicy.php';
 require_once dirname( __DIR__ ) . '/src/PublicationManifest/HomepageCollector.php';
+require_once dirname( __DIR__ ) . '/src/Content/PublicationContentTypes.php';
+require_once dirname( __DIR__ ) . '/src/Content/ArticleTypes.php';
 require_once dirname( __DIR__ ) . '/src/PublicationManifest/WordPressCollector.php';
 require_once dirname( __DIR__ ) . '/src/PublicationManifest/PayloadSanitizer.php';
 require_once dirname( __DIR__ ) . '/src/PublicationManifest/ManifestBuilder.php';
@@ -127,6 +148,7 @@ require_once dirname( __DIR__ ) . '/src/PublicationManifest/ManifestEndpoint.php
 use SMP\PublicationIntegration\PublicationManifest\HomepageCollector;
 use SMP\PublicationIntegration\PublicationManifest\ManifestEndpoint;
 use SMP\PublicationIntegration\PublicationManifest\PayloadSanitizer;
+use SMP\PublicationIntegration\PublicationManifest\WordPressCollector;
 
 $category_queries = [
     [ 'name', 'trending' ],
@@ -229,6 +251,14 @@ expect_manifest( ! isset( $sanitized['publication']['support_email'] ), 'Email-b
 expect_manifest( ! str_contains( $sanitized['publication']['public_bio'], 'private@example.test' ), 'Email values must be redacted.' );
 expect_manifest( ! str_contains( $sanitized['publication']['public_bio'], '/home/example' ), 'Filesystem paths must be redacted.' );
 expect_manifest( ! isset( $sanitized['plugin_inventory'] ), 'Unapproved root fields must be removed.' );
+
+$wordpress = new WordPressCollector();
+expect_manifest( ! isset( $wordpress->schema_profile()['article_type_taxonomy'] ), 'Disabled article type taxonomy must not be advertised.' );
+$registered_taxonomies = new ReflectionMethod( $wordpress, 'registered_article_taxonomies' );
+expect_manifest( [ 'category', 'post_tag' ] === $registered_taxonomies->invoke( $wordpress ), 'Manifest must expose registered article taxonomies.' );
+$GLOBALS['smpi_manifest_object_taxonomies']['post'][] = 'smpi_article_type';
+expect_manifest( 'smpi_article_type' === $wordpress->schema_profile()['article_type_taxonomy'], 'Registered article type taxonomy must be advertised.' );
+expect_manifest( in_array( 'smpi_article_type', $registered_taxonomies->invoke( $wordpress ), true ), 'Delivery capabilities must include the registered article type taxonomy.' );
 
 $endpoint = new ManifestEndpoint();
 $endpoint->register_route();

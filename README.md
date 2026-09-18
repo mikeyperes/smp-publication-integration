@@ -8,7 +8,7 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `2.0.6`
+- Version: `2.0.7`
 
 ## Ownership
 
@@ -97,6 +97,11 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.0.7
+
+- Publication manifests now report only taxonomies registered for active article post types. The optional `smpi_article_type` capability is omitted when Article Types is disabled, preventing downstream publishers from attempting an unavailable taxonomy.
+- Manifest caches are version-scoped so an installed plugin update exposes the new capability payload immediately.
 
 ### 2.0.6
 

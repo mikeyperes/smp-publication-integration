@@ -4,6 +4,7 @@ declare( strict_types=1 );
 
 namespace SMP\PublicationIntegration\PublicationManifest;
 
+use smp_publication_integration\Content\ArticleTypes;
 use smp_publication_integration\Content\PublicationContentTypes;
 use smp_publication_integration\Support\Settings;
 
@@ -164,12 +165,7 @@ final class WordPressCollector {
             $supports = array_keys( get_all_post_type_supports( $post_type ) );
             sort( $supports );
 
-            $taxonomies = array_values(
-                array_intersect(
-                    [ 'category', 'post_tag' ],
-                    array_values( get_object_taxonomies( $post_type, 'names' ) )
-                )
-            );
+            $taxonomies = $this->post_type_taxonomies( $post_type );
 
             $records[] = [
                 'slug'        => $post_type,
@@ -196,7 +192,7 @@ final class WordPressCollector {
                 'enforced' => false,
                 'note'     => 'Word-count policy is campaign-owned and is not enforced by WordPress.',
             ],
-            'taxonomies'              => [ 'category', 'post_tag' ],
+            'taxonomies'              => $this->registered_article_taxonomies(),
             'default_category_id'     => (int) get_option( 'default_category', 0 ),
         ];
     }
@@ -251,22 +247,29 @@ final class WordPressCollector {
 
     /** @return array<string,mixed> */
     public function schema_profile(): array {
-        return [
-            'format'                => 'JSON-LD',
-            'article_types'         => [ 'Article', 'NewsArticle', 'BlogPosting' ],
-            'entity_types'          => [ 'Organization', 'Person', 'ImageObject' ],
-            'supporting_types'      => [ 'BreadcrumbList', 'FAQPage', 'WebSite', 'WebPage' ],
-            'article_type_taxonomy' => 'smpi_article_type',
+        $profile = [
+            'format'           => 'JSON-LD',
+            'article_types'    => [ 'Article', 'NewsArticle', 'BlogPosting' ],
+            'entity_types'     => [ 'Organization', 'Person', 'ImageObject' ],
+            'supporting_types' => [ 'BreadcrumbList', 'FAQPage', 'WebSite', 'WebPage' ],
         ];
+        if ( in_array( ArticleTypes::TAXONOMY, $this->registered_article_taxonomies(), true ) ) {
+            $profile['article_type_taxonomy'] = ArticleTypes::TAXONOMY;
+        }
+
+        return $profile;
     }
 
     /** @return array<string,mixed> */
     public function delivery_capabilities(): array {
+        $taxonomies = $this->registered_article_taxonomies();
+
         return [
             'rest_api'         => true,
             'post_types'       => array_column( $this->post_types(), 'slug' ),
-            'categories'       => true,
-            'tags'             => true,
+            'taxonomies'       => $taxonomies,
+            'categories'       => in_array( 'category', $taxonomies, true ),
+            'tags'             => in_array( 'post_tag', $taxonomies, true ),
             'authors'          => true,
             'featured_media'   => post_type_supports( 'post', 'thumbnail' ),
             'scheduled_posts'  => true,
@@ -312,6 +315,33 @@ final class WordPressCollector {
     /** @return array<int,string> */
     private function article_post_types(): array {
         return PublicationContentTypes::active_article_post_types();
+    }
+
+    /** @return array<int,string> */
+    private function registered_article_taxonomies(): array {
+        $taxonomies = [];
+        foreach ( $this->article_post_types() as $post_type ) {
+            $taxonomies = array_merge( $taxonomies, $this->post_type_taxonomies( $post_type ) );
+        }
+        $taxonomies = array_values( array_unique( $taxonomies ) );
+        sort( $taxonomies );
+
+        return $taxonomies;
+    }
+
+    /** @return array<int,string> */
+    private function post_type_taxonomies( string $post_type ): array {
+        $taxonomies = [];
+        foreach ( (array) get_object_taxonomies( $post_type, 'names' ) as $taxonomy ) {
+            $taxonomy = sanitize_key( (string) $taxonomy );
+            if ( '' !== $taxonomy && taxonomy_exists( $taxonomy ) ) {
+                $taxonomies[] = $taxonomy;
+            }
+        }
+        $taxonomies = array_values( array_unique( $taxonomies ) );
+        sort( $taxonomies );
+
+        return $taxonomies;
     }
 
     private function word_count( string $content ): int {
