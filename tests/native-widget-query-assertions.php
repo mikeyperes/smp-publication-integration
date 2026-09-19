@@ -20,9 +20,11 @@ $node = static fn( string $type, array $settings ): array => [ 'id' => 'native-q
 
 $one = $native->collect( $node( 'loop-grid', [ 'post_query_posts_per_page' => 1 ] ), 42 );
 expect_manifest( [ 8 ] === $one['category_ids'] && 1 === $GLOBALS['smpi_last_native_query']->get( 'posts_per_page' ), 'A one-card widget must not expand to the manifest maximum.' );
+expect_manifest( null === $one['warning'] && $GLOBALS['smpi_internal_lookup_unchanged'], 'Unrelated internal template queries must remain unchanged and must not falsely mark article evidence truncated.' );
 expect_manifest( 'publish' === $GLOBALS['smpi_last_native_query']->get( 'post_status' ), 'Public manifest queries must request only published posts.' );
 expect_manifest( $original_post === $GLOBALS['post'] && 'outer' === \Elementor\Plugin::$instance->documents->current, 'Elementor post and document context must be restored.' );
 expect_manifest( [ 777 ] === \ElementorPro\Modules\QueryControl\Module::$displayed_ids && ! isset( $GLOBALS['smpi_manifest_actions']['pre_get_posts'] ), 'Elementor avoid list and query guard must be restored.' );
+expect_manifest( [] === $GLOBALS['smpi_manifest_filters'], 'Provider query markers must be removed after collection.' );
 
 $public = $native->collect( $node( 'posts', [ 'post_query_posts_per_page' => 6, 'fixture_posts' => [ 101, 103, 104, 105 ] ] ), 42 );
 expect_manifest( [ 8 ] === $public['category_ids'], 'Draft/private posts and nonpublic post types must not contribute categories.' );

@@ -1,5 +1,12 @@
 # SMP Publication Integration Bug Log
 
+## SMP-MANIFEST-BUG-003 — Native query bounds touched internal provider lookups
+
+- **Status:** Released in plugin `2.0.11`; Her Forward live acceptance pending.
+- **Cause:** A temporary `pre_get_posts` guard covered every query executed inside the widget API. Her Forward's one-card widget also loaded an internal Elementor query with an unlimited result setting; this falsely marked its article results truncated and could alter provider lookup semantics.
+- **Correction:** Use the providers' public query-argument hooks to mark only the exact widget/renderer query. Clamp only matching queries, require the intended query to pass that guard, and remove both hooks in `finally`. Internal template lookups are untouched. No result limits are raised and no partial-result guard is weakened.
+- **Regression:** Native fixture includes an unrelated unlimited Elementor-library query before the one-card post query and checks both unchanged lookup settings and complete article evidence.
+
 ## SMP-MANIFEST-BUG-002 — Unfiltered homepage widgets lacked native category evidence
 
 - **Status:** Released in plugin `2.0.10`; Her Forward live acceptance pending.

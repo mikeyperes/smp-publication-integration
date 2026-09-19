@@ -108,8 +108,9 @@ final class NativeWidgetQueryCollector {
         $bounded_node['settings'] = $this->bounded_settings( $settings );
         $switched_document        = false;
         $switched_post            = false;
-        $query_bounds             = (object) [ 'truncated' => $truncated ];
+        $query_bounds             = (object) [ 'truncated' => $truncated, 'matched' => false ];
         $query_guard              = $this->query_guard( $query_bounds );
+        $query_marker             = null;
         $displayed_ids_snapshot   = null;
         $displayed_ids_class      = '\\ElementorPro\\Modules\\QueryControl\\Module';
 
@@ -133,10 +134,12 @@ final class NativeWidgetQueryCollector {
                 $displayed_ids_class::$displayed_ids = [];
             }
 
+            $query_marker = $this->query_marker( $widget, $query_bounds );
+            add_filter( 'elementor/query/query_args', $query_marker, PHP_INT_MAX, 2 );
             add_action( 'pre_get_posts', $query_guard, PHP_INT_MAX );
             $widget->query_posts();
             $query = $widget->get_query();
-            if ( ! $query instanceof \WP_Query ) {
+            if ( ! $query instanceof \WP_Query || ! $query_bounds->matched ) {
                 return $this->failure(
                     'elementor_native_query_result_unavailable',
                     'Elementor did not return a WordPress post query for the saved widget.'
@@ -152,6 +155,9 @@ final class NativeWidgetQueryCollector {
             );
         } finally {
             remove_action( 'pre_get_posts', $query_guard, PHP_INT_MAX );
+            if ( null !== $query_marker ) {
+                remove_filter( 'elementor/query/query_args', $query_marker, PHP_INT_MAX );
+            }
             if ( null !== $displayed_ids_snapshot && class_exists( $displayed_ids_class ) ) {
                 $displayed_ids_class::$displayed_ids = $displayed_ids_snapshot;
             }
@@ -184,8 +190,9 @@ final class NativeWidgetQueryCollector {
         $raw_settings = isset( $node['settings'] ) && is_array( $node['settings'] ) ? $node['settings'] : [];
         $truncated    = $this->requires_truncation( $raw_settings );
         $settings     = $this->bounded_settings( $raw_settings );
-        $query_bounds = (object) [ 'truncated' => $truncated ];
+        $query_bounds = (object) [ 'truncated' => $truncated, 'matched' => false ];
         $query_guard = $this->query_guard( $query_bounds );
+        $query_marker = null;
         $data_snapshot = $engine->listings->data ?? null;
         $post_existed = array_key_exists( 'post', $GLOBALS );
         $post_snapshot = $GLOBALS['post'] ?? null;
@@ -220,9 +227,11 @@ final class NativeWidgetQueryCollector {
             if ( 'posts' !== $source ) {
                 return $this->failure( 'jet_engine_listing_source_unsupported', 'Only native WordPress post listings provide category evidence; non-post listing queries were not executed.' );
             }
+            $query_marker = $this->query_marker( $renderer, $query_bounds );
+            add_filter( 'jet-engine/listing/grid/posts-query-args', $query_marker, PHP_INT_MAX, 2 );
             add_action( 'pre_get_posts', $query_guard, PHP_INT_MAX );
             $posts = $renderer->get_query( $renderer->get_settings() );
-            if ( ! is_array( $posts ) ) {
+            if ( ! is_array( $posts ) || ! $query_bounds->matched ) {
                 return $this->failure(
                     'jet_engine_native_query_result_unsupported',
                     'The JetEngine listing source did not return a supported post result set.'
@@ -238,6 +247,9 @@ final class NativeWidgetQueryCollector {
             );
         } finally {
             remove_action( 'pre_get_posts', $query_guard, PHP_INT_MAX );
+            if ( null !== $query_marker ) {
+                remove_filter( 'jet-engine/listing/grid/posts-query-args', $query_marker, PHP_INT_MAX );
+            }
             $engine->listings->data = $data_snapshot;
             if ( $post_existed ) {
                 $GLOBALS['post'] = $post_snapshot;
@@ -260,6 +272,16 @@ final class NativeWidgetQueryCollector {
         return $settings;
     }
 
+    /** Bind only the provider's exact widget query; leave template/helper lookups unchanged. */
+    private function query_marker( object $widget, object $bounds ): callable {
+        return static function ( array $arguments, $query_widget ) use ( $widget, $bounds ): array {
+            if ( $query_widget === $widget ) {
+                $arguments['_smpi_manifest_scope'] = spl_object_id( $bounds );
+            }
+            return $arguments;
+        };
+    }
+
     /** @return callable */
     private function query_guard( object $bounds ): callable {
         $max_posts = $this->max_posts;
@@ -267,6 +289,10 @@ final class NativeWidgetQueryCollector {
             if ( ! is_object( $query ) || ! method_exists( $query, 'set' ) || ! method_exists( $query, 'get' ) ) {
                 return;
             }
+            if ( $query->get( '_smpi_manifest_scope' ) !== spl_object_id( $bounds ) ) {
+                return;
+            }
+            $bounds->matched = true;
             // Clamp only downwards: a three-card widget must never contribute
             // categories from twelve posts. Inspect the effective hook-adjusted limit.
             $requested = (int) $query->get( 'posts_per_page' );

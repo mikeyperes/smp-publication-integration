@@ -101,7 +101,10 @@ function get_bloginfo( string $field ): string {
     return 'name' === $field ? 'Example Publication' : '';
 }
 
-function apply_filters( string $hook, $value ) {
+function apply_filters( string $hook, $value, ...$arguments ) {
+    if ( isset( $GLOBALS['smpi_manifest_filters'][ $hook ] ) ) {
+        return ( $GLOBALS['smpi_manifest_filters'][ $hook ] )( $value, ...$arguments );
+    }
     return $value;
 }
 
