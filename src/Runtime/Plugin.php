@@ -13,6 +13,7 @@ use Hexa\PluginCore\PluginUpdates\UpdaterAjaxController;
 use Hexa\PluginCore\WpAdminTabs\CoreTabConfig;
 use Hexa\PluginCore\WpAdminTabs\CoreTabModule;
 use SMP\PublicationIntegration\Infrastructure\Updates;
+use SMP\PublicationIntegration\ExternalPublishing\ExternalPublishingApi;
 use SMP\PublicationIntegration\PublicationManifest\ManifestEndpoint;
 use smp_publication_integration\Admin;
 use smp_publication_integration\Config;
@@ -136,6 +137,7 @@ final class Plugin {
             new Content\FeaturedImageRequirements(),
             new Content\DebugEndpoint(),
             new ManifestEndpoint(),
+            new ExternalPublishingApi(),
         ];
     }
 

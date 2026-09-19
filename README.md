@@ -8,7 +8,7 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `2.0.7`
+- Version: `2.0.8`
 
 ## Ownership
 
@@ -97,6 +97,11 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.0.8
+
+- Adds an administrator-controlled external publishing API, disabled by default, authenticated by WordPress Application Passwords, restricted by WordPress post capabilities, and protected by mutation idempotency keys.
+- Adds verified create, read, update, and delete routes that accept only core post fields and registered REST taxonomy IDs.
 
 ### 2.0.7
 

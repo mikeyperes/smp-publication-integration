@@ -3498,6 +3498,11 @@ HTML;
     }
 
     private function integrations(): void {
+        $enabled = Settings::bool( 'external_publishing_enabled' );
+        echo '<div class="smpi-panel"><h2>External Publishing API</h2>';
+        echo '<p>Allows authenticated post submissions through SMP using a WordPress Application Password. It is disabled by default and accepts only post fields and registered REST taxonomies.</p>';
+        echo '<p><label class="smpi-switch"><input class="smpi-setting" type="checkbox" data-key="external_publishing_enabled" value="1" ' . checked( $enabled, true, false ) . '><span></span><strong>' . esc_html( $enabled ? 'Enabled' : 'Disabled' ) . '</strong></label><span class="spinner"></span><span class="smpi-save-state"></span></p>';
+        echo '<p><code>' . esc_html( rest_url( 'smpi/v1/external-publishing' ) ) . '</code></p></div>';
         echo '<div class="smpi-panel"><h2>Dependency and Plugin Registry</h2><p>Plugin detection now uses the shared Hexa Core inventory structure.</p><p><a class="button button-primary" href="' . esc_url( admin_url( 'options-general.php?page=smp-publication-integration&tab=plugins' ) ) . '">Open Plugins tab</a></p></div>';
     }
 
