@@ -7,6 +7,7 @@ define( 'ABSPATH', dirname( __DIR__ ) . '/' );
 $GLOBALS['smpi_manifest_actions'] = [];
 $GLOBALS['smpi_manifest_route']   = [];
 $GLOBALS['smpi_manifest_terms']   = [];
+$GLOBALS['smpi_manifest_post_meta'] = [];
 $GLOBALS['smpi_manifest_object_taxonomies'] = [ 'post' => [ 'category', 'post_tag' ] ];
 
 final class WP_Error {}
@@ -25,12 +26,21 @@ function wp_strip_all_tags( string $value ): string {
     return strip_tags( $value );
 }
 
+function wp_json_encode( $value ): string {
+    return (string) json_encode( $value );
+}
+
 function absint( $value ): int {
     return abs( (int) $value );
 }
 
 function get_option( string $key, $default = false ) {
     return 'default_category' === $key ? 1 : $default;
+}
+
+function get_post_meta( int $post_id, string $key, bool $single = false ) {
+    unset( $single );
+    return $GLOBALS['smpi_manifest_post_meta'][ $post_id ][ $key ] ?? '';
 }
 
 function get_term_link( object $term ): string {
@@ -131,12 +141,14 @@ foreach ( $term_fixtures as $id => [ $name, $slug ] ) {
         'term_id' => $id,
         'name'    => $name,
         'slug'    => $slug,
+        'description' => '<p>' . $name . ' reporting and analysis.</p>',
         'parent'  => 0,
         'count'   => 3,
     ];
 }
 
 require_once dirname( __DIR__ ) . '/src/PublicationManifest/TaxonomyPolicy.php';
+require_once dirname( __DIR__ ) . '/src/PublicationManifest/ElementorQueryInspector.php';
 require_once dirname( __DIR__ ) . '/src/PublicationManifest/HomepageCollector.php';
 require_once dirname( __DIR__ ) . '/src/Content/PublicationContentTypes.php';
 require_once dirname( __DIR__ ) . '/src/Content/ArticleTypes.php';
@@ -220,6 +232,9 @@ expect_manifest( 11 === count( $homepage['categories'] ), 'All 11 Rich Reporter 
 expect_manifest( 10 === count( $homepage['campaign_categories'] ), 'Digital Magazine must be reserved, leaving 10 campaign categories.' );
 expect_manifest( ! in_array( 9999, array_column( $homepage['categories'], 'id' ), true ), 'Menu/header taxonomy references must be excluded.' );
 expect_manifest( in_array( 1496, array_column( $homepage['categories'], 'id' ), true ), 'Elementor category:ID query tokens must resolve.' );
+expect_manifest( 'complete' === $homepage['collection_status'] && [] === $homepage['collection_warnings'], 'A fully interpreted homepage must report complete collection.' );
+$travel_category = current( array_filter( $homepage['categories'], static fn( array $category ): bool => 1496 === $category['id'] ) );
+expect_manifest( is_array( $travel_category ) && 'Travel reporting and analysis.' === $travel_category['description'], 'Native category descriptions must be exposed as plain first-party input.' );
 
 $loop_widget = static fn( string $id, string $type, array $settings ): array => [
     'id'       => 'section-' . $id,
@@ -233,6 +248,204 @@ expect_manifest( [ 1496 ] === $loop_ids( [ $loop_widget( 'grid', 'loop-grid', [ 
 expect_manifest( [ 1496 ] === $loop_ids( [ $loop_widget( 'carousel', 'loop-carousel', [ 'post_query_include' => [ 'terms' ], 'post_query_include_term_ids' => [ '1496' ] ] ) ] ), 'Loop Carousel include term IDs must resolve.' );
 expect_manifest( [] === $loop_ids( [ $loop_widget( 'off', 'loop-grid', [ 'post_query_include' => [], 'post_query_include_term_ids' => [ '1496' ] ] ) ] ), 'Term IDs without the terms include mode must be ignored.' );
 expect_manifest( [] === $loop_ids( [ $loop_widget( 'exclude', 'loop-grid', [ 'post_query_exclude_term_ids' => [ '1496' ] ] ) ] ), 'Excluded term IDs must not become categories.' );
+
+$mixed_taxonomy = $loop_widget(
+    'mixed-taxonomy',
+    'posts',
+    [
+        'posts_query' => [
+            [
+                'tax_query_taxonomy' => 'category',
+                'tax_query_field'    => 'term_id',
+                'tax_query_terms'    => [ 1496 ],
+                'tax_query_operator' => 'IN',
+            ],
+            [
+                'tax_query_taxonomy' => 'category',
+                'tax_query_field'    => 'term_id',
+                'tax_query_terms'    => [ 'category:6271' ],
+                'tax_query_operator' => 'NOT IN',
+            ],
+        ],
+        'posts_query_exclude_term_ids' => [ 'category:5712' ],
+    ]
+);
+expect_manifest( [ 1496 ] === $loop_ids( [ $mixed_taxonomy ] ), 'NOT IN clauses and category tokens under exclude controls must not become positive categories.' );
+
+$all_device_hidden = $loop_widget(
+    'all-device-hidden',
+    'posts',
+    [
+        'hide_desktop'           => 'yes',
+        'hide_tablet'            => 'yes',
+        'hide_mobile'            => 'yes',
+        'posts_include_term_ids' => [ 'category:5712' ],
+    ]
+);
+expect_manifest( [] === $loop_ids( [ $all_device_hidden ] ), 'A widget hidden on desktop, tablet, and mobile must provide no homepage category evidence.' );
+
+$GLOBALS['smpi_manifest_post_meta'][200]['_elementor_data'] = wp_json_encode(
+    [
+        [
+            'id'       => 'business-section',
+            'elType'   => 'container',
+            'settings' => [ '_title' => 'Business Desk' ],
+            'elements' => [
+                [
+                    'id'         => 'business-heading',
+                    'elType'     => 'widget',
+                    'widgetType' => 'heading',
+                    'settings'   => [ 'title' => 'Business Insights' ],
+                    'elements'   => [],
+                ],
+                [
+                    'id'         => 'shared-query',
+                    'elType'     => 'widget',
+                    'widgetType' => 'posts',
+                    'settings'   => [ 'posts_include_term_ids' => [ 'category:6271' ] ],
+                    'elements'   => [],
+                ],
+            ],
+        ],
+        [
+            'id'         => 'nested-template',
+            'elType'     => 'widget',
+            'widgetType' => 'template',
+            'settings'   => [ 'template_id' => 201 ],
+            'elements'   => [],
+        ],
+        [
+            'id'         => 'nested-menu',
+            'elType'     => 'widget',
+            'widgetType' => 'nav-menu',
+            'settings'   => [ 'posts_include_term_ids' => [ 'category:9999' ] ],
+            'elements'   => [],
+        ],
+    ]
+);
+$GLOBALS['smpi_manifest_post_meta'][201]['_elementor_data'] = wp_json_encode(
+    [
+        [
+            'id'       => 'fashion-section',
+            'elType'   => 'container',
+            'settings' => [ '_title' => 'Fashion Desk' ],
+            'elements' => [
+                [
+                    'id'         => 'fashion-heading',
+                    'elType'     => 'widget',
+                    'widgetType' => 'heading',
+                    'settings'   => [ 'title' => 'Fashion Coverage' ],
+                    'elements'   => [],
+                ],
+                [
+                    'id'         => 'shared-query',
+                    'elType'     => 'widget',
+                    'widgetType' => 'posts',
+                    'settings'   => [ 'posts_include_term_ids' => [ 'category:8' ] ],
+                    'elements'   => [],
+                ],
+            ],
+        ],
+    ]
+);
+$template_homepage = ( new HomepageCollector() )->collect_from_elements(
+    44,
+    [
+        [
+            'id'         => 'homepage-template',
+            'elType'     => 'widget',
+            'widgetType' => 'template',
+            'settings'   => [ 'template_id' => 200 ],
+            'elements'   => [],
+        ],
+        [
+            'id'         => 'homepage-template-copy',
+            'elType'     => 'widget',
+            'widgetType' => 'template',
+            'settings'   => [ 'template_id' => 200 ],
+            'elements'   => [],
+        ],
+    ]
+);
+$template_category_ids = array_column( $template_homepage['categories'], 'id' );
+sort( $template_category_ids );
+expect_manifest( [ 8, 6271 ] === $template_category_ids, 'Nested Elementor templates must contribute their explicit homepage query categories.' );
+expect_manifest( ! in_array( 9999, $template_category_ids, true ), 'Navigation widgets inside templates must remain excluded.' );
+$template_evidence_ids = array_column( $template_homepage['query_widgets'], 'elementor_id' );
+expect_manifest( count( $template_evidence_ids ) === count( array_unique( $template_evidence_ids ) ), 'Template query evidence IDs must be stable and unique.' );
+expect_manifest( in_array( 'template-homepage-template-200-shared-query', $template_evidence_ids, true ), 'Direct template query evidence must identify its stable template placement.' );
+expect_manifest( in_array( 'template-homepage-template-200-nested-template-201-shared-query', $template_evidence_ids, true ), 'Nested template query evidence must identify its full stable template placement.' );
+$template_section_headings = array_column( $template_homepage['sections'], 'heading' );
+expect_manifest( in_array( 'Business Insights', $template_section_headings, true ) && in_array( 'Fashion Coverage', $template_section_headings, true ), 'Section headings inside nested Elementor templates must remain available as manifest input.' );
+expect_manifest( range( 1, count( $template_homepage['sections'] ) ) === array_column( $template_homepage['sections'], 'order' ), 'Root and embedded homepage sections must retain stable sequential order.' );
+foreach ( $template_homepage['categories'] as $template_category ) {
+    foreach ( $template_category['sources'] as $source ) {
+        expect_manifest( in_array( $source['elementor_id'], $template_evidence_ids, true ), 'Category source evidence must match a reported query-widget evidence ID.' );
+    }
+}
+
+$GLOBALS['smpi_manifest_post_meta'][300]['_elementor_data'] = wp_json_encode(
+    [
+        [
+            'id'         => 'cycle',
+            'elType'     => 'widget',
+            'widgetType' => 'template',
+            'settings'   => [ 'template_id' => 300 ],
+            'elements'   => [],
+        ],
+    ]
+);
+$cycle_homepage = ( new HomepageCollector() )->collect_from_elements(
+    45,
+    [ [ 'id' => 'cycle-root', 'elType' => 'widget', 'widgetType' => 'template', 'settings' => [ 'template_id' => 300 ], 'elements' => [] ] ]
+);
+expect_manifest( 'partial' === $cycle_homepage['collection_status'], 'A template cycle must mark homepage collection partial.' );
+expect_manifest( in_array( 'template_cycle_detected', array_column( $cycle_homepage['collection_warnings'], 'code' ), true ), 'A template cycle must produce a machine-readable warning.' );
+
+for ( $template_id = 400; $template_id <= 408; $template_id++ ) {
+    $GLOBALS['smpi_manifest_post_meta'][ $template_id ]['_elementor_data'] = wp_json_encode(
+        [
+            [
+                'id'         => 'depth-' . $template_id,
+                'elType'     => 'widget',
+                'widgetType' => 'template',
+                'settings'   => [ 'template_id' => $template_id + 1 ],
+                'elements'   => [],
+            ],
+        ]
+    );
+}
+$depth_homepage = ( new HomepageCollector() )->collect_from_elements(
+    46,
+    [ [ 'id' => 'depth-root', 'elType' => 'widget', 'widgetType' => 'template', 'settings' => [ 'template_id' => 400 ], 'elements' => [] ] ]
+);
+expect_manifest( in_array( 'template_depth_limit_reached', array_column( $depth_homepage['collection_warnings'], 'code' ), true ), 'Nested template traversal must stop with a machine-readable depth warning.' );
+
+$unsupported_query_homepage = ( new HomepageCollector() )->collect_from_elements(
+    47,
+    [
+        $loop_widget(
+            'unsupported-operator',
+            'posts',
+            [
+                'posts_query' => [
+                    [
+                        'tax_query_taxonomy' => 'category',
+                        'tax_query_field'    => 'term_id',
+                        'tax_query_terms'    => [ 1496 ],
+                        'tax_query_operator' => 'XOR',
+                    ],
+                ],
+            ]
+        ),
+        $loop_widget( 'custom-hook', 'posts', [ 'query_id' => 'homepage_custom_query' ] ),
+        $loop_widget( 'unscoped', 'posts', [] ),
+    ]
+);
+$unsupported_codes = array_column( $unsupported_query_homepage['collection_warnings'], 'code' );
+expect_manifest( in_array( 'unsupported_taxonomy_operator', $unsupported_codes, true ), 'Unsupported taxonomy operators must produce a machine-readable warning.' );
+expect_manifest( in_array( 'custom_query_hook_not_inspected', $unsupported_codes, true ), 'Custom query hooks must produce a machine-readable warning.' );
+expect_manifest( in_array( 'query_scope_not_statically_resolved', $unsupported_codes, true ), 'Unscoped query widgets must report that their categories were not fabricated.' );
 
 $digital_magazine = current( array_filter( $homepage['categories'], static fn( array $category ): bool => 7548 === $category['id'] ) );
 expect_manifest( is_array( $digital_magazine ) && 'reserved' === $digital_magazine['campaign_policy']['status'], 'Digital Magazine must be marked reserved.' );
@@ -266,4 +479,4 @@ expect_manifest( 'smpi/v1' === $GLOBALS['smpi_manifest_route']['namespace'], 'Th
 expect_manifest( '/publication-manifest' === $GLOBALS['smpi_manifest_route']['route'], 'The public manifest route must be registered.' );
 expect_manifest( '__return_true' === $GLOBALS['smpi_manifest_route']['args']['permission_callback'], 'The read-only manifest must be public.' );
 
-fwrite( STDOUT, "PASS: publication manifest extracts 11 homepage categories, excludes reserved/menu data, sanitizes public output, and registers the public route.\n" );
+fwrite( STDOUT, "PASS: publication manifest resolves nested Elementor categories and headings, preserves include/exclude and visibility semantics, reports partial scans, sanitizes output, and registers the public route.\n" );

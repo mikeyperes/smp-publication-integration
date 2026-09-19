@@ -47,6 +47,7 @@ final class TaxonomyPolicy {
             'id'                   => (int) ( $term->term_id ?? 0 ),
             'name'                 => (string) ( $term->name ?? '' ),
             'slug'                 => (string) ( $term->slug ?? '' ),
+            'description'          => sanitize_text_field( wp_strip_all_tags( (string) ( $term->description ?? '' ) ) ),
             'parent_id'            => (int) ( $term->parent ?? 0 ),
             'url'                  => (string) $link,
             'published_post_count' => (int) ( $term->count ?? 0 ),

@@ -7,10 +7,14 @@ namespace SMP\PublicationIntegration\PublicationManifest;
 defined( 'ABSPATH' ) || exit;
 
 final class HomepageCollector {
-    private TaxonomyPolicy $policy;
+    private const MAX_TEMPLATE_DEPTH = 8;
 
-    public function __construct( ?TaxonomyPolicy $policy = null ) {
-        $this->policy = $policy ?? new TaxonomyPolicy();
+    private TaxonomyPolicy $policy;
+    private ElementorQueryInspector $query_inspector;
+
+    public function __construct( ?TaxonomyPolicy $policy = null, ?ElementorQueryInspector $query_inspector = null ) {
+        $this->policy          = $policy ?? new TaxonomyPolicy();
+        $this->query_inspector = $query_inspector ?? new ElementorQueryInspector();
     }
 
     /** @return array<string,mixed> */
@@ -47,6 +51,7 @@ final class HomepageCollector {
         $sections       = [];
         $query_widgets  = [];
         $category_index = [];
+        $warnings       = [];
 
         foreach ( array_values( $elements ) as $position => $node ) {
             if ( ! is_array( $node ) || $this->excluded_node( $node ) ) {
@@ -61,12 +66,23 @@ final class HomepageCollector {
                 'widget_types'     => [],
                 'query_widget_ids' => [],
             ];
+            $nested_sections = [];
 
-            $this->walk_content_node( $node, $section, $query_widgets, $category_index );
+            $this->walk_content_node( $node, $section, $query_widgets, $category_index, $warnings, $nested_sections );
             $section['widget_types']     = array_values( array_unique( $section['widget_types'] ) );
             $section['query_widget_ids'] = array_values( array_unique( $section['query_widget_ids'] ) );
             $sections[]                  = $section;
+            foreach ( $nested_sections as $nested_section ) {
+                $nested_section['order']            = count( $sections ) + 1;
+                $nested_section['widget_types']     = array_values( array_unique( $nested_section['widget_types'] ) );
+                $nested_section['query_widget_ids'] = array_values( array_unique( $nested_section['query_widget_ids'] ) );
+                $sections[]                         = $nested_section;
+            }
         }
+        foreach ( $sections as $index => &$ordered_section ) {
+            $ordered_section['order'] = $index + 1;
+        }
+        unset( $ordered_section );
 
         $categories          = array_values( $category_index );
         $campaign_categories = array_values(
@@ -90,6 +106,8 @@ final class HomepageCollector {
             'query_widgets'       => $query_widgets,
             'categories'          => $categories,
             'campaign_categories' => $campaign_categories,
+            'collection_status'   => empty( $warnings ) ? 'complete' : 'partial',
+            'collection_warnings' => $this->unique_warnings( $warnings ),
         ];
     }
 
@@ -98,8 +116,22 @@ final class HomepageCollector {
      * @param array<string,mixed> $section
      * @param array<int,array<string,mixed>> $query_widgets
      * @param array<int,array<string,mixed>> $category_index
+     * @param array<int,array<string,mixed>> $warnings
+     * @param array<int,array<string,mixed>> $nested_sections
+     * @param array<int,int> $template_chain
+     * @param array<int,string> $template_scope
      */
-    private function walk_content_node( array $node, array &$section, array &$query_widgets, array &$category_index ): void {
+    private function walk_content_node(
+        array $node,
+        array &$section,
+        array &$query_widgets,
+        array &$category_index,
+        array &$warnings,
+        array &$nested_sections,
+        int $template_depth = 0,
+        array $template_chain = [],
+        array $template_scope = []
+    ): void {
         if ( $this->excluded_node( $node ) ) {
             return;
         }
@@ -110,10 +142,15 @@ final class HomepageCollector {
         }
 
         if ( $this->is_query_widget( $widget_type ) ) {
-            $widget = $this->query_widget_record( $node, (string) $section['label'], (string) $section['heading'] );
+            $widget = $this->query_widget_record( $node, (string) $section['label'], (string) $section['heading'], $template_chain, $template_scope );
+            foreach ( $widget['warnings'] as $warning ) {
+                $warnings[] = $warning;
+            }
+            if ( ! empty( $widget['categories'] ) || ! empty( $widget['warnings'] ) ) {
+                $query_widgets[]               = $widget;
+                $section['query_widget_ids'][] = $widget['elementor_id'];
+            }
             if ( ! empty( $widget['categories'] ) ) {
-                $query_widgets[]                    = $widget;
-                $section['query_widget_ids'][]      = $widget['elementor_id'];
                 foreach ( $widget['categories'] as $category ) {
                     $category_id = (int) ( $category['id'] ?? 0 );
                     if ( $category_id < 1 ) {
@@ -127,23 +164,40 @@ final class HomepageCollector {
                         'elementor_id' => $widget['elementor_id'],
                         'widget_type'  => $widget['widget_type'],
                         'section'      => $widget['section'],
+                        'template_id'  => $widget['template_id'],
+                        'template_chain' => $widget['template_chain'],
                     ];
                 }
             }
         }
 
+        if ( 'template' === $widget_type ) {
+            $this->walk_template_widget(
+                $node,
+                $section,
+                $query_widgets,
+                $category_index,
+                $warnings,
+                $nested_sections,
+                $template_depth,
+                $template_chain,
+                $template_scope
+            );
+        }
+
         $children = isset( $node['elements'] ) && is_array( $node['elements'] ) ? $node['elements'] : [];
         foreach ( $children as $child ) {
             if ( is_array( $child ) ) {
-                $this->walk_content_node( $child, $section, $query_widgets, $category_index );
+                $this->walk_content_node( $child, $section, $query_widgets, $category_index, $warnings, $nested_sections, $template_depth, $template_chain, $template_scope );
             }
         }
     }
 
     /** @param array<string,mixed> $node */
-    private function query_widget_record( array $node, string $section_label, string $section_heading ): array {
+    private function query_widget_record( array $node, string $section_label, string $section_heading, array $template_chain, array $template_scope ): array {
         $settings   = isset( $node['settings'] ) && is_array( $node['settings'] ) ? $node['settings'] : [];
-        $references = $this->taxonomy_references( $settings );
+        $inspection = $this->query_inspector->inspect( $settings );
+        $references = $inspection['references'];
         $categories = [];
 
         foreach ( $references as $reference ) {
@@ -155,135 +209,215 @@ final class HomepageCollector {
             }
         }
 
+        $source_elementor_id = sanitize_key( (string) ( $node['id'] ?? '' ) );
+        $elementor_id = $this->evidence_elementor_id( $source_elementor_id, $template_scope );
+        $widget_type  = sanitize_key( (string) ( $node['widgetType'] ?? '' ) );
+        $warnings     = [];
+        foreach ( $inspection['warnings'] as $warning ) {
+            $warnings[] = $this->widget_warning( $warning, $elementor_id, $widget_type, $template_chain );
+        }
+        if ( empty( $categories ) && empty( $warnings ) ) {
+            $warnings[] = $this->widget_warning(
+                [
+                    'code'    => 'query_scope_not_statically_resolved',
+                    'message' => 'No positive category restriction could be resolved from this query widget; runtime results may contain additional categories.',
+                    'context' => [],
+                ],
+                $elementor_id,
+                $widget_type,
+                $template_chain
+            );
+        }
+
         return [
-            'elementor_id' => sanitize_key( (string) ( $node['id'] ?? '' ) ),
-            'widget_type'  => sanitize_key( (string) ( $node['widgetType'] ?? '' ) ),
+            'elementor_id' => $elementor_id,
+            'source_elementor_id' => $source_elementor_id,
+            'widget_type'  => $widget_type,
             'section'      => '' !== $section_label ? $section_label : $section_heading,
             'listing_id'   => absint( $settings['listing_id'] ?? $settings['lisitng_id'] ?? 0 ),
             'post_count'   => absint( $settings['posts_num'] ?? $settings['posts_per_page'] ?? 0 ),
             'categories'   => array_values( $categories ),
+            'template_id'  => empty( $template_chain ) ? 0 : (int) end( $template_chain ),
+            'template_chain' => array_values( $template_chain ),
+            'warnings'     => $warnings,
         ];
     }
 
     /**
-     * @param array<string,mixed> $settings
-     * @return array<int,array{taxonomy:string,field:string,terms:array<int,string|int>}>
+     * @param array<string,mixed> $node
+     * @param array<string,mixed> $section
+     * @param array<int,array<string,mixed>> $query_widgets
+     * @param array<int,array<string,mixed>> $category_index
+     * @param array<int,array<string,mixed>> $warnings
+     * @param array<int,array<string,mixed>> $nested_sections
+     * @param array<int,int> $template_chain
+     * @param array<int,string> $template_scope
      */
-    private function taxonomy_references( array $settings ): array {
-        $references = [];
-        $this->find_taxonomy_clauses( $settings, $references );
-        $this->find_elementor_term_tokens( $settings, $references );
-        $this->find_elementor_query_include_terms( $settings, $references );
+    private function walk_template_widget(
+        array $node,
+        array &$section,
+        array &$query_widgets,
+        array &$category_index,
+        array &$warnings,
+        array &$nested_sections,
+        int $template_depth,
+        array $template_chain,
+        array $template_scope
+    ): void {
+        $settings    = isset( $node['settings'] ) && is_array( $node['settings'] ) ? $node['settings'] : [];
+        $template_id = absint( $settings['template_id'] ?? $node['template_id'] ?? 0 );
 
-        $unique = [];
-        foreach ( $references as $reference ) {
-            $key = $reference['taxonomy'] . '|' . $reference['field'] . '|' . implode( ',', array_map( 'strval', $reference['terms'] ) );
-            $unique[ $key ] = $reference;
+        if ( $template_id < 1 ) {
+            $warnings[] = $this->template_warning(
+                'template_id_missing',
+                'An Elementor Template widget has no resolvable template ID.',
+                $node,
+                $template_chain,
+                $template_scope
+            );
+            return;
         }
 
-        return array_values( $unique );
+        if ( in_array( $template_id, $template_chain, true ) ) {
+            $warnings[] = $this->template_warning(
+                'template_cycle_detected',
+                'Nested Elementor template traversal stopped because the template chain contains a cycle.',
+                $node,
+                $template_chain,
+                $template_scope,
+                [ 'template_id' => $template_id ]
+            );
+            return;
+        }
+
+        if ( $template_depth >= self::MAX_TEMPLATE_DEPTH ) {
+            $warnings[] = $this->template_warning(
+                'template_depth_limit_reached',
+                'Nested Elementor template traversal stopped at the supported depth limit.',
+                $node,
+                $template_chain,
+                $template_scope,
+                [ 'template_id' => $template_id, 'maximum_depth' => self::MAX_TEMPLATE_DEPTH ]
+            );
+            return;
+        }
+
+        if ( ! function_exists( 'get_post_meta' ) ) {
+            $warnings[] = $this->template_warning(
+                'template_storage_unavailable',
+                'Elementor template content could not be loaded from WordPress post metadata.',
+                $node,
+                $template_chain,
+                $template_scope,
+                [ 'template_id' => $template_id ]
+            );
+            return;
+        }
+
+        $template_elements = $this->decode_elementor_data( get_post_meta( $template_id, '_elementor_data', true ) );
+        if ( null === $template_elements ) {
+            $warnings[] = $this->template_warning(
+                'template_data_unavailable',
+                'The referenced Elementor template has no readable element data.',
+                $node,
+                $template_chain,
+                $template_scope,
+                [ 'template_id' => $template_id ]
+            );
+            return;
+        }
+
+        $resolved_chain = array_merge( $template_chain, [ $template_id ] );
+        $template_widget_id = sanitize_key( (string) ( $node['id'] ?? 'template' ) );
+        $resolved_scope = array_merge( $template_scope, [ $template_widget_id . '-' . $template_id ] );
+        foreach ( $template_elements as $template_node ) {
+            if ( is_array( $template_node ) ) {
+                $template_section = [
+                    'order'            => 0,
+                    'elementor_id'     => $this->evidence_elementor_id( sanitize_key( (string) ( $template_node['id'] ?? '' ) ), $resolved_scope ),
+                    'source_elementor_id' => sanitize_key( (string) ( $template_node['id'] ?? '' ) ),
+                    'label'            => $this->section_label( $template_node ),
+                    'heading'          => $this->section_heading( $template_node ),
+                    'widget_types'     => [],
+                    'query_widget_ids' => [],
+                    'template_id'      => $template_id,
+                    'template_chain'   => $resolved_chain,
+                ];
+                $descendant_sections = [];
+                $this->walk_content_node(
+                    $template_node,
+                    $template_section,
+                    $query_widgets,
+                    $category_index,
+                    $warnings,
+                    $descendant_sections,
+                    $template_depth + 1,
+                    $resolved_chain,
+                    $resolved_scope
+                );
+                $section['widget_types'] = array_merge( $section['widget_types'], $template_section['widget_types'] );
+                $section['query_widget_ids'] = array_merge( $section['query_widget_ids'], $template_section['query_widget_ids'] );
+                if ( '' !== $template_section['label'] || '' !== $template_section['heading'] ) {
+                    $nested_sections[] = $template_section;
+                }
+                foreach ( $descendant_sections as $descendant_section ) {
+                    $nested_sections[] = $descendant_section;
+                }
+            }
+        }
+    }
+
+    /** @return array<int,mixed>|null */
+    private function decode_elementor_data( $raw ): ?array {
+        if ( is_array( $raw ) ) {
+            return array_values( $raw );
+        }
+        if ( ! is_string( $raw ) || '' === trim( $raw ) ) {
+            return null;
+        }
+        $decoded = json_decode( $raw, true );
+        return is_array( $decoded ) ? array_values( $decoded ) : null;
     }
 
     /**
-     * @param array<mixed> $value
-     * @param array<int,array{taxonomy:string,field:string,terms:array<int,string|int>}> $references
+     * @param array<string,mixed> $warning
+     * @param array<int,int> $template_chain
+     * @return array<string,mixed>
      */
-    private function find_taxonomy_clauses( array $value, array &$references ): void {
-        $taxonomy = sanitize_key( (string) ( $value['tax_query_taxonomy'] ?? $value['taxonomy'] ?? '' ) );
-        if ( '' !== $taxonomy ) {
-            $field = sanitize_key( (string) ( $value['tax_query_field'] ?? $value['field'] ?? 'term_id' ) );
-            $terms = $value['tax_query_terms'] ?? $value['terms'] ?? [];
-            $terms = $this->normalize_terms( $terms );
-            if ( ! empty( $terms ) ) {
-                $references[] = [
-                    'taxonomy' => $taxonomy,
-                    'field'    => in_array( $field, [ 'term_id', 'id', 'slug', 'name' ], true ) ? $field : 'term_id',
-                    'terms'    => $terms,
-                ];
-            }
-        }
-
-        foreach ( $value as $child ) {
-            if ( is_array( $child ) ) {
-                $this->find_taxonomy_clauses( $child, $references );
-            }
-        }
+    private function widget_warning( array $warning, string $elementor_id, string $widget_type, array $template_chain ): array {
+        return [
+            'code'           => sanitize_key( (string) ( $warning['code'] ?? 'query_collection_warning' ) ),
+            'message'        => sanitize_text_field( (string) ( $warning['message'] ?? 'The query widget could not be fully interpreted.' ) ),
+            'elementor_id'   => $elementor_id,
+            'widget_type'    => $widget_type,
+            'template_id'    => empty( $template_chain ) ? 0 : (int) end( $template_chain ),
+            'template_chain' => array_values( $template_chain ),
+            'context'        => isset( $warning['context'] ) && is_array( $warning['context'] ) ? $warning['context'] : [],
+        ];
     }
 
     /**
-     * @param array<mixed> $value
-     * @param array<int,array{taxonomy:string,field:string,terms:array<int,string|int>}> $references
+     * @param array<string,mixed> $node
+     * @param array<int,int> $template_chain
+     * @param array<int,string> $template_scope
+     * @param array<string,mixed> $context
+     * @return array<string,mixed>
      */
-    private function find_elementor_term_tokens( array $value, array &$references, string $context_key = '' ): void {
-        foreach ( $value as $key => $child ) {
-            $key_name      = is_string( $key ) ? strtolower( $key ) : '';
-            $child_context = '' !== $key_name ? $key_name : $context_key;
-            if ( is_array( $child ) ) {
-                $this->find_elementor_term_tokens( $child, $references, $child_context );
-                continue;
-            }
-            if ( ! is_scalar( $child ) || ! str_contains( $child_context, 'term' ) ) {
-                continue;
-            }
-            if ( preg_match_all( '/(?:^|[,\s])category:(\d+)(?:$|[,\s])/', (string) $child, $matches ) ) {
-                $references[] = [
-                    'taxonomy' => 'category',
-                    'field'    => 'term_id',
-                    'terms'    => array_map( 'intval', $matches[1] ),
-                ];
-            }
-        }
+    private function template_warning( string $code, string $message, array $node, array $template_chain, array $template_scope, array $context = [] ): array {
+        return $this->widget_warning(
+            [ 'code' => $code, 'message' => $message, 'context' => $context ],
+            $this->evidence_elementor_id( sanitize_key( (string) ( $node['id'] ?? '' ) ), $template_scope ),
+            'template',
+            $template_chain
+        );
     }
 
-    /**
-     * CRITICAL — see laravel-hexa-app-publish BUGLOG.md CAMPAIGN-BUG-008.
-     * Elementor Pro Loop Grid and Loop Carousel query controls store plain term
-     * IDs in `<prefix>_include_term_ids`, applied only when `<prefix>_include`
-     * selects "terms". Without this, those homepages report no categories.
-     * Exclusion lists (`_exclude_term_ids`) are intentionally ignored.
-     *
-     * @param array<string,mixed> $settings
-     * @param array<int,array{taxonomy:string,field:string,terms:array<int,string|int>}> $references
-     */
-    private function find_elementor_query_include_terms( array $settings, array &$references ): void {
-        foreach ( $settings as $key => $value ) {
-            if ( ! is_string( $key ) || ! preg_match( '/^(.+)_include_term_ids$/', $key, $match ) ) {
-                continue;
-            }
-            $include = $settings[ $match[1] . '_include' ] ?? null;
-            if ( null !== $include && ! in_array( 'terms', (array) $include, true ) ) {
-                continue;
-            }
-            // `category:ID` tokens are handled by find_elementor_term_tokens(); absint() drops them here.
-            $ids = array_values( array_filter( array_map( 'absint', (array) $value ) ) );
-            if ( ! empty( $ids ) ) {
-                $references[] = [
-                    'taxonomy' => 'category',
-                    'field'    => 'term_id',
-                    'terms'    => $ids,
-                ];
-            }
+    /** @param array<int,string> $template_scope */
+    private function evidence_elementor_id( string $elementor_id, array $template_scope ): string {
+        if ( empty( $template_scope ) ) {
+            return $elementor_id;
         }
-    }
-
-    /** @return array<int,string|int> */
-    private function normalize_terms( $terms ): array {
-        if ( is_string( $terms ) ) {
-            $terms = preg_split( '/\s*,\s*/', trim( $terms ) ) ?: [];
-        } elseif ( is_int( $terms ) ) {
-            $terms = [ $terms ];
-        }
-        if ( ! is_array( $terms ) ) {
-            return [];
-        }
-
-        $normalized = [];
-        foreach ( $terms as $term ) {
-            if ( is_int( $term ) || ( is_string( $term ) && '' !== trim( $term ) ) ) {
-                $normalized[] = is_string( $term ) ? trim( $term ) : $term;
-            }
-        }
-        return $normalized;
+        return sanitize_key( 'template-' . implode( '-', $template_scope ) . '-' . $elementor_id );
     }
 
     /**
@@ -314,11 +448,14 @@ final class HomepageCollector {
     /** @param array<string,mixed> $node */
     private function excluded_node( array $node ): bool {
         $widget_type = sanitize_key( (string) ( $node['widgetType'] ?? '' ) );
-        if ( in_array( $widget_type, [ 'nav-menu', 'wp-widget-nav_menu', 'theme-site-logo', 'theme-site-title', 'template' ], true ) ) {
+        if ( in_array( $widget_type, [ 'nav-menu', 'wp-widget-nav_menu', 'theme-site-logo', 'theme-site-title' ], true ) ) {
             return true;
         }
 
         $settings = isset( $node['settings'] ) && is_array( $node['settings'] ) ? $node['settings'] : [];
+        if ( $this->all_devices_hidden( $settings ) ) {
+            return true;
+        }
         $html_tag = sanitize_key( (string) ( $settings['html_tag'] ?? '' ) );
         if ( in_array( $html_tag, [ 'header', 'footer', 'nav' ], true ) ) {
             return true;
@@ -326,6 +463,27 @@ final class HomepageCollector {
 
         $label = strtolower( trim( (string) ( $settings['_title'] ?? '' ) ) );
         return in_array( $label, [ 'header', 'site header', 'footer', 'site footer', 'menu', 'main menu', 'navigation' ], true );
+    }
+
+    /** @param array<string,mixed> $settings */
+    private function all_devices_hidden( array $settings ): bool {
+        foreach ( [ 'hide_desktop', 'hide_tablet', 'hide_mobile' ] as $key ) {
+            $value = $settings[ $key ] ?? null;
+            if ( ! in_array( $value, [ true, 1, '1', 'true', 'yes' ], true ) ) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /** @param array<int,array<string,mixed>> $warnings @return array<int,array<string,mixed>> */
+    private function unique_warnings( array $warnings ): array {
+        $unique = [];
+        foreach ( $warnings as $warning ) {
+            $encoded = function_exists( 'wp_json_encode' ) ? wp_json_encode( $warning ) : json_encode( $warning );
+            $unique[ is_string( $encoded ) ? $encoded : serialize( $warning ) ] = $warning;
+        }
+        return array_values( $unique );
     }
 
     /** @param array<string,mixed> $node */

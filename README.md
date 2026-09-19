@@ -8,7 +8,7 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `2.0.8`
+- Version: `2.0.9`
 
 ## Ownership
 
@@ -97,6 +97,11 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.0.9
+
+- Completes generic homepage publication manifests by traversing embedded Elementor templates with cycle and depth guards, interpreting supported taxonomy include/exclude rules, honoring device visibility, and reporting explicit evidence when a query cannot be statically resolved.
+- Exposes native category descriptions and stable template/query evidence for downstream campaign setup while preserving reserved-category exclusions.
 
 ### 2.0.8
 
