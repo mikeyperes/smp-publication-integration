@@ -1,13 +1,22 @@
 # SMP Publication Integration Bug Log
 
+## SMP-MANIFEST-BUG-007 — Requested result size was mistaken for actual truncation
+
+- **Status:** Patched for plugin `2.0.15`; the focused run exposed and corrected the constructor's older 25-result ceiling, and live SEO My Company acceptance is pending.
+- **Owner:** Shared publication-manifest native widget-query bounds.
+- **Cause:** The collector marked any unlimited or over-limit widget partial before seeing its result count. SEO My Company's category-capable `team-member` type has 24 homepage results, so the safe non-category shortcut in `2.0.14` correctly did not apply, but the old 12-result ceiling could not prove the finite result set was complete.
+- **Correction:** Raise the per-widget evidence ceiling to 50 and execute oversized/unlimited queries with exactly one overflow sentinel (51 results). Results of 50 or fewer are complete; a returned 51st item proves truncation, is removed from evidence, and keeps the warning. Exact short widget limits remain unchanged, and the 24-query budget remains enforced.
+- **Regression:** The focused manifest run reached the new overflow assertion and showed that the constructor still reduced the new 50-result default to its older 25-result ceiling. That exact cap was corrected to allow the bounded configuration; under the single-run boundary, the suite was not rerun. The fixture covers an unlimited 24-result category-capable grid, an unexecuted non-category grid, and 51-result overflow warnings for Elementor and Query Builder adapters.
+- **Release boundary:** Source is not active until `2.0.15` is published, installed on SEO My Company, and its public manifest is complete without warnings.
+
 ## SMP-MANIFEST-BUG-006 — Non-category directory grids triggered article-query truncation
 
-- **Status:** Patched for plugin `2.0.14`; focused regression passed and live SEO My Company acceptance is pending.
+- **Status:** Released in plugin `2.0.14`; focused regression passed, but live SEO My Company correctly remained partial because its `team-member` type does expose the `category` taxonomy. Final completeness handling continues in BUG007.
 - **Owner:** Shared publication-manifest native Elementor query adapter.
 - **Cause:** Every Elementor Loop Grid was treated as possible article-category evidence. SEO My Company's unlimited `team-member` directory grid cannot contribute WordPress categories, but the generic 12-post article-query bound marked it partial before that distinction was made.
 - **Correction:** Resolve explicit saved post types before native execution. When every statically declared post type exists and none has the `category` taxonomy, return complete empty category evidence without executing the grid. Unknown/current/any post types and custom query hooks retain bounded native execution and fail-closed warnings.
 - **Regression:** `php tests/publication-manifest-unit.php` passed. The focused fixture covers an unlimited `team-member` grid and requires complete empty evidence with zero provider executions while retaining the existing oversized article-query truncation guard.
-- **Release boundary:** Source is not active until `2.0.14` is published, installed on SEO My Company, and its public manifest is complete without warnings.
+- **Release boundary:** `2.0.14` was installed on SEO My Company; its safe shortcut remained inactive for the category-capable content type, as required.
 
 ## SMP-MANIFEST-BUG-005 — Post-returning Jet Query Builder widgets were rejected
 

@@ -8,7 +8,7 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `2.0.14`
+- Version: `2.0.15`
 
 ## Ownership
 
@@ -97,6 +97,12 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.0.15
+
+- Raises bounded native homepage evidence to 50 posts per widget and uses exactly one extra result as an overflow sentinel for oversized or unlimited queries.
+- Marks a widget partial only when the 51st result proves evidence was truncated; finite unlimited grids with 50 or fewer results now remain complete.
+- Adds focused coverage for a 24-result category-capable directory, an unexecuted non-category directory, and real overflow handling in Elementor and Query Builder adapters.
 
 ### 2.0.14
 

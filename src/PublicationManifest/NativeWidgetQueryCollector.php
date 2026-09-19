@@ -12,7 +12,7 @@ defined( 'ABSPATH' ) || exit;
  */
 final class NativeWidgetQueryCollector {
     private const DEFAULT_MAX_QUERIES = 24;
-    private const DEFAULT_MAX_POSTS = 12;
+    private const DEFAULT_MAX_POSTS = 50;
 
     /** @var callable|null */
     private $fixture_resolver;
@@ -26,7 +26,7 @@ final class NativeWidgetQueryCollector {
     public function __construct( ?callable $fixture_resolver = null, int $max_queries = self::DEFAULT_MAX_QUERIES, int $max_posts = self::DEFAULT_MAX_POSTS ) {
         $this->fixture_resolver = $fixture_resolver;
         $this->max_queries      = max( 1, min( 50, $max_queries ) );
-        $this->max_posts        = max( 1, min( 25, $max_posts ) );
+        $this->max_posts        = max( 1, min( 100, $max_posts ) );
     }
 
     public function begin_collection(): void {
@@ -103,7 +103,7 @@ final class NativeWidgetQueryCollector {
                 'warning'      => null,
             ];
         }
-        $truncated = $this->requires_truncation( $settings );
+        $truncated = false;
         if ( $this->uses_current_query( $settings ) ) {
             return $this->failure(
                 'elementor_current_query_context_unsupported',
@@ -221,7 +221,7 @@ final class NativeWidgetQueryCollector {
         }
 
         $raw_settings = isset( $node['settings'] ) && is_array( $node['settings'] ) ? $node['settings'] : [];
-        $truncated    = $this->requires_truncation( $raw_settings );
+        $truncated    = false;
         $settings     = $this->bounded_settings( $raw_settings );
         $query_bounds = (object) [ 'truncated' => $truncated, 'matched' => false ];
         $query_guard = $this->query_guard( $query_bounds );
@@ -489,7 +489,9 @@ final class NativeWidgetQueryCollector {
         foreach ( $settings as $key => $value ) {
             if ( is_string( $key ) && ( 'posts_num' === $key || 'max_posts_num' === $key || 'posts_per_page' === $key || str_ends_with( $key, '_posts_per_page' ) ) ) {
                 $requested = (int) $value;
-                $settings[ $key ] = $requested < 1 ? $this->max_posts : min( $this->max_posts, $requested );
+                $settings[ $key ] = $requested < 1 || $requested > $this->max_posts
+                    ? $this->max_posts + 1
+                    : $requested;
             }
         }
         $settings['current_page'] = 1;
@@ -524,11 +526,9 @@ final class NativeWidgetQueryCollector {
             if ( $requested < 1 ) {
                 $requested = (int) get_option( 'posts_per_page', 10 );
             }
-            if ( $query->get( 'nopaging' ) || -1 === (int) $query->get( 'posts_per_page' ) || $requested > $max_posts ) {
-                $bounds->truncated = true;
-            }
+            $probe_overflow = $query->get( 'nopaging' ) || -1 === (int) $query->get( 'posts_per_page' ) || $requested > $max_posts;
             $query->set( 'nopaging', false );
-            $query->set( 'posts_per_page', max( 1, min( $max_posts, $requested ) ) );
+            $query->set( 'posts_per_page', $probe_overflow ? $max_posts + 1 : max( 1, $requested ) );
             $query->set( 'post_status', 'publish' );
             $query->set( 'paged', 1 );
             $query->set( 'no_found_rows', true );
@@ -555,23 +555,6 @@ final class NativeWidgetQueryCollector {
                 return true;
             }
             if ( is_string( $key ) && str_ends_with( $key, 'avoid_duplicates' ) && 'yes' === $value ) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /** @param array<string,mixed> $settings */
-    private function requires_truncation( array $settings ): bool {
-        foreach ( $settings as $key => $value ) {
-            if ( is_array( $value ) && $this->requires_truncation( $value ) ) {
-                return true;
-            }
-            if ( ! is_string( $key ) || ! ( 'posts_num' === $key || 'posts_per_page' === $key || str_ends_with( $key, '_posts_per_page' ) ) || ! is_scalar( $value ) ) {
-                continue;
-            }
-            $requested = (int) $value;
-            if ( -1 === $requested || $requested > $this->max_posts ) {
                 return true;
             }
         }

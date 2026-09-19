@@ -36,11 +36,15 @@ expect_manifest( [] === $GLOBALS['smpi_manifest_filters'], 'Provider query marke
 
 $public = $native->collect( $node( 'posts', [ 'post_query_posts_per_page' => 6, 'fixture_posts' => [ 101, 103, 104, 105 ] ] ), 42 );
 expect_manifest( [ 8 ] === $public['category_ids'], 'Draft/private posts and nonpublic post types must not contribute categories.' );
-$clamped = $native->collect( $node( 'loop-grid', [ 'fixture_hook_limit' => 100 ] ), 42 );
-expect_manifest( 12 === $GLOBALS['smpi_last_native_query']->get( 'posts_per_page' ) && 'native_query_results_truncated' === $clamped['warning']['code'], 'A custom-hook oversized query must be bounded before execution and marked partial.' );
+$clamped = $native->collect( $node( 'loop-grid', [ 'fixture_hook_limit' => 100, 'fixture_posts' => range( 1000, 1050 ) ] ), 42 );
+expect_manifest( 51 === $GLOBALS['smpi_last_native_query']->get( 'posts_per_page' ) && 'native_query_results_truncated' === $clamped['warning']['code'], 'A custom-hook oversized query must use one bounded overflow sentinel and remain partial only when more than fifty results exist.' );
 $before_directory_grid = $GLOBALS['smpi_native_executions'];
-$directory_grid = $native->collect( $node( 'loop-grid', [ 'posts_per_page' => -1, 'post_query_post_type' => 'team-member' ] ), 42 );
+$directory_grid = $native->collect( $node( 'loop-grid', [ 'posts_per_page' => -1, 'post_query_post_type' => 'staff-profile' ] ), 42 );
 expect_manifest( $directory_grid['resolved'] && [] === $directory_grid['category_ids'] && null === $directory_grid['warning'] && $before_directory_grid === $GLOBALS['smpi_native_executions'], 'A statically bound non-category directory grid must resolve empty before its unlimited display count can make the article manifest partial.' );
+$GLOBALS['smpi_manifest_object_taxonomies']['team-member'] = [ 'category' ];
+$category_directory = $native->collect( $node( 'loop-grid', [ 'posts_per_page' => -1, 'post_query_post_type' => 'team-member', 'fixture_posts' => range( 2000, 2023 ) ] ), 42 );
+expect_manifest( $category_directory['resolved'] && 24 === $category_directory['post_count'] && null === $category_directory['warning'] && $before_directory_grid + 1 === $GLOBALS['smpi_native_executions'], 'An unlimited category-capable directory grid with fewer than fifty results must prove completeness through the bounded overflow probe.' );
+unset( $GLOBALS['smpi_manifest_object_taxonomies']['team-member'] );
 $failed = $native->collect( $node( 'loop-grid', [ 'fixture_throw' => true ] ), 42 );
 expect_manifest( ! $failed['resolved'] && ! isset( $GLOBALS['smpi_manifest_actions']['pre_get_posts'] ) && $original_post === $GLOBALS['post'], 'Failed native queries must restore context and remove their guard.' );
 $avoid = $native->collect( $node( 'loop-grid', [ 'post_query_avoid_duplicates' => 'yes' ] ), 42 );
@@ -51,7 +55,7 @@ expect_manifest( [ 8 ] === $jet['category_ids'] && 'jet_engine' === $jet['provid
 expect_manifest( $original_jet_data === jet_engine()->listings->data && 987 === $original_jet_data->listing && $original_post === $GLOBALS['post'], 'Jet must restore the exact previous listing state and post.' );
 $jet_query_builder = $native->collect( $node( 'jet-listing-grid', [ 'lisitng_id' => 501, 'custom_query' => 'yes', 'custom_query_id' => 2, 'posts_num' => 5 ] ), 42 );
 expect_manifest( [ 8, 6271, 7548 ] === $jet_query_builder['category_ids'] && 'jet_engine_query_builder' === $jet_query_builder['provider'], 'A statically bound Query Builder posts query must yield bounded category evidence before the manifest policy layer removes reserved categories.' );
-expect_manifest( 12 === $GLOBALS['smpi_last_native_query']->get( 'posts_per_page' ) && 'native_query_results_truncated' === $jet_query_builder['warning']['code'], 'Query Builder post results must be clamped through the exact-query guard and marked partial when oversized.' );
+expect_manifest( 51 === $GLOBALS['smpi_last_native_query']->get( 'posts_per_page' ) && 'native_query_results_truncated' === $jet_query_builder['warning']['code'], 'Query Builder post results must use the exact-query overflow guard and remain partial when more than fifty results exist.' );
 $before_non_post_query = $GLOBALS['smpi_native_executions'];
 $jet_query_builder_users = $native->collect( $node( 'jet-listing-grid', [ 'lisitng_id' => 501, 'custom_query' => 'yes', 'custom_query_id' => 3 ] ), 42 );
 expect_manifest( ! $jet_query_builder_users['resolved'] && 'jet_engine_query_builder_type_unsupported' === $jet_query_builder_users['warning']['code'] && $before_non_post_query === $GLOBALS['smpi_native_executions'], 'Non-post Query Builder sources must fail before execution.' );

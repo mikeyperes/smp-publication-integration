@@ -117,13 +117,13 @@ namespace {
             ++$GLOBALS['smpi_native_executions'];
             $arguments = apply_filters(
                 'jet-engine/query-builder/types/posts-query/args',
-                [ 'posts_per_page' => 50, 'post_status' => 'any' ],
+                [ 'posts_per_page' => 100, 'post_status' => 'any' ],
                 $this
             );
             $query = new WP_Query( $arguments );
             ( $GLOBALS['smpi_manifest_actions']['pre_get_posts'][0] )( $query );
             $GLOBALS['smpi_last_native_query'] = $query;
-            return array_slice( [ 101, 102, 106 ], 0, $query->get( 'posts_per_page' ) );
+            return array_slice( array_merge( [ 101, 102, 106 ], range( 1000, 1047 ) ), 0, $query->get( 'posts_per_page' ) );
         }
     }
     function jet_engine(): object { return $GLOBALS['smpi_fixture_jet']; }
