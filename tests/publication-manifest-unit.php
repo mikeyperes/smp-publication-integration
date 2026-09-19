@@ -52,7 +52,7 @@ function is_wp_error( $value ): bool {
 }
 
 function post_type_exists( string $post_type ): bool {
-    return 'post' === $post_type;
+    return in_array( $post_type, [ 'post', 'team-member' ], true );
 }
 
 function get_object_taxonomies( string $post_type, string $output = 'names' ): array {

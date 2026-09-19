@@ -8,7 +8,7 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `2.0.13`
+- Version: `2.0.14`
 
 ## Ownership
 
@@ -97,6 +97,12 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.0.14
+
+- Treats statically bound Elementor grids whose post types do not support WordPress categories as complete empty article-category evidence.
+- Prevents unlimited team, directory, and similar non-category grids from making the homepage article manifest falsely partial while preserving fail-closed handling for custom hooks and unresolved post types.
+- Adds focused coverage proving the non-category grid is not executed and the existing oversized article-query truncation guard remains intact.
 
 ### 2.0.13
 

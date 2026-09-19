@@ -38,6 +38,9 @@ $public = $native->collect( $node( 'posts', [ 'post_query_posts_per_page' => 6, 
 expect_manifest( [ 8 ] === $public['category_ids'], 'Draft/private posts and nonpublic post types must not contribute categories.' );
 $clamped = $native->collect( $node( 'loop-grid', [ 'fixture_hook_limit' => 100 ] ), 42 );
 expect_manifest( 12 === $GLOBALS['smpi_last_native_query']->get( 'posts_per_page' ) && 'native_query_results_truncated' === $clamped['warning']['code'], 'A custom-hook oversized query must be bounded before execution and marked partial.' );
+$before_directory_grid = $GLOBALS['smpi_native_executions'];
+$directory_grid = $native->collect( $node( 'loop-grid', [ 'posts_per_page' => -1, 'post_query_post_type' => 'team-member' ] ), 42 );
+expect_manifest( $directory_grid['resolved'] && [] === $directory_grid['category_ids'] && null === $directory_grid['warning'] && $before_directory_grid === $GLOBALS['smpi_native_executions'], 'A statically bound non-category directory grid must resolve empty before its unlimited display count can make the article manifest partial.' );
 $failed = $native->collect( $node( 'loop-grid', [ 'fixture_throw' => true ] ), 42 );
 expect_manifest( ! $failed['resolved'] && ! isset( $GLOBALS['smpi_manifest_actions']['pre_get_posts'] ) && $original_post === $GLOBALS['post'], 'Failed native queries must restore context and remove their guard.' );
 $avoid = $native->collect( $node( 'loop-grid', [ 'post_query_avoid_duplicates' => 'yes' ] ), 42 );

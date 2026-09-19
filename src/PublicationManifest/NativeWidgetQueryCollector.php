@@ -92,6 +92,17 @@ final class NativeWidgetQueryCollector {
         }
 
         $settings = isset( $node['settings'] ) && is_array( $node['settings'] ) ? $node['settings'] : [];
+        if ( $this->targets_only_non_category_post_types( $settings ) ) {
+            return [
+                'resolved'     => true,
+                'provider'     => 'elementor_pro',
+                'category_ids' => [],
+                'post_ids'     => [],
+                'post_count'   => 0,
+                'result_limit' => $this->max_posts,
+                'warning'      => null,
+            ];
+        }
         $truncated = $this->requires_truncation( $settings );
         if ( $this->uses_current_query( $settings ) ) {
             return $this->failure(
@@ -417,6 +428,60 @@ final class NativeWidgetQueryCollector {
             return true;
         }
         return null !== $value && false !== $value && '' !== trim( (string) $value );
+    }
+
+    /**
+     * A statically configured team/directory grid cannot contribute WordPress
+     * categories. Skip it before result limits can make the article manifest
+     * falsely partial. Custom hooks and unresolved post types still execute
+     * through the bounded adapter and fail closed normally.
+     *
+     * @param array<string,mixed> $settings
+     */
+    private function targets_only_non_category_post_types( array $settings ): bool {
+        $post_types = [];
+        $has_static_post_type = false;
+        $has_custom_hook = false;
+
+        $inspect = static function ( array $values ) use ( &$inspect, &$post_types, &$has_static_post_type, &$has_custom_hook ): void {
+            foreach ( $values as $key => $value ) {
+                if ( is_array( $value ) ) {
+                    $inspect( $value );
+                    continue;
+                }
+                if ( ! is_string( $key ) || ! is_scalar( $value ) ) {
+                    continue;
+                }
+                if ( in_array( $key, [ 'query_id', 'post_query_query_id', 'posts_query_query_id' ], true ) && '' !== trim( (string) $value ) ) {
+                    $has_custom_hook = true;
+                }
+                if ( ! str_ends_with( $key, 'post_type' ) ) {
+                    continue;
+                }
+                $has_static_post_type = true;
+                foreach ( preg_split( '/\s*,\s*/', (string) $value ) ?: [] as $post_type ) {
+                    $post_type = sanitize_key( $post_type );
+                    if ( '' !== $post_type ) {
+                        $post_types[ $post_type ] = $post_type;
+                    }
+                }
+            }
+        };
+        $inspect( $settings );
+
+        if ( ! $has_static_post_type || $has_custom_hook || empty( $post_types ) ) {
+            return false;
+        }
+        foreach ( $post_types as $post_type ) {
+            if (
+                in_array( $post_type, [ 'any', 'current_query' ], true )
+                || ! post_type_exists( $post_type )
+                || in_array( 'category', (array) get_object_taxonomies( $post_type, 'names' ), true )
+            ) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /** @param array<string,mixed> $settings @return array<string,mixed> */

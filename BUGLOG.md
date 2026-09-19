@@ -1,5 +1,14 @@
 # SMP Publication Integration Bug Log
 
+## SMP-MANIFEST-BUG-006 — Non-category directory grids triggered article-query truncation
+
+- **Status:** Patched for plugin `2.0.14`; focused regression passed and live SEO My Company acceptance is pending.
+- **Owner:** Shared publication-manifest native Elementor query adapter.
+- **Cause:** Every Elementor Loop Grid was treated as possible article-category evidence. SEO My Company's unlimited `team-member` directory grid cannot contribute WordPress categories, but the generic 12-post article-query bound marked it partial before that distinction was made.
+- **Correction:** Resolve explicit saved post types before native execution. When every statically declared post type exists and none has the `category` taxonomy, return complete empty category evidence without executing the grid. Unknown/current/any post types and custom query hooks retain bounded native execution and fail-closed warnings.
+- **Regression:** `php tests/publication-manifest-unit.php` passed. The focused fixture covers an unlimited `team-member` grid and requires complete empty evidence with zero provider executions while retaining the existing oversized article-query truncation guard.
+- **Release boundary:** Source is not active until `2.0.14` is published, installed on SEO My Company, and its public manifest is complete without warnings.
+
 ## SMP-MANIFEST-BUG-005 — Post-returning Jet Query Builder widgets were rejected
 
 - **Status:** Patched for plugin `2.0.13`; the focused run reached a fixture expectation corrected after diagnosis, and live MediTech acceptance remains pending.
