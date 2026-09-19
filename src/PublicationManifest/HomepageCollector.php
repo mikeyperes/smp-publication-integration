@@ -63,7 +63,11 @@ final class HomepageCollector {
         $warnings       = [];
 
         foreach ( array_values( $elements ) as $position => $node ) {
-            if ( ! is_array( $node ) || $this->excluded_node( $node ) ) {
+            if ( ! is_array( $node ) ) {
+                continue;
+            }
+            if ( $this->excluded_node( $node ) ) {
+                $this->walk_private_query_history( $node );
                 continue;
             }
 
@@ -142,6 +146,7 @@ final class HomepageCollector {
         array $template_scope = []
     ): void {
         if ( $this->excluded_node( $node ) ) {
+            $this->walk_private_query_history( $node, $template_depth, $template_chain );
             return;
         }
 
@@ -228,8 +233,9 @@ final class HomepageCollector {
             }
         }
 
-        if ( empty( $categories ) || ! empty( $inspection['warnings'] ) ) {
-            $native_result = $this->native_query_collector->collect( $node, $this->current_document_id );
+        $needs_native_evidence = empty( $categories ) || ! empty( $inspection['warnings'] );
+        $native_result = $this->native_query_collector->collect( $node, $this->current_document_id );
+        if ( $needs_native_evidence ) {
             $native_query  = [
                 'attempted'    => true,
                 'resolved'     => (bool) $native_result['resolved'],
@@ -288,6 +294,50 @@ final class HomepageCollector {
     }
 
     /**
+     * Responsive-hidden and other excluded Elementor nodes can still execute
+     * server-side queries. Reproduce only their ordered query history; never
+     * expose them as public homepage category evidence.
+     *
+     * @param array<string,mixed> $node
+     * @param array<int,int> $template_chain
+     */
+    private function walk_private_query_history( array $node, int $template_depth = 0, array $template_chain = [] ): void {
+        $widget_type = sanitize_key( (string) ( $node['widgetType'] ?? '' ) );
+        if ( $this->is_query_widget( $widget_type ) ) {
+            $this->native_query_collector->collect( $node, $this->current_document_id );
+        }
+
+        if ( 'template' === $widget_type ) {
+            $settings    = isset( $node['settings'] ) && is_array( $node['settings'] ) ? $node['settings'] : [];
+            $template_id = absint( $settings['template_id'] ?? $node['template_id'] ?? 0 );
+            if ( $template_id < 1 || $template_depth >= self::MAX_TEMPLATE_DEPTH || in_array( $template_id, $template_chain, true ) || ! function_exists( 'get_post_meta' ) ) {
+                $this->native_query_collector->invalidate_previous_results();
+                return;
+            }
+
+            $template_elements = $this->decode_elementor_data( get_post_meta( $template_id, '_elementor_data', true ) );
+            if ( null === $template_elements ) {
+                $this->native_query_collector->invalidate_previous_results();
+                return;
+            }
+
+            $resolved_chain = array_merge( $template_chain, [ $template_id ] );
+            foreach ( $template_elements as $template_node ) {
+                if ( is_array( $template_node ) ) {
+                    $this->walk_private_query_history( $template_node, $template_depth + 1, $resolved_chain );
+                }
+            }
+        }
+
+        $children = isset( $node['elements'] ) && is_array( $node['elements'] ) ? $node['elements'] : [];
+        foreach ( $children as $child ) {
+            if ( is_array( $child ) ) {
+                $this->walk_private_query_history( $child, $template_depth, $template_chain );
+            }
+        }
+    }
+
+    /**
      * @param array<string,mixed> $node
      * @param array<string,mixed> $section
      * @param array<int,array<string,mixed>> $query_widgets
@@ -312,6 +362,7 @@ final class HomepageCollector {
         $template_id = absint( $settings['template_id'] ?? $node['template_id'] ?? 0 );
 
         if ( $template_id < 1 ) {
+            $this->native_query_collector->invalidate_previous_results();
             $warnings[] = $this->template_warning(
                 'template_id_missing',
                 'An Elementor Template widget has no resolvable template ID.',
@@ -323,6 +374,7 @@ final class HomepageCollector {
         }
 
         if ( in_array( $template_id, $template_chain, true ) ) {
+            $this->native_query_collector->invalidate_previous_results();
             $warnings[] = $this->template_warning(
                 'template_cycle_detected',
                 'Nested Elementor template traversal stopped because the template chain contains a cycle.',
@@ -335,6 +387,7 @@ final class HomepageCollector {
         }
 
         if ( $template_depth >= self::MAX_TEMPLATE_DEPTH ) {
+            $this->native_query_collector->invalidate_previous_results();
             $warnings[] = $this->template_warning(
                 'template_depth_limit_reached',
                 'Nested Elementor template traversal stopped at the supported depth limit.',
@@ -347,6 +400,7 @@ final class HomepageCollector {
         }
 
         if ( ! function_exists( 'get_post_meta' ) ) {
+            $this->native_query_collector->invalidate_previous_results();
             $warnings[] = $this->template_warning(
                 'template_storage_unavailable',
                 'Elementor template content could not be loaded from WordPress post metadata.',
@@ -360,6 +414,7 @@ final class HomepageCollector {
 
         $template_elements = $this->decode_elementor_data( get_post_meta( $template_id, '_elementor_data', true ) );
         if ( null === $template_elements ) {
+            $this->native_query_collector->invalidate_previous_results();
             $warnings[] = $this->template_warning(
                 'template_data_unavailable',
                 'The referenced Elementor template has no readable element data.',

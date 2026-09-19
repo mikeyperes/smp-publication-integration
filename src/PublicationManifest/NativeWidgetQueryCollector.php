@@ -19,6 +19,9 @@ final class NativeWidgetQueryCollector {
     private int $max_queries;
     private int $max_posts;
     private int $queries_used = 0;
+    /** @var array<int,int> */
+    private array $previous_post_ids = [];
+    private bool $previous_results_complete = true;
 
     public function __construct( ?callable $fixture_resolver = null, int $max_queries = self::DEFAULT_MAX_QUERIES, int $max_posts = self::DEFAULT_MAX_POSTS ) {
         $this->fixture_resolver = $fixture_resolver;
@@ -27,7 +30,13 @@ final class NativeWidgetQueryCollector {
     }
 
     public function begin_collection(): void {
-        $this->queries_used = 0;
+        $this->queries_used              = 0;
+        $this->previous_post_ids         = [];
+        $this->previous_results_complete = true;
+    }
+
+    public function invalidate_previous_results(): void {
+        $this->previous_results_complete = false;
     }
 
     /**
@@ -35,33 +44,42 @@ final class NativeWidgetQueryCollector {
      * @return array{resolved:bool,provider:string,category_ids:array<int,int>,post_count:int,result_limit:int,warning:?array<string,mixed>}
      */
     public function collect( array $node, int $document_id ): array {
+        $widget_type = sanitize_key( (string) ( $node['widgetType'] ?? '' ) );
+        $affects_elementor_history = ! str_starts_with( $widget_type, 'jet-' );
         if ( $this->queries_used >= $this->max_queries ) {
-            return $this->failure(
+            return $this->finalize_result( $this->failure(
                 'native_query_budget_exhausted',
                 'The bounded native widget-query budget was exhausted before this query could be inspected.',
                 [ 'maximum_queries' => $this->max_queries ]
-            );
+            ), $affects_elementor_history );
         }
         ++$this->queries_used;
 
-        if ( is_callable( $this->fixture_resolver ) ) {
-            $result = ( $this->fixture_resolver )( $node, $document_id, $this->max_posts );
-            return $this->normalize_result( is_array( $result ) ? $result : [] );
+        $settings = isset( $node['settings'] ) && is_array( $node['settings'] ) ? $node['settings'] : [];
+        if ( $affects_elementor_history && $this->requires_previous_results( $settings ) && ! $this->previous_results_complete ) {
+            return $this->finalize_result( $this->failure(
+                'elementor_previous_results_required',
+                'This query depends on earlier widget results that could not be reproduced completely by the bounded native collector.'
+            ), true );
         }
 
-        $widget_type = sanitize_key( (string) ( $node['widgetType'] ?? '' ) );
+        if ( is_callable( $this->fixture_resolver ) ) {
+            $result = ( $this->fixture_resolver )( $node, $document_id, $this->max_posts, array_values( $this->previous_post_ids ) );
+            return $this->finalize_result( $this->normalize_result( is_array( $result ) ? $result : [] ), $affects_elementor_history );
+        }
+
         if ( in_array( $widget_type, [ 'posts', 'loop-grid', 'loop-carousel' ], true ) ) {
-            return $this->collect_elementor_posts( $node, $document_id );
+            return $this->finalize_result( $this->collect_elementor_posts( $node, $document_id ), true );
         }
         if ( 'jet-listing-grid' === $widget_type ) {
-            return $this->collect_jet_listing( $node, $document_id );
+            return $this->finalize_result( $this->collect_jet_listing( $node, $document_id ), false );
         }
 
-        return $this->failure(
+        return $this->finalize_result( $this->failure(
             'native_query_provider_unsupported',
             'The query widget has no supported native post-query adapter.',
             [ 'widget_type' => $widget_type ]
-        );
+        ), $affects_elementor_history );
     }
 
     /** @param array<string,mixed> $node */
@@ -80,11 +98,6 @@ final class NativeWidgetQueryCollector {
                 'elementor_current_query_context_unsupported',
                 'This widget depends on a request-specific current query that cannot be reproduced by the public manifest endpoint.'
             );
-        }
-        foreach ( $settings as $key => $value ) {
-            if ( str_ends_with( (string) $key, 'avoid_duplicates' ) && 'yes' === $value ) {
-                return $this->failure( 'elementor_previous_results_required', 'This query depends on posts rendered by earlier widgets; a static manifest cannot safely fabricate that exclusion list.' );
-            }
         }
 
         $plugin = \Elementor\Plugin::$instance;
@@ -111,8 +124,16 @@ final class NativeWidgetQueryCollector {
         $query_bounds             = (object) [ 'truncated' => $truncated, 'matched' => false ];
         $query_guard              = $this->query_guard( $query_bounds );
         $query_marker             = null;
-        $displayed_ids_snapshot   = null;
+        $displayed_ids_snapshot   = [];
+        $displayed_ids_bound      = false;
         $displayed_ids_class      = '\\ElementorPro\\Modules\\QueryControl\\Module';
+
+        if ( $this->requires_previous_results( $settings ) && ( ! class_exists( $displayed_ids_class ) || ! property_exists( $displayed_ids_class, 'displayed_ids' ) ) ) {
+            return $this->failure(
+                'elementor_previous_results_required',
+                'Elementor previous-result state is unavailable, so this duplicate-avoiding query cannot be reproduced safely.'
+            );
+        }
 
         try {
             $plugin->documents->switch_to_document( $document );
@@ -131,7 +152,8 @@ final class NativeWidgetQueryCollector {
 
             if ( class_exists( $displayed_ids_class ) && property_exists( $displayed_ids_class, 'displayed_ids' ) ) {
                 $displayed_ids_snapshot       = $displayed_ids_class::$displayed_ids;
-                $displayed_ids_class::$displayed_ids = [];
+                $displayed_ids_bound          = true;
+                $displayed_ids_class::$displayed_ids = array_values( $this->previous_post_ids );
             }
 
             $query_marker = $this->query_marker( $widget, $query_bounds );
@@ -158,7 +180,7 @@ final class NativeWidgetQueryCollector {
             if ( null !== $query_marker ) {
                 remove_filter( 'elementor/query/query_args', $query_marker, PHP_INT_MAX );
             }
-            if ( null !== $displayed_ids_snapshot && class_exists( $displayed_ids_class ) ) {
+            if ( $displayed_ids_bound && class_exists( $displayed_ids_class ) ) {
                 $displayed_ids_class::$displayed_ids = $displayed_ids_snapshot;
             }
             if ( $switched_post ) {
@@ -324,6 +346,19 @@ final class NativeWidgetQueryCollector {
     }
 
     /** @param array<string,mixed> $settings */
+    private function requires_previous_results( array $settings ): bool {
+        foreach ( $settings as $key => $value ) {
+            if ( is_array( $value ) && $this->requires_previous_results( $value ) ) {
+                return true;
+            }
+            if ( is_string( $key ) && str_ends_with( $key, 'avoid_duplicates' ) && 'yes' === $value ) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** @param array<string,mixed> $settings */
     private function requires_truncation( array $settings ): bool {
         foreach ( $settings as $key => $value ) {
             if ( is_array( $value ) && $this->requires_truncation( $value ) ) {
@@ -389,6 +424,7 @@ final class NativeWidgetQueryCollector {
             'resolved'     => true,
             'provider'     => sanitize_key( $provider ),
             'category_ids' => array_values( $category_ids ),
+            'post_ids'     => array_values( $post_ids ),
             'post_count'   => count( $post_ids ),
             'result_limit' => $this->max_posts,
             'warning'      => $truncated ? [
@@ -418,11 +454,22 @@ final class NativeWidgetQueryCollector {
             }
         }
 
+        $post_ids = [];
+        foreach ( (array) ( $result['post_ids'] ?? [] ) as $post_id ) {
+            $post_id = absint( $post_id );
+            if ( $post_id > 0 ) {
+                $post_ids[ $post_id ] = $post_id;
+            }
+        }
+
+        $post_count = min( $this->max_posts, absint( $result['post_count'] ?? count( $post_ids ) ) );
+
         return [
             'resolved'     => true,
             'provider'     => sanitize_key( (string) ( $result['provider'] ?? 'fixture' ) ),
             'category_ids' => array_values( $category_ids ),
-            'post_count'   => min( $this->max_posts, absint( $result['post_count'] ?? 0 ) ),
+            'post_ids'     => array_values( $post_ids ),
+            'post_count'   => $post_count,
             'result_limit' => $this->max_posts,
             'warning'      => isset( $result['warning'] ) && is_array( $result['warning'] ) ? [
                 'code'    => sanitize_key( (string) ( $result['warning']['code'] ?? 'native_query_warning' ) ),
@@ -432,12 +479,42 @@ final class NativeWidgetQueryCollector {
         ];
     }
 
+    /**
+     * Retain actual preceding post IDs only inside this collection. The public
+     * native-query record deliberately keeps its existing schema.
+     *
+     * @param array<string,mixed> $result
+     * @return array<string,mixed>
+     */
+    private function finalize_result( array $result, bool $affects_elementor_history ): array {
+        $post_ids = [];
+        foreach ( (array) ( $result['post_ids'] ?? [] ) as $post_id ) {
+            $post_id = absint( $post_id );
+            if ( $post_id > 0 ) {
+                $post_ids[ $post_id ] = $post_id;
+            }
+        }
+
+        if ( $affects_elementor_history ) {
+            if ( empty( $result['resolved'] ) || is_array( $result['warning'] ?? null ) || (int) ( $result['post_count'] ?? 0 ) !== count( $post_ids ) ) {
+                $this->previous_results_complete = false;
+            }
+            foreach ( $post_ids as $post_id ) {
+                $this->previous_post_ids[ $post_id ] = $post_id;
+            }
+        }
+
+        unset( $result['post_ids'] );
+        return $result;
+    }
+
     /** @param array<string,mixed> $context */
     private function failure( string $code, string $message, array $context = [] ): array {
         return [
             'resolved'     => false,
             'provider'     => '',
             'category_ids' => [],
+            'post_ids'     => [],
             'post_count'   => 0,
             'result_limit' => $this->max_posts,
             'warning'      => [

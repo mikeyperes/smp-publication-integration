@@ -163,6 +163,7 @@ require_once dirname( __DIR__ ) . '/src/PublicationManifest/ManifestEndpoint.php
 
 use SMP\PublicationIntegration\PublicationManifest\HomepageCollector;
 use SMP\PublicationIntegration\PublicationManifest\ManifestEndpoint;
+use SMP\PublicationIntegration\PublicationManifest\NativeWidgetQueryCollector;
 use SMP\PublicationIntegration\PublicationManifest\PayloadSanitizer;
 use SMP\PublicationIntegration\PublicationManifest\WordPressCollector;
 
@@ -450,6 +451,155 @@ $unsupported_codes = array_column( $unsupported_query_homepage['collection_warni
 expect_manifest( in_array( 'unsupported_taxonomy_operator', $unsupported_codes, true ), 'Unsupported taxonomy operators must produce a machine-readable warning.' );
 expect_manifest( in_array( 'custom_query_hook_not_inspected', $unsupported_codes, true ), 'Custom query hooks must produce a machine-readable warning.' );
 expect_manifest( in_array( 'query_scope_not_statically_resolved', $unsupported_codes, true ), 'Unscoped query widgets must report that their categories were not fabricated.' );
+
+// SMP-MANIFEST-BUG-004: ordered Elementor results must seed later
+// avoid-duplicates queries without changing saved-query provenance.
+$history_widget = static fn( string $id, array $settings, string $type = 'loop-grid' ): array => [
+    'id'         => $id,
+    'elType'     => 'widget',
+    'widgetType' => $type,
+    'settings'   => $settings,
+    'elements'   => [],
+];
+$history_calls = [];
+$history_collector = new NativeWidgetQueryCollector(
+    static function ( array $node, int $document_id, int $maximum_posts, array $previous_post_ids ) use ( &$history_calls ): array {
+        unset( $document_id, $maximum_posts );
+        $history_calls[] = [
+            'id'       => (string) $node['id'],
+            'previous' => $previous_post_ids,
+            'offset'   => $node['settings']['post_query_offset'] ?? null,
+        ];
+        if ( 'prior-static' === $node['id'] ) {
+            return [ 'resolved' => true, 'provider' => 'fixture', 'category_ids' => [ 1496 ], 'post_ids' => [ 501, 502, 503 ], 'post_count' => 3 ];
+        }
+        return [ 'resolved' => true, 'provider' => 'fixture', 'category_ids' => [ 6271 ], 'post_ids' => [ 504, 505 ], 'post_count' => 2 ];
+    }
+);
+$GLOBALS['smpi_manifest_post_meta'][600]['_elementor_data'] = wp_json_encode(
+    [
+        $history_widget(
+            'prior-static',
+            [
+                'post_query_include'          => [ 'terms' ],
+                'post_query_include_term_ids' => [ 1496 ],
+                'post_query_posts_per_page'   => 3,
+            ],
+            'loop-carousel'
+        ),
+    ]
+);
+$history_homepage_collector = new HomepageCollector( null, null, $history_collector );
+$history_homepage = $history_homepage_collector->collect_from_elements(
+    48,
+    [
+        $history_widget( 'history-template', [ 'template_id' => 600 ], 'template' ),
+        $history_widget(
+            'dependent',
+            [
+                'post_query_avoid_duplicates' => 'yes',
+                'post_query_offset'           => 3,
+                'post_query_posts_per_page'   => 2,
+            ]
+        ),
+    ]
+);
+expect_manifest( [ 501, 502, 503 ] === $history_calls[1]['previous'], 'A dependent Elementor query must receive the actual ordered results from its preceding widget.' );
+expect_manifest( 3 === $history_calls[1]['offset'], 'A dependent query must retain its saved offset while prior result IDs are bound.' );
+expect_manifest( 'saved_query' === $history_homepage['query_widgets'][0]['category_source'] && false === $history_homepage['query_widgets'][0]['native_query']['attempted'], 'Private prior-result collection must not change saved-query provenance or public native metadata.' );
+expect_manifest( 'native_query_results' === $history_homepage['query_widgets'][1]['category_source'] && 'complete' === $history_homepage['collection_status'], 'A complete prior-result context must resolve a later duplicate-avoiding query natively.' );
+expect_manifest( [ 1496, 6271 ] === array_column( $history_homepage['categories'], 'id' ), 'Private prior-result collection must preserve the existing saved/native category union.' );
+
+$history_homepage_collector->collect_from_elements(
+    49,
+    [ $history_widget( 'dependent-reset', [ 'post_query_avoid_duplicates' => 'yes', 'post_query_offset' => 3 ] ) ]
+);
+expect_manifest( [] === $history_calls[2]['previous'], 'Each homepage collection must reset prior-result context instead of leaking IDs between manifests.' );
+
+$zero_calls = [];
+$zero_collector = new NativeWidgetQueryCollector(
+    static function ( array $node, int $document_id, int $maximum_posts, array $previous_post_ids ) use ( &$zero_calls ): array {
+        unset( $document_id, $maximum_posts );
+        $zero_calls[] = [ (string) $node['id'], $previous_post_ids ];
+        return 'zero-prior' === $node['id']
+            ? [ 'resolved' => true, 'provider' => 'fixture', 'category_ids' => [], 'post_ids' => [], 'post_count' => 0 ]
+            : [ 'resolved' => true, 'provider' => 'fixture', 'category_ids' => [ 6271 ], 'post_ids' => [ 506 ], 'post_count' => 1 ];
+    }
+);
+$zero_homepage = ( new HomepageCollector( null, null, $zero_collector ) )->collect_from_elements(
+    50,
+    [
+        $history_widget( 'zero-prior', [ 'post_query_include_term_ids' => [ 'category:1496' ] ] ),
+        $history_widget( 'zero-dependent', [ 'post_query_avoid_duplicates' => 'yes' ] ),
+    ]
+);
+expect_manifest( 2 === count( $zero_calls ) && [] === $zero_calls[1][1] && 'complete' === $zero_homepage['collection_status'], 'A proven zero-result prior query must keep an empty but complete avoid-list context.' );
+
+$truncated_calls = [];
+$truncated_collector = new NativeWidgetQueryCollector(
+    static function ( array $node, int $document_id, int $maximum_posts, array $previous_post_ids ) use ( &$truncated_calls ): array {
+        unset( $document_id, $maximum_posts, $previous_post_ids );
+        $truncated_calls[] = (string) $node['id'];
+        return [
+            'resolved'     => true,
+            'provider'     => 'fixture',
+            'category_ids' => [ 1496 ],
+            'post_ids'     => [ 601 ],
+            'post_count'   => 1,
+            'warning'      => [ 'code' => 'native_query_results_truncated', 'message' => 'Fixture result was truncated.', 'context' => [] ],
+        ];
+    }
+);
+$truncated_homepage = ( new HomepageCollector( null, null, $truncated_collector ) )->collect_from_elements(
+    51,
+    [
+        $history_widget( 'truncated-prior', [ 'post_query_include_term_ids' => [ 'category:1496' ] ] ),
+        $history_widget( 'truncated-dependent', [ 'post_query_avoid_duplicates' => 'yes' ] ),
+    ]
+);
+expect_manifest( [ 'truncated-prior' ] === $truncated_calls, 'A dependent query must not execute against a truncated preceding-result context.' );
+expect_manifest( in_array( 'elementor_previous_results_required', array_column( $truncated_homepage['collection_warnings'], 'code' ), true ), 'A truncated prior context must leave a dependent query explicitly partial.' );
+
+$unsupported_calls = [];
+$unsupported_prior_collector = new NativeWidgetQueryCollector(
+    static function ( array $node, int $document_id, int $maximum_posts, array $previous_post_ids ) use ( &$unsupported_calls ): array {
+        unset( $document_id, $maximum_posts, $previous_post_ids );
+        $unsupported_calls[] = (string) $node['id'];
+        return [
+            'resolved' => false,
+            'warning'  => [ 'code' => 'native_query_provider_unsupported', 'message' => 'Fixture provider is unsupported.', 'context' => [] ],
+        ];
+    }
+);
+$unsupported_prior_homepage = ( new HomepageCollector( null, null, $unsupported_prior_collector ) )->collect_from_elements(
+    52,
+    [
+        $history_widget( 'unsupported-prior', [ 'posts_include_term_ids' => [ 'category:1496' ] ], 'archive-posts' ),
+        $history_widget( 'unsupported-dependent', [ 'post_query_avoid_duplicates' => 'yes' ] ),
+    ]
+);
+expect_manifest( [ 'unsupported-prior' ] === $unsupported_calls, 'A dependent query must not execute after an unsupported prior query.' );
+expect_manifest( in_array( 'elementor_previous_results_required', array_column( $unsupported_prior_homepage['collection_warnings'], 'code' ), true ), 'An unsupported prior query must leave a dependent query explicitly partial.' );
+
+$hidden_calls = [];
+$hidden_collector = new NativeWidgetQueryCollector(
+    static function ( array $node, int $document_id, int $maximum_posts, array $previous_post_ids ) use ( &$hidden_calls ): array {
+        unset( $document_id, $maximum_posts );
+        $hidden_calls[] = [ (string) $node['id'], $previous_post_ids ];
+        return 'hidden-prior' === $node['id']
+            ? [ 'resolved' => true, 'provider' => 'fixture', 'category_ids' => [ 1496 ], 'post_ids' => [ 701 ], 'post_count' => 1 ]
+            : [ 'resolved' => true, 'provider' => 'fixture', 'category_ids' => [ 6271 ], 'post_ids' => [ 702 ], 'post_count' => 1 ];
+    }
+);
+$hidden_homepage = ( new HomepageCollector( null, null, $hidden_collector ) )->collect_from_elements(
+    53,
+    [
+        $history_widget( 'hidden-prior', [ 'hide_desktop' => 'yes', 'hide_tablet' => 'yes', 'hide_mobile' => 'yes', 'posts_include_term_ids' => [ 'category:1496' ] ] ),
+        $history_widget( 'hidden-dependent', [ 'post_query_avoid_duplicates' => 'yes' ] ),
+    ]
+);
+expect_manifest( [ 701 ] === $hidden_calls[1][1], 'A responsive-hidden query must remain private evidence while still contributing its server-side result history.' );
+expect_manifest( [ 6271 ] === array_column( $hidden_homepage['categories'], 'id' ) && 'complete' === $hidden_homepage['collection_status'], 'Responsive-hidden categories must remain excluded from public evidence without losing complete dependent context.' );
 
 $digital_magazine = current( array_filter( $homepage['categories'], static fn( array $category ): bool => 7548 === $category['id'] ) );
 expect_manifest( is_array( $digital_magazine ) && 'reserved' === $digital_magazine['campaign_policy']['status'], 'Digital Magazine must be marked reserved.' );

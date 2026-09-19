@@ -8,7 +8,7 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `2.0.11`
+- Version: `2.0.12`
 
 ## Ownership
 
@@ -97,6 +97,12 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.0.12
+
+- Reproduces Elementor's ordered prior-post context for duplicate-avoiding homepage widgets while preserving saved offsets, query bounds, provider state, and existing public manifest provenance.
+- Privately primes server-side query history from statically categorized and responsive-hidden preceding widgets, and leaves dependent widgets explicitly partial whenever preceding results are incomplete.
+- Adds focused coverage for prior-result ordering, reset and restoration, saved offsets, hidden/static priming, zero results, and fail-closed truncated or unsupported history. The first focused fixture run failed at the hidden-widget assertion; that traversal defect was corrected and the fixture was not rerun before release.
 
 ### 2.0.11
 
