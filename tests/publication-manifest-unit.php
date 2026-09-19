@@ -149,6 +149,7 @@ foreach ( $term_fixtures as $id => [ $name, $slug ] ) {
 
 require_once dirname( __DIR__ ) . '/src/PublicationManifest/TaxonomyPolicy.php';
 require_once dirname( __DIR__ ) . '/src/PublicationManifest/ElementorQueryInspector.php';
+require_once dirname( __DIR__ ) . '/src/PublicationManifest/NativeWidgetQueryCollector.php';
 require_once dirname( __DIR__ ) . '/src/PublicationManifest/HomepageCollector.php';
 require_once dirname( __DIR__ ) . '/src/Content/PublicationContentTypes.php';
 require_once dirname( __DIR__ ) . '/src/Content/ArticleTypes.php';
@@ -479,4 +480,7 @@ expect_manifest( 'smpi/v1' === $GLOBALS['smpi_manifest_route']['namespace'], 'Th
 expect_manifest( '/publication-manifest' === $GLOBALS['smpi_manifest_route']['route'], 'The public manifest route must be registered.' );
 expect_manifest( '__return_true' === $GLOBALS['smpi_manifest_route']['args']['permission_callback'], 'The read-only manifest must be public.' );
 
-fwrite( STDOUT, "PASS: publication manifest resolves nested Elementor categories and headings, preserves include/exclude and visibility semantics, reports partial scans, sanitizes output, and registers the public route.\n" );
+require __DIR__ . '/fixtures/native-widget-providers.php';
+require __DIR__ . '/native-widget-query-assertions.php';
+
+fwrite( STDOUT, "PASS: publication manifest static/template and native Elementor/Jet query fixtures, exact limits, public posts, context restoration, truncation, budget, exclusions and public route.\n" );

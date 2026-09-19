@@ -11,10 +11,17 @@ final class HomepageCollector {
 
     private TaxonomyPolicy $policy;
     private ElementorQueryInspector $query_inspector;
+    private NativeWidgetQueryCollector $native_query_collector;
+    private int $current_document_id = 0;
 
-    public function __construct( ?TaxonomyPolicy $policy = null, ?ElementorQueryInspector $query_inspector = null ) {
-        $this->policy          = $policy ?? new TaxonomyPolicy();
-        $this->query_inspector = $query_inspector ?? new ElementorQueryInspector();
+    public function __construct(
+        ?TaxonomyPolicy $policy = null,
+        ?ElementorQueryInspector $query_inspector = null,
+        ?NativeWidgetQueryCollector $native_query_collector = null
+    ) {
+        $this->policy                 = $policy ?? new TaxonomyPolicy();
+        $this->query_inspector        = $query_inspector ?? new ElementorQueryInspector();
+        $this->native_query_collector = $native_query_collector ?? new NativeWidgetQueryCollector();
     }
 
     /** @return array<string,mixed> */
@@ -48,6 +55,8 @@ final class HomepageCollector {
      * @return array<string,mixed>
      */
     public function collect_from_elements( int $front_page_id, array $elements, string $builder = 'elementor', string $show_on_front = 'page' ): array {
+        $this->current_document_id = $front_page_id;
+        $this->native_query_collector->begin_collection();
         $sections       = [];
         $query_widgets  = [];
         $category_index = [];
@@ -146,7 +155,7 @@ final class HomepageCollector {
             foreach ( $widget['warnings'] as $warning ) {
                 $warnings[] = $warning;
             }
-            if ( ! empty( $widget['categories'] ) || ! empty( $widget['warnings'] ) ) {
+            if ( ! empty( $widget['categories'] ) || ! empty( $widget['warnings'] ) || ! empty( $widget['native_query']['resolved'] ) ) {
                 $query_widgets[]               = $widget;
                 $section['query_widget_ids'][] = $widget['elementor_id'];
             }
@@ -166,6 +175,8 @@ final class HomepageCollector {
                         'section'      => $widget['section'],
                         'template_id'  => $widget['template_id'],
                         'template_chain' => $widget['template_chain'],
+                        'category_source' => $widget['category_source'],
+                        'native_provider' => (string) ( $widget['native_query']['provider'] ?? '' ),
                     ];
                 }
             }
@@ -199,6 +210,14 @@ final class HomepageCollector {
         $inspection = $this->query_inspector->inspect( $settings );
         $references = $inspection['references'];
         $categories = [];
+        $category_source = 'saved_query';
+        $native_query = [
+            'attempted'    => false,
+            'resolved'     => false,
+            'provider'     => '',
+            'post_count'   => 0,
+            'result_limit' => 0,
+        ];
 
         foreach ( $references as $reference ) {
             if ( 'category' !== $reference['taxonomy'] ) {
@@ -209,6 +228,29 @@ final class HomepageCollector {
             }
         }
 
+        if ( empty( $categories ) || ! empty( $inspection['warnings'] ) ) {
+            $native_result = $this->native_query_collector->collect( $node, $this->current_document_id );
+            $native_query  = [
+                'attempted'    => true,
+                'resolved'     => (bool) $native_result['resolved'],
+                'provider'     => (string) $native_result['provider'],
+                'post_count'   => (int) $native_result['post_count'],
+                'result_limit' => (int) $native_result['result_limit'],
+            ];
+
+            if ( $native_result['resolved'] ) {
+                $categories      = [];
+                $category_source = 'native_query_results';
+                $inspection['warnings'] = [];
+                foreach ( $this->resolve_terms( 'term_id', $native_result['category_ids'] ) as $term ) {
+                    $categories[ (int) $term->term_id ] = $this->policy->category_record( $term );
+                }
+            }
+            if ( is_array( $native_result['warning'] ) ) {
+                $inspection['warnings'][] = $native_result['warning'];
+            }
+        }
+
         $source_elementor_id = sanitize_key( (string) ( $node['id'] ?? '' ) );
         $elementor_id = $this->evidence_elementor_id( $source_elementor_id, $template_scope );
         $widget_type  = sanitize_key( (string) ( $node['widgetType'] ?? '' ) );
@@ -216,7 +258,7 @@ final class HomepageCollector {
         foreach ( $inspection['warnings'] as $warning ) {
             $warnings[] = $this->widget_warning( $warning, $elementor_id, $widget_type, $template_chain );
         }
-        if ( empty( $categories ) && empty( $warnings ) ) {
+        if ( empty( $categories ) && ! $native_query['resolved'] ) {
             $warnings[] = $this->widget_warning(
                 [
                     'code'    => 'query_scope_not_statically_resolved',
@@ -239,6 +281,8 @@ final class HomepageCollector {
             'categories'   => array_values( $categories ),
             'template_id'  => empty( $template_chain ) ? 0 : (int) end( $template_chain ),
             'template_chain' => array_values( $template_chain ),
+            'category_source' => $category_source,
+            'native_query' => $native_query,
             'warnings'     => $warnings,
         ];
     }

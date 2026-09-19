@@ -8,7 +8,7 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `2.0.9`
+- Version: `2.0.10`
 
 ## Ownership
 
@@ -97,6 +97,11 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.0.10
+
+- Adds bounded native Elementor Pro and JetEngine post-query collection for unfiltered homepage widgets, preserving exact query limits, public-post visibility, provider context, and explicit partial warnings when a query cannot be safely reproduced.
+- Adds native-provider fixtures and regression coverage for query budgets, hook limits, context restoration, provenance, and reserved-category exclusion.
 
 ### 2.0.9
 
