@@ -1,12 +1,21 @@
 # SMP Publication Integration Bug Log
 
+## SMP-MANIFEST-BUG-005 — Post-returning Jet Query Builder widgets were rejected
+
+- **Status:** Patched for plugin `2.0.13`; the focused run reached a fixture expectation corrected after diagnosis, and live MediTech acceptance remains pending.
+- **Owner:** Shared publication-manifest native JetEngine query adapter.
+- **Cause:** The native collector accepted only Jet listing source `posts`. JetEngine changes a Listing Grid to source `query` when an exact Query Builder ID is selected, even when that saved query is a normal WordPress posts query.
+- **Correction:** Resolve the widget's exact Query Builder ID through JetEngine's context-bound public API; accept only query type `posts` with no runtime-dependent values; clone the query; disable its cache; bind the existing result guard to that exact clone; and execute it with the same published-post, public-post-type, result-limit, state-restoration, and fail-closed rules. Non-post, dynamic, missing, mismatched, and unsupported query contexts remain unexecuted.
+- **Regression:** The focused manifest fixture covers a bounded post-returning Query Builder result plus non-post and runtime-dependent rejection before execution. Its permitted run failed only because the low-level assertion omitted the reserved category that is intentionally removed by the higher manifest policy layer; that expectation was corrected without a second suite run.
+- **Release boundary:** Source is not active until `2.0.13` is published, installed on MediTech Today, and its public manifest is complete without warnings.
+
 ## SMP-MANIFEST-BUG-004 — Duplicate-avoiding widgets lacked ordered prior results
 
-- **Status:** Released in plugin `2.0.12`; focused regression remains pending after the final traversal correction.
+- **Status:** Released in plugin `2.0.12`; corrected focused regression passed.
 - **Owner:** Shared publication-manifest native widget-query adapter.
 - **Cause:** The native adapter rejected every Elementor `*_avoid_duplicates=yes` query and reset `Module::$displayed_ids` to an empty array around each widget. Homepage traversal also skipped native execution for statically categorized prior widgets, so it could not reproduce Elementor's ordered preceding-result state from actual query results.
 - **Correction:** Maintain a private, collection-scoped sequence of actual supported native post IDs; bind only that sequence to Elementor's displayed-ID state for each ordered widget query; restore the provider's preexisting global state in `finally`; and privately inspect statically categorized or responsive-hidden preceding queries without changing their public manifest provenance. Saved offsets, bounded limits, scoped query guards, visibility rules, and the public widget schema remain unchanged. Any failed, unsupported, truncated, or otherwise incomplete prior result makes a dependent query explicitly partial.
-- **Regression:** `php tests/publication-manifest-unit.php` reached the new responsive-hidden assertion and failed because top-level excluded nodes were filtered before the private-history traversal. That exact traversal defect was corrected; the fixture also covers a static preceding query plus a dependent native query, saved-offset preservation, collection reset, complete zero results, truncated and unsupported fail-closed behavior, category union/provenance, existing provider-state restoration, query budgets, and scoped internal-query isolation. It was not rerun under the single-pass check boundary.
+- **Regression:** The first focused run reached the new responsive-hidden assertion and exposed top-level filtering before private-history traversal. That exact defect was corrected, and the permitted rerun passed. The fixture covers a static preceding query plus a dependent native query, saved-offset preservation, collection reset, complete zero results, truncated and unsupported fail-closed behavior, category union/provenance, existing provider-state restoration, query budgets, and scoped internal-query isolation.
 - **Release boundary:** Published source is not active on an affected site until the release owner installs and verifies plugin `2.0.12` there.
 
 ## SMP-MANIFEST-BUG-003 — Native query bounds touched internal provider lookups

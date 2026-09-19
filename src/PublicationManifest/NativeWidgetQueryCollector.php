@@ -222,8 +222,8 @@ final class NativeWidgetQueryCollector {
         if ( ! is_object( $data_snapshot ) || ! method_exists( $data_snapshot, 'set_listing_by_id' ) || ! method_exists( $data_snapshot, 'get_listing_source' ) ) {
             return $this->failure( 'jet_engine_listing_context_unavailable', 'JetEngine cannot bind the exact saved listing for this query.' );
         }
-        if ( ! empty( $settings['is_archive_template'] ) || ! empty( $settings['use_custom_query'] ) || ! empty( $settings['use_random_posts_num'] ) ) {
-            return $this->failure( 'jet_engine_query_context_unsupported', 'This listing requires archive, random, or custom query-builder state that the bounded native post adapter cannot reproduce.' );
+        if ( ! empty( $settings['is_archive_template'] ) || ! empty( $settings['use_random_posts_num'] ) ) {
+            return $this->failure( 'jet_engine_query_context_unsupported', 'This listing requires archive or random query state that the bounded native post adapter cannot reproduce.' );
         }
         $listing_id = absint( $settings['lisitng_id'] ?? 0 );
         if ( $listing_id < 1 || ! get_post( $listing_id ) ) {
@@ -246,8 +246,11 @@ final class NativeWidgetQueryCollector {
 
             $renderer->setup_listing_props();
             $source = apply_filters( 'jet-engine/listing/grid/source', $engine->listings->data->get_listing_source(), $renderer->get_settings(), $renderer );
+            if ( 'query' === $source ) {
+                return $this->collect_jet_query_builder( $renderer, $listing_id );
+            }
             if ( 'posts' !== $source ) {
-                return $this->failure( 'jet_engine_listing_source_unsupported', 'Only native WordPress post listings provide category evidence; non-post listing queries were not executed.' );
+                return $this->failure( 'jet_engine_listing_source_unsupported', 'Only native WordPress post listings and safely resolved post-returning Query Builder listings provide category evidence; other listing sources were not executed.' );
             }
             $query_marker = $this->query_marker( $renderer, $query_bounds );
             add_filter( 'jet-engine/listing/grid/posts-query-args', $query_marker, PHP_INT_MAX, 2 );
@@ -279,6 +282,141 @@ final class NativeWidgetQueryCollector {
                 unset( $GLOBALS['post'] );
             }
         }
+    }
+
+    /** Resolve one statically bound JetEngine Query Builder posts query. */
+    private function collect_jet_query_builder( object $renderer, int $listing_id ): array {
+        $manager_class = '\\Jet_Engine\\Query_Builder\\Manager';
+        if ( ! class_exists( $manager_class ) || ! method_exists( $manager_class, 'instance' ) ) {
+            return $this->failure(
+                'jet_engine_query_builder_unavailable',
+                'JetEngine Query Builder is unavailable for native listing-query inspection.'
+            );
+        }
+
+        $settings = $renderer->get_settings();
+        $query_id = absint( $settings['custom_query_id'] ?? 0 );
+        if ( $query_id < 1 ) {
+            return $this->failure(
+                'jet_engine_query_builder_id_missing',
+                'The saved Query Builder listing has no exact query ID.'
+            );
+        }
+
+        $manager = $manager_class::instance();
+        if (
+            ! is_object( $manager )
+            || ! isset( $manager->listings )
+            || ! method_exists( $manager->listings, 'get_query_id' )
+            || ! method_exists( $manager, 'get_query_by_id_for_context' )
+        ) {
+            return $this->failure(
+                'jet_engine_query_builder_api_unavailable',
+                'JetEngine does not expose the supported context-bound Query Builder API.'
+            );
+        }
+
+        $resolved_query_id = absint( $manager->listings->get_query_id( $listing_id, $settings ) );
+        if ( $query_id !== $resolved_query_id ) {
+            return $this->failure(
+                'jet_engine_query_builder_binding_mismatch',
+                'The listing did not resolve to its exact saved Query Builder query.'
+            );
+        }
+
+        $query = $manager->get_query_by_id_for_context(
+            $resolved_query_id,
+            [
+                'type'       => 'listing',
+                'query_id'   => $resolved_query_id,
+                'listing_id' => $listing_id,
+                'settings'   => $settings,
+            ]
+        );
+        if ( ! is_object( $query ) ) {
+            return $this->failure(
+                'jet_engine_query_builder_query_missing',
+                'JetEngine could not resolve the exact saved Query Builder query.'
+            );
+        }
+
+        $query_type = method_exists( $query, 'get_query_type' ) ? sanitize_key( (string) $query->get_query_type() ) : '';
+        if ( 'posts' !== $query_type ) {
+            return $this->failure(
+                'jet_engine_query_builder_type_unsupported',
+                'Only Query Builder queries that explicitly return WordPress posts provide category evidence.',
+                [ 'query_type' => $query_type ]
+            );
+        }
+        if ( $this->has_runtime_query_context( $query->dynamic_query ?? [] ) ) {
+            return $this->failure(
+                'jet_engine_query_builder_dynamic_context_unsupported',
+                'This Query Builder query contains runtime-dependent values that the public manifest cannot reproduce safely.'
+            );
+        }
+        if ( ! method_exists( $query, 'get_items' ) ) {
+            return $this->failure(
+                'jet_engine_query_builder_api_unavailable',
+                'The saved Query Builder posts query does not expose its public item API.'
+            );
+        }
+
+        $bounded_query = clone $query;
+        if ( property_exists( $bounded_query, 'cache_query' ) ) {
+            $bounded_query->cache_query = false;
+        }
+        if ( property_exists( $bounded_query, 'final_query' ) ) {
+            $bounded_query->final_query = null;
+        }
+        if ( property_exists( $bounded_query, 'final_query_raw' ) ) {
+            $bounded_query->final_query_raw = null;
+        }
+        if ( method_exists( $bounded_query, 'reset_query' ) ) {
+            $bounded_query->reset_query();
+        }
+
+        $query_bounds = (object) [ 'truncated' => false, 'matched' => false ];
+        $query_marker = $this->query_marker( $bounded_query, $query_bounds );
+        $query_guard  = $this->query_guard( $query_bounds );
+
+        try {
+            add_filter( 'jet-engine/query-builder/types/posts-query/args', $query_marker, PHP_INT_MAX, 2 );
+            add_action( 'pre_get_posts', $query_guard, PHP_INT_MAX );
+            $posts = $bounded_query->get_items();
+            if ( ! is_array( $posts ) || ! $query_bounds->matched ) {
+                return $this->failure(
+                    'jet_engine_query_builder_result_unsupported',
+                    'The saved Query Builder posts query did not return a bounded WordPress post result set.'
+                );
+            }
+
+            return $this->result_from_posts( $posts, 'jet_engine_query_builder', $query_bounds->truncated );
+        } catch ( \Throwable $throwable ) {
+            return $this->failure(
+                'jet_engine_query_builder_failed',
+                'JetEngine could not execute the saved Query Builder posts query through its public API.',
+                [ 'exception' => sanitize_key( get_class( $throwable ) ) ]
+            );
+        } finally {
+            remove_action( 'pre_get_posts', $query_guard, PHP_INT_MAX );
+            remove_filter( 'jet-engine/query-builder/types/posts-query/args', $query_marker, PHP_INT_MAX );
+        }
+    }
+
+    /** Runtime/dynamic values are request-specific even when their containers are sparse. */
+    private function has_runtime_query_context( $value ): bool {
+        if ( is_array( $value ) ) {
+            foreach ( $value as $nested ) {
+                if ( $this->has_runtime_query_context( $nested ) ) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        if ( is_object( $value ) ) {
+            return true;
+        }
+        return null !== $value && false !== $value && '' !== trim( (string) $value );
     }
 
     /** @param array<string,mixed> $settings @return array<string,mixed> */

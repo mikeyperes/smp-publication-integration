@@ -8,7 +8,7 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `2.0.12`
+- Version: `2.0.13`
 
 ## Ownership
 
@@ -97,6 +97,12 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.0.13
+
+- Supports statically bound JetEngine Query Builder widgets only when the exact saved query returns WordPress posts and has no runtime-dependent values.
+- Executes a cloned, cache-disabled query through JetEngine's context-bound public API with exact-query result limits and the existing public-post/category safeguards; all other Query Builder types fail closed without execution.
+- Adds focused coverage for bounded Query Builder post results and pre-execution rejection of non-post and dynamic queries.
 
 ### 2.0.12
 
