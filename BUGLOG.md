@@ -1,5 +1,25 @@
 # SMP Publication Integration Bug Log
 
+## SMP-MANIFEST-BUG-008 — Delivery manifest omitted article-audio support
+
+- **Severity:** High
+- **Status:** Patched for plugin `2.0.17`.
+- **Owner:** Shared publication-manifest delivery capabilities.
+- **Cause:** The manifest advertised WordPress delivery, taxonomy, media,
+  scheduling, and revision support but omitted whether the separate SMP WP Text
+  To Speech plugin was active. Publish therefore attempted narration on every
+  site and spent roughly 12 seconds per article proving that unsupported sites
+  lacked the plugin.
+- **Correction:** The public manifest now exposes a generic boolean
+  `delivery_capabilities.article_audio` derived from the loaded TTS plugin
+  class. Activating or deactivating a plugin invalidates the cached manifest so
+  the capability changes without waiting for unrelated content edits.
+- **Regression:** The focused manifest fixture requires false without the TTS
+  plugin, true when its runtime class is loaded, and cache invalidation hooks
+  for plugin activation and deactivation.
+
+---
+
 ## SMP-API-BUG-001 — External publishing was duplicated in two plugins
 
 - **Status:** Patched for plugin `2.0.16`.

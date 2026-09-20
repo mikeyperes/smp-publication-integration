@@ -18,7 +18,7 @@ final class ManifestEndpoint {
     public function register(): void {
         add_action( 'rest_api_init', [ $this, 'register_route' ] );
 
-        foreach ( [ 'save_post', 'deleted_post', 'trashed_post', 'untrashed_post', 'profile_update', 'user_register', 'deleted_user', 'switch_theme', 'customize_save_after' ] as $hook ) {
+        foreach ( [ 'save_post', 'deleted_post', 'trashed_post', 'untrashed_post', 'profile_update', 'user_register', 'deleted_user', 'switch_theme', 'customize_save_after', 'activated_plugin', 'deactivated_plugin' ] as $hook ) {
             add_action( $hook, [ $this, 'invalidate' ], 10, 4 );
         }
 

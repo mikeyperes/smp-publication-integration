@@ -13,6 +13,7 @@ $GLOBALS['smpi_manifest_object_taxonomies'] = [ 'post' => [ 'category', 'post_ta
 final class WP_Error {}
 final class WP_REST_Request {}
 final class WP_REST_Response {}
+final class SmpiTtsPluginFixture {}
 
 function sanitize_key( string $value ): string {
     return strtolower( (string) preg_replace( '/[^a-z0-9_\-]/i', '', $value ) );
@@ -621,6 +622,10 @@ expect_manifest( ! isset( $sanitized['plugin_inventory'] ), 'Unapproved root fie
 
 $wordpress = new WordPressCollector();
 expect_manifest( ! isset( $wordpress->schema_profile()['article_type_taxonomy'] ), 'Disabled article type taxonomy must not be advertised.' );
+$delivery_capabilities = $wordpress->delivery_capabilities();
+expect_manifest( false === $delivery_capabilities['article_audio'], 'Inactive article audio must be advertised as unsupported.' );
+class_alias( SmpiTtsPluginFixture::class, 'smp_text_to_speech\\Plugin' );
+expect_manifest( true === $wordpress->delivery_capabilities()['article_audio'], 'Active article audio must be advertised as supported.' );
 $registered_taxonomies = new ReflectionMethod( $wordpress, 'registered_article_taxonomies' );
 expect_manifest( [ 'category', 'post_tag' ] === $registered_taxonomies->invoke( $wordpress ), 'Manifest must expose registered article taxonomies.' );
 $GLOBALS['smpi_manifest_object_taxonomies']['post'][] = 'smpi_article_type';
@@ -632,6 +637,8 @@ $endpoint->register_route();
 expect_manifest( 'smpi/v1' === $GLOBALS['smpi_manifest_route']['namespace'], 'The manifest must use the stable smpi/v1 namespace.' );
 expect_manifest( '/publication-manifest' === $GLOBALS['smpi_manifest_route']['route'], 'The public manifest route must be registered.' );
 expect_manifest( '__return_true' === $GLOBALS['smpi_manifest_route']['args']['permission_callback'], 'The read-only manifest must be public.' );
+$endpoint->register();
+expect_manifest( isset( $GLOBALS['smpi_manifest_actions']['activated_plugin'], $GLOBALS['smpi_manifest_actions']['deactivated_plugin'] ), 'Audio capability cache must invalidate when plugins activate or deactivate.' );
 
 require __DIR__ . '/fixtures/native-widget-providers.php';
 require __DIR__ . '/native-widget-query-assertions.php';

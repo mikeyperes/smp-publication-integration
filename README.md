@@ -8,7 +8,7 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `2.0.16`
+- Version: `2.0.17`
 
 ## Ownership
 
@@ -97,6 +97,11 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.0.17
+
+- Adds explicit manifest reporting for article-audio support and invalidates
+  cached capability data when plugins are activated or deactivated.
 
 ### 2.0.16
 

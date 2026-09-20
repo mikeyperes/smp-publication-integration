@@ -274,6 +274,7 @@ final class WordPressCollector {
             'featured_media'   => post_type_supports( 'post', 'thumbnail' ),
             'scheduled_posts'  => true,
             'revisions'        => post_type_supports( 'post', 'revisions' ),
+            'article_audio'    => class_exists( '\\smp_text_to_speech\\Plugin' ),
             'public_manifest'  => [
                 'namespace' => 'smpi/v1',
                 'route'     => '/publication-manifest',
