@@ -9,12 +9,21 @@ $readme = (string) file_get_contents( $root . '/README.md' );
 $runtime = (string) file_get_contents( $root . '/src/Runtime/Plugin.php' );
 $updates = (string) file_get_contents( $root . '/src/Infrastructure/Updates.php' );
 $core_version = trim( (string) file_get_contents( $root . '/lib/hexa-wordpress-plugin-core/VERSION' ) );
+$runtime = (string) file_get_contents( $root . '/src/Runtime/Plugin.php' );
+$dashboard = (string) file_get_contents( $root . '/src/Admin/Dashboard/DashboardController.php' );
+$ajax = (string) file_get_contents( $root . '/src/Admin/Ajax/AjaxController.php' );
+$settings = (string) file_get_contents( $root . '/src/Settings/SettingsRepository.php' );
 
 $checks = [
-    'Keeps every plugin version surface on 2.0.15.' => str_contains( $main, 'Version: 2.0.15' )
-        && str_contains( $main, 'public const VERSION = "2.0.15";' )
-        && str_contains( $legacy, 'Version: 2.0.15' )
-        && str_contains( $readme, '- Version: `2.0.15`' ),
+    'Keeps every plugin version surface on 2.0.16.' => str_contains( $main, 'Version: 2.0.16' )
+        && str_contains( $main, 'public const VERSION = "2.0.16";' )
+        && str_contains( $legacy, 'Version: 2.0.16' )
+        && str_contains( $readme, '- Version: `2.0.16`' ),
+    'SMP exposes no duplicate external-publishing bridge.' => ! file_exists( $root . '/src/ExternalPublishing/ExternalPublishingApi.php' )
+        && ! str_contains( $runtime, 'ExternalPublishingApi' )
+        && ! str_contains( $dashboard, 'external_publishing_enabled' )
+        && ! str_contains( $ajax, 'external_publishing_enabled' )
+        && ! str_contains( $settings, 'external_publishing_enabled' ),
     'Publishes the PHP 8.1 requirement through every release surface.' => str_contains( $main, 'Requires PHP: 8.1' )
         && str_contains( $updates, "'requires_php'              => '8.1'" )
         && str_contains( $legacy, 'Requires PHP: 8.1' )

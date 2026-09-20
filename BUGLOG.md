@@ -1,5 +1,13 @@
 # SMP Publication Integration Bug Log
 
+## SMP-API-BUG-001 — External publishing was duplicated in two plugins
+
+- **Status:** Patched for plugin `2.0.16`.
+- **Owner:** External publication transport ownership.
+- **Cause:** A generic post-submission bridge was added to SMP Publication Integration even though HWS Base Tools is the shared site-management plugin selected to own that boundary.
+- **Correction:** Remove the SMP REST endpoint, dashboard control, runtime registration, and setting. Native WordPress REST remains owned by Publish, while the only plugin bridge is HWS Base Tools.
+- **Regression:** Source and runtime inventories must contain no `smpi/v1/external-publishing` route or `external_publishing_enabled` SMP setting.
+
 ## SMP-MANIFEST-BUG-007 — Requested result size was mistaken for actual truncation
 
 - **Status:** Patched for plugin `2.0.15`; the focused run exposed and corrected the constructor's older 25-result ceiling, and live SEO My Company acceptance is pending.

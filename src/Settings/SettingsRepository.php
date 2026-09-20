@@ -42,7 +42,6 @@ class SettingsRepository {
             'author_social_auto_contexts' => [],
             'author_social_archive_position' => 'below_bio',
             'public_debug_enabled'  => false,
-            'external_publishing_enabled' => false,
             'estimated_read_time_enabled' => true,
             'elementor_css_cache_busting' => true,
             'elementor_primary_category_enabled' => true,
@@ -601,11 +600,6 @@ class SettingsRepository {
             }
 
             if ( "article_heading_styles_enabled" === $key || "article_numbered_lists_enabled" === $key || "inline_photo_treatments_enabled" === $key || "featured_image_caption_templates_enabled" === $key ) {
-                $settings[ $key ] = (bool) $value;
-                continue;
-            }
-
-            if ( 'external_publishing_enabled' === $key ) {
                 $settings[ $key ] = (bool) $value;
                 continue;
             }
