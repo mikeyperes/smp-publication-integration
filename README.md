@@ -8,7 +8,7 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `2.0.17`
+- Version: `2.0.18`
 
 ## Ownership
 
@@ -97,6 +97,14 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.0.18
+
+- Makes HWS Base Tools an optional publishing transport instead of an SMP boot
+  dependency, so SMP publication features and the public manifest remain
+  available on any WordPress host.
+- Advertises the independently enabled Post Summary, FAQ repeater, SMP Article
+  Types taxonomy, and article-audio capabilities in the publication manifest.
 
 ### 2.0.17
 

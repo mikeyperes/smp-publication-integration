@@ -7,17 +7,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 final class Dependencies {
     public static function required_dependencies(): array {
-        return [
-            'hws-base-tools/hws-base-tools.php' => [
-                'label'   => 'HWS Base Tools',
-                'message' => 'Required core services for Scale My Publication integrations.',
-                'active'  => self::hws_base_tools_active(),
-            ],
-        ];
+        return [];
     }
 
     public static function optional_dependencies(): array {
         return [
+            'hws-base-tools/hws-base-tools.php' => [
+                'label'   => 'HWS Base Tools',
+                'message' => 'Optional signed publishing transport and shared site-management tools. SMP publication features and its public manifest work without it.',
+                'active'  => self::hws_base_tools_active(),
+            ],
             'advanced-custom-fields-pro/acf.php' => [
                 'label'   => 'Advanced Custom Fields Pro',
                 'message' => 'Recommended for publication option fields, repeaters, relationships, and admin field rendering. SMP still boots without it.',

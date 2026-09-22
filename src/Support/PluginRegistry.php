@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class PluginRegistry {
     public static function catalog(): array {
         return [
-            'hws-base-tools/hws-base-tools.php' => [ 'label' => 'HWS Base Tools', 'type' => 'required', 'repo' => 'mikeyperes/hws-base-tools', 'starter' => 'hws-base-tools.php' ],
+            'hws-base-tools/hws-base-tools.php' => [ 'label' => 'HWS Base Tools', 'type' => 'recommended', 'repo' => 'mikeyperes/hws-base-tools', 'starter' => 'hws-base-tools.php' ],
             'smp-publication-integration/smp-publication-integration.php' => [ 'label' => 'SMP Publication Integration', 'type' => 'current', 'repo' => 'mikeyperes/smp-publication-integration', 'starter' => 'smp-publication-integration.php' ],
             'advanced-custom-fields-pro/acf.php' => [ 'label' => 'Advanced Custom Fields Pro', 'type' => 'recommended', 'repo' => '', 'starter' => 'acf.php' ],
             'hexa-pr-wire-distributor/hexa-pr-wire-distributor.php' => [ 'label' => 'Hexa PR Wire Distributor', 'type' => 'recommended', 'repo' => 'mikeyperes/hexa-pr-wire-distributor', 'starter' => 'hexa-pr-wire-distributor.php' ],

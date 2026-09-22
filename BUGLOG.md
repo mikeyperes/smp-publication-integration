@@ -1,5 +1,25 @@
 # SMP Publication Integration Bug Log
 
+## SMP-MANIFEST-BUG-009 — Optional transport disabled the SMP manifest
+
+- **Severity:** High
+- **Status:** Patched for plugin `2.0.18`.
+- **Owner:** SMP runtime dependency and publication-manifest capability contract.
+- **Cause:** SMP treated HWS Base Tools as a required dependency and returned
+  before registering its content modules and public manifest. Sites using WP
+  Toolkit or native WordPress REST therefore lost SMP feature detection merely
+  because the optional signed transport plugin was absent. The manifest also
+  omitted the enabled state of Post Summary and the FAQ repeater.
+- **Correction:** HWS Base Tools is now recommended but optional. SMP always
+  boots its own publication runtime and reports separate booleans for
+  `post_summary`, `post_faq_items`, `smpi_article_type`, and `article_audio`.
+- **Regression:** Hosting and connection mode must never determine whether SMP
+  is present. Consumers must use the manifest identity and each explicit
+  capability independently, treating a missing or false capability as
+  unsupported without disabling ordinary WordPress publishing.
+
+---
+
 ## SMP-MANIFEST-BUG-008 — Delivery manifest omitted article-audio support
 
 - **Severity:** High

@@ -6,6 +6,7 @@ namespace SMP\PublicationIntegration\PublicationManifest;
 
 use smp_publication_integration\Content\ArticleTypes;
 use smp_publication_integration\Content\PublicationContentTypes;
+use smp_publication_integration\Support\Dependencies;
 use smp_publication_integration\Support\Settings;
 
 defined( 'ABSPATH' ) || exit;
@@ -263,6 +264,7 @@ final class WordPressCollector {
     /** @return array<string,mixed> */
     public function delivery_capabilities(): array {
         $taxonomies = $this->registered_article_taxonomies();
+        $acf_active = Dependencies::acf_active();
 
         return [
             'rest_api'         => true,
@@ -274,6 +276,9 @@ final class WordPressCollector {
             'featured_media'   => post_type_supports( 'post', 'thumbnail' ),
             'scheduled_posts'  => true,
             'revisions'        => post_type_supports( 'post', 'revisions' ),
+            'post_summary'      => $acf_active && Settings::bool( 'post_summary_acf_enabled' ),
+            'post_faq_items'    => $acf_active && Settings::bool( 'post_faqs_acf_enabled' ),
+            'smpi_article_type' => in_array( ArticleTypes::TAXONOMY, $taxonomies, true ),
             'article_audio'    => class_exists( '\\smp_text_to_speech\\Plugin' ),
             'public_manifest'  => [
                 'namespace' => 'smpi/v1',

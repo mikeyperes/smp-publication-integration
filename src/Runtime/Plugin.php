@@ -18,7 +18,6 @@ use smp_publication_integration\Admin;
 use smp_publication_integration\Config;
 use smp_publication_integration\Content;
 use smp_publication_integration\Settings\SettingsMigrations;
-use smp_publication_integration\Support\Dependencies;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -35,15 +34,6 @@ final class Plugin {
         $context   = $this->context();
         $bootstrap = new CoreBootstrap( $context );
         $bootstrap->add_module( new GitHubPluginUpdater( Updates::plugin_config() ) );
-
-        $missing = Dependencies::missing_required_dependencies();
-        if ( ! empty( $missing ) ) {
-            add_action( 'admin_notices', [ Dependencies::class, 'render_missing_required_notice' ] );
-            $bootstrap->boot();
-            self::$bootstrap = $bootstrap;
-            self::$booted    = true;
-            return;
-        }
 
         $bootstrap
             ->add_module( Content\PublicationContentTypes::content_types() )
