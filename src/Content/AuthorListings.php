@@ -118,8 +118,8 @@ final class AuthorListings {
     }
 
     private function is_staff_writer( int $user_id ): bool {
-        if ( function_exists( "get_field" ) ) {
-            $value = get_field( "staff_writer", "user_" . $user_id );
+        if ( \Hexa\PluginCore\Fields\Field::available() ) {
+            $value = \Hexa\PluginCore\Fields\Field::get( "staff_writer", "user_" . $user_id );
             if ( null !== $value && false !== $value && "" !== $value ) {
                 return (bool) $value;
             }

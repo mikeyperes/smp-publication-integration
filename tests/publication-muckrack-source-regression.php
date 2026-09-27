@@ -30,8 +30,8 @@ assert_publication_muckrack_source(
 );
 assert_publication_muckrack_source(
     str_contains( $ajax, "'smpi_save_publication_muckrack_source' => [ 'callback' => [ \$this, 'save_publication_muckrack_source' ] ]" )
-        && str_contains( $save_method, "update_field( AcfFields::PUBLICATION_MUCKRACK_VERIFIED_FIELD_KEY, \$verified ? 1 : 0, 'option' )" )
-        && str_contains( $save_method, "update_field( AcfFields::PUBLICATION_MUCKRACK_URL_FIELD_KEY, \$url, 'option' )" ),
+        && str_contains( $save_method, "\\Hexa\\PluginCore\\Fields\\Field::update( AcfFields::PUBLICATION_MUCKRACK_VERIFIED_FIELD_KEY, \$verified ? 1 : 0, 'option' )" )
+        && str_contains( $save_method, "\\Hexa\\PluginCore\\Fields\\Field::update( AcfFields::PUBLICATION_MUCKRACK_URL_FIELD_KEY, \$url, 'option' )" ),
     'The AJAX action must write both values directly to the canonical ACF options.'
 );
 assert_publication_muckrack_source(

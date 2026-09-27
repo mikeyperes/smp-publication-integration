@@ -118,6 +118,7 @@ namespace smp_publication_integration\Support {
 }
 
 namespace {
+    require dirname( __DIR__ ) . '/lib/hexa-wordpress-plugin-core/tests/support/fields.php';
     require_once dirname( __DIR__ ) . "/src/Support/Autoloader.php";
     \smp_publication_integration\Support\Autoloader::register( dirname( __DIR__ ) . "/src" );
 

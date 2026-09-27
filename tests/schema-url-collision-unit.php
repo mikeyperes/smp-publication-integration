@@ -58,6 +58,7 @@ namespace smp_publication_integration\Support {
 }
 
 namespace {
+    require dirname( __DIR__ ) . '/lib/hexa-wordpress-plugin-core/tests/support/fields.php';
     require dirname( __DIR__ ) . '/lib/hexa-wordpress-plugin-core/src/SchemaTools/SchemaGraph.php';
     require dirname( __DIR__ ) . '/src/Support/Fields.php';
     require dirname( __DIR__ ) . '/src/StructuredData/SchemaManager.php';

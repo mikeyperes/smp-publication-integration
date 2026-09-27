@@ -18,7 +18,7 @@ final class AuthorLifecycle {
     }
 
     public function register(): void {
-        add_filter( "acf/update_value/name=" . AuthorAssignmentRepository::LEGACY_META_KEY, [ $this, "sync_acf_value" ], 20, 3 );
+        \Hexa\PluginCore\Fields\Hooks::on( "update_value/name=" . AuthorAssignmentRepository::LEGACY_META_KEY, [ $this, "sync_acf_value" ], 20, 3 );
         add_action( "updated_post_meta", [ $this, "sync_meta_change" ], 20, 4 );
         add_action( "added_post_meta", [ $this, "sync_meta_change" ], 20, 4 );
         add_action( "deleted_post_meta", [ $this, "sync_deleted_meta" ], 20, 4 );

@@ -129,8 +129,8 @@ final class Fields {
             $candidates[] = CanonicalEntityResolver::field( $entity, $field, null );
         }
 
-        if ( function_exists( "get_field" ) ) {
-            $candidates[] = get_field( $field, "option" );
+        if ( \Hexa\PluginCore\Fields\Field::available() ) {
+            $candidates[] = \Hexa\PluginCore\Fields\Field::get( $field, "option" );
         }
 
         $candidates[] = get_option( "options_" . $field, null );
@@ -151,8 +151,8 @@ final class Fields {
     }
 
     public static function raw( int $post_id, string $field ) {
-        if ( function_exists( "get_field" ) ) {
-            $value = get_field( $field, $post_id );
+        if ( \Hexa\PluginCore\Fields\Field::available() ) {
+            $value = \Hexa\PluginCore\Fields\Field::get( $field, $post_id );
             if ( self::has_value( $value ) ) {
                 return $value;
             }

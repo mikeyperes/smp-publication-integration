@@ -16,9 +16,9 @@ final class AcfFields {
     public const PUBLICATION_MUCKRACK_URL_FIELD_NAME = 'smpi_publication_muckrack_url';
 
     public function register(): void {
-        add_action( "acf/input/admin_head", [ $this, "admin_faq_styles" ] );
-        add_action( "acf/input/admin_footer", [ $this, "admin_faq_scripts" ] );
-        add_action( "acf/input/admin_footer", [ $this, "admin_multi_author_scripts" ] );
+        \Hexa\PluginCore\Fields\Hooks::on( "input/admin_head", [ $this, "admin_faq_styles" ] );
+        \Hexa\PluginCore\Fields\Hooks::on( "input/admin_footer", [ $this, "admin_faq_scripts" ] );
+        \Hexa\PluginCore\Fields\Hooks::on( "input/admin_footer", [ $this, "admin_multi_author_scripts" ] );
     }
 
     public static function publication_profile_group(): array {

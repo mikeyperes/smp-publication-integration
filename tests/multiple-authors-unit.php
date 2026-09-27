@@ -289,6 +289,7 @@ namespace {
         fwrite( STDERR, "FAIL: Bundled Hexa WP Core QuerySafety classes are unavailable.\n" );
         exit( 1 );
     }
+    require dirname( __DIR__ ) . '/lib/hexa-wordpress-plugin-core/tests/support/fields.php';
     require_once $core_root . "/src/QuerySafety/QueryEligibility.php";
     require_once dirname( __DIR__ ) . "/src/Support/Autoloader.php";
     \smp_publication_integration\Support\Autoloader::register( dirname( __DIR__ ) . "/src" );

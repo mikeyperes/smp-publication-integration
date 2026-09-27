@@ -88,6 +88,7 @@ function get_bloginfo( string $show = "" ): string {
 
 $root = dirname( __DIR__ );
 $core = $root . "/lib/hexa-wordpress-plugin-core";
+require dirname( __DIR__ ) . '/lib/hexa-wordpress-plugin-core/tests/support/fields.php';
 require $core . "/src/BrandColors/BrandColorProvider.php";
 require $core . "/src/BrandColors/FontFamilyProvider.php";
 require $core . "/src/BrandColors/FontWeightProvider.php";

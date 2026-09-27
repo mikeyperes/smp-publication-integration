@@ -13,7 +13,7 @@ Root namespace: Hexa\PluginCore\
 Source root: src/
 Version source: VERSION
 
-Current release: 3.0.1
+Current release: 3.4.4
 ```
 
 Do not rename these.
@@ -57,6 +57,10 @@ src/SchemaTools/        Hexa\PluginCore\SchemaTools
 src/SearchDisplay/      Hexa\PluginCore\SearchDisplay
 src/SearchQuery/        Hexa\PluginCore\SearchQuery
 src/SmartSearch/        Hexa\PluginCore\SmartSearch
+src/DirectorySearch/    Hexa\PluginCore\DirectorySearch
+src/Calendar/           Hexa\PluginCore\Calendar
+src/QueryFilter/        Hexa\PluginCore\QueryFilter
+src/PublicComponents/   Hexa\PluginCore\PublicComponents
 src/SystemEnvironment/  Hexa\PluginCore\SystemEnvironment
 src/Taxonomies/         Hexa\PluginCore\Taxonomies
 src/Typography/         Hexa\PluginCore\Typography
@@ -109,6 +113,11 @@ Namespace:
 ```text
 Hexa\PluginCore\WpAdminComponents
 ```
+
+Use `DynamicNotice` for the consistent top-of-panel result shown after an AJAX
+settings save or in-place action. Core owns the success, warning, error and
+information structure plus the browser API; host plugins provide only concise
+action-specific text.
 
 Use `CoreUi::collapsible()` for expandable cards. The shared component owns the native `<details>` structure, persistent open/closed state, and visible chevron SVG indicator, so users can tell the card expands.
 
@@ -320,7 +329,7 @@ Namespace:
 Hexa\PluginCore\PluginChecks
 ```
 
-Use `PluginCheckDefinition` arrays for host-owned plugin lists. Use `PluginCheckService` for installed/active/update/auto-update status. Use `PluginInventoryRenderer` when a plugin needs a reusable table UI for plugin status or a plugin library. Use `PluginInventoryAjaxController` for no-refresh refresh, install-and-activate, activate, deactivate, and delete actions. Forbidden rows show Deactivate when active, Activate when inactive, and Delete when removable.
+Use `PluginCheckDefinition` arrays for host-owned plugin lists. Use `PluginCheckService` for installed/active/update/auto-update status. Use `PluginInventoryRenderer` when a plugin needs a reusable table UI for plugin status or a plugin library. Use `PluginInventoryAjaxController` for no-refresh refresh, install-and-activate, activate, deactivate, and delete actions. Forbidden rows show Deactivate when active, Activate when inactive, and Delete when removable. Generic deactivation preserves site or network activation scope and requires network-plugin authority before changing a network-active plugin.
 
 Required rules:
 
@@ -892,7 +901,7 @@ Namespace: Hexa\PluginCore\ContentTypes
 
 Classes: ContentTypeDefinition, ContentTypeSettingsStore, ContentTypeRegistry, ContentTypeRegistrar, ContentTypeAjaxController, ContentTypeRenderer.
 
-Use this for one reusable CPT contract across host plugins. Hosts supply owned or external definitions and keep business behavior. Core keeps the post-type key immutable, persists editable singular/plural labels and rewrite slugs, registers attached ACF groups, and renders the collapsed management UI. Register the registry as a `CoreBootstrap` module. See `docs/content-types.md` and test with `tests/content-types.php`.
+Use this for one reusable CPT contract across host plugins. Hosts supply owned or external definitions and keep business behavior. Core keeps the post-type key immutable, persists editable singular/plural labels and rewrite slugs, and registers attached ACF groups. Every collapsed CPT card header shows the CPT title and functional enable switch. Immediately below and outside that CPT accordion, Core renders one collapsed sibling card per attached ACF group; each ACF header shows its title and functional enable switch, while its body contains the group key, target CPT, dependencies, field count, and field inventory. ACF sibling cards use Core's compact secondary surface, typography, switch, chevron, spacing, and relationship rail so they remain visibly subordinate to the owning CPT. Core resolves the actual ACF definition for each imported field, displays `label — name — type`, and keeps the complete field JSON behind a collapsed row disclosure. Text-only inventories remain a compatibility fallback. Host plugins only supply definitions; they do not recreate this hierarchy. Register the registry as a `CoreBootstrap` module. See `docs/content-types.md` and test with `tests/content-types.php` and `tests/content-type-renderer.php`.
 
 ## Entity Sources
 

@@ -264,7 +264,7 @@ final class WordPressCollector {
     /** @return array<string,mixed> */
     public function delivery_capabilities(): array {
         $taxonomies = $this->registered_article_taxonomies();
-        $acf_active = Dependencies::acf_active();
+        $acf_active = Dependencies::fields_available();
 
         return [
             'rest_api'         => true,

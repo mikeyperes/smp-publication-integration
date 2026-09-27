@@ -174,8 +174,8 @@ final class AuthorFieldResolver {
     }
 
     private function raw_value( int $user_id, string $field ) {
-        if ( function_exists( "get_field" ) ) {
-            $value = get_field( $field, "user_" . $user_id );
+        if ( \Hexa\PluginCore\Fields\Field::available() ) {
+            $value = \Hexa\PluginCore\Fields\Field::get( $field, "user_" . $user_id );
             if ( null !== $value && false !== $value && "" !== $value && [] !== $value ) {
                 return $value;
             }

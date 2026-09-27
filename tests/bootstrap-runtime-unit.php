@@ -28,6 +28,7 @@ function do_action( string $hook, mixed ...$args ): void {
     }
 }
 function did_action( string $hook ): int { return (int) ( $GLOBALS['smpi_test_actions_ran'][ $hook ] ?? 0 ); }
+function doing_action( ?string $hook = null ): bool { unset( $hook ); return false; }
 function add_shortcode( string $tag, callable $callback ): void { $GLOBALS['smpi_test_shortcodes'][ $tag ] = $callback; }
 function register_activation_hook( string $file, callable $callback ): void { unset( $file, $callback ); }
 function is_admin(): bool { return true; }
@@ -60,8 +61,7 @@ do_action( 'plugins_loaded' );
 $checks = [
     'Core lifecycle hook ran.' => did_action( 'smpi_core_booted' ) === 1,
     'Updater hooks were registered through CoreBootstrap.' => ! empty( $GLOBALS['smpi_test_hooks']['pre_set_site_transient_update_plugins'] ),
-    'Core content and ACF modules scheduled their registrations.' => ! empty( $GLOBALS['smpi_test_hooks']['init'] )
-        && ! empty( $GLOBALS['smpi_test_hooks']['acf/init'] ),
+    'Core content and field-group modules scheduled their registrations without ACF.' => ! empty( $GLOBALS['smpi_test_hooks']['init'] ),
     'Core-backed domain AJAX actions were registered.' => ! empty( $GLOBALS['smpi_test_hooks']['wp_ajax_smpi_post_hygiene_preview'] )
         && ! empty( $GLOBALS['smpi_test_hooks']['wp_ajax_smpi_going_live_checklist_status'] )
         && ! empty( $GLOBALS['smpi_test_hooks']['wp_ajax_smpi_generate_content'] ),

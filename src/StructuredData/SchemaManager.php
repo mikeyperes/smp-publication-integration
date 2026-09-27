@@ -182,8 +182,8 @@ class SchemaManager {
 
     public function store_schema(): string {
         $schema = $this->generate_home_schema_json();
-        if ( function_exists( "update_field" ) ) {
-            update_field( "smpi_schema_markup", $schema, "option" );
+        if ( \Hexa\PluginCore\Fields\Field::available() ) {
+            \Hexa\PluginCore\Fields\Field::update( "smpi_schema_markup", $schema, "option" );
         }
         update_option( "_smpi_schema_markup", $schema, false );
         return $schema;
@@ -191,8 +191,8 @@ class SchemaManager {
 
     public function get_stored_schema(): string {
         $schema = "";
-        if ( function_exists( "get_field" ) ) {
-            $schema = (string) get_field( "smpi_schema_markup", "option", false );
+        if ( \Hexa\PluginCore\Fields\Field::available() ) {
+            $schema = (string) \Hexa\PluginCore\Fields\Field::get( "smpi_schema_markup", "option", false );
         }
         if ( "" === trim( $schema ) ) {
             $schema = (string) get_option( "_smpi_schema_markup", "" );
@@ -894,8 +894,8 @@ class SchemaManager {
     }
 
     private function user_field( int $user_id, string $field ) {
-        if ( function_exists( "get_field" ) ) {
-            $value = get_field( $field, "user_" . $user_id );
+        if ( \Hexa\PluginCore\Fields\Field::available() ) {
+            $value = \Hexa\PluginCore\Fields\Field::get( $field, "user_" . $user_id );
             if ( Fields::has_value( $value ) ) {
                 return is_scalar( $value ) ? (string) $value : $value;
             }

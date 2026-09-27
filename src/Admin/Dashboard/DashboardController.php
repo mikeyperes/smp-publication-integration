@@ -94,8 +94,8 @@ class DashboardController {
             Config::VERSION
         );
 
-        if ( Dependencies::acf_active() && function_exists( "acf_enqueue_scripts" ) ) {
-            acf_enqueue_scripts();
+        if ( Dependencies::fields_available() ) {
+            \Hexa\PluginCore\Fields\Form::enqueue();
         }
     }
 
@@ -111,8 +111,8 @@ class DashboardController {
         $route      = $navigation->resolve( $requested, $section );
         $active     = $route->section();
         $sidebar_identity = $this->sidebar_identity();
-        if ( Dependencies::acf_active() && function_exists( "acf_form_head" ) ) {
-            acf_form_head();
+        if ( Dependencies::fields_available() ) {
+            \Hexa\PluginCore\Fields\Form::head();
         }
         ?>
         <div class="wrap smpi-dashboard">
@@ -185,8 +185,8 @@ class DashboardController {
         $tab_id = $definition->id;
 
         ob_start();
-        if ( 'publication_options' === $tab_id && Dependencies::acf_active() && function_exists( 'acf_form_head' ) ) {
-            acf_form_head();
+        if ( 'publication_options' === $tab_id && Dependencies::fields_available() ) {
+            \Hexa\PluginCore\Fields\Form::head();
         }
         $this->render_registered_tab( $registry, $tab_id );
         $html = ob_get_clean();
@@ -403,7 +403,7 @@ class DashboardController {
 
     private function founder_profile_ids(): array {
         $ids = [];
-        $rows = function_exists( "get_field" ) ? get_field( "smpi_founder_profiles", "option" ) : [];
+        $rows = \Hexa\PluginCore\Fields\Field::available() ? \Hexa\PluginCore\Fields\Field::get( "smpi_founder_profiles", "option" ) : [];
         if ( is_array( $rows ) ) {
             foreach ( $rows as $row ) {
                 $value = is_array( $row ) && isset( $row["profile"] ) ? $row["profile"] : $row;
@@ -417,8 +417,8 @@ class DashboardController {
             }
         }
 
-        if ( empty( $ids ) && function_exists( "get_field" ) ) {
-            $legacy = get_field( "smpi_founders", "option" );
+        if ( empty( $ids ) && \Hexa\PluginCore\Fields\Field::available() ) {
+            $legacy = \Hexa\PluginCore\Fields\Field::get( "smpi_founders", "option" );
             $legacy = is_array( $legacy ) ? $legacy : [ $legacy ];
             foreach ( $legacy as $value ) {
                 if ( is_object( $value ) && isset( $value->ID ) ) {
@@ -487,10 +487,10 @@ class DashboardController {
     }
 
     private function acf_user_value( int $user_id, string $field ) {
-        if ( ! function_exists( "get_field" ) ) {
+        if ( ! \Hexa\PluginCore\Fields\Field::available() ) {
             return "";
         }
-        return get_field( $field, "user_" . $user_id );
+        return \Hexa\PluginCore\Fields\Field::get( $field, "user_" . $user_id );
     }
 
     private function format_preview_value( $value ): string {
@@ -515,12 +515,12 @@ class DashboardController {
 
     private function publication_options(): void {
         echo "<div class=smpi-hero><p class=smpi-kicker>Theme Options</p><h2>Publication Options</h2><p>These fields describe the current publication for this website. They are rendered inside SMP settings, not on a separate ACF settings page.</p></div>";
-        if ( ! Dependencies::acf_active() || ! function_exists( "acf_form" ) ) {
+        if ( ! Dependencies::fields_available() ) {
             echo "<div class=smpi-panel><h2>Advanced Custom Fields</h2><p><span class=smpi-warn>&#9888;</span> ACF is recommended but not active. SMP still runs, but publication option fields are unavailable until ACF is active.</p><p><a class=button href=" . esc_url( admin_url( "options-general.php?page=smp-publication-integration&tab=integrations" ) ) . ">Open Integrations</a></p></div>";
             return;
         }
         echo "<div class=smpi-panel><h2>Current Publication Fields</h2>";
-        acf_form( [ "post_id" => "option", "field_groups" => [ "group_smpi_publication_profile" ], "form" => true, "submit_value" => "Save Publication Options", "updated_message" => "Publication options saved.", "return" => admin_url( "options-general.php?page=smp-publication-integration&tab=publication_options&updated=1" ) ] );
+        \Hexa\PluginCore\Fields\Form::render( [ "post_id" => "option", "field_groups" => [ "group_smpi_publication_profile" ], "form" => true, "submit_value" => "Save Publication Options", "updated_message" => "Publication options saved.", "return" => admin_url( "options-general.php?page=smp-publication-integration&tab=publication_options&updated=1" ) ] );
         echo "</div>";
         echo $this->publication_acf_shortcode_reference_html();
     }
@@ -988,12 +988,12 @@ class DashboardController {
 
     private function publication_acf_shortcode_reference_html(): string {
         $fields = [];
-        if ( function_exists( "acf_get_fields" ) ) {
-            $acf_fields = acf_get_fields( "group_smpi_publication_profile" );
+        if ( \Hexa\PluginCore\Fields\Field::available() ) {
+            $acf_fields = \Hexa\PluginCore\Fields\FieldGroups::fields( "group_smpi_publication_profile" );
             $fields = is_array( $acf_fields ) ? $acf_fields : [];
         }
-        if ( empty( $fields ) && function_exists( "acf_get_local_field_group" ) ) {
-            $group = acf_get_local_field_group( "group_smpi_publication_profile" );
+        if ( empty( $fields ) && \Hexa\PluginCore\Fields\Field::available() ) {
+            $group = \Hexa\PluginCore\Fields\FieldGroups::get_group( "group_smpi_publication_profile" );
             $fields = is_array( $group ) && isset( $group["fields"] ) && is_array( $group["fields"] ) ? $group["fields"] : [];
         }
         $html = "<div class=smpi-panel><h2>Publication Options ACF shortcode examples</h2><p>Every publication option field can be rendered with <code>[smp_publication_field]</code>. Repeater rows use <code>row=1</code> and <code>sub_field</code>.</p><table class=\"widefat smpi-publication-shortcode-table\"><thead><tr><th>Field</th><th>ACF name</th><th>Primary shortcode</th><th>Variations / parameters</th></tr></thead><tbody>";
@@ -1082,7 +1082,7 @@ class DashboardController {
         ];
         $definition = $definitions[ $block ] ?? $definitions["summary"];
         $enabled = Settings::bool( $definition["setting"] );
-        $registered = function_exists( "acf_get_field" ) && (bool) acf_get_field( $definition["field_key"] );
+        $registered = \Hexa\PluginCore\Fields\Field::available() && (bool) \Hexa\PluginCore\Fields\FieldGroups::get_field( $definition["field_key"] );
         $ready = $enabled && $registered;
         $custom_fields_url = admin_url( "options-general.php?page=smp-publication-integration&tab=custom_fields" );
 
@@ -1255,12 +1255,12 @@ class DashboardController {
 
     private function custom_fields(): void {
         $settings = Settings::all();
-        $acf_active = Dependencies::acf_active();
+        $acf_active = Dependencies::fields_available();
         $post_header_group_registered = function(): bool {
-            return function_exists( "acf_get_field_group" ) && (bool) acf_get_field_group( "group_64a7290b61191" );
+            return \Hexa\PluginCore\Fields\Field::available() && (bool) \Hexa\PluginCore\Fields\FieldGroups::get_group( "group_64a7290b61191" );
         };
         $visibility_group_registered = function(): bool {
-            return function_exists( "acf_get_field_group" ) && (bool) acf_get_field_group( "group_smpi_visibility_controls" );
+            return \Hexa\PluginCore\Fields\Field::available() && (bool) \Hexa\PluginCore\Fields\FieldGroups::get_group( "group_smpi_visibility_controls" );
         };
 
         $definitions = [
@@ -1269,7 +1269,7 @@ class DashboardController {
                 "label" => "Publication Options ACF",
                 "type" => "acf",
                 "enabled" => true,
-                "registered" => function() use ( $acf_active ): bool { return $acf_active && function_exists( "acf_get_field_group" ) && (bool) acf_get_field_group( "group_smpi_publication_profile" ); },
+                "registered" => function() use ( $acf_active ): bool { return $acf_active && (bool) \Hexa\PluginCore\Fields\FieldGroups::get_group( "group_smpi_publication_profile" ); },
                 "acf_group_key" => "group_smpi_publication_profile",
                 "object_name" => "smp-publication-integration options page",
                 "location" => "ACF options page: smp-publication-integration",
@@ -1278,7 +1278,7 @@ class DashboardController {
                 "fields" => [ "smpi_publication_user", "smpi_founder_profiles", "smpi_publication_summary", "smpi_publication_logo", "schema policy pages", "contactPoint", "postalAddress", "smpi_schema_markup" ],
                 "dependencies" => [ "ACF Pro", "SMP publication options page" ],
                 "code_example" => "[smp_publication_field field=legal_name format=text]",
-                "test_report" => "ACF is " . ( $acf_active ? "active" : "inactive" ) . "; publication options group should be registered on the options page.",
+                "test_report" => "Custom fields run on " . \Hexa\PluginCore\Fields\Acf::mode() . "; the publication options group should be registered on the options page.",
             ],
             [
                 "id" => "post_summary_acf",
@@ -1286,7 +1286,7 @@ class DashboardController {
                 "type" => "acf",
                 "setting_key" => "post_summary_acf_enabled",
                 "enabled" => Settings::bool( "post_summary_acf_enabled" ),
-                "registered" => function(): bool { return Settings::bool( "post_summary_acf_enabled" ) && function_exists( "acf_get_field" ) && (bool) acf_get_field( "field_65ab7ba0e849b" ); },
+                "registered" => function(): bool { return Settings::bool( "post_summary_acf_enabled" ) && \Hexa\PluginCore\Fields\Field::available() && (bool) \Hexa\PluginCore\Fields\FieldGroups::get_field( "field_65ab7ba0e849b" ); },
                 "acf_group_key" => "group_64a7290b61191",
                 "object_name" => "post_summary",
                 "location" => "post, press-release, knowledge-base, and resources editors",
@@ -1303,7 +1303,7 @@ class DashboardController {
                 "type" => "acf",
                 "setting_key" => "post_faqs_acf_enabled",
                 "enabled" => Settings::bool( "post_faqs_acf_enabled" ),
-                "registered" => function(): bool { return Settings::bool( "post_faqs_acf_enabled" ) && function_exists( "acf_get_field" ) && (bool) acf_get_field( "field_smpi_post_faq_items" ); },
+                "registered" => function(): bool { return Settings::bool( "post_faqs_acf_enabled" ) && \Hexa\PluginCore\Fields\Field::available() && (bool) \Hexa\PluginCore\Fields\FieldGroups::get_field( "field_smpi_post_faq_items" ); },
                 "acf_group_key" => "group_64a7290b61191",
                 "object_name" => "post_faq_items",
                 "location" => "post, press-release, knowledge-base, and resources editors",
@@ -2973,7 +2973,7 @@ HTML;
         ];
         $definition = $definitions[ $block ] ?? $definitions["summary"];
         $enabled = Settings::bool( $definition["enabled"] );
-        $registered = function_exists( "acf_get_field" ) && (bool) acf_get_field( $definition["field_key"] );
+        $registered = \Hexa\PluginCore\Fields\Field::available() && (bool) \Hexa\PluginCore\Fields\FieldGroups::get_field( $definition["field_key"] );
         $ready = $enabled && $registered;
         $html = $this->simple_status_html( $ready, $definition["label"] . " editor field: " . ( $ready ? "ready" : "not ready" ) . "." );
         $html .= "<table class=\"widefat striped\"><tbody>";
@@ -2990,8 +2990,8 @@ HTML;
     private function post_acf_addons_report_text(): string {
         $summary_enabled = Settings::bool( "post_summary_acf_enabled" );
         $faqs_enabled = Settings::bool( "post_faqs_acf_enabled" );
-        $summary_registered = function_exists( "acf_get_field" ) && (bool) acf_get_field( "field_65ab7ba0e849b" );
-        $faqs_registered = function_exists( "acf_get_field" ) && (bool) acf_get_field( "field_smpi_post_faq_items" );
+        $summary_registered = \Hexa\PluginCore\Fields\Field::available() && (bool) \Hexa\PluginCore\Fields\FieldGroups::get_field( "field_65ab7ba0e849b" );
+        $faqs_registered = \Hexa\PluginCore\Fields\Field::available() && (bool) \Hexa\PluginCore\Fields\FieldGroups::get_field( "field_smpi_post_faq_items" );
         return "Article Summary editor field: " . ( $summary_enabled && $summary_registered ? "ready" : "not ready" ) . ". Structured FAQ editor fields: " . ( $faqs_enabled && $faqs_registered ? "ready" : "not ready" ) . ".";
     }
 
@@ -3228,11 +3228,11 @@ HTML;
 
     private function publication_muckrack_source_html(): string {
         $report = MuckRackVerification::publication_report();
-        $verified = function_exists( 'get_field' )
-            ? (bool) get_field( AcfFields::PUBLICATION_MUCKRACK_VERIFIED_FIELD_KEY, 'option' )
+        $verified = \Hexa\PluginCore\Fields\Field::available()
+            ? (bool) \Hexa\PluginCore\Fields\Field::get( AcfFields::PUBLICATION_MUCKRACK_VERIFIED_FIELD_KEY, 'option' )
             : (bool) get_option( 'options_' . AcfFields::PUBLICATION_MUCKRACK_VERIFIED_FIELD_NAME, false );
-        $source_url = function_exists( 'get_field' )
-            ? trim( (string) get_field( AcfFields::PUBLICATION_MUCKRACK_URL_FIELD_KEY, 'option' ) )
+        $source_url = \Hexa\PluginCore\Fields\Field::available()
+            ? trim( (string) \Hexa\PluginCore\Fields\Field::get( AcfFields::PUBLICATION_MUCKRACK_URL_FIELD_KEY, 'option' ) )
             : trim( (string) get_option( 'options_' . AcfFields::PUBLICATION_MUCKRACK_URL_FIELD_NAME, '' ) );
         $input_url = '' !== $source_url ? $source_url : trim( (string) ( $report['url'] ?? '' ) );
         $effective = MuckRackVerification::publication_enabled();

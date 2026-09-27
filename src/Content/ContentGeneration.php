@@ -433,8 +433,8 @@ final class ContentGeneration {
     }
 
     private function current_faqs( int $post_id ): array {
-        if ( function_exists( "get_field" ) ) {
-            $faqs = get_field( "post_faq_items", $post_id );
+        if ( \Hexa\PluginCore\Fields\Field::available() ) {
+            $faqs = \Hexa\PluginCore\Fields\Field::get( "post_faq_items", $post_id );
             if ( is_array( $faqs ) ) {
                 return $faqs;
             }
@@ -463,8 +463,8 @@ final class ContentGeneration {
         }
         if ( "summary" === $target ) {
             $summary = wp_kses_post( (string) $value );
-            if ( function_exists( "update_field" ) ) {
-                update_field( "post_summary", $summary, $post_id );
+            if ( \Hexa\PluginCore\Fields\Field::available() ) {
+                \Hexa\PluginCore\Fields\Field::update( "post_summary", $summary, $post_id );
             } else {
                 update_post_meta( $post_id, "post_summary", $summary );
             }
@@ -475,9 +475,9 @@ final class ContentGeneration {
             if ( empty( $rows ) ) {
                 return new \WP_Error( "smpi_content_faq_empty", "API response did not include FAQ question and answer rows." );
             }
-            if ( function_exists( "update_field" ) ) {
-                update_field( "field_smpi_post_faq_items", $rows, $post_id );
-                update_field( "field_smpi_post_faq_schema_enabled", 1, $post_id );
+            if ( \Hexa\PluginCore\Fields\Field::available() ) {
+                \Hexa\PluginCore\Fields\Field::update( "field_smpi_post_faq_items", $rows, $post_id );
+                \Hexa\PluginCore\Fields\Field::update( "field_smpi_post_faq_schema_enabled", 1, $post_id );
             } else {
                 update_post_meta( $post_id, "post_faq_items", $rows );
                 update_post_meta( $post_id, "post_faq_schema_enabled", 1 );

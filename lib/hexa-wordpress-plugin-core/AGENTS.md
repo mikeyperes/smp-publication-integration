@@ -46,6 +46,7 @@ src/DataNormalization/  Hexa\PluginCore\DataNormalization
 src/EntitySources/      Hexa\PluginCore\EntitySources
 src/FaqSets/            Hexa\PluginCore\FaqSets
 src/FieldStructures/    Hexa\PluginCore\FieldStructures
+src/Fields/             Hexa\PluginCore\Fields
 src/FrontendForms/      Hexa\PluginCore\FrontendForms
 src/IntegrationTests/   Hexa\PluginCore\IntegrationTests
 src/LogFiles/           Hexa\PluginCore\LogFiles
@@ -62,6 +63,10 @@ src/SearchDisplay/      Hexa\PluginCore\SearchDisplay
 src/SearchQuery/        Hexa\PluginCore\SearchQuery
 src/SchemaTools/        Hexa\PluginCore\SchemaTools
 src/SmartSearch/        Hexa\PluginCore\SmartSearch
+src/DirectorySearch/    Hexa\PluginCore\DirectorySearch
+src/Calendar/           Hexa\PluginCore\Calendar
+src/QueryFilter/        Hexa\PluginCore\QueryFilter
+src/PublicComponents/   Hexa\PluginCore\PublicComponents
 src/SystemEnvironment/  Hexa\PluginCore\SystemEnvironment
 src/Taxonomies/         Hexa\PluginCore\Taxonomies
 src/WpAdminAjax/        Hexa\PluginCore\WpAdminAjax
@@ -102,6 +107,7 @@ Never make a module boot itself at file include time. Modules register hooks fro
 - Put admin tab abstractions in `src/WpAdminTabs`.
 - Put reusable visual primitives in `src/WpAdminComponents`.
 - Put reusable ACF field-group registration, toggles, settings panels, AJAX, and field-structure displays in `src/FieldStructures`; hosts own their field arrays.
+- `src/Fields` is the one custom-field API. Hosts register ACF-format groups with `Fields\FieldGroups::add()`/`ready()`, read and write through `Fields\Field`, add options pages with `Fields\OptionsPages`, render forms with `Fields\Form`, and hook ACF lifecycle events with `Fields\Hooks::on()`. Never call `get_field()`, `update_field()`, `acf_add_local_field_group()`, `acf_add_options_page()`, `acf_form()` or `add_action( 'acf/...' )` directly, and never declare ACF Pro as a requirement: with ACF active these APIs delegate to ACF, without it Core stores, formats and edits the same data natively.
 - Put FAQ normalization, source adapters, reusable HTML, and FAQPage graph helpers in `src/FaqSets`.
 - Put normalized public brand identities in `src/BrandProfiles`; product and service data remains host-owned.
 - Put canonical public field schemas and rich-text normalization in `src/FrontendForms`.
@@ -111,6 +117,10 @@ Never make a module boot itself at file include time. Modules register hooks fro
 - Put reusable snippet definitions, option toggles, test rules, related snippets, related shortcodes, basic README rendering, and AJAX handlers in `src/SnippetRegistry`.
 - Put reusable API-key/secret storage, masking, and credential setup UI in `src/CredentialVault`.
 - Put reusable smart search/X-Search endpoint and typeahead UI in `src/SmartSearch`.
+- Put public directory search profiles (posts or role-scoped users), their SQL, REST endpoint, and live-search shortcode in `src/DirectorySearch`; hosts own only profile values and card markup.
+- Put public month-grid calendar profiles, their bounded query, REST endpoint, shortcode, and inline assets in `src/Calendar`; hosts own only profile values, item links, and optional item markup.
+- Put every visitor filter (taxonomy, custom field/ACF, date range, host callback, and host-registered types) in `src/QueryFilter`; public components declare `filters` and never build their own filter SQL, parsing, or controls.
+- Put shared public-component profile sanitizers, profile stores, base-path/URL helpers, shortcode-inert output, and public REST caching in `src/PublicComponents`.
 - Put reusable critical page blueprints, assigned page storage, navigation menu creation, menu structure attachment, and page-to-menu-item tools in `src/SiteStructure`.
 - Put activity log abstractions, storage modes, and the shared dark renderer in `src/ActivityLog`.
 - Put shortcode registries, definitions, display renderers, examples, live output, and testing tools in `src/ShortcodeRegistry`.
@@ -118,7 +128,7 @@ Never make a module boot itself at file include time. Modules register hooks fro
 - Put reusable native WordPress search-result matching, bounded term parsing, query configuration, and exact-query SQL scoping in `src/SearchQuery`.
 - Put schema document normalization, graph rendering, deduplication, and output injection in `src/SchemaTools`; hosts retain schema object construction.
 - Put reusable taxonomy definitions, registration, and reference UI in `src/Taxonomies`; hosts retain taxonomy terms and editorial meaning.
-- Keep all three search domains separate: `SearchDisplay` renders native GET forms, `SearchQuery` changes an explicitly eligible native results query, and `SmartSearch` provides AJAX typeahead/content selection.
+- Keep all three search domains separate: `SearchDisplay` renders native GET forms, `SearchQuery` changes an explicitly eligible native results query, `SmartSearch` provides AJAX typeahead/content selection, and `DirectorySearch` provides public filterable listing pages. Shared term matching lives in `SearchQuery\SearchMatchSql`.
 - Put safe constants, INI, shell wrappers, size parsing, CPU/memory detection, and byte formatting in `src/SystemEnvironment`.
 - Put host plugin GitHub/update configuration and updater abstractions in `src/PluginUpdates`.
 - Put exact WordPress query eligibility predicates and narrowly scoped invariant repair in `src/QuerySafety`; host query callbacks must reject ineligible queries before loading settings or attaching SQL filters.

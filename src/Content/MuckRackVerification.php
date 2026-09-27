@@ -366,8 +366,8 @@ SMPI_JS;
     }
 
     private static function raw_author_field( int $author_id, string $field ) {
-        if ( function_exists( "get_field" ) ) {
-            $value = get_field( $field, "user_" . $author_id );
+        if ( \Hexa\PluginCore\Fields\Field::available() ) {
+            $value = \Hexa\PluginCore\Fields\Field::get( $field, "user_" . $author_id );
             if ( null !== $value && false !== $value && "" !== $value ) {
                 return $value;
             }

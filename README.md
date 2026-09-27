@@ -8,7 +8,7 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `2.0.18`
+- Version: `2.1.0`
 
 ## Ownership
 
@@ -64,7 +64,7 @@ Quick Start contains only the reusable checklist workflow and is the second tab.
 
 `smp-publication-integration.php` is the canonical plugin entry. `initialization.php` is a compatibility loader for older active-plugin records.
 
-Namespaced domain code lives under `src/`. Reusable UI, AJAX, updater, CPT, ACF, entity, FAQ, schema, taxonomy, activity-log, color, typography, and template infrastructure comes from Hexa WordPress Plugin Core 3.0.1.
+Namespaced domain code lives under `src/`. Reusable UI, AJAX, updater, CPT, ACF, entity, FAQ, schema, taxonomy, activity-log, color, typography, and template infrastructure comes from Hexa WordPress Plugin Core 3.4.4.
 
 Elementor single-post recent-content loops opt into SMP publication filtering with the exact Query ID `smpi_single_recent`. Other Posts and Loop Grid widgets remain outside SMP query mutation.
 
@@ -78,9 +78,9 @@ The plugin updater targets the repository's canonical `main` branch and register
 | --- | --- |
 | WordPress | 5.0 |
 | PHP | 8.1 |
-| Hexa WP Core bundle | 3.0.1 |
+| Hexa WP Core bundle | 3.4.4 |
 
-ACF Pro is required for publication option and content field groups. Feature-specific integrations require their corresponding plugins.
+ACF Pro is not required: publication option and content field groups run on Hexa WP Core's custom fields, which use ACF when it is active and store the same data natively when it is not. Feature-specific integrations require their corresponding plugins.
 
 ## Installation
 
@@ -97,6 +97,12 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.1.0
+
+- Runs every custom field, option page and field group on Hexa WP Core 3.4.4
+  `Hexa\PluginCore\Fields`, so ACF Pro is no longer required or recommended;
+  sites that keep ACF are unchanged because Core delegates to it.
 
 ### 2.0.18
 

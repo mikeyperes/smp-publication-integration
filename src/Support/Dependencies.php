@@ -17,11 +17,6 @@ final class Dependencies {
                 'message' => 'Optional signed publishing transport and shared site-management tools. SMP publication features and its public manifest work without it.',
                 'active'  => self::hws_base_tools_active(),
             ],
-            'advanced-custom-fields-pro/acf.php' => [
-                'label'   => 'Advanced Custom Fields Pro',
-                'message' => 'Recommended for publication option fields, repeaters, relationships, and admin field rendering. SMP still boots without it.',
-                'active'  => self::acf_active(),
-            ],
             'smp-verified-profiles/initialization.php' => [
                 'label'   => 'SMP Verified Profiles',
                 'message' => 'Recommended for founder/person profile binding and profile schema checks.',
@@ -83,8 +78,9 @@ final class Dependencies {
             || function_exists( 'hws_base_tools\\check_plugin_status' );
     }
 
-    public static function acf_active(): bool {
-        return function_exists( 'acf_add_local_field_group' ) || function_exists( 'acf' ) || class_exists( 'ACF' );
+    /** Custom fields always work: HexaWP Core uses ACF when present, its native engine otherwise. */
+    public static function fields_available(): bool {
+        return \Hexa\PluginCore\Fields\Field::available();
     }
 
 
@@ -99,13 +95,10 @@ final class Dependencies {
     }
 
     public static function profile_acf_fields_enabled(): bool {
-        if ( ! self::acf_active() ) {
-            return false;
-        }
         if ( (bool) get_option( 'register_profile_general_acf_fields', false ) ) {
             return true;
         }
-        return function_exists( 'acf_get_field_group' ) && (bool) acf_get_field_group( 'group_656eb036374de' );
+        return (bool) \Hexa\PluginCore\Fields\FieldGroups::get_group( 'group_656eb036374de' );
     }
 
     public static function verified_profiles_ready_for_founders(): bool {

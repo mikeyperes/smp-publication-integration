@@ -15,10 +15,10 @@ $ajax = (string) file_get_contents( $root . '/src/Admin/Ajax/AjaxController.php'
 $settings = (string) file_get_contents( $root . '/src/Settings/SettingsRepository.php' );
 
 $checks = [
-    'Keeps every plugin version surface on 2.0.18.' => str_contains( $main, 'Version: 2.0.18' )
-        && str_contains( $main, 'public const VERSION = "2.0.18";' )
-        && str_contains( $legacy, 'Version: 2.0.18' )
-        && str_contains( $readme, '- Version: `2.0.18`' ),
+    'Keeps every plugin version surface on 2.1.0.' => str_contains( $main, 'Version: 2.1.0' )
+        && str_contains( $main, 'public const VERSION = "2.1.0";' )
+        && str_contains( $legacy, 'Version: 2.1.0' )
+        && str_contains( $readme, '- Version: `2.1.0`' ),
     'SMP exposes no duplicate external-publishing bridge.' => ! file_exists( $root . '/src/ExternalPublishing/ExternalPublishingApi.php' )
         && ! str_contains( $runtime, 'ExternalPublishingApi' )
         && ! str_contains( $dashboard, 'external_publishing_enabled' )
@@ -28,8 +28,8 @@ $checks = [
         && str_contains( $updates, "'requires_php'              => '8.1'" )
         && str_contains( $legacy, 'Requires PHP: 8.1' )
         && str_contains( $readme, '| PHP | 8.1 |' ),
-    'Ships the documented Hexa WP Core 3.0.1 bundle.' => '3.0.1' === $core_version
-        && str_contains( $readme, '| Hexa WP Core bundle | 3.0.1 |' )
+    'Ships the documented Hexa WP Core 3.4.4 bundle.' => '3.4.4' === $core_version
+        && str_contains( $readme, '| Hexa WP Core bundle | 3.4.4 |' )
         && str_contains( $main, "'minimum_version' => trim( (string) file_get_contents( \$hexa_plugin_core_root . '/VERSION' ) )" ),
     'Targets the canonical main GitHub branch.' => str_contains( $main, 'GitHub Branch: main' )
         && str_contains( $main, "public static string \$github_branch = 'main';" ),

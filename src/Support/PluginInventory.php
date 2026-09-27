@@ -27,7 +27,6 @@ final class PluginInventory {
         self::register_recommendation_providers();
 
         return [
-            self::normal( 'advanced-custom-fields-pro/acf.php', 'Advanced Custom Fields PRO', 'pro', true ),
             self::wp_org( 'classic-editor/classic-editor.php', 'Classic Editor', 'classic-editor', true ),
             self::wp_org( 'code-snippets/code-snippets.php', 'Code Snippets', 'code-snippets', true ),
             self::normal( 'rss-feed-post-generator-echo/rss-feed-post-generator-echo.php', 'Echo RSS Feed Post Generator', 'pro', true ),

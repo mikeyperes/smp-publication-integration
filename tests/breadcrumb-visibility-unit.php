@@ -49,6 +49,7 @@ function get_post(): ?WP_Post { return $GLOBALS['smpi_test_post']; }
 function get_post_type( mixed $post = null ): string { return $post instanceof WP_Post ? $post->post_type : $GLOBALS['smpi_test_post']->post_type; }
 function post_type_exists( string $post_type ): bool { return in_array( $post_type, [ 'post', 'page', 'profile' ], true ); }
 
+require dirname( __DIR__ ) . '/lib/hexa-wordpress-plugin-core/tests/support/fields.php';
 require dirname( __DIR__ ) . '/lib/hexa-wordpress-plugin-core/src/ActivityLog/ActivityLogConfig.php';
 require dirname( __DIR__ ) . '/lib/hexa-wordpress-plugin-core/src/ActivityLog/ActivityLogEntry.php';
 require dirname( __DIR__ ) . '/lib/hexa-wordpress-plugin-core/src/ActivityLog/ActivityLogger.php';

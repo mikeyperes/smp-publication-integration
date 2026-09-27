@@ -222,7 +222,7 @@ class AjaxController {
     }
 
     public function save_publication_muckrack_source( AjaxRequest $request ): array {
-        if ( ! function_exists( 'update_field' ) || ! function_exists( 'get_field' ) ) {
+        if ( ! \Hexa\PluginCore\Fields\Field::available() || ! \Hexa\PluginCore\Fields\Field::available() ) {
             throw AjaxFailure::server_error( 'Advanced Custom Fields must be active to update the publication source.' );
         }
 
@@ -237,11 +237,11 @@ class AjaxController {
             throw AjaxFailure::bad_request( 'Enter the publication MuckRack URL before enabling verification.' );
         }
 
-        update_field( AcfFields::PUBLICATION_MUCKRACK_VERIFIED_FIELD_KEY, $verified ? 1 : 0, 'option' );
-        update_field( AcfFields::PUBLICATION_MUCKRACK_URL_FIELD_KEY, $url, 'option' );
+        \Hexa\PluginCore\Fields\Field::update( AcfFields::PUBLICATION_MUCKRACK_VERIFIED_FIELD_KEY, $verified ? 1 : 0, 'option' );
+        \Hexa\PluginCore\Fields\Field::update( AcfFields::PUBLICATION_MUCKRACK_URL_FIELD_KEY, $url, 'option' );
 
-        $saved_verified = (bool) get_field( AcfFields::PUBLICATION_MUCKRACK_VERIFIED_FIELD_KEY, 'option' );
-        $saved_url = trim( (string) get_field( AcfFields::PUBLICATION_MUCKRACK_URL_FIELD_KEY, 'option' ) );
+        $saved_verified = (bool) \Hexa\PluginCore\Fields\Field::get( AcfFields::PUBLICATION_MUCKRACK_VERIFIED_FIELD_KEY, 'option' );
+        $saved_url = trim( (string) \Hexa\PluginCore\Fields\Field::get( AcfFields::PUBLICATION_MUCKRACK_URL_FIELD_KEY, 'option' ) );
         if ( $saved_verified !== $verified || $saved_url !== $url ) {
             throw AjaxFailure::server_error( 'The publication ACF source values could not be confirmed after saving.' );
         }
@@ -847,12 +847,12 @@ class AjaxController {
 
     private function update_founder_profiles( array $ids ): void {
         update_option( "smpi_founder_profile_ids", $ids, false );
-        if ( function_exists( "update_field" ) ) {
+        if ( \Hexa\PluginCore\Fields\Field::available() ) {
             $rows = array_map(
                 static fn( int $id ): array => [ "profile" => $id ],
                 $ids
             );
-            update_field( "smpi_founder_profiles", $rows, "option" );
+            \Hexa\PluginCore\Fields\Field::update( "smpi_founder_profiles", $rows, "option" );
         }
         Settings::log( "Founder profiles updated: " . implode( ", ", $ids ) );
     }
@@ -862,8 +862,8 @@ class AjaxController {
 
         if ( ! $user_id ) {
             delete_option( "smpi_publication_user_id" );
-            if ( function_exists( "update_field" ) ) {
-                update_field( "smpi_publication_user", 0, "option" );
+            if ( \Hexa\PluginCore\Fields\Field::available() ) {
+                \Hexa\PluginCore\Fields\Field::update( "smpi_publication_user", 0, "option" );
             }
             Settings::log( "Publication author selection cleared." );
             return;
@@ -874,8 +874,8 @@ class AjaxController {
         }
 
         update_option( "smpi_publication_user_id", $user_id, false );
-        if ( function_exists( "update_field" ) ) {
-            update_field( "smpi_publication_user", $user_id, "option" );
+        if ( \Hexa\PluginCore\Fields\Field::available() ) {
+            \Hexa\PluginCore\Fields\Field::update( "smpi_publication_user", $user_id, "option" );
         }
         Settings::log( "Publication author selected: user #" . $user_id );
     }

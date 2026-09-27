@@ -305,8 +305,8 @@ final class GoingLiveChecklist {
     }
 
     private function field_value( string $field, int $post_id ) {
-        if ( function_exists( "get_field" ) ) {
-            $value = get_field( $field, $post_id );
+        if ( \Hexa\PluginCore\Fields\Field::available() ) {
+            $value = \Hexa\PluginCore\Fields\Field::get( $field, $post_id );
             if ( null !== $value && false !== $value && "" !== $value ) {
                 return $value;
             }

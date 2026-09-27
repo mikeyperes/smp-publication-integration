@@ -314,8 +314,8 @@ final class FounderProfilePresenter {
         }
 
         $field_key = get_post_meta( $profile_id, '_' . $key, true );
-        if ( is_string( $field_key ) && function_exists( 'acf_get_field' ) ) {
-            $field = acf_get_field( $field_key );
+        if ( is_string( $field_key ) && \Hexa\PluginCore\Fields\Field::available() ) {
+            $field = \Hexa\PluginCore\Fields\FieldGroups::get_field( $field_key );
             if ( is_array( $field ) && ! empty( $field['label'] ) ) {
                 return (string) $field['label'];
             }
