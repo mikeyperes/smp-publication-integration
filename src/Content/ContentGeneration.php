@@ -214,6 +214,9 @@ final class ContentGeneration {
 
             function buttonHtml(meta){return "<button type=\"button\" class=\"hpc-dynamic-button button button-primary smpi-generate-content-button\" data-hpc-dynamic-button data-default-label=\""+meta.button+"\" data-working-label=\"Creating "+meta.key+"...\" data-success-label=\"Saved\" data-error-label=\"Failed\" data-smpi-generate-target=\""+meta.key+"\" aria-live=\"polite\"><span class=\"hpc-dynamic-button-spinner\" aria-hidden=\"true\"></span><span class=\"hpc-dynamic-button-icon\" aria-hidden=\"true\"></span><span class=\"hpc-dynamic-button-label\">"+meta.button+"</span></button>";}
             function install(meta){if($("[data-smpi-generation-control=\""+meta.key+"\"].smpi-generation-inline").length){return;} const host=$(meta.host).first(); if(!host.length){return;} const control=$("<div class=\"smpi-generation-control smpi-generation-inline\" data-smpi-generation-control=\""+meta.key+"\"><div class=\"smpi-generation-actions\">"+buttonHtml(meta)+"<span class=\"spinner\"></span><span class=\"smpi-generation-status\">Ready.</span></div><div class=\"smpi-generation-log\"></div></div>"); if(meta.placement==="beforeHost"){host.before(control);return;} if(meta.placement==="afterField"){const field=$(meta.field).first(); if(field.length){field.after(control);return;}} if(meta.placement==="afterHost"){host.after(control);return;} host.append(control);}
+            // Shared with the Going Live checklist: paint a freshly generated value into the
+            // editor so the open screen matches what was saved and a later Save keeps it.
+            window.smpiApplyGenerated = updateVisibleField;
             targets.forEach(install);
             $(document).on("click", "[data-smpi-generate-target]", function(){
                 const button=$(this); const target=button.data("smpi-generate-target"); const control=button.closest("[data-smpi-generation-control], #smpi-content-generation");

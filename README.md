@@ -8,7 +8,7 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `2.2.3`
+- Version: `2.2.4`
 
 ## Ownership
 
@@ -97,6 +97,10 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.2.4
+
+- Going Live: Generate fills the generated excerpt, summary or FAQ rows into the open editor at once (shared `window.smpiApplyGenerated`), so the screen matches what was saved and a later Save keeps it. The FAQ row is hidden when Post FAQ fields are off.
 
 ### 2.2.3
 

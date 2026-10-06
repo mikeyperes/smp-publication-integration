@@ -5,6 +5,7 @@ use Hexa\PluginCore\WpAdminAjax\AjaxActionRegistry;
 use Hexa\PluginCore\WpAdminAjax\AjaxFailure;
 use Hexa\PluginCore\WpAdminAjax\AjaxRequest;
 use smp_publication_integration\Admin\Ajax;
+use smp_publication_integration\Support\Settings;
 use smp_publication_integration\Support\Dependencies;
 
 if ( ! defined( "ABSPATH" ) ) {
@@ -175,8 +176,12 @@ final class GoingLiveChecklist {
                 if (contentTargets[key]) {
                     $.post(cfg.ajaxUrl, {action: "smpi_generate_content", nonce: cfg.nonce, post_id: cfg.postId, target: key}).done(function(response){
                         if (!response || !response.success) { fail(key, errorText(null, response)); deferred.reject(); return; }
+                        const data = response.data || {};
+                        if (typeof window.smpiApplyGenerated === "function" && Object.prototype.hasOwnProperty.call(data, "value")) {
+                            window.smpiApplyGenerated(key, data.value);
+                        }
                         row(key).removeClass("is-working");
-                        refreshStatus().always(function(){ log(labels[key] + " generated."); deferred.resolve(); });
+                        refreshStatus().always(function(){ log(labels[key] + " generated and filled in on this screen."); deferred.resolve(); });
                     }).fail(function(xhr){ fail(key, errorText(xhr)); deferred.reject(); });
                 } else if (key === "tts" && $(".hexa-tts-generate-post").length) {
                     $(".hexa-tts-generate-post").first().trigger("click");
@@ -292,7 +297,7 @@ final class GoingLiveChecklist {
         }
         $items[] = [ "key" => "excerpt", "label" => "Excerpt customized", "description" => "Checks the native WordPress excerpt.", "selector" => "#postexcerpt, #excerpt" ];
         $items[] = [ "key" => "summary", "label" => "Article Summary Created", "description" => "Checks the post_summary ACF field.", "selector" => "[data-name='post_summary'], .acf-field[data-name='post_summary']" ];
-        $items[] = [ "key" => "faqs", "label" => "FAQS created", "description" => "Checks structured FAQ rows.", "selector" => "[data-key='field_smpi_post_faq_accordion'], .acf-field-smpi-post-faq-accordion, .acf-field[data-name='post_faq_items']" ];
+        if ( Settings::bool( "post_faqs_acf_enabled" ) ) $items[] = [ "key" => "faqs", "label" => "FAQs created", "description" => "Checks structured FAQ rows.", "selector" => "[data-key='field_smpi_post_faq_accordion'], .acf-field-smpi-post-faq-accordion, .acf-field[data-name='post_faq_items']" ];
         if ( $this->uses_verified_profiles( $post ) ) {
             $items[] = [ "key" => "verified_profiles_internally_linked", "label" => "Verified profiles internally linked", "description" => "Checks that verified profile output contains links.", "selector" => ".elementor-shortcode, [data-widget_type='shortcode.default'], [class*='verified-profile'], [id*='verified-profile']" ];
         }

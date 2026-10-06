@@ -15,10 +15,10 @@ $ajax = (string) file_get_contents( $root . '/src/Admin/Ajax/AjaxController.php'
 $settings = (string) file_get_contents( $root . '/src/Settings/SettingsRepository.php' );
 
 $checks = [
-    'Keeps every plugin version surface on 2.2.3.' => str_contains( $main, 'Version: 2.2.3' )
-        && str_contains( $main, 'public const VERSION = "2.2.3";' )
-        && str_contains( $legacy, 'Version: 2.2.3' )
-        && str_contains( $readme, '- Version: `2.2.3`' ),
+    'Keeps every plugin version surface on 2.2.4.' => str_contains( $main, 'Version: 2.2.4' )
+        && str_contains( $main, 'public const VERSION = "2.2.4";' )
+        && str_contains( $legacy, 'Version: 2.2.4' )
+        && str_contains( $readme, '- Version: `2.2.4`' ),
     'SMP exposes no duplicate external-publishing bridge.' => ! file_exists( $root . '/src/ExternalPublishing/ExternalPublishingApi.php' )
         && ! str_contains( $runtime, 'ExternalPublishingApi' )
         && ! str_contains( $dashboard, 'external_publishing_enabled' )
