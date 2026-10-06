@@ -48,35 +48,41 @@ final class GoingLiveChecklist {
 
         $items = $this->items_for_post( $post );
         ?>
-        <div id="smpi-going-live-checklist" class="postbox smpi-going-live-checklist" data-post-id="<?php echo esc_attr( (string) $post->ID ); ?>" data-ajax-url="<?php echo esc_url( admin_url( "admin-ajax.php" ) ); ?>" data-nonce="<?php echo esc_attr( Ajax::nonce() ); ?>">
-            <div class="postbox-header smpi-going-live-checklist__header">
-                <h2>Going Live Checklist</h2>
-                <div class="smpi-going-live-checklist__header-actions">
-                    <label class="smpi-go-live-exempt" style="margin-right:12px"><?php wp_nonce_field( self::EXEMPT_NONCE, self::EXEMPT_NONCE ); ?><input type="checkbox" name="smpi_go_live_exempt" value="1" <?php checked( self::is_exempt( $post->ID ) ); ?>> Do not process this page</label>
-                    <?php echo $this->dynamic_button( [ "label" => "Do all", "working_label" => "Processing...", "success_label" => "Checklist updated", "error_label" => "Stopped", "class" => "button button-primary", "attrs" => [ "data-smpi-go-live-all" => "1" ] ] ); ?>
+        <div id="smpi-going-live-checklist" class="postbox smpi-glc" data-post-id="<?php echo esc_attr( (string) $post->ID ); ?>" data-ajax-url="<?php echo esc_url( admin_url( "admin-ajax.php" ) ); ?>" data-nonce="<?php echo esc_attr( Ajax::nonce() ); ?>">
+            <div class="smpi-glc__head">
+                <div class="smpi-glc__title">
+                    <h2>Going Live</h2>
+                    <span class="smpi-glc__progress" data-smpi-go-live-progress>Checking…</span>
+                </div>
+                <div class="smpi-glc__controls">
+                    <label class="smpi-glc__switch" title="When on, this page is skipped by automatic processing.">
+                        <?php wp_nonce_field( self::EXEMPT_NONCE, self::EXEMPT_NONCE ); ?>
+                        <input type="checkbox" name="smpi_go_live_exempt" value="1" <?php checked( self::is_exempt( $post->ID ) ); ?>>
+                        <span class="smpi-glc__track" aria-hidden="true"></span>
+                        <span>Do not process this page</span>
+                    </label>
+                    <?php echo $this->dynamic_button( [ "label" => "Complete all", "working_label" => "Processing…", "success_label" => "Done", "error_label" => "Stopped", "class" => "button button-primary", "attrs" => [ "data-smpi-go-live-all" => "1" ] ] ); ?>
                 </div>
             </div>
-            <div class="inside smpi-going-live-checklist__body">
-                <div class="smpi-going-live-checklist__items" data-smpi-go-live-items>
-                    <?php foreach ( $items as $item ) : ?>
-                        <div class="smpi-go-live-item" data-smpi-go-live-item="<?php echo esc_attr( $item["key"] ); ?>" data-smpi-view-selector="<?php echo esc_attr( $item["selector"] ); ?>">
-                            <div class="smpi-go-live-item__status" data-smpi-go-live-status aria-live="polite"><span class="smpi-go-live-item__circle">⚪</span><span class="smpi-go-live-item__mark">!</span></div>
-                            <div class="smpi-go-live-item__content">
-                                <strong><?php echo esc_html( $item["label"] ); ?></strong>
-                                <span data-smpi-go-live-message><?php echo esc_html( $item["description"] ); ?></span>
-                            </div>
-                            <div class="smpi-go-live-item__actions">
-                                <?php echo $this->dynamic_button( [ "label" => "Process", "working_label" => "Creating...", "success_label" => "Updated", "error_label" => "Failed", "class" => "button button-secondary smpi-go-live-process", "attrs" => [ "data-smpi-go-live-process" => $item["key"] ] ] ); ?>
-                                <?php echo $this->dynamic_button( [ "label" => "View", "working_label" => "Finding...", "success_label" => "Found", "error_label" => "Missing", "class" => "button smpi-go-live-view", "attrs" => [ "data-smpi-go-live-view" => $item["key"] ] ] ); ?>
-                            </div>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
-                <div class="smpi-go-live-log" aria-live="polite">
-                    <h3>Activity log</h3>
-                    <div data-smpi-go-live-log><p>No checklist activity yet.</p></div>
-                </div>
-            </div>
+            <ul class="smpi-glc__list" data-smpi-go-live-items>
+                <?php foreach ( $items as $item ) : ?>
+                    <li class="smpi-glc__row" data-smpi-go-live-item="<?php echo esc_attr( $item["key"] ); ?>" data-smpi-view-selector="<?php echo esc_attr( $item["selector"] ); ?>">
+                        <span class="smpi-glc__badge" data-smpi-go-live-status aria-live="polite"><span class="smpi-go-live-item__mark"></span></span>
+                        <span class="smpi-glc__text">
+                            <strong><?php echo esc_html( $item["label"] ); ?></strong>
+                            <span data-smpi-go-live-message><?php echo esc_html( $item["description"] ); ?></span>
+                        </span>
+                        <span class="smpi-glc__actions">
+                            <?php echo $this->dynamic_button( [ "label" => "Generate", "working_label" => "Generating…", "success_label" => "Done", "error_label" => "Failed", "class" => "button button-small smpi-go-live-process", "attrs" => [ "data-smpi-go-live-process" => $item["key"] ] ] ); ?>
+                            <?php echo $this->dynamic_button( [ "label" => "View", "working_label" => "Finding…", "success_label" => "View", "error_label" => "Not found", "class" => "button-link smpi-go-live-view", "attrs" => [ "data-smpi-go-live-view" => $item["key"] ] ] ); ?>
+                        </span>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+            <details class="smpi-glc__log">
+                <summary>Activity <span data-smpi-go-live-log-count></span></summary>
+                <div data-smpi-go-live-log><p>No activity yet.</p></div>
+            </details>
         </div>
         <?php
     }
@@ -88,7 +94,25 @@ final class GoingLiveChecklist {
         }
         ?>
         <style>
-            .smpi-going-live-checklist{margin-top:22px}.smpi-going-live-checklist .inside{margin:0;padding:0}.smpi-going-live-checklist__header{align-items:center}.smpi-going-live-checklist__header-actions{margin-left:auto;padding-right:12px}.smpi-going-live-checklist__body{background:#fff}.smpi-going-live-checklist__items{display:grid;gap:0}.smpi-go-live-item{align-items:center;border-bottom:1px solid #e6ebf2;display:grid;gap:12px;grid-template-columns:auto minmax(0,1fr) auto;padding:14px 16px}.smpi-go-live-item__status{align-items:center;display:flex;font-size:18px;font-weight:800;gap:8px;min-width:56px}.smpi-go-live-item__circle{font-size:16px}.smpi-go-live-item__mark{display:inline-block;min-width:16px;text-align:center}.smpi-go-live-item__status.is-done .smpi-go-live-item__mark{color:#16803c}.smpi-go-live-item__status.is-error .smpi-go-live-item__mark{color:#b42318}.smpi-go-live-item__status.is-warning .smpi-go-live-item__mark{color:#a15c00}.smpi-go-live-item__content{display:grid;gap:3px}.smpi-go-live-item__content strong{font-size:14px}.smpi-go-live-item__content span{color:#596579}.smpi-go-live-item__actions{display:flex;gap:8px;justify-content:flex-end}.smpi-go-live-item__actions .button{min-height:32px}.smpi-go-live-log{padding:16px}.smpi-go-live-log h3{font-size:13px;letter-spacing:.08em;margin:0 0 8px;text-transform:uppercase}.smpi-go-live-log p{margin:4px 0}.smpi-go-live-highlight{box-shadow:0 0 0 3px #3858e9!important;transition:box-shadow .2s ease}@media (max-width:782px){.smpi-go-live-item{grid-template-columns:1fr}.smpi-go-live-item__actions{justify-content:flex-start}}
+            .smpi-glc{margin-top:20px;border:1px solid #dcdcde;border-radius:6px;overflow:hidden;box-shadow:none}
+            .smpi-glc__head{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 16px;border-bottom:1px solid #f0f0f1;background:#fff}
+            .smpi-glc__title{display:flex;align-items:center;gap:10px}.smpi-glc__title h2{margin:0;padding:0;font-size:14px;font-weight:600}
+            .smpi-glc__progress{font-size:12px;color:#50575e;background:#f0f0f1;border-radius:999px;padding:2px 10px}.smpi-glc__progress.is-complete{background:#edfaef;color:#00691f}
+            .smpi-glc__controls{display:flex;align-items:center;gap:14px}
+            .smpi-glc__switch{display:inline-flex;align-items:center;gap:8px;font-size:12px;color:#50575e;cursor:pointer}.smpi-glc__switch input{position:absolute;opacity:0;width:1px;height:1px}
+            .smpi-glc__track{position:relative;width:32px;height:18px;border-radius:999px;background:#c3c4c7;transition:background .15s}.smpi-glc__track:after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:transform .15s}
+            .smpi-glc__switch input:checked+.smpi-glc__track{background:#d63638}.smpi-glc__switch input:checked+.smpi-glc__track:after{transform:translateX(14px)}.smpi-glc__switch input:focus-visible+.smpi-glc__track{box-shadow:0 0 0 2px #2271b1}
+            .smpi-glc.is-exempt .smpi-glc__list{opacity:.5}
+            .smpi-glc__list{margin:0;padding:0;list-style:none;background:#fff}
+            .smpi-glc__row{display:flex;align-items:center;gap:12px;margin:0;padding:10px 16px;border-bottom:1px solid #f0f0f1}
+            .smpi-glc__badge{flex:0 0 20px;width:20px;height:20px;border-radius:50%;border:2px solid #c3c4c7;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff}
+            .smpi-glc__badge.is-done{background:#00a32a;border-color:#00a32a}.smpi-glc__badge.is-done .smpi-go-live-item__mark:after{content:"✓"}
+            .smpi-glc__badge.is-error{border-color:#d63638}.smpi-glc__badge.is-warning{border-color:#dba617}
+            .smpi-glc__text{flex:1;min-width:0;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}.smpi-glc__text strong{font-size:13px;font-weight:600;color:#1d2327}.smpi-glc__text span{font-size:12px;color:#646970}
+            .smpi-glc__actions{display:flex;align-items:center;gap:10px}.smpi-glc__row.is-done .smpi-go-live-process{display:none}
+            .smpi-glc__log{padding:8px 16px;background:#fcfcfc;font-size:12px;color:#50575e}.smpi-glc__log summary{cursor:pointer;font-weight:600}.smpi-glc__log p{margin:4px 0}
+            .smpi-go-live-highlight{box-shadow:0 0 0 3px #3858e9!important;transition:box-shadow .2s ease}
+            @media (max-width:782px){.smpi-glc__head{flex-wrap:wrap}.smpi-glc__row{flex-wrap:wrap}}
         </style>
         <script>
         jQuery(function($){
@@ -96,23 +120,27 @@ final class GoingLiveChecklist {
             if (!root.length) { return; }
             const cfg = {ajaxUrl: root.data("ajax-url") || window.ajaxurl, nonce: root.data("nonce") || "", postId: parseInt(root.data("post-id"), 10) || 0};
             const btn = window.HexaWpCoreDynamicButton || {start:function(){}, success:function(){}, error:function(){}, reset:function(){}};
+            root.toggleClass("is-exempt", root.find("[name=smpi_go_live_exempt]").is(":checked"));
+            root.on("change", "[name=smpi_go_live_exempt]", function(){ root.toggleClass("is-exempt", this.checked); });
             const processMap = {excerpt:"[data-smpi-generate-target='excerpt']", summary:"[data-smpi-generate-target='summary']", faqs:"[data-smpi-generate-target='faqs']", tts:".hexa-tts-generate-post"};
 
             function addLog(type, text) {
                 const box = root.find("[data-smpi-go-live-log]");
                 const prefix = type === "ok" ? "✓" : (type === "error" ? "X" : "!");
-                if (box.find("p").length === 1 && box.text().indexOf("No checklist activity") !== -1) { box.empty(); }
+                if (box.find("p").length === 1 && box.text().indexOf("No activity yet") !== -1) { box.empty(); }
                 box.prepend($("<p/>").append($("<strong/>").text(prefix + " ")).append(document.createTextNode(text)));
+                root.find("[data-smpi-go-live-log-count]").text("(" + box.find("p").length + ")");
             }
 
             function setItemState(key, state, message) {
                 const item = root.find("[data-smpi-go-live-item='" + key + "']");
                 if (!item.length) { return; }
                 const status = item.find("[data-smpi-go-live-status]");
-                const mark = state === "done" ? "✓" : (state === "error" || state === "missing" ? "X" : "!");
                 status.removeClass("is-done is-error is-warning").addClass(state === "done" ? "is-done" : (state === "error" || state === "missing" ? "is-error" : "is-warning"));
-                status.find(".smpi-go-live-item__mark").text(mark);
+                item.toggleClass("is-done", state === "done");
                 item.find("[data-smpi-go-live-message]").text(message || "Status checked.");
+                const total = root.find("[data-smpi-go-live-item]").length, done = root.find(".smpi-glc__row.is-done").length;
+                root.find("[data-smpi-go-live-progress]").text(done + " of " + total + " done").toggleClass("is-complete", done === total);
             }
 
             function refreshStatus() {
