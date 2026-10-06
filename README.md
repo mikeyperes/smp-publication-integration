@@ -8,7 +8,7 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `2.2.6`
+- Version: `2.3.0`
 
 ## Ownership
 
@@ -97,6 +97,12 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.3.0
+
+- Content generation rebuilt around Publish's background jobs. Generate (inline or in Going Live) starts a job and returns at once; the field shows it being written, and keeps showing it after a reload or on another screen, until Publish finishes and the value is saved and filled in. Publish pings the site when a job finishes; the editor and a background event also check.
+- Publish chooses the AI connection (subscription by default, or API) per job; nothing changes on the site.
+- New `GenerationJobs`, `PublishContentClient` and `GeneratedValueStore` replace the one-shot request code; the Going Live checklist and inline buttons share one editor client (`assets/admin/content-generation.js`). The obsolete timeout setting and the `smpi_generate_content_for_post` filter are removed.
 
 ### 2.2.6
 

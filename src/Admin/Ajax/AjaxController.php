@@ -144,10 +144,8 @@ class AjaxController {
                 $changes[ $key ] = $request->bool( $key, false, "post" );
             }
         }
-        foreach ( [ "system_publication_user_id", "content_generation_timeout" ] as $key ) {
-            if ( $request->has( $key, 'post' ) ) {
-                $changes[ $key ] = $request->int( $key, 0, 'post' );
-            }
+        if ( $request->has( "system_publication_user_id", 'post' ) ) {
+            $changes["system_publication_user_id"] = $request->int( "system_publication_user_id", 0, 'post' );
         }
         if ( $request->has( "content_generation_api_base", "post" ) ) {
             $changes["content_generation_api_base"] = esc_url_raw( (string) $request->raw( "content_generation_api_base", "", "post" ) );

@@ -183,7 +183,6 @@ class SettingsRepository {
             'hws_masked_admin_report_enabled' => true,
             "content_generation_enabled" => true,
             "content_generation_api_base" => "https://publish.scalemypublication.com/api/smp-content-generation/v1",
-            "content_generation_timeout" => 45,
             "post_hygiene_enabled" => true,
             "post_hygiene_strip_inline_styles" => true,
             "post_hygiene_unwrap_spans" => true,
@@ -487,11 +486,6 @@ class SettingsRepository {
 
             if ( "system_publication_user_id" === $key ) {
                 $settings[ $key ] = absint( $value );
-                continue;
-            }
-
-            if ( "content_generation_timeout" === $key ) {
-                $settings[ $key ] = max( 5, min( 120, absint( $value ) ?: 45 ) );
                 continue;
             }
 
