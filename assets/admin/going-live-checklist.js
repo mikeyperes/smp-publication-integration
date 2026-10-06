@@ -101,7 +101,7 @@ jQuery(function ($) {
 
     function generate(key) {
         if (isContent(key)) {
-            log("Asked Publish to write the " + labels[key].toLowerCase() + ".");
+            log(labels[key] + ": asked Publish to write it.");
             return generation.run(key);
         }
         if (key === "tts" && $(".hexa-tts-generate-post").length) {

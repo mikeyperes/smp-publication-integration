@@ -78,7 +78,7 @@ final class GenerationJobs {
             return $current;
         }
 
-        $this->log( $post_id, $target, self::WORKING, "Asked Publish to write the " . strtolower( GeneratedValueStore::label( $target ) ) . "." );
+        $this->log( $post_id, $target, self::WORKING, "Asked Publish to write the " . GeneratedValueStore::noun( $target ) . "." );
         $job = $this->client->start( $post, $target );
         if ( is_wp_error( $job ) ) {
             return $this->finish( $post_id, $target, $current, self::FAILED, $job->get_error_message() );
@@ -89,7 +89,7 @@ final class GenerationJobs {
             "status" => self::WORKING,
             "job_id" => strtolower( (string) $job["job_id"] ),
             "mode" => (string) ( $job["mode"] ?? "" ),
-            "message" => "Writing the " . strtolower( GeneratedValueStore::label( $target ) ) . "…",
+            "message" => "Writing the " . GeneratedValueStore::noun( $target ) . "…",
             "started_at" => $now,
             "checked_at" => $now,
             "finished_at" => 0,
@@ -240,7 +240,7 @@ final class GenerationJobs {
         $status = (string) ( $job["status"] ?? "" );
         if ( "completed" === $status ) {
             $value = $this->store->extract( $job["data"] ?? null, $target );
-            $saved = null === $value ? new \WP_Error( "smpi_content_empty", "Publish finished without a " . strtolower( GeneratedValueStore::label( $target ) ) . "." ) : $this->store->save( $post_id, $target, $value );
+            $saved = null === $value ? new \WP_Error( "smpi_content_empty", "Publish finished without the " . GeneratedValueStore::noun( $target ) . "." ) : $this->store->save( $post_id, $target, $value );
             if ( is_wp_error( $saved ) ) {
                 return $this->finish( $post_id, $target, $record, self::FAILED, $saved->get_error_message() );
             }
@@ -254,7 +254,7 @@ final class GenerationJobs {
             return $this->give_up( $post_id, $target, $record );
         }
         $attempts = (int) ( $job["attempts"] ?? 0 );
-        $record["message"] = $attempts > 1 ? "Writing the " . strtolower( GeneratedValueStore::label( $target ) ) . "… (try " . $attempts . ")" : $record["message"];
+        $record["message"] = $attempts > 1 ? "Writing the " . GeneratedValueStore::noun( $target ) . "… (try " . $attempts . ")" : $record["message"];
         return $this->save_record( $post_id, $target, $record );
     }
 

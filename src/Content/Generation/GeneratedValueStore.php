@@ -23,6 +23,11 @@ final class GeneratedValueStore {
         return [ "excerpt" => "Excerpt", "summary" => "Summary", "faqs" => "FAQs" ][ $target ] ?? ucfirst( $target );
     }
 
+    /** The target as used mid-sentence ("the summary", "the FAQs"). */
+    public static function noun( string $target ): string {
+        return [ "excerpt" => "excerpt", "summary" => "summary", "faqs" => "FAQs" ][ $target ] ?? $target;
+    }
+
     /** Pulls the target's value out of a completed job's data. */
     public function extract( $data, string $target ) {
         if ( ! is_array( $data ) ) {
