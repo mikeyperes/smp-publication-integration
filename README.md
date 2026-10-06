@@ -8,7 +8,7 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `2.2.2`
+- Version: `2.2.3`
 
 ## Ownership
 
@@ -97,6 +97,10 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.2.3
+
+- Content generation falls back to the text-to-speech plugin's working key through its `smp_tts_site_api_key` filter (SMP Text to Speech 1.4.1+). It used to read the stored, encrypted setting directly, so Publish rejected it with HTTP 401.
 
 ### 2.2.2
 

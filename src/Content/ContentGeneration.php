@@ -409,12 +409,10 @@ final class ContentGeneration {
         return $this->tts_api_key();
     }
 
+    /** Falls back to the text-to-speech plugin's working key (it stores it encrypted). */
     private function tts_api_key(): string {
-        $settings = get_option( "hexa_tts_settings", [] );
-        if ( is_array( $settings ) && ! empty( $settings["api_key"] ) && is_scalar( $settings["api_key"] ) ) {
-            return trim( (string) $settings["api_key"] );
-        }
-        return "";
+        $key = apply_filters( "smp_tts_site_api_key", "" );
+        return is_string( $key ) ? trim( $key ) : "";
     }
 
     private function payload_for_post( \WP_Post $post, string $target ): array {
