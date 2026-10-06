@@ -14,11 +14,16 @@ if ( ! defined( "ABSPATH" ) ) {
 
 final class GoingLiveChecklist {
     private const ACTION_STATUS = "smpi_going_live_checklist_status";
+    /** Post meta: "1" means this post is never processed automatically. */
+    public const EXEMPT_META = "_smpi_go_live_exempt";
+    private const EXEMPT_NONCE = "smpi_go_live_exempt_nonce";
 
     public function register(): void {
         add_action( "edit_form_after_editor", [ $this, "render" ] );
         add_action( "admin_footer-post.php", [ $this, "footer_assets" ] );
         add_action( "admin_footer-post-new.php", [ $this, "footer_assets" ] );
+        add_action( "save_post", [ $this, "save_exempt" ], 10, 2 );
+        add_action( "smpi_go_live_process", [ $this, "process_missing" ] );
         ( new AjaxActionRegistry(
             [
                 'capability'   => '',
@@ -47,6 +52,7 @@ final class GoingLiveChecklist {
             <div class="postbox-header smpi-going-live-checklist__header">
                 <h2>Going Live Checklist</h2>
                 <div class="smpi-going-live-checklist__header-actions">
+                    <label class="smpi-go-live-exempt" style="margin-right:12px"><?php wp_nonce_field( self::EXEMPT_NONCE, self::EXEMPT_NONCE ); ?><input type="checkbox" name="smpi_go_live_exempt" value="1" <?php checked( self::is_exempt( $post->ID ) ); ?>> Do not process this page</label>
                     <?php echo $this->dynamic_button( [ "label" => "Do all", "working_label" => "Processing...", "success_label" => "Checklist updated", "error_label" => "Stopped", "class" => "button button-primary", "attrs" => [ "data-smpi-go-live-all" => "1" ] ] ); ?>
                 </div>
             </div>
@@ -234,6 +240,36 @@ final class GoingLiveChecklist {
 
     private function supports_post( \WP_Post $post ): bool {
         return in_array( $post->post_type, [ "post", "press-release" ], true );
+    }
+
+    public static function is_exempt( int $post_id ): bool {
+        return "1" === (string) get_post_meta( $post_id, self::EXEMPT_META, true );
+    }
+
+    public function save_exempt( int $post_id, \WP_Post $post ): void {
+        if ( ! isset( $_POST[ self::EXEMPT_NONCE ] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST[ self::EXEMPT_NONCE ] ) ), self::EXEMPT_NONCE ) ) return;
+        if ( wp_is_post_revision( $post_id ) || ! current_user_can( "edit_post", $post_id ) ) return;
+        if ( empty( $_POST["smpi_go_live_exempt"] ) ) delete_post_meta( $post_id, self::EXEMPT_META );
+        else update_post_meta( $post_id, self::EXEMPT_META, "1" );
+    }
+
+    /**
+     * Server-side "Do all": generates every missing excerpt, summary and FAQ
+     * set for a post, unless the post is marked "Do not process this page".
+     * Other plugins call do_action( "smpi_go_live_process", $post_id ).
+     *
+     * @return array<string,array{ok:bool,message:string}>
+     */
+    public function process_missing( int $post_id ): array {
+        $post = get_post( $post_id );
+        if ( ! $post || ! $this->supports_post( $post ) || self::is_exempt( $post_id ) ) return [];
+        $results = [];
+        foreach ( [ "excerpt", "summary", "faqs" ] as $target ) {
+            $status = $this->status_for_item( $target, get_post( $post_id ) );
+            if ( "done" === $status["state"] ) continue;
+            $results[ $target ] = apply_filters( "smpi_generate_content_for_post", [ "ok" => false, "message" => "Content generation is not available." ], $post_id, $target );
+        }
+        return $results;
     }
 
     private function items_for_post( \WP_Post $post ): array {

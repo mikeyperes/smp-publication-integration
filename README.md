@@ -8,7 +8,7 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `2.1.0`
+- Version: `2.2.0`
 
 ## Ownership
 
@@ -97,6 +97,10 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.2.0
+
+- Going Live Checklist: "Do not process this page" switch at the top (post meta `_smpi_go_live_exempt`). New server-side processing: `do_action( 'smpi_go_live_process', $post_id )` generates every missing excerpt, summary and FAQ set unless the post is switched off, and `smpi_generate_content_for_post` exposes one-target generation to other plugins. The editor's Generate buttons use the same code path.
 
 ### 2.1.0
 

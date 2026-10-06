@@ -28,6 +28,7 @@ final class ContentGeneration {
         add_action( "admin_footer-post.php", [ $this, "post_footer_script" ] );
         add_action( "admin_footer-post-new.php", [ $this, "post_footer_script" ] );
         add_action( "add_meta_boxes", [ $this, "add_meta_boxes" ] );
+        add_filter( "smpi_generate_content_for_post", [ $this, "generate_for_post" ], 10, 3 );
         ( new AjaxActionRegistry(
             [
                 'capability'   => 'manage_options',
@@ -301,36 +302,51 @@ final class ContentGeneration {
         if ( ! $post_id || ! in_array( $target, [ 'excerpt', 'summary', 'faqs' ], true ) || ! current_user_can( 'edit_post', $post_id ) ) {
             throw new AjaxFailure( 'Not allowed or invalid request.', 403, 'forbidden' );
         }
-        if ( ! Settings::bool( "content_generation_enabled" ) ) {
-            throw AjaxFailure::bad_request( 'Content generation is disabled.' );
+        $result = $this->generate_for_post( null, $post_id, $target );
+        if ( empty( $result['ok'] ) ) {
+            throw AjaxFailure::bad_request( (string) $result['message'], (string) ( $result['code'] ?? 'content_api_error' ), [ 'log' => $this->generation_log( $post_id ) ] );
         }
-        $this->add_generation_log( $post_id, "working", "Creating " . $target . ".", $target );
+        return [ 'message' => $result['message'], 'value' => $result['value'], 'log' => $this->generation_log( $post_id ) ];
+    }
+
+    /**
+     * Generates and saves one target (excerpt, summary or faqs) for a post.
+     * Shared by the editor button and by server-side callers through the
+     * "smpi_generate_content_for_post" filter.
+     *
+     * @return array{ok:bool,message:string,code?:string,value?:mixed}
+     */
+    public function generate_for_post( $unused, int $post_id, string $target ): array {
+        if ( ! in_array( $target, [ 'excerpt', 'summary', 'faqs' ], true ) ) {
+            return [ 'ok' => false, 'code' => 'invalid_target', 'message' => 'Unknown target ' . $target . '.' ];
+        }
+        if ( ! Settings::bool( "content_generation_enabled" ) ) {
+            return [ 'ok' => false, 'code' => 'disabled', 'message' => 'Content generation is disabled.' ];
+        }
         $post = get_post( $post_id );
         if ( ! $post ) {
-            throw AjaxFailure::not_found( 'Post not found.' );
+            return [ 'ok' => false, 'code' => 'not_found', 'message' => 'Post not found.' ];
         }
-        $payload = $this->payload_for_post( $post, $target );
-        $result = $this->api_request( "/generate", $payload, (int) Settings::get( "content_generation_timeout", 45 ) );
+        $this->add_generation_log( $post_id, "working", "Creating " . $target . ".", $target );
+        $result = $this->api_request( "/generate", $this->payload_for_post( $post, $target ), (int) Settings::get( "content_generation_timeout", 45 ) );
         if ( is_wp_error( $result ) ) {
-            $message = $result->get_error_message();
-            $this->add_generation_log( $post_id, "error", $message, $target );
-            throw AjaxFailure::bad_request( $message, 'content_api_error', [ 'log' => $this->generation_log( $post_id ) ] );
+            $this->add_generation_log( $post_id, "error", $result->get_error_message(), $target );
+            return [ 'ok' => false, 'code' => 'content_api_error', 'message' => $result->get_error_message() ];
         }
         $value = $this->extract_generated_value( $result, $target );
         if ( "" === $value && "faqs" !== $target ) {
             $message = "API response did not include " . $target . ".";
             $this->add_generation_log( $post_id, "error", $message, $target );
-            throw AjaxFailure::bad_request( $message, 'content_api_response', [ 'response' => $result, 'log' => $this->generation_log( $post_id ) ] );
+            return [ 'ok' => false, 'code' => 'content_api_response', 'message' => $message ];
         }
         $saved = $this->save_generated_value( $post_id, $target, $value, $result );
         if ( is_wp_error( $saved ) ) {
-            $message = $saved->get_error_message();
-            $this->add_generation_log( $post_id, "error", $message, $target );
-            throw AjaxFailure::bad_request( $message, 'content_save_error', [ 'log' => $this->generation_log( $post_id ) ] );
+            $this->add_generation_log( $post_id, "error", $saved->get_error_message(), $target );
+            return [ 'ok' => false, 'code' => 'content_save_error', 'message' => $saved->get_error_message() ];
         }
         $message = ucfirst( $target ) . " saved.";
         $this->add_generation_log( $post_id, "ok", $message, $target );
-        return [ 'message' => $message, 'value' => $value, 'log' => $this->generation_log( $post_id ) ];
+        return [ 'ok' => true, 'message' => $message, 'value' => $value ];
     }
 
 
