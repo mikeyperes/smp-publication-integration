@@ -1,7 +1,6 @@
 <?php
 namespace smp_publication_integration\Content;
 
-use Hexa\PluginCore\WpAdminComponents\DynamicButton;
 use Hexa\PluginCore\WpAdminAjax\AjaxActionRegistry;
 use Hexa\PluginCore\WpAdminAjax\AjaxFailure;
 use Hexa\PluginCore\WpAdminAjax\AjaxRequest;
@@ -42,46 +41,43 @@ final class GoingLiveChecklist {
             return;
         }
 
-        if ( class_exists( DynamicButton::class ) ) {
-            DynamicButton::render_assets();
-        }
-
         $items = $this->items_for_post( $post );
         ?>
         <div id="smpi-going-live-checklist" class="postbox smpi-glc" data-post-id="<?php echo esc_attr( (string) $post->ID ); ?>" data-ajax-url="<?php echo esc_url( admin_url( "admin-ajax.php" ) ); ?>" data-nonce="<?php echo esc_attr( Ajax::nonce() ); ?>">
             <div class="smpi-glc__head">
                 <div class="smpi-glc__title">
                     <h2>Going Live</h2>
-                    <span class="smpi-glc__progress" data-smpi-go-live-progress>Checking…</span>
+                    <span class="smpi-glc__progress" data-glc-progress>Checking…</span>
                 </div>
                 <div class="smpi-glc__controls">
-                    <label class="smpi-glc__switch" title="When on, this page is skipped by automatic processing.">
+                    <label class="smpi-glc__switch">
                         <?php wp_nonce_field( self::EXEMPT_NONCE, self::EXEMPT_NONCE ); ?>
                         <input type="checkbox" name="smpi_go_live_exempt" value="1" <?php checked( self::is_exempt( $post->ID ) ); ?>>
                         <span class="smpi-glc__track" aria-hidden="true"></span>
                         <span>Do not process this page</span>
                     </label>
-                    <?php echo $this->dynamic_button( [ "label" => "Complete all", "working_label" => "Processing…", "success_label" => "Done", "error_label" => "Stopped", "class" => "button button-primary", "attrs" => [ "data-smpi-go-live-all" => "1" ] ] ); ?>
+                    <button type="button" class="button button-primary" data-glc-all>Complete all</button>
                 </div>
             </div>
-            <ul class="smpi-glc__list" data-smpi-go-live-items>
+            <p class="smpi-glc__notice" data-glc-notice hidden></p>
+            <ul class="smpi-glc__list">
                 <?php foreach ( $items as $item ) : ?>
-                    <li class="smpi-glc__row" data-smpi-go-live-item="<?php echo esc_attr( $item["key"] ); ?>" data-smpi-view-selector="<?php echo esc_attr( $item["selector"] ); ?>">
-                        <span class="smpi-glc__badge" data-smpi-go-live-status aria-live="polite"><span class="smpi-go-live-item__mark"></span></span>
+                    <li class="smpi-glc__row is-checking" data-glc-item="<?php echo esc_attr( $item["key"] ); ?>" data-glc-view-selector="<?php echo esc_attr( $item["selector"] ); ?>">
+                        <span class="smpi-glc__badge" aria-hidden="true"></span>
                         <span class="smpi-glc__text">
                             <strong><?php echo esc_html( $item["label"] ); ?></strong>
-                            <span data-smpi-go-live-message><?php echo esc_html( $item["description"] ); ?></span>
+                            <span class="smpi-glc__msg" data-glc-msg aria-live="polite"><?php echo esc_html( $item["description"] ); ?></span>
                         </span>
                         <span class="smpi-glc__actions">
-                            <?php echo $this->dynamic_button( [ "label" => "Generate", "working_label" => "Generating…", "success_label" => "Done", "error_label" => "Failed", "class" => "button button-small smpi-go-live-process", "attrs" => [ "data-smpi-go-live-process" => $item["key"] ] ] ); ?>
-                            <?php echo $this->dynamic_button( [ "label" => "View", "working_label" => "Finding…", "success_label" => "View", "error_label" => "Not found", "class" => "button-link smpi-go-live-view", "attrs" => [ "data-smpi-go-live-view" => $item["key"] ] ] ); ?>
+                            <button type="button" class="button button-small" data-glc-generate>Generate</button>
+                            <button type="button" class="button-link" data-glc-view>View</button>
                         </span>
                     </li>
                 <?php endforeach; ?>
             </ul>
             <details class="smpi-glc__log">
-                <summary>Activity <span data-smpi-go-live-log-count></span></summary>
-                <div data-smpi-go-live-log><p>No activity yet.</p></div>
+                <summary>Activity <span data-glc-log-count></span></summary>
+                <ol data-glc-log><li class="is-empty">No activity yet.</li></ol>
             </details>
         </div>
         <?php
@@ -94,154 +90,143 @@ final class GoingLiveChecklist {
         }
         ?>
         <style>
-            .smpi-glc{margin-top:20px;border:1px solid #dcdcde;border-radius:6px;overflow:hidden;box-shadow:none}
-            .smpi-glc__head{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 16px;border-bottom:1px solid #f0f0f1;background:#fff}
-            .smpi-glc__title{display:flex;align-items:center;gap:10px}.smpi-glc__title h2{margin:0;padding:0;font-size:14px;font-weight:600}
-            .smpi-glc__progress{font-size:12px;color:#50575e;background:#f0f0f1;border-radius:999px;padding:2px 10px}.smpi-glc__progress.is-complete{background:#edfaef;color:#00691f}
-            .smpi-glc__controls{display:flex;align-items:center;gap:14px}
-            .smpi-glc__switch{display:inline-flex;align-items:center;gap:8px;font-size:12px;color:#50575e;cursor:pointer}.smpi-glc__switch input{position:absolute;opacity:0;width:1px;height:1px}
-            .smpi-glc__track{position:relative;width:32px;height:18px;border-radius:999px;background:#c3c4c7;transition:background .15s}.smpi-glc__track:after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:transform .15s}
-            .smpi-glc__switch input:checked+.smpi-glc__track{background:#d63638}.smpi-glc__switch input:checked+.smpi-glc__track:after{transform:translateX(14px)}.smpi-glc__switch input:focus-visible+.smpi-glc__track{box-shadow:0 0 0 2px #2271b1}
-            .smpi-glc.is-exempt .smpi-glc__list{opacity:.5}
-            .smpi-glc__list{margin:0;padding:0;list-style:none;background:#fff}
-            .smpi-glc__row{display:flex;align-items:center;gap:12px;margin:0;padding:10px 16px;border-bottom:1px solid #f0f0f1}
-            .smpi-glc__badge{flex:0 0 20px;width:20px;height:20px;border-radius:50%;border:2px solid #c3c4c7;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff}
-            .smpi-glc__badge.is-done{background:#00a32a;border-color:#00a32a}.smpi-glc__badge.is-done .smpi-go-live-item__mark:after{content:"✓"}
-            .smpi-glc__badge.is-error{border-color:#d63638}.smpi-glc__badge.is-warning{border-color:#dba617}
-            .smpi-glc__text{flex:1;min-width:0;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}.smpi-glc__text strong{font-size:13px;font-weight:600;color:#1d2327}.smpi-glc__text span{font-size:12px;color:#646970}
-            .smpi-glc__actions{display:flex;align-items:center;gap:10px}.smpi-glc__row.is-done .smpi-go-live-process{display:none}
-            .smpi-glc__log{padding:8px 16px;background:#fcfcfc;font-size:12px;color:#50575e}.smpi-glc__log summary{cursor:pointer;font-weight:600}.smpi-glc__log p{margin:4px 0}
-            .smpi-go-live-highlight{box-shadow:0 0 0 3px #3858e9!important;transition:box-shadow .2s ease}
-            @media (max-width:782px){.smpi-glc__head{flex-wrap:wrap}.smpi-glc__row{flex-wrap:wrap}}
+            #smpi-going-live-checklist.smpi-glc{margin-top:20px;border:1px solid #dcdcde;border-radius:4px;box-shadow:0 1px 1px rgba(0,0,0,.04);overflow:hidden}
+            .smpi-glc__head{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:10px 14px;border-bottom:1px solid #f0f0f1;background:#fff}
+            .smpi-glc__title{display:flex;align-items:center;gap:10px}.smpi-glc__title h2{margin:0!important;padding:0!important;font-size:14px!important;font-weight:600;line-height:1.4}
+            .smpi-glc__progress{font-size:12px;line-height:20px;padding:0 9px;border-radius:10px;background:#f0f0f1;color:#50575e}.smpi-glc__progress.is-complete{background:#edfaef;color:#007017}
+            .smpi-glc__controls{display:flex;align-items:center;gap:16px}
+            .smpi-glc__switch{position:relative;display:inline-flex;align-items:center;gap:8px;font-size:13px;color:#3c434a;cursor:pointer;user-select:none}
+            .smpi-glc__switch input{position:absolute;opacity:0;width:1px;height:1px;margin:0}
+            .smpi-glc__track{position:relative;flex:0 0 30px;width:30px;height:16px;border-radius:8px;background:#a7aaad;transition:background .15s}
+            .smpi-glc__track:after{content:"";position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;background:#fff;transition:transform .15s}
+            .smpi-glc__switch input:checked+.smpi-glc__track{background:#2271b1}.smpi-glc__switch input:checked+.smpi-glc__track:after{transform:translateX(14px)}
+            .smpi-glc__switch input:focus-visible+.smpi-glc__track{outline:2px solid #2271b1;outline-offset:2px}
+            .smpi-glc__notice{margin:0;padding:8px 14px;font-size:12px;border-bottom:1px solid #f0f0f1;background:#fcf9e8;color:#614a00}.smpi-glc__notice.is-ok{background:#edfaef;color:#007017}
+            .smpi-glc__list{margin:0!important;padding:0;list-style:none;background:#fff}
+            .smpi-glc.is-exempt .smpi-glc__list{opacity:.55}
+            .smpi-glc__row{display:flex;align-items:center;gap:12px;margin:0!important;padding:9px 14px;border-bottom:1px solid #f0f0f1;min-height:28px}
+            .smpi-glc__row:last-child{border-bottom:0}
+            .smpi-glc__badge{position:relative;flex:0 0 18px;width:18px;height:18px;border-radius:50%;border:2px solid #c3c4c7;box-sizing:border-box}
+            .smpi-glc__row.is-done .smpi-glc__badge{background:#00a32a;border-color:#00a32a}
+            .smpi-glc__row.is-done .smpi-glc__badge:after{content:"";position:absolute;left:4px;top:1px;width:4px;height:8px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+            .smpi-glc__row.is-failed .smpi-glc__badge{border-color:#d63638}
+            .smpi-glc__row.is-working .smpi-glc__badge,.smpi-glc__row.is-checking .smpi-glc__badge{border-color:#c3c4c7;border-top-color:#2271b1;animation:smpi-glc-spin .8s linear infinite}
+            @keyframes smpi-glc-spin{to{transform:rotate(360deg)}}
+            .smpi-glc__text{flex:1;min-width:0;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+            .smpi-glc__text strong{font-size:13px;font-weight:600;color:#1d2327}
+            .smpi-glc__msg{font-size:12px;color:#646970}.smpi-glc__row.is-failed .smpi-glc__msg{color:#b32d2e}
+            .smpi-glc__actions{display:flex;align-items:center;gap:12px;flex:0 0 auto}
+            .smpi-glc__actions .button-small{min-width:84px;text-align:center}
+            .smpi-glc__row.is-done [data-glc-generate],.smpi-glc__row.is-checking [data-glc-generate]{visibility:hidden}
+            .smpi-glc__log{padding:6px 14px;border-top:1px solid #f0f0f1;background:#f6f7f7;font-size:12px;color:#50575e}
+            .smpi-glc__log summary{cursor:pointer;font-weight:600;padding:2px 0}.smpi-glc__log ol{margin:6px 0 4px 18px}.smpi-glc__log li{margin:2px 0}.smpi-glc__log li.is-error{color:#b32d2e}
+            .smpi-go-live-highlight{box-shadow:0 0 0 3px #2271b1!important;transition:box-shadow .2s ease}
+            @media (max-width:782px){.smpi-glc__head,.smpi-glc__row{flex-wrap:wrap}}
         </style>
         <script>
         jQuery(function($){
             const root = $("#smpi-going-live-checklist");
             if (!root.length) { return; }
             const cfg = {ajaxUrl: root.data("ajax-url") || window.ajaxurl, nonce: root.data("nonce") || "", postId: parseInt(root.data("post-id"), 10) || 0};
-            const btn = window.HexaWpCoreDynamicButton || {start:function(){}, success:function(){}, error:function(){}, reset:function(){}};
-            root.toggleClass("is-exempt", root.find("[name=smpi_go_live_exempt]").is(":checked"));
-            root.on("change", "[name=smpi_go_live_exempt]", function(){ root.toggleClass("is-exempt", this.checked); });
-            const processMap = {excerpt:"[data-smpi-generate-target='excerpt']", summary:"[data-smpi-generate-target='summary']", faqs:"[data-smpi-generate-target='faqs']", tts:".hexa-tts-generate-post"};
+            const contentTargets = {excerpt: true, summary: true, faqs: true};
+            const labels = {};
+            root.find("[data-glc-item]").each(function(){ labels[$(this).data("glc-item")] = $(this).find("strong").text(); });
 
-            function addLog(type, text) {
-                const box = root.find("[data-smpi-go-live-log]");
-                const prefix = type === "ok" ? "✓" : (type === "error" ? "X" : "!");
-                if (box.find("p").length === 1 && box.text().indexOf("No activity yet") !== -1) { box.empty(); }
-                box.prepend($("<p/>").append($("<strong/>").text(prefix + " ")).append(document.createTextNode(text)));
-                root.find("[data-smpi-go-live-log-count]").text("(" + box.find("p").length + ")");
+            function row(key) { return root.find("[data-glc-item='" + key + "']"); }
+            function log(text, isError) {
+                const box = root.find("[data-glc-log]");
+                box.find(".is-empty").remove();
+                const time = new Date().toLocaleTimeString([], {hour: "numeric", minute: "2-digit"});
+                box.prepend($("<li/>").toggleClass("is-error", !!isError).text(time + " — " + text));
+                root.find("[data-glc-log-count]").text("(" + box.children().length + ")");
             }
-
-            function setItemState(key, state, message) {
-                const item = root.find("[data-smpi-go-live-item='" + key + "']");
+            function notice(text, ok) {
+                const el = root.find("[data-glc-notice]");
+                if (!text) { el.attr("hidden", true); return; }
+                el.text(text).toggleClass("is-ok", !!ok).removeAttr("hidden");
+            }
+            function setState(key, state, message) {
+                const item = row(key);
                 if (!item.length) { return; }
-                const status = item.find("[data-smpi-go-live-status]");
-                status.removeClass("is-done is-error is-warning").addClass(state === "done" ? "is-done" : (state === "error" || state === "missing" ? "is-error" : "is-warning"));
-                item.toggleClass("is-done", state === "done");
-                item.find("[data-smpi-go-live-message]").text(message || "Status checked.");
-                const total = root.find("[data-smpi-go-live-item]").length, done = root.find(".smpi-glc__row.is-done").length;
-                root.find("[data-smpi-go-live-progress]").text(done + " of " + total + " done").toggleClass("is-complete", done === total);
+                item.removeClass("is-done is-missing is-failed is-working is-checking").addClass("is-" + state);
+                if (message) { item.find("[data-glc-msg]").text(message); }
+                item.find("[data-glc-generate]").prop("disabled", state === "working").text(state === "failed" ? "Try again" : (state === "working" ? "Generating…" : "Generate"));
+                const total = root.find("[data-glc-item]").length, done = root.find(".smpi-glc__row.is-done").length;
+                root.find("[data-glc-progress]").text(done + " of " + total + " done").toggleClass("is-complete", done === total);
             }
-
             function refreshStatus() {
-                return $.post(cfg.ajaxUrl, {action:"smpi_going_live_checklist_status", nonce:cfg.nonce, post_id:cfg.postId}).done(function(response){
+                return $.post(cfg.ajaxUrl, {action: "smpi_going_live_checklist_status", nonce: cfg.nonce, post_id: cfg.postId}).done(function(response){
                     const data = (response && response.data) || {};
-                    if (!response || !response.success) { addLog("error", data.message || "Checklist status failed."); return; }
-                    $.each(data.items || {}, function(key, item){ setItemState(key, item.state || "warning", item.message || "Status checked."); });
-                }).fail(function(xhr){ addLog("error", "Checklist status HTTP " + (xhr.status || 0) + "."); });
+                    if (!response || !response.success) { notice(data.message || "Could not check the checklist status."); return; }
+                    $.each(data.items || {}, function(key, item){
+                        if (row(key).hasClass("is-working") || row(key).hasClass("is-failed")) { return; }
+                        setState(key, item.state === "done" ? "done" : "missing", item.message);
+                    });
+                }).fail(function(xhr){ notice("Could not check the checklist status (HTTP " + (xhr.status || 0) + ")."); });
             }
-
-            function findTarget(selector) {
-                if (!selector) { return $(); }
-                const parts = selector.split(",");
-                for (let i = 0; i < parts.length; i++) {
-                    const found = $(parts[i].trim()).first();
-                    if (found.length) { return found; }
-                }
-                return $();
+            function errorText(xhr, response) {
+                const data = (response && response.data) || (xhr && xhr.responseJSON && xhr.responseJSON.data) || {};
+                return data.message || data.error || ("Request failed (HTTP " + ((xhr && xhr.status) || 0) + ").");
             }
-
-            function viewItem(key, button) {
-                const item = root.find("[data-smpi-go-live-item='" + key + "']");
-                const target = findTarget(item.data("smpi-view-selector") || "");
-                btn.start(button, "Finding...");
-                if (!target.length) {
-                    btn.error(button, "Missing");
-                    addLog("error", "Could not find the " + key + " field on this screen.");
-                    return false;
+            function generate(key) {
+                const deferred = $.Deferred();
+                setState(key, "working", "Generating…");
+                log("Generating " + labels[key] + ".");
+                if (contentTargets[key]) {
+                    $.post(cfg.ajaxUrl, {action: "smpi_generate_content", nonce: cfg.nonce, post_id: cfg.postId, target: key}).done(function(response){
+                        if (!response || !response.success) { fail(key, errorText(null, response)); deferred.reject(); return; }
+                        row(key).removeClass("is-working");
+                        refreshStatus().always(function(){ log(labels[key] + " generated."); deferred.resolve(); });
+                    }).fail(function(xhr){ fail(key, errorText(xhr)); deferred.reject(); });
+                } else if (key === "tts" && $(".hexa-tts-generate-post").length) {
+                    $(".hexa-tts-generate-post").first().trigger("click");
+                    let tries = 0;
+                    (function poll(){
+                        setTimeout(function(){
+                            row(key).removeClass("is-working");
+                            refreshStatus().always(function(){
+                                if (row(key).hasClass("is-done")) { log(labels[key] + " generated."); deferred.resolve(); return; }
+                                if (++tries >= 60) { fail(key, "Audio is still being created. Check back in a few minutes."); deferred.reject(); return; }
+                                row(key).addClass("is-working"); poll();
+                            });
+                        }, 3000);
+                    })();
+                } else {
+                    fail(key, "This item can't be generated here. Use View to check it.");
+                    deferred.reject();
                 }
+                return deferred.promise();
+            }
+            function fail(key, message) {
+                setState(key, "failed", "Couldn't generate: " + message);
+                log(labels[key] + ": " + message, true);
+            }
+            function view(key) {
+                const parts = String(row(key).data("glc-view-selector") || "").split(",");
+                let target = $();
+                for (let i = 0; i < parts.length && !target.length; i++) { target = $(parts[i].trim()).first(); }
+                if (!target.length) { notice(labels[key] + " isn't shown on this screen."); return; }
                 $("html, body").animate({scrollTop: Math.max(0, target.offset().top - 90)}, 240);
                 target.addClass("smpi-go-live-highlight");
                 setTimeout(function(){ target.removeClass("smpi-go-live-highlight"); }, 1600);
-                btn.success(button, "Found");
-                addLog("ok", "Scrolled to " + key + ".");
-                return true;
             }
 
-            function processItem(key, button) {
-                btn.start(button, "Creating...");
-                addLog("working", "Processing " + key + ".");
-                if (processMap[key]) {
-                    const target = $(processMap[key]).not(root.find("button")).first();
-                    if (!target.length) {
-                        btn.error(button, "Missing", false);
-                        addLog("error", "No existing processor found for " + key + ".");
-                        return $.Deferred().reject().promise();
-                    }
-                    target.trigger("click");
-                    return waitForStatusChange(key, button);
-                }
-                if (key === "verified_profiles_created" || key === "verified_profiles_internally_linked") {
-                    viewItem(key, root.find("[data-smpi-go-live-view='" + key + "']").first());
-                    return refreshStatus().then(function(){ btn.success(button, "Checked"); });
-                }
-                btn.error(button, "Unknown", false);
-                addLog("error", "Unknown checklist item " + key + ".");
-                return $.Deferred().reject().promise();
-            }
-
-            function waitForStatusChange(key, button) {
-                let tries = 0;
-                const maxTries = key === "tts" ? 90 : 18;
-                const deferred = $.Deferred();
-                function tick() {
-                    tries++;
-                    refreshStatus().always(function(){
-                        const state = root.find("[data-smpi-go-live-item='" + key + "'] [data-smpi-go-live-status]").hasClass("is-done");
-                        if (state) {
-                            btn.success(button, "Updated");
-                            addLog("ok", key + " is complete.");
-                            deferred.resolve();
-                            return;
-                        }
-                        if (tries >= maxTries) {
-                            btn.error(button, "Check field", false);
-                            addLog("error", key + " did not report complete after processing.");
-                            deferred.reject();
-                            return;
-                        }
-                        setTimeout(tick, 1600);
-                    });
-                }
-                setTimeout(tick, 1800);
-                return deferred.promise();
-            }
-
-            $(document).on("click", "[data-smpi-go-live-view]", function(){ viewItem($(this).data("smpi-go-live-view"), this); });
-            $(document).on("click", "[data-smpi-go-live-process]", function(){ processItem($(this).data("smpi-go-live-process"), this); });
-            $(document).on("click", "[data-smpi-go-live-all]", function(){
-                const allButton = this;
-                const keys = root.find("[data-smpi-go-live-item]").map(function(){ return $(this).data("smpi-go-live-item"); }).get();
-                let chain = $.Deferred().resolve().promise();
-                btn.start(allButton, "Processing...");
-                keys.forEach(function(key){ chain = chain.then(function(){
-                    if (root.find("[data-smpi-go-live-item='" + key + "'] [data-smpi-go-live-status]").hasClass("is-done")) {
-                        addLog("ok", key + " already complete.");
-                        return $.Deferred().resolve().promise();
-                    }
-                    return processItem(key, root.find("[data-smpi-go-live-process='" + key + "']").first()[0]);
-                }); });
-                chain.done(function(){ btn.success(allButton, "Checklist updated"); addLog("ok", "Do all finished."); }).fail(function(){ btn.error(allButton, "Stopped", false); addLog("error", "Do all stopped on a failed item."); });
+            root.toggleClass("is-exempt", root.find("[name=smpi_go_live_exempt]").is(":checked"));
+            root.on("change", "[name=smpi_go_live_exempt]", function(){ root.toggleClass("is-exempt", this.checked); });
+            root.on("click", "[data-glc-view]", function(){ view($(this).closest("[data-glc-item]").data("glc-item")); });
+            root.on("click", "[data-glc-generate]", function(){ notice(""); generate($(this).closest("[data-glc-item]").data("glc-item")); });
+            root.on("click", "[data-glc-all]", function(){
+                const all = $(this).prop("disabled", true).text("Working…");
+                const keys = root.find("[data-glc-item]").not(".is-done").map(function(){ return $(this).data("glc-item"); }).get();
+                let failed = 0, chain = $.Deferred().resolve().promise();
+                notice("");
+                keys.forEach(function(key){ chain = chain.then(function(){ return generate(key).then(null, function(){ failed++; return $.Deferred().resolve().promise(); }); }); });
+                chain.always(function(){
+                    all.prop("disabled", false).text("Complete all");
+                    if (!keys.length) { notice("Everything is already done.", true); }
+                    else if (failed) { notice(failed + " of " + keys.length + " couldn't be generated. The reason is shown on each item."); }
+                    else { notice("All items are done.", true); }
+                });
             });
             refreshStatus();
         });
@@ -404,22 +389,4 @@ final class GoingLiveChecklist {
         return $rows;
     }
 
-    private function dynamic_button( array $args ): string {
-        if ( class_exists( DynamicButton::class ) ) {
-            return DynamicButton::render( $args );
-        }
-        $label = (string) ( $args["label"] ?? "Run" );
-        $class = trim( (string) ( $args["class"] ?? "button" ) );
-        $attrs = "";
-        foreach ( (array) ( $args["attrs"] ?? [] ) as $name => $value ) {
-            if ( null === $value || false === $value ) {
-                continue;
-            }
-            $attrs .= " " . esc_attr( (string) $name );
-            if ( true !== $value ) {
-                $attrs .= "=\"" . esc_attr( (string) $value ) . "\"";
-            }
-        }
-        return "<button type=\"button\" class=\"" . esc_attr( $class ) . "\"" . $attrs . ">" . esc_html( $label ) . "</button>";
-    }
 }

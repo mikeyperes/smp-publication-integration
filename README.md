@@ -8,7 +8,7 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `2.2.1`
+- Version: `2.2.2`
 
 ## Ownership
 
@@ -97,6 +97,10 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.2.2
+
+- Going Live Checklist rebuilt: consistent rows (status badge, name, message, Generate, View), a spinner while working, failures shown as a plain red message with the real reason and a Try again button (no red error buttons), Complete all with a summary line, and the activity log folded away. Excerpt, summary and FAQs are generated directly, so a failure shows at once instead of after a 30-second wait.
 
 ### 2.2.1
 
