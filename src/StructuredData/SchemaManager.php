@@ -549,7 +549,7 @@ class SchemaManager {
 
     private function author_entities_for_post( int $post_id ): array {
         $authors = [];
-        foreach ( MultiAuthors::author_ids_for_post( $post_id, true ) as $user_id ) {
+        foreach ( MultiAuthors::author_ids_for_post( $post_id ) as $user_id ) {
             $entity = $this->author_entity( (int) $user_id );
             if ( ! empty( $entity["@id"] ) ) {
                 $authors[ (string) $entity["@id"] ] = $entity;

@@ -3,6 +3,7 @@ if ( ! defined( "ABSPATH" ) ) {
     exit;
 }
 
+use smp_publication_integration\Authorship\AuthorListFormatter;
 use smp_publication_integration\Content\MultiAuthors;
 
 if ( ! function_exists( "smpi_resolve_journalist_post_id" ) ) {
@@ -17,23 +18,15 @@ if ( ! function_exists( "smpi_resolve_journalist_post_id" ) ) {
 }
 
 if ( ! function_exists( "smpi_get_post_journalists" ) ) {
+    /** Author view models for a post: the native author, then active co-authors. `mode` = all|primary. */
     function smpi_get_post_journalists( $post_id = 0, array $args = [] ): array {
         $post_id = smpi_resolve_journalist_post_id( $post_id );
         if ( $post_id <= 0 || ! class_exists( MultiAuthors::class ) ) {
             return [];
         }
-
-        $args = array_merge(
-            [
-                "fallback" => true,
-                "mode" => "all",
-            ],
-            $args
-        );
-
-        $authors = MultiAuthors::author_view_models_for_post( $post_id, (bool) $args["fallback"] );
-        if ( "primary" === sanitize_key( (string) $args["mode"] ) ) {
-            return empty( $authors ) ? [] : [ $authors[0] ];
+        $authors = MultiAuthors::author_view_models_for_post( $post_id );
+        if ( "primary" === sanitize_key( (string) ( $args["mode"] ?? "all" ) ) ) {
+            return array_slice( $authors, 0, 1 );
         }
         return $authors;
     }
@@ -49,7 +42,7 @@ if ( ! function_exists( "smpi_get_primary_journalist" ) ) {
 if ( ! function_exists( "smpi_post_has_multiple_journalists" ) ) {
     function smpi_post_has_multiple_journalists( $post_id = 0 ): bool {
         $post_id = smpi_resolve_journalist_post_id( $post_id );
-        return $post_id > 0 && class_exists( MultiAuthors::class ) && MultiAuthors::has_multiple_authors( $post_id, true );
+        return $post_id > 0 && class_exists( MultiAuthors::class ) && MultiAuthors::has_multiple_authors( $post_id );
     }
 }
 
@@ -65,53 +58,11 @@ if ( ! function_exists( "smpi_render_post_journalists" ) ) {
             ],
             $args
         );
-
-        $authors = smpi_get_post_journalists( $post_id, [ "mode" => sanitize_key( (string) $args["mode"] ) ] );
-        if ( empty( $authors ) ) {
-            return "";
+        $authors = smpi_get_post_journalists( $post_id, [ "mode" => $args["mode"] ] );
+        $html = AuthorListFormatter::render( $authors, $args + [ "link_class" => "smpi-post-journalist-link" ] );
+        if ( "" === $html || in_array( sanitize_key( (string) $args["format"] ), [ "list", "ul", "plain" ], true ) ) {
+            return $html;
         }
-
-        $field = sanitize_key( (string) $args["field"] );
-        $format = sanitize_key( (string) $args["format"] );
-        $values = [];
-        foreach ( $authors as $author ) {
-            $fields = isset( $author["fields"] ) && is_array( $author["fields"] ) ? $author["fields"] : [];
-            if ( in_array( $field, [ "", "name", "display_name" ], true ) ) {
-                $value = (string) ( $author["name"] ?? "" );
-            } elseif ( in_array( $field, [ "id", "ids", "user_id" ], true ) ) {
-                $value = (string) ( $author["id"] ?? "" );
-            } elseif ( in_array( $field, [ "url", "author_url" ], true ) ) {
-                $value = (string) ( $author["url"] ?? "" );
-            } elseif ( "email" === $field ) {
-                $value = (string) ( $author["email"] ?? "" );
-            } else {
-                $value = wp_strip_all_tags( (string) ( $fields[ $field ] ?? "" ) );
-            }
-            if ( "" !== trim( $value ) ) {
-                $values[] = [ "value" => trim( $value ), "author" => $author ];
-            }
-        }
-        if ( empty( $values ) ) {
-            return "";
-        }
-
-        if ( "links" === $format ) {
-            $links = [];
-            foreach ( $values as $row ) {
-                $author = $row["author"];
-                $links[] = '<a class="smpi-post-journalist-link" href="' . esc_url( (string) ( $author["url"] ?? "" ) ) . '">' . esc_html( $row["value"] ) . '</a>';
-            }
-            return '<span class="' . esc_attr( sanitize_html_class( (string) $args["class"] ) ) . '">' . implode( esc_html( (string) $args["separator"] ), $links ) . '</span>';
-        }
-
-        $plain = array_map( static fn( array $row ): string => (string) $row["value"], $values );
-        if ( in_array( $format, [ "lines", "line" ], true ) ) {
-            return '<span class="' . esc_attr( sanitize_html_class( (string) $args["class"] ) ) . '">' . implode( "<br>\n", array_map( "esc_html", $plain ) ) . '</span>';
-        }
-        if ( in_array( $format, [ "list", "ul" ], true ) ) {
-            $items = array_map( static fn( string $value ): string => "<li>" . esc_html( $value ) . "</li>", $plain );
-            return '<ul class="' . esc_attr( sanitize_html_class( (string) $args["class"] ) ) . '">' . implode( "", $items ) . '</ul>';
-        }
-        return esc_html( implode( (string) $args["separator"], $plain ) );
+        return '<span class="' . esc_attr( sanitize_html_class( (string) $args["class"] ) ) . '">' . $html . "</span>";
     }
 }

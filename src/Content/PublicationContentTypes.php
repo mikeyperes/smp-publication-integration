@@ -70,12 +70,12 @@ final class PublicationContentTypes {
                 [
                     'id'              => 'article-fields',
                     'label'           => 'Article Editor Fields',
-                    'description'     => 'Shared author, summary, and FAQ fields for posts, press releases, Knowledge Base articles, and Resources.',
+                    'description'     => 'Shared summary and FAQ fields for posts, press releases, Knowledge Base articles, and Resources. Authors have their own Authors box.',
                     'group_key'       => 'group_64a7290b61191',
                     'enabled_default' => true,
                     'definition'      => [ AcfFields::class, 'article_fields_group' ],
                     'location'        => implode( ', ', self::article_post_types() ) . ' editors',
-                    'fields'          => [ 'Article Authors', 'Post Summary', 'FAQ Schema', 'Structured FAQs' ],
+                    'fields'          => [ 'Post Summary', 'FAQ Schema', 'Structured FAQs' ],
                     'dependencies'    => [ 'Advanced Custom Fields Pro', 'SMP article feature settings' ],
                 ]
             );

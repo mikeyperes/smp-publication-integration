@@ -136,7 +136,7 @@ class AjaxController {
     public function save_settings( AjaxRequest $request ): array {
         $changes = [];
         $boolean_keys = array_merge(
-            [ "founders_enabled", "shadow_posts_enabled", "shadow_press_releases", "post_list_defaults_enabled", "author_social_cleanup", "author_social_icons_enabled", "public_debug_enabled", "estimated_read_time_enabled", "elementor_css_cache_busting", "elementor_primary_category_enabled", "elementor_primary_category_exclude_default", "publication_social_cleanup", "muckrack_verified_enabled", "muckrack_author_always_show", "publication_muckrack_verified_enabled", "multi_authors_enabled", "multi_authors_disable_loop_cards", "author_listing_hide_without_articles", "author_listing_hide_without_featured_image", "author_listing_show_press_releases", "author_archive_loading_enabled", "press_release_include_enabled", "post_summary_acf_enabled", "post_faqs_acf_enabled", "article_types_enabled", "breadcrumbs_enabled", "breadcrumbs_hide_home", "breadcrumbs_hide_term_archives", "table_of_contents_enabled", "table_of_contents_auto_single", "table_of_contents_include_summary", "article_heading_styles_enabled", "article_numbered_lists_enabled", "article_drop_cap_enabled", "inline_photo_treatments_enabled", "featured_image_caption_templates_enabled", "rank_math_breadcrumb_check_enabled", "hws_masked_admin_report_enabled", "content_generation_enabled", "post_hygiene_enabled", "post_hygiene_strip_inline_styles", "post_hygiene_unwrap_spans", "post_hygiene_remove_font_tags", "post_hygiene_strip_classes_ids", "post_hygiene_strip_empty_tags", "post_hygiene_clean_heading_children" ],
+            [ "founders_enabled", "shadow_posts_enabled", "shadow_press_releases", "post_list_defaults_enabled", "author_social_cleanup", "author_social_icons_enabled", "public_debug_enabled", "estimated_read_time_enabled", "elementor_css_cache_busting", "elementor_primary_category_enabled", "elementor_primary_category_exclude_default", "publication_social_cleanup", "muckrack_verified_enabled", "muckrack_author_always_show", "publication_muckrack_verified_enabled", "multi_authors_enabled", "author_listing_hide_without_articles", "author_listing_hide_without_featured_image", "author_listing_show_press_releases", "author_archive_loading_enabled", "press_release_include_enabled", "post_summary_acf_enabled", "post_faqs_acf_enabled", "article_types_enabled", "breadcrumbs_enabled", "breadcrumbs_hide_home", "breadcrumbs_hide_term_archives", "table_of_contents_enabled", "table_of_contents_auto_single", "table_of_contents_include_summary", "article_heading_styles_enabled", "article_numbered_lists_enabled", "article_drop_cap_enabled", "inline_photo_treatments_enabled", "featured_image_caption_templates_enabled", "rank_math_breadcrumb_check_enabled", "hws_masked_admin_report_enabled", "content_generation_enabled", "post_hygiene_enabled", "post_hygiene_strip_inline_styles", "post_hygiene_unwrap_spans", "post_hygiene_remove_font_tags", "post_hygiene_strip_classes_ids", "post_hygiene_strip_empty_tags", "post_hygiene_clean_heading_children" ],
             Settings::typography_preservation_setting_keys()
         );
         foreach ( $boolean_keys as $key ) {
@@ -399,7 +399,6 @@ class AjaxController {
             "visible_name_counts" => $frontend["visible_name_counts"],
             "detected_units" => $frontend["detected_units"],
             "loop_output" => (string) Settings::get( "multi_authors_loop_output", "comma" ),
-            "loop_cards_disabled" => Settings::bool( "multi_authors_disable_loop_cards" ),
             "schema_matches" => $schema_matches,
             "frontend_schema_matches" => $frontend_schema_matches,
             "hook_ready" => $hook_ready,
@@ -664,7 +663,7 @@ class AjaxController {
         $html .= "<p>" . ( $ok_hook ? "<span class=\"smpi-ico smpi-ico--ok\">✓</span>" : "<span class=\"smpi-ico smpi-ico--warn\">!</span>" ) . " <strong>" . esc_html( (string) $report["title"] ) . "</strong> <a target=\"_blank\" rel=\"noopener noreferrer\" href=\"" . esc_url( (string) $report["permalink"] ) . "\">Open post</a></p>";
         $html .= "<div class=\"smpi-test-proof-grid\">";
         $html .= "<div><strong>Feature enabled</strong><br>" . ( ! empty( $report["enabled"] ) ? "Yes" : "No" ) . "</div>";
-        $html .= "<div><strong>Loop/card mode</strong><br><code>" . esc_html( (string) ( $report["loop_output"] ?? "comma" ) ) . "</code>" . ( ! empty( $report["loop_cards_disabled"] ) ? "<br>Loop cards forced to primary only." : "" ) . "</div>";
+        $html .= "<div><strong>Loop/card mode</strong><br><code>" . esc_html( (string) ( $report["loop_output"] ?? "comma" ) ) . "</code>" . "</div>";
         $html .= "<div><strong>Resolved authors</strong><br><code>" . esc_html( implode( ", ", (array) $report["resolved_ids"] ) ) . "</code></div>";
         $html .= "<div><strong>Schema match</strong><br>" . ( $ok_schema ? "Yes" : "No" ) . "</div>";
         $html .= "<div><strong>Elementor hook</strong><br>" . ( ! empty( $report["hook_ready"] ) ? "Target matched" : "Missing target" ) . "</div>";

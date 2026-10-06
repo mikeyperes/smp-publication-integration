@@ -346,7 +346,6 @@ final class QuickStartFeatures {
                 "description" => "Allows posts to show more than one author.",
                 "settings" => [
                     "multi_authors_enabled" => true,
-                    "multi_authors_disable_loop_cards" => false,
                     "multi_authors_loop_output" => "lines",
                 ],
                 "details" => [

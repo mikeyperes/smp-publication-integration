@@ -18,7 +18,6 @@ final class AcfFields {
     public function register(): void {
         \Hexa\PluginCore\Fields\Hooks::on( "input/admin_head", [ $this, "admin_faq_styles" ] );
         \Hexa\PluginCore\Fields\Hooks::on( "input/admin_footer", [ $this, "admin_faq_scripts" ] );
-        \Hexa\PluginCore\Fields\Hooks::on( "input/admin_footer", [ $this, "admin_multi_author_scripts" ] );
     }
 
     public static function publication_profile_group(): array {
@@ -146,42 +145,7 @@ final class AcfFields {
     }
 
     public static function article_fields_group(): array {
-        $fields = [
-            [
-                "key" => "field_64a7290bc7625",
-                "label" => "",
-                "name" => "",
-                "type" => "message",
-                "message" => "",
-                "new_lines" => "wpautop",
-                "esc_html" => 0,
-            ],
-        ];
-
-        if ( Settings::bool( "multi_authors_enabled" ) ) {
-            $fields[] = [
-                "key" => "field_smpi_post_authors_notice",
-                "label" => "SMP Post Authors",
-                "name" => "",
-                "type" => "message",
-                "message" => "<button type=\"button\" class=\"button button-secondary\" data-smpi-add-default-author>Add current post author</button><p class=\"description\" data-smpi-current-post-author>Current post author will be shown after the editor loads.</p><p class=\"description\">Select all authors for this article. If this field is empty, SMP falls back to the native WordPress author.</p>",
-                "esc_html" => 0,
-                "new_lines" => "wpautop",
-            ];
-            $fields[] = [
-                "key" => MultiAuthors::FIELD_KEY,
-                "label" => "Article Authors",
-                "name" => MultiAuthors::FIELD_NAME,
-                "type" => "user",
-                "instructions" => "Keep typing to add multiple WordPress authors. The first selected author is treated as primary for shortcode fallback.",
-                "role" => "",
-                "return_format" => "id",
-                "multiple" => 1,
-                "allow_null" => 1,
-                "ui" => 1,
-                "ajax" => 1,
-            ];
-        }
+        $fields = [];
 
         if ( Settings::bool( "post_summary_acf_enabled" ) ) {
             $fields[] = [
@@ -206,7 +170,7 @@ final class AcfFields {
         }
 
 
-        if ( 1 === count( $fields ) ) {
+        if ( empty( $fields ) ) {
             return [];
         }
 
@@ -278,65 +242,4 @@ final class AcfFields {
         </script>
         <?php
     }
-
-    public function admin_multi_author_scripts(): void {
-        if ( ! $this->should_render_multi_author_admin_assets() ) {
-            return;
-        }
-        global $post;
-        $author_id = $post instanceof \WP_Post ? (int) $post->post_author : 0;
-        $user = $author_id > 0 ? get_user_by( "id", $author_id ) : false;
-        if ( ! $user ) {
-            return;
-        }
-        ?>
-        <style>
-            [data-smpi-add-default-author].button {
-                font-size: 13px;
-                line-height: 2.15384615;
-                min-height: 30px;
-                padding: 0 10px;
-            }
-        </style>
-        <script>
-        (function($){
-            var authorId = <?php echo (int) $author_id; ?>;
-            var authorLabel = <?php echo wp_json_encode( $user->display_name . " (#" . $author_id . ")" ); ?>;
-            function showCurrentAuthor(){
-                $('[data-smpi-current-post-author]').text('Current post author: '+authorLabel);
-            }
-            function field(){return $('[data-key="<?php echo esc_js( MultiAuthors::FIELD_KEY ); ?>"] select').first();}
-            $(document).on('click','[data-smpi-add-default-author]',function(e){
-                e.preventDefault();
-                var select = field();
-                if(!select.length){return;}
-                if(!select.find('option[value="'+authorId+'"]').length){
-                    select.append(new Option(authorLabel, authorId, true, true));
-                }
-                var values = select.val() || [];
-                values = Array.isArray(values) ? values : [values];
-                if(values.indexOf(String(authorId)) < 0){values.unshift(String(authorId));}
-                select.val(values).trigger('change');
-            });
-            $(showCurrentAuthor);
-            if(window.acf){acf.addAction('ready append',showCurrentAuthor);}
-        })(jQuery);
-        </script>
-        <?php
-    }
-
-    private function should_render_multi_author_admin_assets(): bool {
-        if ( ! is_admin() || ! Settings::bool( "multi_authors_enabled" ) ) {
-            return false;
-        }
-        if ( ! function_exists( "get_current_screen" ) ) {
-            return false;
-        }
-        $screen = get_current_screen();
-        if ( ! $screen || "post" !== $screen->base ) {
-            return false;
-        }
-        return in_array( (string) $screen->post_type, MultiAuthors::supported_post_types(), true );
-    }
-
 }

@@ -8,7 +8,7 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `2.2.4`
+- Version: `2.2.5`
 
 ## Ownership
 
@@ -16,7 +16,7 @@ SMP Publication owns publication-specific behavior:
 
 - Publication identity and publication article types.
 - Editorial features, article templates, breadcrumbs, summaries, FAQs, tables of contents, captions, and inline-photo treatments.
-- Multi-author assignment, bylines, author displays, and MuckRack verification.
+- Optional multiple authors per article (per-post switch, off by default), bylines, author displays, and MuckRack verification.
 - Publication and article schema object construction.
 - Blog-like custom post types: `knowledge-base` and `resources`.
 
@@ -41,7 +41,7 @@ Article-type definitions remain the publication source of truth and feed editori
 
 When HWS has an optional primary Publication or Organization selected, SMP reads it through Hexa WP Core. If the selected source is a post, Core resolves the attached WordPress author and exposes the same user fields used by existing publication output.
 
-Article-level multi-author assignments, primary authors, Elementor bylines, author archives, and fallback WordPress authors retain their previous behavior.
+Every article's primary author is its WordPress author. With the site's Multiple authors feature on, an article's own **Multiple authors** switch (off by default, in the editor's Authors box) adds ordered co-authors after it. See `docs/multiple-authors-audit.md`.
 
 ## Schema
 
@@ -97,6 +97,12 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.2.5
+
+- Multiple authors rebuilt: one **Authors** box per article with a **Multiple authors** switch that is off by default. While off, the post uses only its WordPress author; when on, ordered co-authors follow it. Replaces the two ACF fields ("SMP Post Authors" button and "Article Authors" picker). SMP no longer overwrites the WordPress author on save. Works the same with ACF Pro or HexaWP Core fields.
+- One read gate for every consumer (bylines, Elementor, archives, schema, REST, shortcodes); shared list formatter; the archive index holds active co-authors only.
+- Automatic migration of existing author lists; "Force primary author only on loop/cards" folded into the "Primary only" loop output; blank first row removed from Article Fields; single dashboard card.
 
 ### 2.2.4
 

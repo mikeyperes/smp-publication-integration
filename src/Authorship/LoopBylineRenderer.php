@@ -2,6 +2,7 @@
 namespace smp_publication_integration\Authorship;
 
 use smp_publication_integration\Content\MuckRackVerification;
+use smp_publication_integration\Content\MultiAuthors;
 use smp_publication_integration\Support\RuntimeContext;
 use smp_publication_integration\Support\Settings;
 
@@ -23,8 +24,8 @@ final class LoopBylineRenderer {
         if (
             "" === trim( $html )
             || false !== strpos( $html, "smpi-multi-author-item" )
-            || ! Settings::bool( "multi_authors_enabled" )
-            || Settings::bool( "multi_authors_disable_loop_cards" )
+            || ! AuthorAssignmentRepository::site_enabled()
+            || "primary" === $this->loop_format()
             || ! RuntimeContext::has_article_loop_context()
             || false === stripos( $html, "/author/" )
         ) {
@@ -42,23 +43,17 @@ final class LoopBylineRenderer {
             return $html;
         }
 
-        $selected = $this->repository->selected_ids_for_post( (int) $post->ID );
-        if ( empty( $selected ) || ( 1 === count( $selected ) && (int) $selected[0] === (int) $post->post_author ) ) {
+        if ( ! $this->repository->is_multi_author( (int) $post->ID ) ) {
             return $html;
         }
 
-        $records = $this->repository->records_for_post( (int) $post->ID, false );
+        $records = $this->repository->records_for_post( (int) $post->ID );
         $source = ( new AuthorFieldResolver() )->record( (int) $post->post_author );
         if ( empty( $records ) || ! $source instanceof AuthorRecord ) {
             return $html;
         }
 
-        $format = $this->loop_format();
-        if ( "primary" === $format ) {
-            $records = [ $records[0] ];
-        }
-
-        return $this->replace_source_link( $html, $source, $records, $format );
+        return $this->replace_source_link( $html, $source, $records, $this->loop_format() );
     }
 
     public function filter_widget_content( string $content, $widget = null ): string {
@@ -90,8 +85,7 @@ final class LoopBylineRenderer {
     }
 
     private function loop_format(): string {
-        $format = sanitize_key( (string) Settings::get( "multi_authors_loop_output", "comma" ) );
-        return in_array( $format, [ "primary", "comma", "lines" ], true ) ? $format : "comma";
+        return MultiAuthors::loop_card_output_format();
     }
 
     private function author_group_fragment( \DOMDocument $doc, \DOMElement $source_link, array $authors, string $format ): \DOMDocumentFragment {

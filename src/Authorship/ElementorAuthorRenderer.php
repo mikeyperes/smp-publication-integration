@@ -27,7 +27,7 @@ final class ElementorAuthorRenderer {
         if (
             "" === trim( $content )
             || false !== strpos( $content, self::ITEM_MARKER_CLASS )
-            || ! Settings::bool( "multi_authors_enabled" )
+            || ! AuthorAssignmentRepository::site_enabled()
             || ! RuntimeContext::is_public_dom_context()
             || ! $this->is_supported_render_context()
             || ! $this->widget_is_marked( $widget, $content )
@@ -41,7 +41,7 @@ final class ElementorAuthorRenderer {
         if (
             "" === trim( $content )
             || false !== strpos( $content, self::ITEM_MARKER_CLASS )
-            || ! Settings::bool( "multi_authors_enabled" )
+            || ! AuthorAssignmentRepository::site_enabled()
             || ! RuntimeContext::is_public_dom_context()
             || ! is_singular( $this->repository->supported_post_types() )
             || ! $this->contains_marker( $content )
@@ -80,12 +80,11 @@ final class ElementorAuthorRenderer {
         if ( ! $post instanceof \WP_Post ) {
             return $template_html;
         }
-        $selected = $this->repository->selected_ids_for_post( (int) $post->ID );
-        if ( empty( $selected ) || ( 1 === count( $selected ) && (int) $selected[0] === (int) $post->post_author ) ) {
+        if ( ! $this->repository->is_multi_author( (int) $post->ID ) ) {
             return $template_html;
         }
 
-        $authors = $this->repository->records_for_post( (int) $post->ID, false );
+        $authors = $this->repository->records_for_post( (int) $post->ID );
         $source = ( new AuthorFieldResolver() )->record( (int) $post->post_author );
         if ( empty( $authors ) || ! $source instanceof AuthorRecord || ! $this->is_exact_marked_root( $template_html ) ) {
             return $template_html;

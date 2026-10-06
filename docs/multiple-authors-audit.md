@@ -82,3 +82,33 @@ Source package coverage:
 - Added incremental admin migration from legacy ACF meta to canonical taxonomy terms.
 - Added cache invalidation on assignment and term relationship changes.
 - Added server-side DOM tests covering canonical order, primary author sync, author context, loop bylines, Elementor module repetition, avatar rebinding, URL rebinding, and shared field alias resolution.
+
+## Rebuilt in v2.2.5: per-post switch model
+
+### Problems in the v0.6.103 model
+
+- The site setting alone decided whether every article showed an author picker, so a feature most posts never use cluttered every editor.
+- The editor had two fields for one job: a message field holding an "Add current post author" button and the `smpi_post_authors` user picker.
+- Two competing authorities: the picker silently overwrote native `post_author` with a direct SQL write on save, so a change in WordPress's Author box was reverted whenever the picker had values.
+- Three stores (ACF meta, ordered taxonomy, `post_author`) kept in sync by meta hooks.
+- The editor depended on ACF Pro rendering; sites on HexaWP Core fields rendered it differently.
+- An empty sentinel message field produced a blank row at the top of Article Fields.
+- "Force primary author only on loop/cards" duplicated the "Primary only" loop output option.
+- The byline and Elementor renderers each re-implemented "is this post multi-author?".
+- Shortcode and template-tag list formatting were duplicated.
+- The dashboard rendered the same feature card twice with different text.
+
+### Model
+
+- The native WordPress author is always the primary author and is never rewritten by SMP's own save.
+- `_smpi_multi_authors` = `1` is the post's own **Multiple authors** switch. It is off by default.
+- `_smpi_co_authors` holds the ordered co-authors. It is kept when the switch is off, so switching back on restores them.
+- The private `smpi_author` taxonomy indexes only the active co-authors, for author archives and listings. It is empty whenever the switch is off.
+- `AuthorAssignmentRepository::ids_for_post()` is the single read gate: `[post_author]`, plus co-authors only when the site feature and the post switch are both on. Every consumer (bylines, Elementor units, archives, schema, REST, shortcodes, template tags, Muck Rack, social icons) reads through it.
+
+### Components
+
+- `AuthorEditorPanel` is the one editor surface: an **Authors** side box. In the Classic Editor it replaces WordPress's Author box and posts the native author through core's `post_author_override`. In the block editor the native author stays in the sidebar. It holds the switch, an ordered co-author list with reorder/remove, and AJAX user search. It works without ACF.
+- `AuthorLifecycle` owns the REST field `smpi_post_authors` (ordered IDs; the first becomes the native author, two or more turn the switch on), user deletion, and the one-time migration.
+- `AuthorListFormatter` is the only author-list formatter.
+- Migration `smpi_multi_author_migration_2_2_5` converts the legacy ACF value and the ordered taxonomy. Posts with authors beyond the native author get the switch on; redundant single-author data is removed. The `multi_authors_disable_loop_cards` setting becomes `multi_authors_loop_output = primary`.

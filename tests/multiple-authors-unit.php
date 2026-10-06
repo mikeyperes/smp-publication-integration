@@ -53,11 +53,22 @@ namespace {
         public function is_feed(): bool { return $this->feed; }
     }
 
+    final class WP_Term {
+        public int $term_id = 0;
+    }
+
     final class TestWpdb {
         public string $posts = "wp_posts";
         public string $term_relationships = "wp_term_relationships";
         public string $term_taxonomy = "wp_term_taxonomy";
         public string $termmeta = "wp_termmeta";
+        public string $postmeta = "wp_postmeta";
+        public array $migration_ids = [];
+        public function get_col( string $sql ): array {
+            $ids = $this->migration_ids;
+            $this->migration_ids = [];
+            return str_contains( $sql, "LEFT JOIN" ) ? [] : $ids;
+        }
         public function update( string $table, array $data, array $where, array $formats = [], array $where_formats = [] ): int {
             $post_id = (int) ( $where["ID"] ?? 0 );
             if ( isset( $GLOBALS["test_posts"][ $post_id ] ) && isset( $data["post_author"] ) ) {
@@ -75,8 +86,8 @@ namespace {
         1 => new WP_User( 1, "Alpha Author", "alpha-author", "alpha@example.com" ),
         2 => new WP_User( 2, "Beta Author", "beta-author", "beta@example.com" ),
     ];
-    $GLOBALS["test_posts"] = [ 10 => new WP_Post( 10, 1 ) ];
-    $GLOBALS["test_meta"] = [ 10 => [ "smpi_post_authors" => [ 1, 2 ] ] ];
+    $GLOBALS["test_posts"] = [ 10 => new WP_Post( 10, 1 ), 11 => new WP_Post( 11, 1 ) ];
+    $GLOBALS["test_meta"] = [ 10 => [], 11 => [ "smpi_post_authors" => [ 2, 1 ] ] ];
     $GLOBALS["test_user_meta"] = [
         1 => [
             "title" => "Editorial Lead",
@@ -134,6 +145,27 @@ namespace {
     function update_post_meta( int $post_id, string $key, $value ): bool {
         $GLOBALS["test_meta"][ $post_id ][ $key ] = $value;
         return true;
+    }
+    function delete_post_meta( int $post_id, string $key ): bool {
+        unset( $GLOBALS["test_meta"][ $post_id ][ $key ] );
+        return true;
+    }
+    function delete_metadata( string $type, int $object_id, string $key ): bool {
+        return delete_post_meta( $object_id, $key );
+    }
+    function wp_update_post( array $data ): int {
+        $GLOBALS["test_posts"][ (int) $data["ID"] ]->post_author = (int) $data["post_author"];
+        return (int) $data["ID"];
+    }
+    function get_term_by( string $field, $value, string $taxonomy ) {
+        foreach ( $GLOBALS["test_terms"] as $term_id => $term ) {
+            if ( "slug" === $field && ( $term["slug"] ?? "" ) === $value ) {
+                $object = new WP_Term();
+                $object->term_id = (int) $term_id;
+                return $object;
+            }
+        }
+        return false;
     }
     function get_user_meta( int $user_id, string $key, bool $single = false ) {
         return $GLOBALS["test_user_meta"][ $user_id ][ $key ] ?? "";
@@ -252,7 +284,7 @@ namespace smp_publication_integration\Support {
             if ( "muckrack_verified_enabled" === $key ) {
                 return (bool) ( $GLOBALS["test_muckrack_enabled"] ?? false );
             }
-            return ! in_array( $key, [ "multi_authors_disable_loop_cards", "muckrack_verified_enabled" ], true );
+            return "muckrack_verified_enabled" !== $key;
         }
         public static function get( string $key, $default = null ) {
             self::$reads++;
@@ -413,14 +445,39 @@ namespace {
     unset( $GLOBALS["test_settings"]["author_listing_show_press_releases"] );
 
     expect_same( [ 2, 1 ], $repository->normalize_ids( [ 2, 1, 2, 999, 0 ] ), "IDs retain order and remove duplicates/invalid users." );
-    expect_same( [ 1, 2 ], $repository->ids_for_post( 10, false ), "Legacy ACF values are readable before migration." );
 
-    $saved = $repository->set_ids( 10, [ 2, 1, 2 ], true );
-    expect_same( [ 2, 1 ], $saved, "Canonical save preserves order." );
-    expect_same( 2, $GLOBALS["test_posts"][10]->post_author, "Native post_author synchronizes to primary selected author." );
-    expect_same( [ 2, 1 ], $repository->ids_for_post( 10, false ), "Canonical taxonomy is the read source after save." );
+    expect_same( [ 1 ], $repository->ids_for_post( 10 ), "A post starts single-author: only its native WordPress author." );
+    expect_same( false, $repository->is_multi_author( 10 ), "The per-post switch is off by default." );
 
-    expect_same( 2, AuthorContext::resolve( $repository, 0, 10, 0 ), "Primary author context resolves from canonical assignments." );
+    $repository->save( 10, false, [ 2 ] );
+    expect_same( [ 1 ], $repository->ids_for_post( 10 ), "Saved co-authors stay hidden while the post switch is off." );
+    expect_same( [ 2 ], $repository->stored_co_author_ids( 10 ), "Co-authors are kept while the switch is off so switching on restores them." );
+    expect_same( [], $GLOBALS["test_relationships"][10] ?? [], "An off switch leaves the archive index empty." );
+
+    $repository->save( 10, true, [ 2, 1, 2 ] );
+    expect_same( [ 1, 2 ], $repository->ids_for_post( 10 ), "Switching on lists the native author first, then co-authors, without duplicating the native author." );
+    expect_same( 1, $GLOBALS["test_posts"][10]->post_author, "Saving co-authors never rewrites the native author." );
+    expect_same( 1, count( $GLOBALS["test_relationships"][10] ?? [] ), "Only active co-authors are indexed for archives." );
+
+    $GLOBALS["test_settings"]["multi_authors_enabled"] = false;
+    $repository->clear_cache( 10 );
+    expect_same( [ 1 ], $repository->ids_for_post( 10 ), "Turning the site feature off reverts every post to its native author." );
+    unset( $GLOBALS["test_settings"]["multi_authors_enabled"] );
+    $repository->clear_cache( 10 );
+
+    expect_same( [ 2, 1 ], $repository->assign( 10, [ 2, 1 ] ), "An ordered REST assignment makes the first ID the native author." );
+    expect_same( 2, $GLOBALS["test_posts"][10]->post_author, "REST assignment updates the native author through WordPress." );
+    expect_same( [ 2 ], $repository->assign( 10, [ 2 ] ), "A single-ID assignment turns the switch off." );
+    expect_same( false, $repository->switch_on( 10 ), "The switch is off after a single-author assignment." );
+    $repository->save( 10, true, [ 1 ] );
+
+    $GLOBALS["wpdb"]->migration_ids = [ 11 ];
+    $migration = $repository->migrate_batch( 100 );
+    expect_same( 1, $migration["multi_author"], "Legacy multi-author lists migrate with the switch on." );
+    expect_same( [ 1, 2 ], $repository->ids_for_post( 11 ), "Migration keeps the native author first and the other legacy authors as co-authors." );
+    expect_same( false, isset( $GLOBALS["test_meta"][11]["smpi_post_authors"] ), "Migration removes the legacy ACF value." );
+
+    expect_same( 2, AuthorContext::resolve( $repository, 0, 10, 0 ), "Primary author context resolves to the native author." );
     expect_same( 1, AuthorContext::resolve( $repository, 0, 10, 1 ), "Secondary author context resolves by index." );
     expect_same( 1, AuthorContext::run( 1, static fn(): int => AuthorContext::resolve( $repository, 0, 10, 0 ) ), "Explicit runtime context wins." );
 
@@ -509,12 +566,9 @@ namespace {
     expect_same( "Editorial Lead", MuckRackVerification::author_field( 1, "author_title" ), "MuckRack field lookup uses the canonical author field resolver aliases." );
     expect_same( "https://muckrack.com/alpha-author", MuckRackVerification::author_field( 1, "muckrack_url" ), "MuckRack URL lookup uses the canonical author field resolver aliases." );
 
-    $repository->clear( 10 );
-    $GLOBALS["test_meta"][10]["smpi_post_authors"] = [];
-    $GLOBALS["test_posts"][10]->post_author = 1;
-    $repository->clear_cache( 10 );
+    $repository->save( 10, false, [ 1 ] );
     $unchanged = $renderer->filter_content( $template );
-    expect_same( $template, $unchanged, "Empty selection leaves native Elementor output untouched." );
+    expect_same( $template, $unchanged, "A post with its switch off leaves native Elementor output untouched." );
 
     echo "PASS: multiple-author unit and DOM regression tests\n";
 }

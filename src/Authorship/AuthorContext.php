@@ -52,7 +52,7 @@ final class AuthorContext {
             return 0;
         }
 
-        $ids = $repository->ids_for_post( $post_id, true );
+        $ids = $repository->ids_for_post( $post_id );
         $author_index = max( 0, $author_index );
         return isset( $ids[ $author_index ] ) ? (int) $ids[ $author_index ] : (int) ( $ids[0] ?? 0 );
     }
