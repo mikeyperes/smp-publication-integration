@@ -101,6 +101,7 @@ namespace {
     function attachment_url_to_postid( string $url ): int { return 0; }
     function get_bloginfo( string $show ): string { return "Example Daily"; }
     function get_terms( array $args ): array { return []; }
+    function get_term_by( string $field, $value, string $taxonomy ) { return false; }
     function post_type_exists( string $post_type ): bool { return in_array( $post_type, [ "post", "press-release" ], true ); }
     function sanitize_key( string $value ): string { return strtolower( preg_replace( "/[^a-z0-9_-]/i", "", $value ) ); }
     function absint( $value ): int { return abs( (int) $value ); }
