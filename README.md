@@ -2,6 +2,96 @@
 
 Editorial, publication-profile, article-type, authorship, design, and structured-data tooling for Scale My Publication websites.
 
+> Feature base for HWS Skills. Read before building on this plugin; use or
+> extend these features instead of rebuilding them.
+
+**Purpose:** editorial, authorship, verification and publication-profile features for Scale My Publication news sites. **Admin:** WP Admin → SMP Publication (`admin.php?page=smp-publication-integration`); every switch below is a key in the `smpi_settings` option. **Depends on:** ACF Pro, Rank Math (breadcrumbs), HWS Base Tools (primary entity); Elementor optional.
+
+## Features
+
+### Breadcrumbs band
+- **Does:** a breadcrumb band built from Rank Math breadcrumbs, injected below the header on single articles and archives.
+- **Switch:** automatic on singular pages and term archives when Rank Math breadcrumbs are on (`rank_math_breadcrumb_check_enabled`); hide on the home page `breadcrumbs_hide_home`, on category and tag archives `breadcrumbs_hide_term_archives`; custom CSS on the dashboard Breadcrumbs tab.
+- **Use:** `[smp_breadcrumbs style=""]` to place it manually.
+- **Style:** `.smpi-breadcrumbs-band`, `.smpi-breadcrumb-separator`.
+- **Code:** `src/Content/Breadcrumbs.php`
+
+### MuckRack verified badge
+- **Does:** a "Verified by MuckRack" icon or label next to verified authors and the publication, in loop cards, bylines and author boxes.
+- **Switch:** `muckrack_verified_enabled`, where it shows `muckrack_verified_contexts`, `muckrack_author_always_show`; look `muckrack_verified_style`, `muckrack_icon_style`, `muckrack_icon_color`, `muckrack_verified_font_*`, `muckrack_verified_text_color`. Publication badge: `publication_muckrack_verified_enabled`, `publication_muckrack_placements`, `publication_muckrack_*`.
+- **Use:** automatic in its contexts; `[muckrack_verified type="icon|text" user_id="" post_id="" author_index="" style="" context=""]`, `[author_muckrack_verified]`, `[smp_publication_muckrack_verified class="" style="" color=""]`.
+- **Style:** `.smpi-muckrack-inline-pair`, `.smpi-muckrack-icon`, `.smpi-muckrack-link`.
+- **Code:** `src/Content/MuckRackVerification.php`
+
+### Author fields
+- **Does:** any author's name, bio, title, socials, image or ACF field for the current post's author (or a given user / co-author).
+- **Use:** `[author_name]`, `[author_bio format="html"]`, `[author_bio_short words="35"]`, `[author_title]`, `[author_subtitle]`, `[author_image size="thumbnail" output="html" class="smpi-author-image"]`, `[author_facebook]` `[author_instagram]` `[author_x]` `[author_linkedin]` `[author_youtube]` `[author_website]` `[author_crunchbase]` `[author_muckrack]` `[author_email]`, `[acf_author_field field=""]`. All accept `user_id`, `post_id`, `author_index`.
+- **Code:** `src/Content/AuthorShortcodes.php`
+
+### Author social icons
+- **Does:** the author's social links as styled icons, added automatically to author boxes and archives.
+- **Switch:** `author_social_icons_enabled`, `author_social_style`, `author_social_size`, `author_social_color`, `author_social_networks`, `author_social_auto_contexts`, `author_social_archive_position`; empty-link cleanup `author_social_cleanup`.
+- **Use:** `[smp_author_social_icons style="" size="" color="" networks="" class="" label=""]`.
+- **Style:** `.smpi-author-social-icon`, `.smpi-author-social-label`.
+- **Code:** `src/Content/AuthorSocialIcons.php`
+
+### Multiple authors
+- **Does:** several authors on one post, shown in bylines and loops.
+- **Switch:** `multi_authors_enabled`, loop output `multi_authors_loop_output`.
+- **Use:** `[smp_post_authors]`, `[smp_post_author_names]`, `[smp_post_author_ids post_id="" separator=","]`.
+- **Style:** `.smpi-authors`, `.smpi-authors__list`, `.smpi-authors__item`, `.smpi-authors__name`.
+- **Code:** `src/Content/MultiAuthors.php`
+
+### Staff and contributor grids
+- **Does:** grids of the publication's staff or contributors.
+- **Switch:** `author_listing_hide_without_articles`, `author_listing_hide_without_featured_image`, `author_listing_show_press_releases`.
+- **Use:** `[staff_grid]`, `[contributors_grid]`.
+- **Code:** `src/Content/AuthorListings.php`
+
+### Author archive loading
+- **Does:** load-more or infinite loading on author archive pages.
+- **Switch:** `author_archive_loading_enabled`, `author_archive_loading_mode`, `author_archive_loading_style`.
+- **Code:** `src/Content/AuthorArchiveLoading.php`
+
+### Table of contents
+- **Does:** a table of contents from the article's headings.
+- **Switch:** `table_of_contents_enabled`; automatic on single posts with `table_of_contents_auto_single`.
+- **Use:** `[smp_table_of_contents post_id="" title="Table of Contents" style=""]`.
+- **Code:** `src/Content/TableOfContents.php`
+
+### Estimated read time
+- **Switch:** `estimated_read_time_enabled`.
+- **Use:** `[smp_estimated_read_time post_id="" unit="minutes" wpm="" format="friendly" output="" suffix="read"]`.
+- **Code:** `src/Content/EstimatedReadTime.php`
+
+### Post summary and FAQs
+- **Does:** an article's ACF summary and FAQ blocks, placed automatically or by shortcode.
+- **Switch:** `post_summary_acf_enabled`, `post_faqs_acf_enabled`.
+- **Use:** `[smp_post_summary post_id="" format="html" style=""]`, `[smp_post_faqs post_id="" format="html" style=""]`, any post ACF field `[smp_post_acf field="" post_id="" format="html"]`.
+- **Code:** `src/Content/Shortcodes.php`, `src/Content/PostSummaryPlacement.php`, `src/Content/PostFaqPlacement.php`
+
+### Publication profile values
+- **Does:** the publication's own profile: fields, mission, founders, system user, assigned pages and page templates.
+- **Use:** `[smp_publication_field field="" format="html" row="" index="" sub_field="" fallback=""]`, `[smp_publication_mission_statement]`, `[smp_publication_founders]`, `[smp_publication_profile]`, `[smp_publication_user]`, `[smp_publication_page type="" mode="link"]`, `[smp_publication_page_template type=""]` (alias `[smp_page_template]`).
+- **Code:** `src/Content/Shortcodes.php`
+
+### Primary category
+- **Does:** a post's primary category in Elementor.
+- **Switch:** `elementor_primary_category_enabled`, `elementor_primary_category_exclude_default`.
+- **Use:** Elementor dynamic tag `smpi-primary-category`.
+- **Code:** `src/Elementor/PrimaryCategoryTag.php`
+
+### Content types and article types
+- **Does:** Knowledge Base (`knowledge-base`), Resources (`resources`), Press Release (`press-release`) and Publication Profile (`publication-profile`) post types; article types; shadow posts and press-release inclusion in lists.
+- **Switch:** `article_types_enabled`, `shadow_posts_enabled`, `shadow_press_releases`, `press_release_include_enabled`, `press_release_include_contexts`, `post_list_defaults_enabled`.
+- **Code:** `src/Content/PublicationContentTypes.php`, `src/Content/ArticleTypes.php`
+
+### Publishing guards
+- **Switch:** `post_featured_image_required`, `hide_home_posts_without_featured_image`, post time display `post_time_mode`, Elementor CSS cache busting `elementor_css_cache_busting`.
+
+### Extension points
+- `smpi_dashboard_tabs`, `smpi_dashboard_tab_groups`, `smpi_dashboard_areas`, `smpi_dashboard_area_sections`, `smpi_dashboard_flat_tabs`, `smpi_render_dashboard_tab`, `smpi_publication_manifest_cache_ttl`, `smpi_publication_manifest_category_policy`, `smpi_publication_manifest_recent_content_limit`.
+
 ## Identity
 
 - Repository: `mikeyperes/smp-publication-integration`
