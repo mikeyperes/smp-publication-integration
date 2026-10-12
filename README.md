@@ -98,7 +98,7 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `2.3.1`
+- Version: `2.3.2`
 
 ## Ownership
 
@@ -187,6 +187,10 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.3.2
+
+- Featured image caption fallback only decorates the article's own featured image; it never puts the caption frame on a related-post or loop card, and stops when the article image already has a caption.
 
 ### 2.3.1
 
