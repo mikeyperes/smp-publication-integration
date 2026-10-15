@@ -157,6 +157,16 @@ namespace {
         expect_author_social( str_contains( $placed, 'data-smpi-author-social-placement="' . $position . '"' ), "The author archive injects below " . str_replace( "below_", "", $position ) . "." );
     }
 
+    Settings::$settings["author_social_archive_position"] = "below_bio";
+    $decoy_renderer = new AuthorSocialIcons();
+    $decoy = $decoy_renderer->inject_elementor_author_archive( "<img>", new FakeAuthorSocialElementorWidget( "image", [ "_title" => "Article / Author Bio Portrait" ] ) );
+    expect_author_social( ! str_contains( $decoy, "smpi-author-socials" ), "A bio portrait named like the bio is not treated as the bio." );
+    $box_renderer = new AuthorSocialIcons();
+    $box = $box_renderer->inject_elementor_author_archive( "<div>Box</div>", new FakeAuthorSocialElementorWidget( "author-box", [] ) );
+    expect_author_social( str_contains( $box, 'data-smpi-author-social-placement="below_bio"' ), "Elementor's Author Box counts as the bio." );
+    $plan_renderer = new AuthorSocialIcons();
+    expect_author_social( "content" === $plan_renderer->single_post_plan( 55 )["mode"], "A single post with no Elementor author block falls back to the end of the article." );
+
     $root = dirname( __DIR__ );
     $dashboard = (string) file_get_contents( $root . "/src/Admin/Dashboard/DashboardController.php" );
     $ajax = (string) file_get_contents( $root . "/src/Admin/Ajax/AjaxController.php" );

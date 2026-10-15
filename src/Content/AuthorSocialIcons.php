@@ -43,6 +43,8 @@ final class AuthorSocialIcons {
     ];
 
     private bool $archive_injected = false;
+    private bool $single_injected = false;
+    private ?array $single_plan = null;
 
     public function register(): void {
         add_action( "init", [ $this, "register_shortcode" ], 20 );
@@ -50,6 +52,7 @@ final class AuthorSocialIcons {
         add_filter( "the_content", [ $this, "inject_single_post" ], 25 );
         add_filter( "get_the_archive_description", [ $this, "inject_author_archive" ], 25 );
         add_filter( "elementor/widget/render_content", [ $this, "inject_elementor_author_archive" ], 25, 2 );
+        add_filter( "elementor/widget/render_content", [ $this, "inject_elementor_single_post" ], 25, 2 );
     }
 
     public function register_shortcode(): void {
@@ -227,8 +230,132 @@ final class AuthorSocialIcons {
             return $content;
         }
 
-        $icons = $this->render_shortcode( [ "post_id" => (int) get_the_ID() ] );
-        return "" !== $icons ? $content . $icons : $content;
+        $post_id = (int) get_the_ID();
+        if ( "content" !== $this->single_post_plan( $post_id )["mode"] ) {
+            return $content;
+        }
+
+        $icons = $this->render_shortcode( [ "post_id" => $post_id ] );
+        if ( "" === $icons ) {
+            return $content;
+        }
+
+        $this->single_injected = true;
+        return $content . $icons;
+    }
+
+    public function inject_elementor_single_post( string $content, $widget ): string {
+        if (
+            $this->single_injected
+            || ! Settings::bool( "author_social_icons_enabled" )
+            || ! $this->automatic_context_enabled( "single_post" )
+            || is_admin()
+            || ! is_singular( "post" )
+            || false !== strpos( $content, "smpi-author-socials" )
+        ) {
+            return $content;
+        }
+
+        // Loop items (related stories, author cards in grids) belong to other posts.
+        $post_id = (int) get_queried_object_id();
+        if ( $post_id <= 0 || (int) get_the_ID() !== $post_id ) {
+            return $content;
+        }
+
+        $plan = $this->single_post_plan( $post_id );
+        $widget_id = is_object( $widget ) && method_exists( $widget, "get_id" ) ? (string) $widget->get_id() : "";
+        if ( "widget" !== $plan["mode"] || "" === $widget_id || $widget_id !== $plan["widget_id"] ) {
+            return $content;
+        }
+
+        $icons = $this->render_shortcode( [ "post_id" => $post_id ] );
+        if ( "" === $icons ) {
+            return $content;
+        }
+
+        $this->single_injected = true;
+        return $content . $this->automatic_archive_wrapper( $icons, $plan["position"] );
+    }
+
+    /**
+     * Decides once per request where automatic single-post icons belong:
+     * "none" when the layout already places the shortcode by hand, "widget"
+     * when the Elementor layout has an author widget to sit under, otherwise
+     * "content" (end of the article body, for layouts with no author block).
+     */
+    public function single_post_plan( int $post_id ): array {
+        if ( null !== $this->single_plan ) {
+            return $this->single_plan;
+        }
+
+        $widgets = [];
+        foreach ( $this->single_layout_elements( $post_id ) as $elements ) {
+            $this->collect_widgets( $elements, $widgets );
+        }
+
+        foreach ( $widgets as $widget ) {
+            $json = function_exists( "wp_json_encode" ) ? wp_json_encode( $widget["settings"] ) : json_encode( $widget["settings"] );
+            if ( is_string( $json ) && ( false !== strpos( $json, self::SHORTCODE ) || false !== strpos( $json, "smpi-author-socials" ) ) ) {
+                return $this->single_plan = [ "mode" => "none", "position" => "", "widget_id" => "" ];
+            }
+        }
+
+        // A real author signal (author box, bio shortcode or dynamic tag) beats
+        // a widget that is only named like one; the first widget wins a tie.
+        foreach ( array_unique( [ $this->archive_position(), "below_bio" ] ) as $position ) {
+            $best = null;
+            $best_strength = 0;
+            foreach ( $widgets as $widget ) {
+                $strength = $this->widget_match_strength( $widget["name"], $widget["settings"], $position );
+                if ( $strength > $best_strength && "" !== $widget["id"] ) {
+                    $best = $widget;
+                    $best_strength = $strength;
+                }
+            }
+            if ( null !== $best ) {
+                return $this->single_plan = [ "mode" => "widget", "position" => $position, "widget_id" => $best["id"] ];
+            }
+        }
+
+        return $this->single_plan = [ "mode" => "content", "position" => "", "widget_id" => "" ];
+    }
+
+    private function single_layout_elements( int $post_id ): array {
+        $layouts = [];
+        if ( class_exists( "\\ElementorPro\\Modules\\ThemeBuilder\\Module" ) ) {
+            $documents = \ElementorPro\Modules\ThemeBuilder\Module::instance()->get_conditions_manager()->get_documents_for_location( "single" );
+            foreach ( (array) $documents as $document ) {
+                if ( is_object( $document ) && method_exists( $document, "get_elements_data" ) ) {
+                    $layouts[] = (array) $document->get_elements_data();
+                }
+            }
+        }
+
+        if ( $post_id > 0 && function_exists( "get_post_meta" ) ) {
+            $own = get_post_meta( $post_id, "_elementor_data", true );
+            $own = is_string( $own ) ? json_decode( $own, true ) : $own;
+            if ( is_array( $own ) ) {
+                $layouts[] = $own;
+            }
+        }
+
+        return $layouts;
+    }
+
+    private function collect_widgets( array $elements, array &$widgets ): void {
+        foreach ( $elements as $element ) {
+            if ( ! is_array( $element ) ) {
+                continue;
+            }
+            if ( "widget" === ( $element["elType"] ?? "" ) ) {
+                $widgets[] = [
+                    "id"       => (string) ( $element["id"] ?? "" ),
+                    "name"     => sanitize_key( (string) ( $element["widgetType"] ?? "" ) ),
+                    "settings" => (array) ( $element["settings"] ?? [] ),
+                ];
+            }
+            $this->collect_widgets( (array) ( $element["elements"] ?? [] ), $widgets );
+        }
     }
 
     public function inject_author_archive( string $description ): string {
@@ -335,34 +462,61 @@ final class AuthorSocialIcons {
         }
 
         $widget_name = method_exists( $widget, "get_name" ) ? sanitize_key( (string) $widget->get_name() ) : "";
+        return $this->widget_data_matches_position( $widget_name, $settings, $position );
+    }
+
+    private function widget_data_matches_position( string $widget_name, array $settings, string $position ): bool {
+        return $this->widget_match_strength( $widget_name, $settings, $position ) > 0;
+    }
+
+    /**
+     * 2 = the widget renders that author field, 1 = only its admin title says
+     * so, 0 = no match. Titles naming another part of the card (a bio
+     * portrait, a bio name) never count as the bio itself.
+     */
+    private function widget_match_strength( string $widget_name, array $settings, string $position ): int {
         $settings_json = function_exists( "wp_json_encode" ) ? wp_json_encode( $settings ) : json_encode( $settings );
         $haystack = strtolower( rawurldecode( is_string( $settings_json ) ? $settings_json : "" ) );
         $admin_title = strtolower( trim( (string) ( $settings["_title"] ?? "" ) ) );
+        $title_has = static function ( array $needles, array $exclude = [] ) use ( $admin_title ): bool {
+            foreach ( $exclude as $word ) {
+                if ( false !== strpos( $admin_title, $word ) ) {
+                    return false;
+                }
+            }
+            foreach ( $needles as $needle ) {
+                if ( false !== strpos( $admin_title, $needle ) ) {
+                    return true;
+                }
+            }
+            return false;
+        };
 
         if ( "below_image" === $position ) {
-            return false !== strpos( $haystack, "[author_image" )
-                || false !== strpos( $haystack, "smpi-author-image" )
-                || ( "shortcode" === $widget_name && ( false !== strpos( $admin_title, "author image" ) || false !== strpos( $admin_title, "author portrait" ) ) );
+            if ( false !== strpos( $haystack, "[author_image" ) || false !== strpos( $haystack, "smpi-author-image" ) ) {
+                return 2;
+            }
+            return "shortcode" === $widget_name && $title_has( [ "author image", "author portrait" ] ) ? 1 : 0;
         }
 
         if ( "below_name" === $position ) {
-            return false !== strpos( $haystack, "[author_name" )
-                || false !== strpos( $haystack, 'name=\"author-name\"' )
-                || false !== strpos( $admin_title, "author name" );
+            if ( false !== strpos( $haystack, "[author_name" ) || false !== strpos( $haystack, 'name=\"author-name\"' ) ) {
+                return 2;
+            }
+            return $title_has( [ "author name" ] ) ? 1 : 0;
         }
 
         if ( "below_title" === $position ) {
-            return false !== strpos( $haystack, "[author_title" )
-                || false !== strpos( $haystack, "job_title" )
-                || false !== strpos( $haystack, ":subtitle" )
-                || false !== strpos( $admin_title, "author title" )
-                || false !== strpos( $admin_title, "author role" );
+            if ( false !== strpos( $haystack, "[author_title" ) || false !== strpos( $haystack, "job_title" ) || false !== strpos( $haystack, ":subtitle" ) ) {
+                return 2;
+            }
+            return $title_has( [ "author title", "author role" ] ) ? 1 : 0;
         }
 
-        return false !== strpos( $haystack, "[author_bio" )
-            || false !== strpos( $haystack, 'name=\"author-info\"' )
-            || false !== strpos( $admin_title, "author bio" )
-            || false !== strpos( $admin_title, "author biography" );
+        if ( "author-box" === $widget_name || false !== strpos( $haystack, "[author_bio" ) || false !== strpos( $haystack, 'name=\"author-info\"' ) ) {
+            return 2;
+        }
+        return $title_has( [ "author bio", "author biography" ], [ "portrait", "image", "photo", "avatar", "name", "heading", "title" ] ) ? 1 : 0;
     }
 
     private static function icon_svg( string $network ): string {

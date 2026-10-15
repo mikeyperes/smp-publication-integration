@@ -98,7 +98,7 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `2.4.0`
+- Version: `2.4.1`
 
 ## Ownership
 
@@ -185,6 +185,10 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.4.1
+
+- Automatic author social icons on articles now sit under the author bio in the Elementor single-post layout (Author Box widget, `[author_bio]` or the Author Info tag), instead of at the end of the article body. They fall back to the end of the article only when the layout has no author block, and are skipped entirely when the layout already places the icon shortcode by hand. Widgets merely named like the bio (a bio portrait or bio name) are no longer mistaken for it.
 
 ### 2.4.0
 
