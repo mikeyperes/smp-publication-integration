@@ -1,11 +1,15 @@
 <?php
 namespace smp_publication_integration\StructuredData;
 
+use Hexa\PluginCore\DataNormalization\ValueNormalizer;
 use Hexa\PluginCore\FaqSets\FaqSetManager;
 use Hexa\PluginCore\FaqSets\FaqSourceResolver;
 use Hexa\PluginCore\SchemaTools\SchemaDocumentRenderer;
 use Hexa\PluginCore\SchemaTools\SchemaGraph;
-use Hexa\PluginCore\SchemaTools\SchemaInjector as CoreSchemaInjector;
+use Hexa\PluginCore\SchemaTools\SchemaIds;
+use Hexa\PluginCore\SchemaTools\SchemaNodes;
+use Hexa\PluginCore\SchemaTools\SchemaPage;
+use Hexa\PluginCore\SchemaTools\SchemaSources;
 use Hexa\PluginCore\WpAdminAjax\AjaxActionRegistry;
 use Hexa\PluginCore\WpAdminAjax\AjaxRequest;
 use smp_publication_integration\Content\ArticleTypes;
@@ -19,22 +23,29 @@ if ( ! defined( "ABSPATH" ) ) {
     exit;
 }
 
+/**
+ * The publication's schema: which pages SMP covers and the publication data
+ * on them. Every node is built with HexaWP Core's schema library and printed
+ * in Core's one shared schema block.
+ *
+ * SMP covers the whole publication site: the site organization and website on
+ * every public page, the homepage collection, articles and press releases,
+ * pages, and archives. Testimonials get no schema. More specific plugins
+ * (verified profiles, organizations) add their nodes for their own pages and
+ * win on any property they both set.
+ */
 class SchemaManager {
-    private const REST_NS = "smpi/v1";
+    public const SOURCE = "smp-publication";
+    public const PRIORITY = 20;
 
-    private const LINKED_REFERENCE_PROPERTIES = [
-        "author" => [ "@id", "@type" ],
-        "publisher" => [ "@id", "@type" ],
-        "copyrightHolder" => [ "@id", "@type" ],
-        "image" => [ "@id", "@type" ],
-        "primaryImageOfPage" => [ "@id", "@type" ],
-    ];
+    private const REST_NS = "smpi/v1";
+    private const PRESS_RELEASE_POST_TYPE = "press-release";
+    private const NO_SCHEMA_POST_TYPES = [ "testimonial" ];
+
+    private ?int $person_site_user_id = null;
 
     public function register(): void {
-        ( new CoreSchemaInjector(
-            [ $this, 'current_schema' ],
-            [ 'hook' => 'wp_head', 'priority' => 1, 'script_id' => 'smpi-schema-jsonld' ]
-        ) )->register();
+        SchemaPage::register( self::SOURCE, [ $this, "current_nodes" ], self::PRIORITY );
         ( new AjaxActionRegistry(
             [
                 'capability'   => 'manage_options',
@@ -47,16 +58,6 @@ class SchemaManager {
             ]
         );
         add_action( "rest_api_init", [ $this, "register_rest_routes" ] );
-        add_filter( "rank_math/json_ld", [ $this, "filter_rank_math_schema" ], 9999, 2 );
-        add_action( "wp", [ $this, "disable_rank_math_schema_output" ], 1 );
-        add_action( "rank_math/head", [ $this, "disable_rank_math_schema_output" ], 1 );
-    }
-
-    public function disable_rank_math_schema_output(): void {
-        if ( ! RuntimeContext::is_public_frontend() || $this->should_preserve_rank_math_schema() ) {
-            return;
-        }
-        remove_all_actions( "rank_math/head", 90 );
     }
 
     public function register_rest_routes(): void {
@@ -79,63 +80,41 @@ class SchemaManager {
         return current_user_can( "manage_options" );
     }
 
-    public function current_schema(): array {
-        if ( ! RuntimeContext::is_public_frontend() ) {
+    /**
+     * The nodes SMP adds to the page being viewed.
+     *
+     * @return list<array<string,mixed>>
+     */
+    public function current_nodes(): array {
+        if ( ! RuntimeContext::is_public_frontend() || is_404() ) {
             return [];
         }
-        if ( is_front_page() || is_home() ) {
-            return $this->generate_home_schema_array();
+        if ( is_front_page() || ( is_home() && ! get_option( "page_for_posts" ) ) ) {
+            return $this->home_nodes();
         }
-        if ( is_singular( PublicationContentTypes::active_article_post_types() ) ) {
+        if ( is_singular() ) {
             $post = get_queried_object();
-            if ( $post instanceof \WP_Post ) {
-                return $this->generate_single_schema_array( (int) $post->ID );
+            if ( ! $post instanceof \WP_Post || in_array( $post->post_type, self::NO_SCHEMA_POST_TYPES, true ) ) {
+                return [];
             }
+            return in_array( $post->post_type, PublicationContentTypes::active_article_post_types(), true )
+                ? $this->article_nodes( $post )
+                : $this->page_nodes( $post );
         }
-        return [];
-    }
-
-    public function filter_rank_math_schema( $data, $jsonld = null ) {
-        if ( ! RuntimeContext::is_public_frontend() || $this->should_preserve_rank_math_schema() ) {
-            return $data;
+        if ( is_archive() || is_home() ) {
+            return $this->archive_nodes();
         }
-        return [];
-    }
-
-    /**
-     * Keep Rank Math's graph on public surfaces for which SMP does not build a
-     * replacement document. Front pages and singular publication/profile
-     * integrations retain the existing suppression boundary so two providers
-     * never emit competing organization, article, or person entities.
-     */
-    private function should_preserve_rank_math_schema(): bool {
-        if ( is_front_page() || is_home() ) {
-            return false;
-        }
-
-        return is_page() || is_category() || is_tag() || is_tax() || is_post_type_archive();
+        return $this->site_nodes();
     }
 
     public function rest_schema( \WP_REST_Request $request ): \WP_REST_Response {
         $post_id = absint( $request->get_param( "post_id" ) );
         $url = (string) $request->get_param( "url" );
-        $context = "home";
-        $schema = null;
-
-        if ( $post_id > 0 && get_post( $post_id ) ) {
-            $context = "single";
-            $schema = $this->generate_single_schema_array( $post_id );
-        } elseif ( "" !== $url ) {
+        if ( ! $post_id && "" !== $url ) {
             $post_id = url_to_postid( $url );
-            if ( $post_id > 0 ) {
-                $context = "single";
-                $schema = $this->generate_single_schema_array( $post_id );
-            }
         }
-
-        if ( null === $schema ) {
-            $schema = $this->generate_home_schema_array();
-        }
+        $context = $post_id > 0 && get_post( $post_id ) ? "single" : "home";
+        $schema = "single" === $context ? $this->generate_single_schema_array( $post_id ) : $this->generate_home_schema_array();
 
         return new \WP_REST_Response(
             [
@@ -151,53 +130,28 @@ class SchemaManager {
     }
 
     public function ajax_reprocess_schema( AjaxRequest $request ): array {
-        $home = $this->store_schema();
         $items = [
             [
                 "title" => get_bloginfo( "name" ) . " homepage graph",
-                "schema" => $home,
+                "schema" => $this->generate_home_schema_json(),
                 "admin_link" => admin_url( "options-general.php?page=smp-publication-integration&tab=publication_options" ),
                 "view_link" => home_url( "/" ),
-                "validator_link" => "https://validator.schema.org/#url=" . rawurlencode( home_url( "/" ) ),
+                "validator_link" => SchemaGraph::validator_url( home_url( "/" ) ),
             ],
         ];
 
-        $post_types = [ "post" ];
-        if ( post_type_exists( "press-release" ) ) {
-            $post_types[] = "press-release";
-        }
-        $posts = get_posts( [ "post_type" => $post_types, "post_status" => "publish", "posts_per_page" => 3, "fields" => "ids" ] );
+        $posts = get_posts( [ "post_type" => PublicationContentTypes::active_article_post_types(), "post_status" => "publish", "posts_per_page" => 3, "fields" => "ids" ] );
         foreach ( $posts as $post_id ) {
             $items[] = [
                 "title" => get_the_title( $post_id ),
                 "schema" => $this->generate_single_schema_json( (int) $post_id ),
                 "admin_link" => get_edit_post_link( $post_id, "raw" ),
                 "view_link" => get_permalink( $post_id ),
-                "validator_link" => "https://validator.schema.org/#url=" . rawurlencode( get_permalink( $post_id ) ),
+                "validator_link" => SchemaGraph::validator_url( (string) get_permalink( $post_id ) ),
             ];
         }
 
         return [ "total" => count( $items ), "batch" => count( $items ), "offset" => 0, "items" => $items ];
-    }
-
-    public function store_schema(): string {
-        $schema = $this->generate_home_schema_json();
-        if ( \Hexa\PluginCore\Fields\Field::available() ) {
-            \Hexa\PluginCore\Fields\Field::update( "smpi_schema_markup", $schema, "option" );
-        }
-        update_option( "_smpi_schema_markup", $schema, false );
-        return $schema;
-    }
-
-    public function get_stored_schema(): string {
-        $schema = "";
-        if ( \Hexa\PluginCore\Fields\Field::available() ) {
-            $schema = (string) \Hexa\PluginCore\Fields\Field::get( "smpi_schema_markup", "option", false );
-        }
-        if ( "" === trim( $schema ) ) {
-            $schema = (string) get_option( "_smpi_schema_markup", "" );
-        }
-        return trim( $schema );
     }
 
     public function generate_schema_json(): string {
@@ -216,150 +170,21 @@ class SchemaManager {
         return ( new SchemaDocumentRenderer() )->json( $this->generate_single_schema_array( $post_id ) );
     }
 
+    /** SMP's homepage graph on its own, for previews and checks. */
     public function generate_home_schema_array(): array {
-        $org = $this->publication_entity();
-        $home_url = trailingslashit( home_url( "/" ) );
-        $website_id = $home_url . "#website";
-        $page_id = $home_url . "#webpage";
-        $list_id = $home_url . "#homepage-itemlist";
-        $org_id = (string) ( $org["@id"] ?? $home_url . "#organization" );
-        $description = get_bloginfo( "description" );
-        $last_modified = $this->site_last_modified();
-
-        $website = $this->clean_schema( [
-            "@type" => "WebSite",
-            "@id" => $website_id,
-            "url" => $home_url,
-            "name" => get_bloginfo( "name" ),
-            "description" => $description,
-            "publisher" => [ "@id" => $org_id ],
-            "about" => [ "@id" => $org_id ],
-            "inLanguage" => get_bloginfo( "language" ) ?: "en-US",
-            "dateModified" => $last_modified,
-            "potentialAction" => [ "@type" => "SearchAction", "target" => $home_url . "?s={search_term_string}", "query-input" => "required name=search_term_string" ],
-        ] );
-
-        $item_list = $this->homepage_item_list( $list_id, $org_id );
-        $collection = $this->clean_schema( [
-            "@type" => "CollectionPage",
-            "@id" => $page_id,
-            "url" => $home_url,
-            "name" => get_bloginfo( "name" ),
-            "headline" => get_bloginfo( "name" ),
-            "description" => $description,
-            "isPartOf" => [ "@id" => $website_id ],
-            "about" => [ "@id" => $org_id ],
-            "publisher" => [ "@id" => $org_id ],
-            "mainEntity" => [ "@id" => $list_id ],
-            "inLanguage" => get_bloginfo( "language" ) ?: "en-US",
-            "dateModified" => $last_modified,
-        ] );
-
-        return $this->standalone_schema( [ "@context" => "https://schema.org", "@graph" => [ $org, $website, $collection, $item_list ] ] );
+        return self::document( $this->home_nodes() );
     }
 
+    /** SMP's graph for one article or page on its own, for previews and checks. */
     public function generate_single_schema_array( int $post_id ): array {
         $post = get_post( $post_id );
         if ( ! $post ) {
             return $this->generate_home_schema_array();
         }
-
-        $org = $this->publication_entity();
-        $home_url = trailingslashit( home_url( "/" ) );
-        $org_id = (string) ( $org["@id"] ?? $home_url . "#organization" );
-        $website_id = $home_url . "#website";
-        $permalink = get_permalink( $post );
-        $webpage_id = $permalink . "#webpage";
-        $article_id = $permalink . "#article";
-        $article_type = ArticleTypes::schema_type_for_post( $post_id );
-        $image = $this->primary_image_entity( $post_id, $permalink . "#primaryimage", $org["logo"] ?? null );
-        $authors = $this->author_entities_for_post( $post_id );
-        $org_ref = [ "@id" => $org_id ];
-        $website_ref = [ "@id" => $website_id ];
-        $image_ref = ! empty( $image["@id"] ) ? [ "@id" => (string) $image["@id"] ] : null;
-        $author_ref = $authors ? array_values(
-            array_filter(
-                array_map(
-                    static fn( array $author ): array => ! empty( $author["@id"] ) ? [ "@id" => (string) $author["@id"] ] : [],
-                    $authors
-                )
-            )
-        ) : [ $org_ref ];
-        $faq_rows = self::faq_rows_for_post( $post_id, true );
-        $faq = $faq_rows ? $this->faq_entity( $post_id, $permalink . "#faq", $faq_rows, $webpage_id ) : [];
-        $breadcrumb = $this->breadcrumb_entity( $post_id, $permalink . "#breadcrumb" );
-        $breadcrumb_ref = ! empty( $breadcrumb["@id"] ) ? [ "@id" => (string) $breadcrumb["@id"] ] : null;
-        $faq_ref = ! empty( $faq["@id"] ) ? [ "@id" => (string) $faq["@id"] ] : null;
-        $description = $this->post_description( $post );
-        $language = get_bloginfo( "language" ) ?: "en-US";
-
-        $website = $this->clean_schema( [
-            "@type" => "WebSite",
-            "@id" => $website_id,
-            "url" => $home_url,
-            "name" => get_bloginfo( "name" ),
-            "description" => get_bloginfo( "description" ),
-            "publisher" => $org_ref,
-            "about" => $org_ref,
-            "inLanguage" => $language,
-        ] );
-
-        $webpage = $this->clean_schema( [
-            "@type" => "WebPage",
-            "@id" => $webpage_id,
-            "url" => $permalink,
-            "name" => get_the_title( $post ),
-            "description" => $description,
-            "isPartOf" => $website_ref,
-            "about" => $org_ref,
-            "publisher" => $org_ref,
-            "primaryImageOfPage" => $image_ref,
-            "breadcrumb" => $breadcrumb_ref,
-            "hasPart" => $faq_ref ? [ $faq_ref ] : null,
-            "datePublished" => get_the_date( DATE_W3C, $post ),
-            "dateModified" => get_the_modified_date( DATE_W3C, $post ),
-            "inLanguage" => $language,
-        ] );
-
-        $article = $this->clean_schema( [
-            "@type" => $article_type,
-            "@id" => $article_id,
-            "mainEntityOfPage" => $permalink,
-            "isPartOf" => $website_ref,
-            "headline" => get_the_title( $post ),
-            "name" => get_the_title( $post ),
-            "description" => $description,
-            "articleBody" => $this->post_article_body( $post ),
-            "wordCount" => $this->post_word_count( $post ),
-            "url" => $permalink,
-            "datePublished" => get_the_date( DATE_W3C, $post ),
-            "dateModified" => get_the_modified_date( DATE_W3C, $post ),
-            "author" => 1 === count( $author_ref ) ? $author_ref[0] : $author_ref,
-            "publisher" => $org_ref,
-            "image" => $image_ref,
-            "thumbnailUrl" => $image["url"] ?? null,
-            "articleSection" => $this->article_sections( $post_id ),
-            "keywords" => $this->post_keywords( $post_id ),
-            "about" => $this->post_things( $post_id, "category" ),
-            "mentions" => $this->post_things( $post_id, "post_tag" ),
-            "isAccessibleForFree" => true,
-            "inLanguage" => $language,
-            "genre" => ArticleTypes::schema_type_label( $article_type ),
-            "copyrightYear" => get_the_date( "Y", $post ),
-            "copyrightHolder" => $org_ref,
-            "commentCount" => (int) get_comments_number( $post_id ),
-            "discussionUrl" => get_comments_link( $post_id ),
-            "hasPart" => $faq_ref ? [ $faq_ref ] : null,
-            "speakable" => [
-                "@type" => "SpeakableSpecification",
-                "cssSelector" => "h1, .elementor-widget-theme-post-content p:first-of-type, .elementor-widget-post-content p:first-of-type, article .entry-content p:first-of-type, .entry-content p:first-of-type, .post-content p:first-of-type",
-            ],
-        ] );
-
-        $graph = array_values( array_filter( array_merge( [ $org, $website, $webpage, $article ], $authors, [ $image, $breadcrumb, $faq ] ) ) );
-        $schema = [ "@context" => "https://schema.org", "@graph" => $graph ];
-        $filtered = apply_filters( "smpi_single_schema_array", $schema, $post_id );
-        return $this->standalone_schema( is_array( $filtered ) ? $filtered : $schema );
+        $nodes = in_array( $post->post_type, PublicationContentTypes::active_article_post_types(), true )
+            ? $this->article_nodes( $post )
+            : $this->page_nodes( $post );
+        return self::document( $nodes );
     }
 
     public static function schema_types( array $schema ): array {
@@ -370,7 +195,8 @@ class SchemaManager {
         $self = new self();
         $schema = $post_id ? $self->generate_single_schema_array( $post_id ) : $self->generate_home_schema_array();
         $types = self::schema_types( $schema );
-        $expected = $post_id ? [ "NewsMediaOrganization", "WebSite", "WebPage", ArticleTypes::schema_type_for_post( $post_id ) ] : [ "NewsMediaOrganization", "WebSite", "CollectionPage", "ItemList" ];
+        $site_type = $self->person_site_user_id() > 0 ? "Person" : "NewsMediaOrganization";
+        $expected = $post_id ? [ $site_type, "WebSite", "WebPage", ArticleTypes::schema_type_for_post( $post_id ) ] : [ $site_type, "WebSite", "CollectionPage", "ItemList" ];
         if ( $post_id && self::faq_rows_for_post( $post_id, true ) ) {
             $expected[] = "FAQPage";
         }
@@ -418,18 +244,193 @@ class SchemaManager {
         );
     }
 
-    private static function faq_schema_enabled_for_post( int $post_id ): bool {
-        $value = Fields::get( $post_id, "post_faq_schema_enabled", "__smpi_default_on__" );
-        if ( "__smpi_default_on__" === $value || "" === $value || null === $value ) {
-            return true;
-        }
+    // ─── Page types ─────────────────────────────────────────────────────────
 
-        return ! in_array( (string) $value, [ "0", "false", "off", "no" ], true );
+    /**
+     * The site's own entity and website, on every public page. A
+     * publication site is its NewsMediaOrganization; a person's site (the
+     * site's primary entity is a person) is that person, so the site never
+     * claims a second, organization identity with the person's name.
+     */
+    private function site_nodes(): array {
+        $site_entity = $this->person_site_user_id() > 0
+            ? SchemaSources::user_person( $this->person_site_user_id(), SchemaIds::person() )
+            : $this->publication_entity();
+        return [ $site_entity, SchemaSources::website( $this->publisher_id(), [ "about" => SchemaNodes::ref( $this->publisher_id() ) ] ) ];
     }
+
+    /** The @id of whoever publishes this site: the publication, or the person whose site it is. */
+    private function publisher_id(): string {
+        return $this->person_site_user_id() > 0 ? SchemaIds::person() : SchemaIds::organization();
+    }
+
+    /** The user a person's site belongs to, when the site's primary entity is a person. */
+    private function person_site_user_id(): int {
+        if ( null !== $this->person_site_user_id ) {
+            return $this->person_site_user_id;
+        }
+        $this->person_site_user_id = 0;
+        $entity = class_exists( \Hexa\PluginCore\EntitySources\CanonicalEntityResolver::class ) ? \Hexa\PluginCore\EntitySources\CanonicalEntityResolver::resolve() : null;
+        if ( is_array( $entity ) && "person" === (string) ( $entity["entity_type"] ?? "" ) ) {
+            $this->person_site_user_id = absint( $entity["attached_user_id"] ?? 0 );
+        }
+        return $this->person_site_user_id;
+    }
+
+    private function home_nodes(): array {
+        $home = SchemaIds::home();
+        $list_id = $home . "#homepage-itemlist";
+        $posts = get_posts( [ "post_type" => PublicationContentTypes::active_article_post_types(), "post_status" => "publish", "posts_per_page" => 20, "ignore_sticky_posts" => true, "suppress_filters" => false ] );
+        $list = SchemaNodes::item_list( array_map( [ $this, "article_summary" ], $posts ), $list_id, "descending" );
+
+        $page = SchemaNodes::web_page(
+            [
+                "@id" => SchemaIds::webpage( $home ),
+                "url" => $home,
+                "name" => get_bloginfo( "name" ),
+                "headline" => get_bloginfo( "name" ),
+                "description" => get_bloginfo( "description" ),
+                "isPartOf" => SchemaNodes::ref( SchemaIds::website() ),
+                "about" => SchemaNodes::ref( $this->publisher_id() ),
+                "publisher" => SchemaNodes::ref( $this->publisher_id() ),
+                "mainEntity" => [] !== $list ? SchemaNodes::ref( $list_id ) : null,
+                "inLanguage" => SchemaSources::language(),
+                "dateModified" => $this->site_last_modified(),
+            ],
+            "CollectionPage"
+        );
+
+        return array_merge( $this->site_nodes(), [ $page, $list ] );
+    }
+
+    /** An article or press release with its page, authors, image, breadcrumb and FAQ. */
+    private function article_nodes( \WP_Post $post ): array {
+        $post_id = (int) $post->ID;
+        $url = (string) get_permalink( $post );
+        $webpage_id = SchemaIds::webpage( $url );
+        $press_release = self::PRESS_RELEASE_POST_TYPE === $post->post_type;
+        $type = ArticleTypes::schema_type_for_post( $post_id );
+
+        $image = SchemaSources::post_image( $post_id, SchemaIds::primary_image( $url ) );
+        $authors = $press_release ? array_filter( [ $this->press_release_issuer( $post ) ] ) : $this->author_entities_for_post( $post_id );
+        $author_refs = $authors ? SchemaNodes::refs_to( $authors ) : [ SchemaNodes::ref( $this->publisher_id() ) ];
+        $breadcrumb = SchemaSources::post_breadcrumb( $post_id, SchemaIds::breadcrumb( $url ) );
+        $faq_rows = self::faq_rows_for_post( $post_id, true );
+        $faq = $faq_rows ? $this->faq_entity( $post_id, $url . "#faq", $faq_rows, $webpage_id ) : [];
+        $faq_ref = $faq ? [ SchemaNodes::ref( (string) $faq["@id"] ) ] : null;
+        $text = SchemaSources::post_text( $post );
+        $original = $press_release ? $this->original_url( $post_id, $url ) : "";
+
+        $page = SchemaSources::post_page(
+            $post,
+            "WebPage",
+            [
+                "about" => SchemaNodes::ref( $this->publisher_id() ),
+                "publisher" => SchemaNodes::ref( $this->publisher_id() ),
+                "primaryImageOfPage" => $image ? SchemaNodes::ref( (string) $image["@id"] ) : null,
+                "breadcrumb" => $breadcrumb ? SchemaNodes::ref( (string) $breadcrumb["@id"] ) : null,
+                "mainEntity" => SchemaNodes::ref( SchemaIds::article( $url ) ),
+                "hasPart" => $faq_ref,
+            ]
+        );
+
+        $article = SchemaNodes::article(
+            [
+                "@id" => SchemaIds::article( $url ),
+                "mainEntityOfPage" => SchemaNodes::ref( $webpage_id ),
+                "isPartOf" => SchemaNodes::ref( SchemaIds::website() ),
+                "headline" => get_the_title( $post ),
+                "name" => ValueNormalizer::text( get_the_title( $post ) ),
+                "description" => SchemaSources::post_description( $post ),
+                "articleBody" => $text,
+                "wordCount" => SchemaSources::word_count( $text ),
+                "url" => $url,
+                "datePublished" => get_the_date( DATE_W3C, $post ),
+                "dateModified" => get_the_modified_date( DATE_W3C, $post ),
+                "author" => 1 === count( $author_refs ) ? $author_refs[0] : $author_refs,
+                "publisher" => SchemaNodes::ref( $this->publisher_id() ),
+                "image" => $image ? SchemaNodes::ref( (string) $image["@id"] ) : null,
+                "thumbnailUrl" => $image["url"] ?? null,
+                "articleSection" => SchemaSources::term_names( $post_id, "category" ),
+                "keywords" => SchemaSources::term_names( $post_id, "post_tag" ),
+                "about" => SchemaSources::term_things( $post_id, "category" ),
+                "mentions" => SchemaSources::term_things( $post_id, "post_tag" ),
+                "isAccessibleForFree" => true,
+                "inLanguage" => SchemaSources::language(),
+                "genre" => $press_release ? "Press Release" : ArticleTypes::schema_type_label( $type ),
+                "copyrightYear" => get_the_date( "Y", $post ),
+                "copyrightHolder" => $press_release && $authors ? $author_refs[0] : SchemaNodes::ref( $this->publisher_id() ),
+                "isBasedOn" => $original,
+                "hasPart" => $faq_ref,
+                "speakable" => [
+                    "@type" => "SpeakableSpecification",
+                    "cssSelector" => [ "h1", ".elementor-widget-theme-post-content p:first-of-type", ".entry-content p:first-of-type" ],
+                ],
+            ],
+            $type
+        );
+
+        $nodes = array_merge( $this->site_nodes(), [ $page, $article ], $authors, [ $image, $breadcrumb, $faq ] );
+        $schema = apply_filters( "smpi_single_schema_array", [ "@context" => "https://schema.org", "@graph" => array_values( array_filter( $nodes ) ) ], $post_id );
+        return is_array( $schema ) && isset( $schema["@graph"] ) && is_array( $schema["@graph"] ) ? $schema["@graph"] : $nodes;
+    }
+
+    /** Any other single page or post type: its WebPage, image and breadcrumb. */
+    private function page_nodes( \WP_Post $post ): array {
+        $url = (string) get_permalink( $post );
+        $image = SchemaSources::post_image( (int) $post->ID, SchemaIds::primary_image( $url ) );
+        $breadcrumb = SchemaSources::post_breadcrumb( (int) $post->ID, SchemaIds::breadcrumb( $url ) );
+        $type = $this->page_type( (int) $post->ID );
+        $page = SchemaSources::post_page(
+            $post,
+            $type,
+            [
+                "about" => SchemaNodes::ref( $this->publisher_id() ),
+                "publisher" => SchemaNodes::ref( $this->publisher_id() ),
+                "mainEntity" => "AboutPage" === $type ? SchemaNodes::ref( $this->publisher_id() ) : null,
+                "primaryImageOfPage" => $image ? SchemaNodes::ref( (string) $image["@id"] ) : null,
+                "breadcrumb" => $breadcrumb ? SchemaNodes::ref( (string) $breadcrumb["@id"] ) : null,
+            ]
+        );
+        return array_merge( $this->site_nodes(), [ $page, $image, $breadcrumb ] );
+    }
+
+    /** Category, tag, author and post type archives: a CollectionPage of their latest posts. */
+    private function archive_nodes(): array {
+        global $wp_query;
+        $url = SchemaSources::current_url();
+        if ( "" === $url ) {
+            return $this->site_nodes();
+        }
+        $posts = $wp_query instanceof \WP_Query ? array_filter( $wp_query->posts, static fn( $post ): bool => $post instanceof \WP_Post ) : [];
+        $list_id = SchemaIds::for_url( $url, "itemlist" );
+        $list = SchemaNodes::item_list( array_map( [ $this, "article_summary" ], array_values( $posts ) ), $list_id );
+        $breadcrumb = SchemaSources::archive_breadcrumb( SchemaIds::breadcrumb( $url ) );
+        $object = get_queried_object();
+        $person = $object instanceof \WP_User ? SchemaSources::user_person( (int) $object->ID ) : [];
+        $description = $object instanceof \WP_Term ? term_description( $object ) : ( $object instanceof \WP_User ? get_the_author_meta( "description", $object->ID ) : "" );
+
+        $page = SchemaNodes::web_page(
+            [
+                "@id" => SchemaIds::webpage( $url ),
+                "url" => $url,
+                "name" => SchemaSources::archive_title(),
+                "description" => ValueNormalizer::text( $description ),
+                "isPartOf" => SchemaNodes::ref( SchemaIds::website() ),
+                "about" => $person ? SchemaNodes::ref( (string) $person["@id"] ) : SchemaNodes::ref( $this->publisher_id() ),
+                "mainEntity" => $person ? SchemaNodes::ref( (string) $person["@id"] ) : ( $list ? SchemaNodes::ref( $list_id ) : null ),
+                "breadcrumb" => $breadcrumb ? SchemaNodes::ref( (string) $breadcrumb["@id"] ) : null,
+                "inLanguage" => SchemaSources::language(),
+            ],
+            $person ? "ProfilePage" : "CollectionPage"
+        );
+        return array_merge( $this->site_nodes(), [ $page, $person, $list, $breadcrumb ] );
+    }
+
+    // ─── Publication data ───────────────────────────────────────────────────
 
     private function publication_entity(): array {
         $canonical = Fields::canonical_entity();
-        $website = Fields::option_url( "website", home_url( "/" ) );
         $summary = Fields::raw_option( "smpi_publication_summary" );
         if ( ! Fields::has_value( $summary ) ) {
             $summary = Fields::option( "summary" );
@@ -438,119 +439,105 @@ class SchemaManager {
         if ( ! Fields::has_value( $mission ) ) {
             $mission = Fields::option( "mission_statement" );
         }
-        $logo = $this->normalize_logo( Fields::option( "logo" ) );
-        $org_id = trailingslashit( home_url( "/" ) ) . "#organization";
+        $logo = SchemaSources::logo( Fields::option( "logo" ), SchemaIds::home() . "#logo" );
         $publication_user_id = $canonical ? absint( $canonical['attached_user_id'] ?? 0 ) : 0;
         if ( ! $publication_user_id ) {
             $publication_user_id = absint( Fields::option( "publication_user", Settings::get( "system_publication_user_id", 0 ) ) );
         }
-        $same_as = array_values( array_unique( array_merge( $this->publication_same_as( $publication_user_id ), $this->canonical_same_as( $canonical ) ) ) );
         $policy_map = [
-            "publishingPrinciples" => [ "publishing_principles", "publishing_principles" ],
-            "verificationFactCheckingPolicy" => [ "verification_fact_checking_policy", "verification_fact_checking_policy" ],
-            "correctionsPolicy" => [ "corrections_policy", "corrections_policy" ],
-            "ethicsPolicy" => [ "ethics_policy", "ethics_policy" ],
-            "diversityPolicy" => [ "diversity_policy", "diversity_policy" ],
-            "diversityStaffingReport" => [ "diversity_staffing_report", "diversity_staffing_report" ],
-            "masthead" => [ "masthead", "masthead" ],
-            "missionCoveragePrioritiesPolicy" => [ "mission_coverage_priorities_policy", "mission_coverage_priorities_policy" ],
-            "noBylinesPolicy" => [ "no_bylines_policy", "no_bylines_policy" ],
-            "unnamedSourcesPolicy" => [ "unnamed_sources_policy", "unnamed_sources_policy" ],
-            "actionableFeedbackPolicy" => [ "actionable_feedback_policy", "actionable_feedback_policy" ],
+            "publishingPrinciples" => "publishing_principles",
+            "verificationFactCheckingPolicy" => "verification_fact_checking_policy",
+            "correctionsPolicy" => "corrections_policy",
+            "ethicsPolicy" => "ethics_policy",
+            "diversityPolicy" => "diversity_policy",
+            "diversityStaffingReport" => "diversity_staffing_report",
+            "masthead" => "masthead",
+            "missionCoveragePrioritiesPolicy" => "mission_coverage_priorities_policy",
+            "noBylinesPolicy" => "no_bylines_policy",
+            "unnamedSourcesPolicy" => "unnamed_sources_policy",
+            "actionableFeedbackPolicy" => "actionable_feedback_policy",
         ];
-
-        $schema = [
-            "@type" => "NewsMediaOrganization",
-            "@id" => $org_id,
-            "name" => $canonical ? (string) $canonical['name'] : get_bloginfo( "name" ),
-            "legalName" => $this->text_field( "legal_name" ),
-            "alternateName" => $this->csv_field( "alternate_name" ),
-            "url" => $website,
-            "description" => wp_strip_all_tags( (string) ( $summary ?: $mission ?: get_bloginfo( "description" ) ) ),
-            "slogan" => wp_strip_all_tags( (string) $mission ),
-            "logo" => $logo,
-            "image" => $logo,
-            "founder" => array_merge( $this->normalize_founders( Fields::option( "founders", [] ) ), $this->normalize_founder_users( Fields::option( "founder_users", [] ) ) ),
-            "foundingDate" => Fields::option( "founding_date" ),
-            "foundingLocation" => $this->place_from_fields( "founding_location", "founding_location_url" ),
-            "address" => $this->postal_address(),
-            "location" => $this->place_from_headquarters(),
-            "email" => Fields::option( "contact_email" ) ? sanitize_email( (string) Fields::option( "contact_email" ) ) : null,
-            "telephone" => $this->text_field( "telephone" ),
-            "contactPoint" => $this->contact_points(),
-            "parentOrganization" => $this->parent_organization(),
-            "ownershipFundingInfo" => wp_strip_all_tags( (string) Fields::option( "ownership_funding_info" ) ),
-            "areaServed" => $this->csv_field( "area_served" ),
-            "knowsAbout" => $this->csv_field( "knows_about" ),
-            "keywords" => $this->csv_field( "knows_about" ),
-            "sameAs" => $same_as,
-        ];
-
-        foreach ( $policy_map as $property => $config ) {
-            $url = $this->policy_url( $config[0], $config[1] );
-            if ( $url ) {
-                $schema[ $property ] = $url;
-            }
+        $policies = [];
+        foreach ( $policy_map as $property => $field ) {
+            $policies[ $property ] = $this->policy_url( $field );
         }
 
-        return $this->clean_schema( $schema );
+        return SchemaNodes::organization(
+            $policies + [
+                "@id" => SchemaIds::organization(),
+                "name" => $canonical ? (string) $canonical['name'] : get_bloginfo( "name" ),
+                "legalName" => $this->text_field( "legal_name" ),
+                "alternateName" => $this->csv_field( "alternate_name" ),
+                "url" => Fields::option_url( "website", home_url( "/" ) ),
+                "description" => ValueNormalizer::text( (string) ( $summary ?: $mission ?: get_bloginfo( "description" ) ) ),
+                "slogan" => $summary && $mission && $mission !== $summary ? ValueNormalizer::text( (string) $mission ) : null,
+                "logo" => $logo ?: null,
+                "image" => $logo ?: null,
+                "founder" => array_merge( $this->founder_profiles( Fields::option( "founders", [] ) ), $this->founder_users( Fields::option( "founder_users", [] ) ) ),
+                "foundingDate" => Fields::option( "founding_date" ),
+                "foundingLocation" => SchemaNodes::place( [ "name" => Fields::option( "founding_location" ), "same_as" => Fields::option_url( "founding_location_url" ) ] ),
+                "address" => is_array( Fields::option( "postal_address" ) ) ? SchemaNodes::postal_address( Fields::option( "postal_address" ) ) : [],
+                "location" => SchemaNodes::place( [ "name" => Fields::option( "headquarters" ), "same_as" => Fields::option_url( "headquarters_wikipedia_url" ) ] ),
+                "email" => Fields::option( "contact_email" ),
+                "telephone" => $this->text_field( "telephone" ),
+                "contactPoint" => array_values( array_filter( array_map( [ SchemaNodes::class, "contact_point" ], array_filter( (array) Fields::option( "contact_points", [] ), "is_array" ) ) ) ),
+                "parentOrganization" => $this->parent_organization(),
+                "ownershipFundingInfo" => ValueNormalizer::text( (string) Fields::option( "ownership_funding_info" ) ),
+                "areaServed" => $this->csv_field( "area_served" ),
+                "knowsAbout" => $this->csv_field( "knows_about" ),
+                "sameAs" => SchemaNodes::same_as(
+                    Fields::option_url( "google_news_url" ),
+                    Fields::option_url( "headquarters_wikipedia_url" ),
+                    Fields::option_url( "publication_muckrack_url" ),
+                    SchemaSources::user_same_as( $publication_user_id ),
+                    $this->canonical_same_as( $canonical )
+                ),
+            ],
+            "NewsMediaOrganization"
+        );
     }
 
-    private function homepage_item_list( string $list_id, string $org_id ): array {
-        $post_types = [ "post" ];
-        if ( post_type_exists( "press-release" ) ) {
-            $post_types[] = "press-release";
-        }
-        $posts = get_posts( [ "post_type" => $post_types, "post_status" => "publish", "posts_per_page" => 20, "ignore_sticky_posts" => true, "suppress_filters" => false ] );
-        $items = [];
-        $position = 1;
-        foreach ( $posts as $post ) {
-            $permalink = get_permalink( $post );
-            $items[] = $this->clean_schema( [
-                "@type" => "ListItem",
-                "position" => $position,
-                "url" => $permalink,
-                "name" => get_the_title( $post ),
-                "item" => [
-                    "@type" => ArticleTypes::schema_type_for_post( (int) $post->ID ),
-                    "@id" => $permalink . "#article",
-                    "url" => $permalink,
-                    "name" => get_the_title( $post ),
-                    "headline" => get_the_title( $post ),
-                    "datePublished" => get_the_date( DATE_W3C, $post ),
-                    "dateModified" => get_the_modified_date( DATE_W3C, $post ),
-                    "publisher" => [ "@id" => $org_id ],
-                ],
-            ] );
-            $position++;
-        }
-        return $this->clean_schema( [ "@type" => "ItemList", "@id" => $list_id, "itemListOrder" => "https://schema.org/ItemListOrderDescending", "numberOfItems" => count( $items ), "itemListElement" => $items ] );
-    }
-
-    private function author_entity( int $user_id ): array {
+    /** The company that issued a press release, as an Organization. */
+    private function press_release_issuer( \WP_Post $post ): array {
+        $user_id = (int) $post->post_author;
         $user = $user_id ? get_userdata( $user_id ) : false;
-        if ( ! $user ) {
+        $issuer = [
+            "name" => $user ? (string) $user->display_name : "",
+            "url" => $user ? (string) get_author_posts_url( $user_id ) : "",
+            "sameAs" => [ get_post_meta( $post->ID, "author_url", true ), $user ? SchemaSources::user_same_as( $user_id ) : [] ],
+        ];
+        $issuer = (array) apply_filters( "smpi_press_release_issuer", $issuer, $post );
+        if ( "" === ValueNormalizer::text( $issuer["name"] ?? "" ) ) {
             return [];
         }
-        $url = get_author_posts_url( $user_id );
-        $description = get_the_author_meta( "description", $user_id );
-        $title = $this->user_field( $user_id, "title" ) ?: $this->user_field( $user_id, "job_title" );
-        return $this->clean_schema( [
-            "@type" => "Person",
-            "@id" => $url . "#person",
-            "name" => $user->display_name,
-            "url" => $url,
-            "image" => $this->user_avatar_url( $user_id ),
-            "description" => wp_strip_all_tags( (string) $description ),
-            "jobTitle" => wp_strip_all_tags( (string) $title ),
-            "sameAs" => $this->user_same_as( $user_id ),
-        ] );
+        $url = SchemaGraph::web_url( $issuer["url"] ?? "" );
+        return SchemaNodes::organization(
+            [
+                "@id" => SchemaIds::for_url( "" !== $url ? $url : (string) get_permalink( $post ), "organization" ),
+                "name" => ValueNormalizer::text( $issuer["name"] ),
+                "url" => $url,
+                "logo" => $issuer["logo"] ?? null,
+                "sameAs" => SchemaNodes::same_as( $issuer["sameAs"] ?? [] ),
+            ]
+        );
+    }
+
+    /** The original URL of a syndicated press release, when it was first published elsewhere. */
+    private function original_url( int $post_id, string $url ): string {
+        foreach ( [ "_hpr_canonical_source_url", "original_post_url" ] as $key ) {
+            $original = SchemaGraph::web_url( get_post_meta( $post_id, $key, true ) );
+            if ( "" !== $original && untrailingslashit( $original ) !== untrailingslashit( $url ) ) {
+                return $original;
+            }
+        }
+        return "";
     }
 
     private function author_entities_for_post( int $post_id ): array {
         $authors = [];
         foreach ( MultiAuthors::author_ids_for_post( $post_id ) as $user_id ) {
-            $entity = $this->author_entity( (int) $user_id );
+            $user_id = (int) $user_id;
+            $entity = SchemaSources::user_person( $user_id, $user_id === $this->person_site_user_id() ? SchemaIds::person() : '' );
             if ( ! empty( $entity["@id"] ) ) {
                 $authors[ (string) $entity["@id"] ] = $entity;
             }
@@ -558,56 +545,32 @@ class SchemaManager {
         return array_values( $authors );
     }
 
-    private function user_avatar_url( int $user_id ): string {
-        try {
-            $avatar = get_avatar_url( $user_id, [ "size" => 256 ] );
-            return is_string( $avatar ) ? $avatar : "";
-        } catch ( \Throwable $e ) {
-            return "";
-        }
+    /** A short Article entry for item lists. */
+    private function article_summary( \WP_Post $post ): array {
+        $url = (string) get_permalink( $post );
+        $type = in_array( $post->post_type, PublicationContentTypes::active_article_post_types(), true ) ? ArticleTypes::schema_type_for_post( (int) $post->ID ) : "WebPage";
+        return SchemaNodes::article(
+            [
+                "@id" => SchemaIds::article( $url ),
+                "url" => $url,
+                "headline" => get_the_title( $post ),
+                "name" => ValueNormalizer::text( get_the_title( $post ) ),
+                "datePublished" => get_the_date( DATE_W3C, $post ),
+                "dateModified" => get_the_modified_date( DATE_W3C, $post ),
+                "publisher" => SchemaNodes::ref( $this->publisher_id() ),
+            ],
+            $type
+        );
     }
 
-    private function primary_image_entity( int $post_id, string $id, $fallback_logo = null ): array {
-        $image = $this->featured_image_entity( $post_id, $id );
-        if ( $image ) {
-            return $image;
+    private function page_type( int $post_id ): string {
+        if ( $post_id === Settings::page_assignment_id( "about_publication" ) ) {
+            return "AboutPage";
         }
-
-        if ( is_array( $fallback_logo ) && ! empty( $fallback_logo["url"] ) ) {
-            $width = isset( $fallback_logo["width"] ) && (int) $fallback_logo["width"] > 0 ? (int) $fallback_logo["width"] : null;
-            $height = isset( $fallback_logo["height"] ) && (int) $fallback_logo["height"] > 0 ? (int) $fallback_logo["height"] : null;
-            return $this->clean_schema( [ "@type" => "ImageObject", "@id" => $id, "url" => $fallback_logo["url"], "contentUrl" => $fallback_logo["url"], "thumbnailUrl" => $fallback_logo["url"], "width" => $width, "height" => $height, "caption" => get_bloginfo( "name" ) ] );
+        if ( $post_id === Settings::page_assignment_id( "contact" ) ) {
+            return "ContactPage";
         }
-
-        return [];
-    }
-
-    private function featured_image_entity( int $post_id, string $id ): array {
-        $attachment_id = get_post_thumbnail_id( $post_id );
-        if ( ! $attachment_id ) {
-            return [];
-        }
-        $src = wp_get_attachment_image_src( $attachment_id, "full" );
-        if ( ! $src ) {
-            return [];
-        }
-        $width = isset( $src[1] ) && (int) $src[1] > 0 ? (int) $src[1] : null;
-        $height = isset( $src[2] ) && (int) $src[2] > 0 ? (int) $src[2] : null;
-        $url = esc_url_raw( (string) $src[0] );
-        return $this->clean_schema( [ "@type" => "ImageObject", "@id" => $id, "url" => $url, "contentUrl" => $url, "thumbnailUrl" => $url, "width" => $width, "height" => $height, "name" => get_the_title( $attachment_id ), "caption" => wp_strip_all_tags( (string) wp_get_attachment_caption( $attachment_id ) ), "representativeOfPage" => true ] );
-    }
-
-    private function breadcrumb_entity( int $post_id, string $id ): array {
-        $items = [ [ "@type" => "ListItem", "position" => 1, "name" => get_bloginfo( "name" ), "item" => home_url( "/" ) ] ];
-        $cats = get_the_category( $post_id );
-        if ( ! empty( $cats ) ) {
-            $items[] = [ "@type" => "ListItem", "position" => 2, "name" => $cats[0]->name, "item" => get_category_link( $cats[0] ) ];
-            $position = 3;
-        } else {
-            $position = 2;
-        }
-        $items[] = [ "@type" => "ListItem", "position" => $position, "name" => get_the_title( $post_id ), "item" => get_permalink( $post_id ) ];
-        return $this->clean_schema( [ "@type" => "BreadcrumbList", "@id" => $id, "itemListElement" => $items ] );
+        return "WebPage";
     }
 
     private function faq_entity( int $post_id, string $id, array $rows, string $webpage_id = "" ): array {
@@ -618,33 +581,16 @@ class SchemaManager {
         if ( '' !== $webpage_id ) {
             $node['mainEntityOfPage'] = [ '@id' => $webpage_id ];
         }
-        return $this->clean_schema( $node );
+        return SchemaGraph::sanitize_urls( $node );
     }
 
-    private function post_article_body( \WP_Post $post ): string {
-        $content = strip_shortcodes( (string) $post->post_content );
-        $content = wp_strip_all_tags( $content );
-        $content = preg_replace( "/\s+/", " ", $content );
-        return trim( (string) $content );
-    }
-
-    private function post_word_count( \WP_Post $post ): int {
-        $body = $this->post_article_body( $post );
-        return $body ? count( preg_split( "/\s+/", $body ) ?: [] ) : 0;
-    }
-
-    private function post_things( int $post_id, string $taxonomy ): array {
-        $terms = get_the_terms( $post_id, $taxonomy );
-        if ( ! is_array( $terms ) ) {
-            return [];
+    private static function faq_schema_enabled_for_post( int $post_id ): bool {
+        $value = Fields::get( $post_id, "post_faq_schema_enabled", "__smpi_default_on__" );
+        if ( "__smpi_default_on__" === $value || "" === $value || null === $value ) {
+            return true;
         }
 
-        $items = [];
-        foreach ( $terms as $term ) {
-            $url = get_term_link( $term, $taxonomy );
-            $items[] = $this->clean_schema( [ "@type" => "Thing", "name" => $term->name ?? "", "url" => is_wp_error( $url ) ? "" : $url ] );
-        }
-        return array_values( array_filter( $items ) );
+        return ! in_array( (string) $value, [ "0", "false", "off", "no" ], true );
     }
 
     private function site_last_modified(): string {
@@ -652,211 +598,63 @@ class SchemaManager {
         return $modified ? mysql2date( DATE_W3C, $modified, false ) : current_time( DATE_W3C );
     }
 
-    private function post_description( \WP_Post $post ): string {
-        $excerpt = has_excerpt( $post ) ? $post->post_excerpt : wp_trim_words( wp_strip_all_tags( $post->post_content ), 30 );
-        return wp_strip_all_tags( (string) $excerpt );
-    }
-
-    private function article_sections( int $post_id ): array {
-        $terms = get_the_terms( $post_id, "category" );
-        if ( ! is_array( $terms ) ) {
-            return [];
-        }
-        return array_values( array_filter( array_map( static fn( $term ) => $term->name ?? "", $terms ) ) );
-    }
-
-    private function post_keywords( int $post_id ): array {
-        $terms = get_the_terms( $post_id, "post_tag" );
-        if ( ! is_array( $terms ) ) {
-            return [];
-        }
-        return array_values( array_filter( array_map( static fn( $term ) => $term->name ?? "", $terms ) ) );
-    }
-
-    private function normalize_logo( $logo ) {
-        $url = "";
-        $width = null;
-        $height = null;
-        $attachment_id = 0;
-        if ( is_array( $logo ) && ! empty( $logo["url"] ) ) {
-            $url = SchemaGraph::web_url( $logo["url"] );
-            $width = isset( $logo["width"] ) ? (int) $logo["width"] : null;
-            $height = isset( $logo["height"] ) ? (int) $logo["height"] : null;
-            $attachment_id = absint( $logo["ID"] ?? $logo["id"] ?? 0 );
-        } elseif ( is_numeric( $logo ) ) {
-            $attachment_id = absint( $logo );
-        } elseif ( is_string( $logo ) ) {
-            $url = SchemaGraph::web_url( $logo );
-        }
-
-        if ( ! $attachment_id && $url && function_exists( "attachment_url_to_postid" ) ) {
-            $attachment_id = absint( attachment_url_to_postid( $url ) );
-        }
-        if ( $attachment_id && ( ! $url || ! $width || ! $height ) ) {
-            $src = wp_get_attachment_image_src( $attachment_id, "full" );
-            if ( $src ) {
-                $url = $url ?: SchemaGraph::web_url( $src[0] ?? "" );
-                $width = $width ?: ( isset( $src[1] ) ? (int) $src[1] : null );
-                $height = $height ?: ( isset( $src[2] ) ? (int) $src[2] : null );
-            }
-        }
-        if ( ! $url ) {
-            $site_icon_id = absint( get_option( "site_icon" ) );
-            $src = $site_icon_id ? wp_get_attachment_image_src( $site_icon_id, "full" ) : false;
-            if ( $src ) {
-                $url = SchemaGraph::web_url( $src[0] ?? "" );
-                $width = isset( $src[1] ) ? (int) $src[1] : null;
-                $height = isset( $src[2] ) ? (int) $src[2] : null;
-            } else {
-                $url = SchemaGraph::web_url( get_site_icon_url( 512 ) );
-                if ( $url ) {
-                    $width = 512;
-                    $height = 512;
-                }
-            }
-        }
-        return $url ? $this->clean_schema( [ "@type" => "ImageObject", "url" => $url, "width" => $width, "height" => $height ] ) : null;
-    }
-
-    private function normalize_founders( $founders ): array {
-        $founders = is_array( $founders ) ? $founders : [ $founders ];
+    private function founder_profiles( $founders ): array {
         $items = [];
-        foreach ( $founders as $founder ) {
-            $founder_id = $this->founder_profile_id( $founder );
-            if ( ! $founder_id ) {
-                continue;
+        foreach ( is_array( $founders ) ? $founders : [ $founders ] as $founder ) {
+            if ( is_array( $founder ) && isset( $founder["profile"] ) ) {
+                $founder = $founder["profile"];
             }
-            $items[] = [ "@type" => "Person", "name" => get_the_title( $founder_id ), "url" => get_permalink( $founder_id ) ];
+            $founder_id = is_object( $founder ) && isset( $founder->ID ) ? (int) $founder->ID : ( is_numeric( $founder ) ? (int) $founder : 0 );
+            if ( $founder_id ) {
+                $items[] = SchemaNodes::person( [ "name" => get_the_title( $founder_id ), "url" => get_permalink( $founder_id ) ] );
+            }
         }
-        return $items;
+        return array_values( array_filter( $items ) );
     }
 
-    private function founder_profile_id( $founder ): int {
-        if ( is_array( $founder ) && isset( $founder["profile"] ) ) {
-            $founder = $founder["profile"];
-        }
-        if ( is_object( $founder ) && isset( $founder->ID ) ) {
-            return (int) $founder->ID;
-        }
-        return is_numeric( $founder ) ? (int) $founder : 0;
-    }
-
-    private function normalize_founder_users( $users ): array {
-        $users = is_array( $users ) ? $users : [ $users ];
+    private function founder_users( $users ): array {
         $items = [];
-        foreach ( $users as $user_id ) {
-            $user_id = is_object( $user_id ) && isset( $user_id->ID ) ? (int) $user_id->ID : (int) $user_id;
-            $user = $user_id ? get_user_by( "id", $user_id ) : false;
-            if ( ! $user ) {
-                continue;
+        foreach ( ValueNormalizer::ids( $users ) as $user_id ) {
+            $user = get_userdata( $user_id );
+            if ( $user ) {
+                $items[] = SchemaNodes::person( [ "name" => $user->display_name, "url" => get_author_posts_url( $user_id ) ] );
             }
-            $items[] = [ "@type" => "Person", "name" => $user->display_name, "url" => get_author_posts_url( $user_id ) ];
         }
         return $items;
     }
 
     private function text_field( string $field ): string {
-        return wp_strip_all_tags( (string) Fields::option( $field ) );
+        return ValueNormalizer::text( (string) Fields::option( $field ) );
     }
 
     private function csv_field( string $field ): array {
         $value = Fields::option( $field );
-        if ( is_array( $value ) ) {
-            return array_values( array_filter( array_map( "strval", $value ) ) );
-        }
-        $parts = preg_split( "/[,\\n]+/", (string) $value );
-        return array_values( array_filter( array_map( static fn( $item ) => trim( wp_strip_all_tags( $item ) ), $parts ?: [] ) ) );
+        return is_array( $value ) ? array_values( array_filter( array_map( "strval", $value ) ) ) : ValueNormalizer::strings( (string) $value );
     }
 
-    private function policy_url( string $field, string $page_type ): string {
+    private function policy_url( string $field ): string {
         $value = Fields::option( $field );
-        $url = $this->value_to_url( $value );
-        if ( $url ) {
-            return $url;
-        }
-        $page_id = Settings::page_assignment_id( $page_type );
-        return $page_id ? (string) get_permalink( $page_id ) : "";
-    }
-
-    private function value_to_url( $value ): string {
         if ( is_object( $value ) && isset( $value->ID ) ) {
             return (string) get_permalink( (int) $value->ID );
         }
-        if ( is_numeric( $value ) ) {
+        if ( is_numeric( $value ) && (int) $value > 0 ) {
             return (string) get_permalink( (int) $value );
         }
-        if ( is_string( $value ) ) {
-            return SchemaGraph::web_url( $value );
+        $url = SchemaGraph::web_url( $value );
+        if ( "" !== $url ) {
+            return $url;
         }
-        return "";
-    }
-
-    private function place_from_headquarters(): array {
-        $name = Fields::option( "headquarters" );
-        if ( ! $name ) {
-            return [];
-        }
-        return $this->clean_schema( [ "@type" => "Place", "name" => wp_strip_all_tags( (string) $name ), "sameAs" => Fields::option_url( "headquarters_wikipedia_url" ) ] );
-    }
-
-    private function place_from_fields( string $name_field, string $url_field ): array {
-        $name = Fields::option( $name_field );
-        if ( ! $name ) {
-            return [];
-        }
-        return $this->clean_schema( [ "@type" => "Place", "name" => wp_strip_all_tags( (string) $name ), "sameAs" => Fields::option_url( $url_field ) ] );
-    }
-
-    private function postal_address(): array {
-        $value = Fields::option( "postal_address" );
-        if ( ! is_array( $value ) ) {
-            return [];
-        }
-        return $this->clean_schema( [
-            "@type" => "PostalAddress",
-            "streetAddress" => $value["street_address"] ?? "",
-            "addressLocality" => $value["address_locality"] ?? "",
-            "addressRegion" => $value["address_region"] ?? "",
-            "postalCode" => $value["postal_code"] ?? "",
-            "addressCountry" => $value["address_country"] ?? "",
-        ] );
+        $page_id = Settings::page_assignment_id( $field );
+        return $page_id ? (string) get_permalink( $page_id ) : "";
     }
 
     private function parent_organization(): array {
         $group = Fields::option( "parent_organization", [] );
         $name = is_array( $group ) ? ( $group["name"] ?? "" ) : "";
         $url = is_array( $group ) ? SchemaGraph::web_url( $group["url"] ?? "" ) : "";
-
-        if ( ! $name ) {
-            $name = Fields::option( "parent_organization_name" );
-        }
-        if ( ! $url ) {
-            $url = Fields::option_url( "parent_organization_url" );
-        }
-        if ( ! $name && ! $url ) {
-            return [];
-        }
-        return $this->clean_schema( [ "@type" => "Organization", "name" => wp_strip_all_tags( (string) $name ), "url" => $url ] );
-    }
-
-    private function contact_points(): array {
-        $rows = Fields::option( "contact_points", [] );
-        if ( ! is_array( $rows ) ) {
-            return [];
-        }
-        $items = [];
-        foreach ( $rows as $row ) {
-            if ( ! is_array( $row ) ) {
-                continue;
-            }
-            $items[] = $this->clean_schema( [ "@type" => "ContactPoint", "contactType" => $row["contact_type"] ?? "", "email" => $row["email"] ?? "", "telephone" => $row["telephone"] ?? "", "url" => SchemaGraph::web_url( $row["url"] ?? "" ) ] );
-        }
-        return array_values( array_filter( $items ) );
-    }
-
-    private function publication_same_as( int $user_id ): array {
-        $items = array_values( array_filter( [ Fields::option_url( "google_news_url" ), Fields::option_url( "headquarters_wikipedia_url" ), Fields::option_url( "publication_muckrack_url" ) ] ) );
-        return array_values( array_unique( array_merge( $items, $this->user_same_as( $user_id ) ) ) );
+        $name = $name ?: Fields::option( "parent_organization_name" );
+        $url = $url ?: Fields::option_url( "parent_organization_url" );
+        return $name || $url ? SchemaNodes::organization( [ "name" => ValueNormalizer::text( (string) $name ), "url" => $url ] ) : [];
     }
 
     private function canonical_same_as( ?array $entity ): array {
@@ -866,49 +664,14 @@ class SchemaManager {
         $items = [];
         foreach ( [ 'same_as', 'identity_links' ] as $field ) {
             $value = \Hexa\PluginCore\EntitySources\CanonicalEntityResolver::field( $entity, $field, [] );
-            foreach ( is_array( $value ) ? $value : [ $value ] as $item ) {
-                $url = is_array( $item ) ? (string) ( $item['url'] ?? $item['same_as'] ?? '' ) : (string) $item;
-                $url = SchemaGraph::web_url( $url );
-                if ( "" !== $url ) {
-                    $items[] = $url;
-                }
-            }
+            $items[] = is_array( $value ) ? $value : [ $value ];
         }
-        return array_values( array_unique( $items ) );
+        return SchemaNodes::same_as( ...$items );
     }
 
-    private function user_same_as( int $user_id ): array {
-        if ( ! $user_id ) {
-            return [];
-        }
-        $fields = [ "facebook_url", "instagram_url", "linkedin_url", "twitter_url", "x_url", "youtube_url", "crunchbase_url", "muckrack_url", "url_facebook", "url_instagram", "url_linkedin", "url_x", "url_youtube", "url_crunchbase", "website" ];
-        $items = [];
-        foreach ( $fields as $field ) {
-            $value = $this->user_field( $user_id, $field );
-            $url = SchemaGraph::web_url( $value );
-            if ( "" !== $url ) {
-                $items[] = $url;
-            }
-        }
-        return array_values( array_unique( $items ) );
-    }
-
-    private function user_field( int $user_id, string $field ) {
-        if ( \Hexa\PluginCore\Fields\Field::available() ) {
-            $value = \Hexa\PluginCore\Fields\Field::get( $field, "user_" . $user_id );
-            if ( Fields::has_value( $value ) ) {
-                return is_scalar( $value ) ? (string) $value : $value;
-            }
-        }
-        return get_user_meta( $user_id, $field, true );
-    }
-
-    private function clean_schema( array $schema ): array {
-        return SchemaGraph::sanitize_urls( $schema );
-    }
-
-    private function standalone_schema( array $schema ): array {
-        $schema = $this->clean_schema( $schema );
-        return $this->clean_schema( SchemaGraph::standalone_nodes( $schema, self::LINKED_REFERENCE_PROPERTIES ) );
+    /** @param list<array<string,mixed>> $nodes */
+    private static function document( array $nodes ): array {
+        $nodes = array_values( array_filter( $nodes ) );
+        return [] === $nodes ? [] : SchemaGraph::standalone_nodes( SchemaGraph::sanitize_urls( [ "@context" => "https://schema.org", "@graph" => $nodes ] ) );
     }
 }

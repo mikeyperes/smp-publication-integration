@@ -179,7 +179,7 @@ final class ArticleTypes {
             "analysis" => [ "label" => "Analysis", "schema_type" => "AnalysisNewsArticle", "description" => "Interpretive article that analyzes news, data, or trends." ],
             "opinion" => [ "label" => "Opinion", "schema_type" => "OpinionNewsArticle", "description" => "Opinion, column, or clearly subjective editorial article." ],
             "reportage" => [ "label" => "Reportage", "schema_type" => "ReportageNewsArticle", "description" => "Original journalistic reporting. Do not use for opinion, sponsored, satire, or PR content." ],
-            "press-release" => [ "label" => "Press Release", "schema_type" => "Article", "description" => "Press release content. Handoff to Hexa PR Wire should use this for the press-release CPT." ],
+            "press-release" => [ "label" => "Press Release", "schema_type" => "NewsArticle", "description" => "Press release content. Handoff to Hexa PR Wire should use this for the press-release CPT." ],
             "sponsored" => [ "label" => "Sponsored", "schema_type" => "AdvertiserContentArticle", "description" => "Sponsored or partner content that should not be described as independent newsroom reporting." ],
         ];
     }

@@ -79,7 +79,6 @@ final class AcfFields {
             [ "key" => self::PUBLICATION_MUCKRACK_VERIFIED_FIELD_KEY, "label" => "Publication Verified by MuckRack", "name" => self::PUBLICATION_MUCKRACK_VERIFIED_FIELD_NAME, "type" => "true_false", "ui" => 1, "instructions" => "Marks this news outlet as verified by the MuckRack editorial team. Display placement is controlled in Settings > SMP Publication Integration > Features." ],
             [ "key" => self::PUBLICATION_MUCKRACK_URL_FIELD_KEY, "label" => "Publication MuckRack URL", "name" => self::PUBLICATION_MUCKRACK_URL_FIELD_NAME, "type" => "url", "instructions" => "Public MuckRack outlet/profile URL used by the publication verification text." ],
             AcfFieldFactory::multiPostObject( [ "key" => "field_smpi_breadcrumb_disabled_objects", "label" => "Disable SMP Breadcrumbs On Specific Posts Or Pages", "name" => "smpi_breadcrumb_disabled_objects", "instructions" => "Select any posts, pages, or public custom post type entries where SMP breadcrumbs should not render. This is one multi-select field, not a repeater.", "post_types" => self::breadcrumb_disable_post_types() ] ),
-            [ 'key' => 'field_smpi_schema_markup', 'label' => 'Publication Schema Markup', 'name' => 'smpi_schema_markup', 'type' => 'textarea', 'instructions' => 'Generated JSON-LD for the current site publication. Refresh from the Schema tab.', 'rows' => 10, 'readonly' => 1 ],
         ];
         self::add_publication_shortcode_instructions( $fields );
 

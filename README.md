@@ -98,7 +98,7 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `2.3.2`
+- Version: `2.4.0`
 
 ## Ownership
 
@@ -135,9 +135,7 @@ Every article's primary author is its WordPress author. With the site's Multiple
 
 ## Schema
 
-SMP constructs publication and article nodes; Hexa WP Core owns reusable schema normalization, deduplication, safe JSON-LD encoding, and output injection. FAQ schema uses the same shared FAQ source and renderer as visible FAQ output.
-
-Rank Math coexistence, stable graph IDs, publication-logo fallbacks, article relationships, and author relationships must remain unchanged during upgrades. SMP replaces Rank Math schema only on the home and singular integration surfaces that already have an owning schema provider; ordinary pages, taxonomy archives, and post-type archives retain Rank Math's native graph.
+SMP decides which pages it covers and maps the publication's data; every node is built with Hexa WP Core's schema library (`SchemaNodes`, `SchemaSources`, `SchemaIds`) and added to Core's one shared `hexa-schema` block (`SchemaPage` source `smp-publication`, priority 20). Coverage: the site entity and WebSite on every public page; the homepage CollectionPage and ItemList; articles (type from Article Types) and press releases (NewsArticle, issuer Organization as author, `isBasedOn` the original); other pages (AboutPage and ContactPage from page assignments); category, tag, author (ProfilePage) and post type archives. Testimonials get no schema. A site whose primary entity is a person uses that person (`/#person`) as publisher instead of a news organization. FAQ schema uses the same shared FAQ source as visible FAQ output. Filters: `smpi_single_schema_array`, `smpi_press_release_issuer`. Rank Math's schema is controlled only by HWS Base Tools.
 
 ## Dashboard
 
@@ -154,7 +152,7 @@ Quick Start contains only the reusable checklist workflow and is the second tab.
 
 `smp-publication-integration.php` is the canonical plugin entry. `initialization.php` is a compatibility loader for older active-plugin records.
 
-Namespaced domain code lives under `src/`. Reusable UI, AJAX, updater, CPT, ACF, entity, FAQ, schema, taxonomy, activity-log, color, typography, and template infrastructure comes from Hexa WordPress Plugin Core 3.4.4.
+Namespaced domain code lives under `src/`. Reusable UI, AJAX, updater, CPT, ACF, entity, FAQ, schema, taxonomy, activity-log, color, typography, and template infrastructure comes from Hexa WordPress Plugin Core 3.22.0.
 
 Elementor single-post recent-content loops opt into SMP publication filtering with the exact Query ID `smpi_single_recent`. Other Posts and Loop Grid widgets remain outside SMP query mutation.
 
@@ -168,7 +166,7 @@ The plugin updater targets the repository's canonical `main` branch and register
 | --- | --- |
 | WordPress | 5.0 |
 | PHP | 8.1 |
-| Hexa WP Core bundle | 3.4.4 |
+| Hexa WP Core bundle | 3.22.0 |
 
 ACF Pro is not required: publication option and content field groups run on Hexa WP Core's custom fields, which use ACF when it is active and store the same data natively when it is not. Feature-specific integrations require their corresponding plugins.
 
@@ -187,6 +185,13 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.4.0
+
+- Schema is built with Hexa WP Core 3.22.0's shared schema library and printed in Core's one schema block per page. SMP covers the whole publication: the organization and website on every page, the homepage collection, articles, press releases, pages and archives (categories, tags, authors). Testimonials get no schema.
+- Press releases are NewsArticle with genre Press Release, the issuing company as an Organization author, and `isBasedOn` pointing at the original when the release was syndicated.
+- On a site whose primary entity is a person, the person is the publisher and SMP no longer adds a news organization with the person's name.
+- Removed SMP's own Rank Math schema removal (now one HWS Base Tools setting) and the stored Publication Schema Markup field.
 
 ### 2.3.2
 
@@ -234,7 +239,7 @@ The suite covers navigation, article defaults, article/FAQ output, authorship, t
 
 ### 2.1.0
 
-- Runs every custom field, option page and field group on Hexa WP Core 3.4.4
+- Runs every custom field, option page and field group on Hexa WP Core 3.22.0
   `Hexa\PluginCore\Fields`, so ACF Pro is no longer required or recommended;
   sites that keep ACF are unchanged because Core delegates to it.
 

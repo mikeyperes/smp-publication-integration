@@ -1016,7 +1016,7 @@ class DashboardController {
                 $variation = "[smp_publication_user]";
             } elseif ( "smpi_publication_muckrack_verified" === $name ) {
                 $variation = "[smp_publication_muckrack_verified] [smp_publication_field field=publication_muckrack_verified]";
-            } elseif ( in_array( $name, [ "smpi_founder_users", "smpi_publication_logo", "smpi_schema_markup" ], true ) ) {
+            } elseif ( in_array( $name, [ "smpi_founder_users", "smpi_publication_logo" ], true ) ) {
                 $variation = "[smp_publication_field field=" . $name . " format=json]";
             }
             $html .= "<tr><td>" . esc_html( $label ) . "</td><td><code>" . esc_html( $name ) . "</code></td><td><code>" . esc_html( "[smp_publication_field field=" . $name . "]" ) . "</code></td><td><code>" . esc_html( $variation ) . "</code></td></tr>";
@@ -1275,7 +1275,7 @@ class DashboardController {
                 "location" => "ACF options page: smp-publication-integration",
                 "description" => "Main publication profile fields, schema policy references, contact points, founder setup guidance, and fallback publication identity fields.",
                 "instructions" => "Edit these fields from the Publication Options tab. They stay always on because SMP schema and shortcodes depend on them.",
-                "fields" => [ "smpi_publication_user", "smpi_founder_profiles", "smpi_publication_summary", "smpi_publication_logo", "schema policy pages", "contactPoint", "postalAddress", "smpi_schema_markup" ],
+                "fields" => [ "smpi_publication_user", "smpi_founder_profiles", "smpi_publication_summary", "smpi_publication_logo", "schema policy pages", "contactPoint", "postalAddress" ],
                 "dependencies" => [ "ACF Pro", "SMP publication options page" ],
                 "code_example" => "[smp_publication_field field=legal_name format=text]",
                 "test_report" => "Custom fields run on " . \Hexa\PluginCore\Fields\Acf::mode() . "; the publication options group should be registered on the options page.",
@@ -1723,7 +1723,7 @@ class DashboardController {
             "",
             "Registers the <code>smpi_article_type</code> taxonomy only when the Custom Fields setting is enabled.",
             "The editor field and toggle live in Custom Fields. This reference shows the allowed values and schema mappings.",
-            "editorial-news => NewsArticle\nanalysis => AnalysisNewsArticle\nopinion => OpinionNewsArticle\nreportage => ReportageNewsArticle\npress-release => Article\nsponsored => AdvertiserContentArticle",
+            "editorial-news => NewsArticle\nanalysis => AnalysisNewsArticle\nopinion => OpinionNewsArticle\nreportage => ReportageNewsArticle\npress-release => NewsArticle\nsponsored => AdvertiserContentArticle",
             $this->article_type_selector_report_html(),
             $this->activity_log_html(),
             "",

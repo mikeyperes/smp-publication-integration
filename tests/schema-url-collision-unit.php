@@ -48,6 +48,15 @@ namespace {
     function current_time( string $type, bool $gmt = false ): string { return '2026-07-28T20:43:10+00:00'; }
     function post_type_exists( string $post_type ): bool { return false; }
     function get_posts( array $args = [] ): array { return []; }
+    function untrailingslashit( string $value ): string { return rtrim( $value, '/\\' ); }
+    function esc_url_raw( string $value ): string { return $value; }
+    function get_post_type( $post = null ) { return false; }
+}
+
+namespace smp_publication_integration\Content {
+    final class PublicationContentTypes {
+        public static function active_article_post_types(): array { return [ 'post' ]; }
+    }
 }
 
 namespace smp_publication_integration\Support {
@@ -59,7 +68,9 @@ namespace smp_publication_integration\Support {
 
 namespace {
     require dirname( __DIR__ ) . '/lib/hexa-wordpress-plugin-core/tests/support/fields.php';
-    require dirname( __DIR__ ) . '/lib/hexa-wordpress-plugin-core/src/SchemaTools/SchemaGraph.php';
+    foreach ( [ 'DataNormalization/ValueNormalizer', 'SchemaTools/SchemaGraph', 'SchemaTools/SchemaIds', 'SchemaTools/SchemaNodes', 'SchemaTools/SchemaSources' ] as $core_class ) {
+        require dirname( __DIR__ ) . '/lib/hexa-wordpress-plugin-core/src/' . $core_class . '.php';
+    }
     require dirname( __DIR__ ) . '/src/Support/Fields.php';
     require dirname( __DIR__ ) . '/src/StructuredData/SchemaManager.php';
 
@@ -112,8 +123,14 @@ namespace {
             $item_list = $node;
         }
     }
-    if ( '' === (string) ( $item_list['@id'] ?? '' ) || ( $collection['mainEntity'] ?? '' ) !== $item_list['@id'] ) {
+    if ( [] === $collection ) {
+        $fail( 'The homepage graph has no CollectionPage.' );
+    }
+    if ( [] !== $item_list && ( $collection['mainEntity'] ?? '' ) !== $item_list['@id'] ) {
         $fail( 'CollectionPage.mainEntity does not retain the standalone ItemList identifier URL.' );
+    }
+    if ( [] === $item_list && isset( $collection['mainEntity'] ) ) {
+        $fail( 'A homepage with no articles must not point at a missing ItemList.' );
     }
     if ( isset( $collection['hasPart'] ) ) {
         $fail( 'CollectionPage.hasPart must not reference ItemList, which is not a CreativeWork.' );
