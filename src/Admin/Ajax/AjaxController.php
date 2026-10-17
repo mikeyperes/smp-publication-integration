@@ -82,6 +82,16 @@ class AjaxController {
         ) )->register();
 
         ( new PluginInventoryAjaxController(
+            PluginInventory::optional_definitions(),
+            [
+                'nonce_action'  => self::NONCE,
+                'nonce_field'   => 'nonce',
+                'action_prefix' => PluginInventory::optional_action_prefix(),
+                'renderer_args' => PluginInventory::optional_renderer_args(),
+            ]
+        ) )->register();
+
+        ( new PluginInventoryAjaxController(
             PluginInventory::forbidden_definitions(),
             [
                 'nonce_action'  => self::NONCE,

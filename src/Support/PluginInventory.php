@@ -12,6 +12,10 @@ final class PluginInventory {
         return 'smpi_recommended_plugins';
     }
 
+    public static function optional_action_prefix(): string {
+        return 'smpi_optional_plugins';
+    }
+
     public static function outside_action_prefix(): string {
         return 'smpi_outside_plugins';
     }
@@ -28,11 +32,8 @@ final class PluginInventory {
 
         return [
             self::wp_org( 'classic-editor/classic-editor.php', 'Classic Editor', 'classic-editor', true ),
-            self::wp_org( 'code-snippets/code-snippets.php', 'Code Snippets', 'code-snippets', true ),
-            self::normal( 'rss-feed-post-generator-echo/rss-feed-post-generator-echo.php', 'Echo RSS Feed Post Generator', 'pro', true ),
             self::wp_org( 'elementor/elementor.php', 'Elementor', 'elementor', true ),
             self::normal( 'elementor-pro/elementor-pro.php', 'Elementor Pro', 'pro', true ),
-            self::wp_org( 'featured-image-from-url/featured-image-from-url.php', 'Featured Image from URL (FIFU)', 'featured-image-from-url', true ),
             self::normal( 'gplvault-updater/gplvault-updater.php', 'GPLVault Update Manager', 'manual', true ),
             self::github( 'hexa-pr-wire-distributor/hexa-pr-wire-distributor.php', 'Hexa PR Wire - Distributor', 'mikeyperes/hexa-pr-wire-distributor', false ),
             self::github( 'hws-base-tools/hws-base-tools.php', 'Hexa Web Systems - Website Base Tool', 'mikeyperes/hws-base-tools', false ),
@@ -44,10 +45,21 @@ final class PluginInventory {
             self::wp_org( 'google-site-kit/google-site-kit.php', 'Site Kit by Google', 'google-site-kit', true ),
             self::github( 'smp-publication-integration/smp-publication-integration.php', 'SMP Publication Integration', 'mikeyperes/smp-publication-integration', false ),
             self::github( 'smp-wp-text-to-speech/smp-wp-text-to-speech.php', 'SMP WP Text To Speech', 'mikeyperes/smp-wp-text-to-speech', false ),
-            self::definition( 'visibility-logic-elementor/conditional.php', 'Visibility Logic for Elementor', 'wordpress_org', 'visibility-logic-elementor', '', true, true, false, false ),
-            self::github( 'smp-verified-profiles/smp-verified-profiles.php', 'Verified Profiles - Scale My Publication (Michael Peres)', 'mikeyperes/smp-verified-profiles', false ),
-            self::wp_org( 'wp-optimize/wp-optimize.php', 'WP-Optimize - Clean, Compress, Cache', 'wp-optimize', false ),
+            self::wp_org( 'wordfence/wordfence.php', 'Wordfence Security', 'wordfence', true ),
             self::wp_org( 'wp-mail-smtp/wp_mail_smtp.php', 'WP Mail SMTP', 'wp-mail-smtp', true ),
+        ];
+    }
+
+    /**
+     * Plugins SMP supports but never requires; install them only on request.
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    public static function optional_definitions(): array {
+        return [
+            self::optional( 'visibility-logic-elementor/conditional.php', 'Visibility Logic for Elementor', 'wordpress_org', 'visibility-logic-elementor', '' ),
+            self::optional( 'smp-verified-profiles/smp-verified-profiles.php', 'Verified Profiles - Scale My Publication (Michael Peres)', 'github', '', 'mikeyperes/smp-verified-profiles' ),
+            self::optional( 'wp-optimize/wp-optimize.php', 'WP-Optimize - Clean, Compress, Cache', 'wordpress_org', 'wp-optimize', '' ),
         ];
     }
 
@@ -116,6 +128,27 @@ final class PluginInventory {
     /**
      * @return array<string,mixed>
      */
+    public static function optional_renderer_args(): array {
+        return [
+            'title'            => 'Optional Plugins',
+            'description'      => 'Plugins SMP supports but does not require. Install them only when the publication needs them.',
+            'action_prefix'    => self::optional_action_prefix(),
+            'nonce'            => \smp_publication_integration\Admin\Ajax::nonce(),
+            'nonce_field'      => 'nonce',
+            'persist_key'      => 'smpi-optional-plugin-stack',
+            'open'             => true,
+            'show_install_all' => false,
+            'columns'          => [
+                'auto_update' => true,
+                'version'     => true,
+                'source'      => false,
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string,mixed>
+     */
     public static function outside_renderer_args(): array {
         return self::forbidden_renderer_args();
     }
@@ -166,6 +199,10 @@ final class PluginInventory {
 
     private static function github( string $plugin_file, string $name, string $repo, bool $auto_update ): array {
         return self::definition( $plugin_file, $name, 'github', '', $repo, true, true, true, $auto_update );
+    }
+
+    private static function optional( string $plugin_file, string $name, string $source, string $wp_org_slug, string $repo ): array {
+        return self::definition( $plugin_file, $name, $source, $wp_org_slug, $repo, false, true, false, false );
     }
 
     private static function forbidden( string $plugin_file, string $name, string $slug, string $source = 'manual' ): array {

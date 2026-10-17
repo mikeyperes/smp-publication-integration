@@ -89,6 +89,14 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 ### Publishing guards
 - **Switch:** `post_featured_image_required`, `hide_home_posts_without_featured_image`, post time display `post_time_mode`, Elementor CSS cache busting `elementor_css_cache_busting`.
 
+### Plugin requirements
+
+- The Plugins tab is the single source of truth for which plugins a publication must, may and must not have.
+- Required: Classic Editor, Elementor, Elementor Pro, GPLVault Update Manager, Hexa PR Wire Distributor, HWS Base Tools, LiteSpeed Cache, Media Cleaner Pro, Rank Math SEO, Rank Math SEO PRO, Simple Local Avatars, Site Kit by Google, SMP Publication Integration, SMP WP Text To Speech, Wordfence and WP Mail SMTP.
+- Optional (installed only on request): Visibility Logic for Elementor, Verified Profiles and WP-Optimize.
+- Forbidden: JetEngine and WP User Avatars.
+- Read in code from `PluginInventory::recommended_definitions()`, `optional_definitions()` and `forbidden_definitions()`.
+
 ### Extension points
 - `smpi_dashboard_tabs`, `smpi_dashboard_tab_groups`, `smpi_dashboard_areas`, `smpi_dashboard_area_sections`, `smpi_dashboard_flat_tabs`, `smpi_render_dashboard_tab`, `smpi_publication_manifest_cache_ttl`, `smpi_publication_manifest_category_policy`, `smpi_publication_manifest_recent_content_limit`.
 
@@ -98,7 +106,7 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `2.4.1`
+- Version: `2.4.2`
 
 ## Ownership
 
@@ -185,6 +193,12 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.4.2
+
+- The Plugins tab now has three lists: Required, Optional and Forbidden.
+- Required adds Wordfence and drops Code Snippets, Echo RSS Feed Post Generator and Featured Image from URL.
+- Visibility Logic for Elementor, Verified Profiles and WP-Optimize move to Optional.
 
 ### 2.4.1
 

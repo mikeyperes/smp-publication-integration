@@ -65,6 +65,34 @@ namespace {
     assert_true( true === $recommended_by_file[ $pr_wire_file ]['checks']['installed'], 'Hexa PR Wire Distributor must check installation.' );
     assert_true( true === $recommended_by_file[ $pr_wire_file ]['checks']['active'], 'Hexa PR Wire Distributor must check activation.' );
 
+    foreach ( [ 'code-snippets/code-snippets.php', 'rss-feed-post-generator-echo/rss-feed-post-generator-echo.php', 'featured-image-from-url/featured-image-from-url.php' ] as $retired_file ) {
+        assert_true( ! isset( $recommended_by_file[ $retired_file ] ), $retired_file . ' must not be required.' );
+    }
+
+    assert_true( isset( $recommended_by_file['wordfence/wordfence.php'] ), 'Wordfence requirement is missing.' );
+
+    $optional_by_file = [];
+    foreach ( PluginInventory::optional_definitions() as $definition ) {
+        $optional_by_file[ (string) $definition['plugin_file'] ] = $definition;
+    }
+
+    $expected_optional = [
+        'smp-verified-profiles/smp-verified-profiles.php',
+        'visibility-logic-elementor/conditional.php',
+        'wp-optimize/wp-optimize.php',
+    ];
+    $actual_optional = array_keys( $optional_by_file );
+    sort( $actual_optional );
+    assert_true( $expected_optional === $actual_optional, 'Optional policy must contain exactly Verified Profiles, Visibility Logic and WP-Optimize.' );
+
+    foreach ( $optional_by_file as $plugin_file => $definition ) {
+        assert_true( false === $definition['required'], $plugin_file . ' must not be required.' );
+        assert_true( true === $definition['recommended'], $plugin_file . ' must be listed as optional.' );
+        assert_true( ! isset( $recommended_by_file[ $plugin_file ] ), $plugin_file . ' must not also be required.' );
+    }
+
+    assert_true( 'Optional Plugins' === PluginInventory::optional_renderer_args()['title'], 'Optional section title is incorrect.' );
+
     $forbidden = PluginInventory::forbidden_definitions();
     $forbidden_by_file = [];
     foreach ( $forbidden as $definition ) {
@@ -109,5 +137,5 @@ namespace {
     assert_true( ! str_contains( $source, 'foreach ( get_plugins()' ), 'SMP must not infer forbidden policy by scanning all installed plugins.' );
     assert_true( ! str_contains( $source, 'forbidden_slugs' ), 'Legacy dynamic forbidden fallback remains.' );
 
-    echo "PASS: SMP plugin requirements and explicit forbidden policy are isolated correctly.\n";
+    echo "PASS: SMP required, optional and explicit forbidden policy are isolated correctly.\n";
 }

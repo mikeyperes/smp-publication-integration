@@ -3514,13 +3514,17 @@ HTML;
                     'args'        => PluginInventory::recommended_renderer_args(),
                 ],
                 [
+                    'definitions' => PluginInventory::optional_definitions(),
+                    'args'        => PluginInventory::optional_renderer_args(),
+                ],
+                [
                     'definitions' => PluginInventory::forbidden_definitions(),
                     'args'        => PluginInventory::forbidden_renderer_args(),
                 ],
             ],
             [
                 'title'       => 'Plugins',
-                'description' => 'SMP plugin requirements and explicitly forbidden plugins.',
+                'description' => 'SMP required, optional and explicitly forbidden plugins.',
                 'persist_key' => 'smpi-plugin-inventory',
                 'open'        => true,
             ]
