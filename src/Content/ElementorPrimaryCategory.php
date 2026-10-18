@@ -47,12 +47,20 @@ final class ElementorPrimaryCategory {
             )
         );
 
+        // The default category steps aside for any other category. A post filed only
+        // under it still shows it, unless it is WordPress's "Uncategorized" placeholder.
         if ( Settings::bool( 'elementor_primary_category_exclude_default' ) ) {
             $default_category = absint( get_option( 'default_category', 0 ) );
-            $terms = array_values(
+            $others = array_values(
                 array_filter(
                     $terms,
                     static fn( object $term ): bool => (int) $term->term_id !== $default_category
+                )
+            );
+            $terms = $others ?: array_values(
+                array_filter(
+                    $terms,
+                    static fn( object $term ): bool => 'uncategorized' !== ( $term->slug ?? '' )
                 )
             );
         }

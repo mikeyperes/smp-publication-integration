@@ -33,7 +33,7 @@ namespace {
     use smp_publication_integration\Content\ElementorPrimaryCategory;
     use smp_publication_integration\Support\Settings;
 
-    $term = static fn( int $id, string $name ): object => (object) [ 'term_id' => $id, 'name' => $name ];
+    $term = static fn( int $id, string $name ): object => (object) [ 'term_id' => $id, 'name' => $name, 'slug' => strtolower( $name ) ];
 
     $GLOBALS['smpi_terms'] = [ $term( 1, 'Uncategorized' ), $term( 2, 'Finance' ), $term( 3, 'Business' ) ];
     $GLOBALS['smpi_meta']['rank_math_primary_category'] = 3;
@@ -57,6 +57,14 @@ namespace {
         exit( 1 );
     }
 
+    $GLOBALS['smpi_terms'] = [ $term( 1, 'Blog' ) ];
+    $selected = ElementorPrimaryCategory::term( 42 );
+    if ( ! $selected || 1 !== (int) $selected->term_id ) {
+        fwrite( STDERR, "FAIL: A real default category must show when it is the post's only category.\n" );
+        exit( 1 );
+    }
+
+    $GLOBALS['smpi_terms'] = [ $term( 1, 'Uncategorized' ) ];
     Settings::$values['elementor_primary_category_exclude_default'] = false;
     $selected = ElementorPrimaryCategory::term( 42 );
     if ( ! $selected || 1 !== (int) $selected->term_id ) {
@@ -70,5 +78,5 @@ namespace {
         exit( 1 );
     }
 
-    echo "PASS: Elementor primary category selects one category and excludes Uncategorized by default.\n";
+    echo "PASS: Elementor primary category selects one category and excludes the default category unless it is a post's only real one.\n";
 }
