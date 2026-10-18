@@ -59,7 +59,6 @@ final class PluginInventory {
         return [
             self::optional( 'visibility-logic-elementor/conditional.php', 'Visibility Logic for Elementor', 'wordpress_org', 'visibility-logic-elementor', '' ),
             self::optional( 'smp-verified-profiles/smp-verified-profiles.php', 'Verified Profiles - Scale My Publication (Michael Peres)', 'github', '', 'mikeyperes/smp-verified-profiles' ),
-            self::optional( 'wp-optimize/wp-optimize.php', 'WP-Optimize - Clean, Compress, Cache', 'wordpress_org', 'wp-optimize', '' ),
         ];
     }
 
@@ -77,6 +76,8 @@ final class PluginInventory {
         return [
             self::forbidden( 'jet-engine/jet-engine.php', 'JetEngine', 'jet-engine' ),
             self::forbidden( 'wp-user-avatars/wp-user-avatars.php', 'WP User Avatars', 'wp-user-avatars' ),
+            self::forbidden( 'wp-optimize/wp-optimize.php', 'WP-Optimize - Clean, Compress, Cache', 'wp-optimize' ),
+            self::forbidden( 'wp-sweep/wp-sweep.php', 'WP Sweep', 'wp-sweep' ),
         ];
     }
 

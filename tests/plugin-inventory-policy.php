@@ -79,11 +79,10 @@ namespace {
     $expected_optional = [
         'smp-verified-profiles/smp-verified-profiles.php',
         'visibility-logic-elementor/conditional.php',
-        'wp-optimize/wp-optimize.php',
     ];
     $actual_optional = array_keys( $optional_by_file );
     sort( $actual_optional );
-    assert_true( $expected_optional === $actual_optional, 'Optional policy must contain exactly Verified Profiles, Visibility Logic and WP-Optimize.' );
+    assert_true( $expected_optional === $actual_optional, 'Optional policy must contain exactly Verified Profiles and Visibility Logic.' );
 
     foreach ( $optional_by_file as $plugin_file => $definition ) {
         assert_true( false === $definition['required'], $plugin_file . ' must not be required.' );
@@ -102,12 +101,14 @@ namespace {
     $expected_forbidden = [
         'jet-engine/jet-engine.php',
         'wp-user-avatars/wp-user-avatars.php',
+        'wp-optimize/wp-optimize.php',
+        'wp-sweep/wp-sweep.php',
     ];
     $actual_forbidden = array_keys( $forbidden_by_file );
     sort( $expected_forbidden );
     sort( $actual_forbidden );
 
-    assert_true( $expected_forbidden === $actual_forbidden, 'Forbidden policy must contain exactly JetEngine and WP User Avatars.' );
+    assert_true( $expected_forbidden === $actual_forbidden, 'Forbidden policy must contain exactly JetEngine, WP User Avatars, WP-Optimize and WP Sweep.' );
 
     foreach ( $forbidden_by_file as $plugin_file => $definition ) {
         assert_true( true === $definition['should_not_contain'], $plugin_file . ' must be explicitly forbidden.' );
