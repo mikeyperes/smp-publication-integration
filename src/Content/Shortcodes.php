@@ -131,12 +131,25 @@ final class Shortcodes {
             return "";
         }
 
-        if ( "text" === sanitize_key( (string) $atts["format"] ) ) {
+        $format = sanitize_key( (string) $atts["format"] );
+        if ( "text" === $format ) {
             $text = [];
             foreach ( $items as $item ) {
                 $text[] = "Q: " . $item["question"] . " A: " . wp_strip_all_tags( (string) $item["answer"] );
             }
             return esc_html( implode( " ", $text ) );
+        }
+
+        if ( "accordion" === $format ) {
+            $html = '<div class="smpi-template-list smpi-post-faq-list smpi-post-faq-accordion">';
+            foreach ( $items as $item ) {
+                $answer = TemplateMarkup::decorate_rich_text( wpautop( (string) $item["answer"] ), "post-faq" );
+                $html .= '<details class="smpi-template-item smpi-post-faq-item smpi-post-faq-accordion-item">';
+                $html .= '<summary class="smpi-template-title smpi-post-faq-question smpi-post-faq-accordion-question"><span class="smpi-template-text smpi-post-faq-question-text">' . esc_html( (string) $item["question"] ) . '</span></summary>';
+                $html .= '<div class="smpi-template-content smpi-post-faq-answer smpi-post-faq-accordion-answer">' . wp_kses_post( $answer ) . '</div>';
+                $html .= '</details>';
+            }
+            return ArticleStyles::wrap_post_faqs( $html . '</div>', sanitize_key( (string) $atts["style"] ) );
         }
 
         $html = $manager->renderItems(

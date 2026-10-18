@@ -56,7 +56,7 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 ### Table of contents
 - **Does:** a table of contents from the article's headings.
 - **Switch:** `table_of_contents_enabled`; automatic on single posts with `table_of_contents_auto_single`.
-- **Use:** `[smp_table_of_contents post_id="" title="Table of Contents" style=""]`.
+- **Use:** `[smp_table_of_contents post_id="" title="Table of Contents" style="" levels="h2,h3,h4" open="" markers=""]`. `levels` accepts any of `h2,h3,h4`; `open="always"` renders open at every width; `open="desktop"` renders open above 1024px and closed at smaller widths; `markers="leading-zero"` adds explicit `01`, `02` marker spans. Defaults preserve the existing closed h2-h4 output. An explicitly supplied `title` is used by every style, including `unstyled`.
 - **Code:** `src/Content/TableOfContents.php`
 
 ### Estimated read time
@@ -64,10 +64,15 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 - **Use:** `[smp_estimated_read_time post_id="" unit="minutes" wpm="" format="friendly" output="" suffix="read"]`.
 - **Code:** `src/Content/EstimatedReadTime.php`
 
+### Published date
+- **Does:** the article's original published date and time in the site timezone, without the relative-date display filter.
+- **Use:** `[smp_post_date post_id="" format="M j, Y · g:i A"]`.
+- **Code:** `src/Content/PostTime.php`
+
 ### Post summary and FAQs
 - **Does:** an article's ACF summary and FAQ blocks, placed automatically or by shortcode.
 - **Switch:** `post_summary_acf_enabled`, `post_faqs_acf_enabled`.
-- **Use:** `[smp_post_summary post_id="" format="html" style=""]`, `[smp_post_faqs post_id="" format="html" style=""]`, any post ACF field `[smp_post_acf field="" post_id="" format="html"]`.
+- **Use:** `[smp_post_summary post_id="" format="html" style=""]`, `[smp_post_faqs post_id="" format="html|accordion|text" style=""]`, any post ACF field `[smp_post_acf field="" post_id="" format="html"]`. `format="accordion"` renders structured FAQ rows as native closed `details` and `summary` elements. It does not parse or migrate FAQ text already embedded in older article content.
 - **Code:** `src/Content/Shortcodes.php`, `src/Content/PostSummaryPlacement.php`, `src/Content/PostFaqPlacement.php`
 
 ### Publication profile values
@@ -106,7 +111,7 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `2.4.5`
+- Version: `2.4.6`
 
 ## Ownership
 
@@ -193,6 +198,10 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.4.6
+
+- Adds reusable article-template shortcodes for an SSR table of contents, structured FAQ rows and fixed published dates, including responsive desktop-open contents behavior and generated counter support.
 
 ### 2.4.5
 

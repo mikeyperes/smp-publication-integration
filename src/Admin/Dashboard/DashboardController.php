@@ -721,7 +721,7 @@ class DashboardController {
     }
 
     public static function shortcode_catalog(): array {
-        $A = "src/Content/AuthorShortcodes.php"; $AS = "src/Content/AuthorSocialIcons.php"; $S = "src/Content/Shortcodes.php"; $M = "src/Content/MultiAuthors.php"; $MR = "src/Content/MuckRackVerification.php"; $TOC = "src/Content/TableOfContents.php"; $BC = "src/Content/Breadcrumbs.php"; $RT = "src/Content/EstimatedReadTime.php";
+        $A = "src/Content/AuthorShortcodes.php"; $AS = "src/Content/AuthorSocialIcons.php"; $S = "src/Content/Shortcodes.php"; $M = "src/Content/MultiAuthors.php"; $MR = "src/Content/MuckRackVerification.php"; $TOC = "src/Content/TableOfContents.php"; $BC = "src/Content/Breadcrumbs.php"; $RT = "src/Content/EstimatedReadTime.php"; $PT = "src/Content/PostTime.php";
         $authDetail = function( $source, $file, $type ) use ( $A ) { return [ "field" => "user meta", "group" => "WP user profile", "source" => $source, "file" => $file, "plugin" => "SMP Publication Integration", "type" => $type, "edit" => "author" ]; };
         return [
             [ "key" => "author-identity", "title" => "Author identity & bio", "layer" => "Author layer", "live" => "author",
@@ -787,11 +787,11 @@ class DashboardController {
                 [ "tag" => "smp_post_summary", "desc" => "The post summary (What to know) block, from the post summary ACF field. The style chooses the visual treatment.", "type" => "HTML block", "params" => "style (sum00..sum05), post_id",
                   "variations" => [ [ "code" => "[smp_post_summary style=\"sum00\"]", "label" => "Grey card" ], [ "code" => "[smp_post_summary style=\"sum01\"]", "label" => "Left accent card" ], [ "code" => "[smp_post_summary style=\"sum02\"]", "label" => "Top rule" ], [ "code" => "[smp_post_summary style=\"sum03\"]", "label" => "Bordered header" ], [ "code" => "[smp_post_summary style=\"sum04\"]", "label" => "Highlight panel" ], [ "code" => "[smp_post_summary style=\"sum05\"]", "label" => "Diamond briefing" ] ],
                   "detail" => [ "field" => "post_summary", "group" => "Post - Header", "source" => "ACF post field post_summary", "file" => $S, "plugin" => "SMP Publication Integration", "type" => "HTML", "edit" => "post" ] ],
-                [ "tag" => "smp_post_faqs", "desc" => "The post FAQ accordion, from the FAQ items ACF repeater. The style chooses the visual treatment.", "type" => "HTML block", "params" => "style (faq00..faq04), post_id",
-                  "variations" => [ [ "code" => "[smp_post_faqs style=\"faq00\"]", "label" => "Plain dividers" ], [ "code" => "[smp_post_faqs style=\"faq02\"]", "label" => "Cards" ], [ "code" => "[smp_post_faqs style=\"faq03\"]", "label" => "Numbered" ], [ "code" => "[smp_post_faqs style=\"faq04\"]", "label" => "Soft cards" ] ],
+                [ "tag" => "smp_post_faqs", "desc" => "The post FAQ block, from structured FAQ items. format=accordion uses native details and summary elements.", "type" => "HTML block", "params" => "format (html|accordion|text), style (faq00..faq04), post_id",
+                  "variations" => [ [ "code" => "[smp_post_faqs format=\"accordion\" style=\"unstyled\"]", "label" => "Native accordion" ], [ "code" => "[smp_post_faqs style=\"faq00\"]", "label" => "Plain dividers" ], [ "code" => "[smp_post_faqs style=\"faq02\"]", "label" => "Cards" ], [ "code" => "[smp_post_faqs style=\"faq03\"]", "label" => "Numbered" ], [ "code" => "[smp_post_faqs style=\"faq04\"]", "label" => "Soft cards" ] ],
                   "detail" => [ "field" => "post_faq_items", "group" => "Post - Header", "source" => "ACF repeater post_faq_items", "file" => $S, "plugin" => "SMP Publication Integration", "type" => "HTML", "edit" => "post" ] ],
-                [ "tag" => "smp_table_of_contents", "requires" => "the Table of contents feature (Settings, Features tab)", "requires_key" => "table_of_contents_enabled", "desc" => "A table of contents built from the post h2 to h4 headings. The style chooses the visual treatment.", "type" => "HTML block", "params" => "style (toc00..toc04), title, post_id",
-                  "variations" => [ [ "code" => "[smp_table_of_contents style=\"toc02\"]", "label" => "Soft grey box" ], [ "code" => "[smp_table_of_contents style=\"toc03\"]", "label" => "Numbered panel" ], [ "code" => "[smp_table_of_contents style=\"toc04\"]", "label" => "Pill chips" ] ],
+                [ "tag" => "smp_table_of_contents", "requires" => "the Table of contents feature (Settings, Features tab)", "requires_key" => "table_of_contents_enabled", "desc" => "A server-rendered table of contents built from selected post heading levels. The style chooses the visual treatment.", "type" => "HTML block", "params" => "style (toc00..toc04), title, levels (h2,h3,h4), open (always|desktop), markers (leading-zero), post_id",
+                  "variations" => [ [ "code" => "[smp_table_of_contents style=\"unstyled\" title=\"Contents\" levels=\"h2\" open=\"desktop\" markers=\"leading-zero\"]", "label" => "Elementor h2 contents" ], [ "code" => "[smp_table_of_contents style=\"toc02\"]", "label" => "Soft grey box" ], [ "code" => "[smp_table_of_contents style=\"toc03\"]", "label" => "Numbered panel" ], [ "code" => "[smp_table_of_contents style=\"toc04\"]", "label" => "Pill chips" ] ],
                   "detail" => [ "field" => "-", "group" => "-", "source" => "parsed post headings (h2-h4)", "file" => $TOC, "plugin" => "SMP Publication Integration", "type" => "HTML", "edit" => "post" ] ],
                 [ "tag" => "smp_post_acf", "attrs_enum" => [ [ "field" => "post_summary", "label" => "Post summary" ], [ "field" => "post_faq_items", "label" => "Post FAQ items" ] ], "desc" => "Renders a named post ACF field (post_summary or post_faq_items) with SMP block styling.", "type" => "HTML block", "params" => "field (post_summary|post_faq_items), style, post_id", "detail" => [ "field" => "post_summary | post_faq_items", "group" => "Post - Header", "source" => "ACF post field passed via field=", "file" => $S, "plugin" => "SMP Publication Integration", "type" => "HTML", "edit" => "post" ] ],
               ] ],
@@ -801,6 +801,7 @@ class DashboardController {
               "items" => [
                 [ "tag" => "smp_breadcrumbs", "requires" => "the Breadcrumbs feature (Settings, Features tab)", "requires_key" => "breadcrumbs_enabled", "desc" => "The breadcrumb trail for the current post or page. Skips posts listed in the breadcrumb disable setting.", "type" => "HTML", "params" => "post_id", "detail" => [ "field" => "smpi_breadcrumb_disabled_objects (disable list)", "group" => "Publication Profile", "source" => "WP object hierarchy plus breadcrumb disable setting", "file" => $BC, "plugin" => "SMP Publication Integration", "type" => "HTML", "edit" => "post" ] ],
                 [ "tag" => "smp_estimated_read_time", "requires" => "the Estimated read time feature (Settings, Features tab)", "requires_key" => "estimated_read_time_enabled", "desc" => "The estimated reading time of the post, computed from its word count.", "type" => "Text", "params" => "post_id", "detail" => [ "field" => "-", "group" => "-", "source" => "computed from post word count", "file" => $RT, "plugin" => "SMP Publication Integration", "type" => "Text", "edit" => "post" ] ],
+                [ "tag" => "smp_post_date", "desc" => "The original published date and time in the site timezone, independent of the relative-date display setting.", "type" => "Text", "params" => "format, post_id", "variations" => [ [ "code" => "[smp_post_date format=\"M j, Y · g:i A\"]", "label" => "Article date row" ] ], "detail" => [ "field" => "post_date", "group" => "WordPress post", "source" => "original WordPress publication timestamp", "file" => $PT, "plugin" => "SMP Publication Integration", "type" => "Text", "edit" => "post" ] ],
               ] ],
             [ "key" => "publication", "title" => "Publication / global", "layer" => "Publication layer", "live" => "publication",
               "blurb" => "Publication-wide data from the SMP publication profile (legal name, contact, mission, policy pages, founders) plus the publication verified badge. Edited in SMP settings, not per post.",
@@ -1446,6 +1447,7 @@ class DashboardController {
                 [
                     [ "Default", "[smp_table_of_contents]" ],
                     [ "Choose a design", "[smp_table_of_contents style=\"toc02\"]" ],
+                    [ "Elementor h2 contents", "[smp_table_of_contents style=\"unstyled\" title=\"Contents\" levels=\"h2\" open=\"desktop\" markers=\"leading-zero\"]" ],
                     [ "Another post", "[smp_table_of_contents post_id=\"123\" title=\"In this article\"]" ],
                 ]
             );
@@ -1454,7 +1456,7 @@ class DashboardController {
             "table_of_contents_enabled",
             "No ACF changes. Parses post headings from post_content.",
             "Builds a table of contents from post headings. Place it by shortcode or automatically above single-post content.",
-            "[smp_table_of_contents]\n[smp_table_of_contents style=\"toc02\"]\n[smp_table_of_contents post_id=\"123\" title=\"In this article\"]",
+            "[smp_table_of_contents]\n[smp_table_of_contents style=\"toc02\"]\n[smp_table_of_contents style=\"unstyled\" title=\"Contents\" levels=\"h2\" open=\"desktop\" markers=\"leading-zero\"]\n[smp_table_of_contents post_id=\"123\" title=\"In this article\"]",
             $this->table_of_contents_report_html(),
             $this->activity_log_html(),
             $toc_controls
@@ -1564,6 +1566,7 @@ class DashboardController {
                 "Use the shortcode for manual placement. Automatic modes insert the same canonical FAQ output once per article.",
                 [
                     [ "Recommended", "[smp_post_faqs]" ],
+                    [ "Native accordion", "[smp_post_faqs format=\"accordion\" style=\"unstyled\"]" ],
                     [ "ACF alias", "[smp_post_acf field=\"post_faq_items\"]" ],
                     [ "Another post", "[smp_post_faqs post_id=\"123\"]" ],
                 ]

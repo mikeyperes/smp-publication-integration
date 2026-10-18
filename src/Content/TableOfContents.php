@@ -23,16 +23,37 @@ final class TableOfContents {
         if ( ! Settings::bool( "table_of_contents_enabled" ) ) {
             return "";
         }
-        $atts = shortcode_atts( [ "post_id" => 0, "title" => "Table of Contents", "style" => "" ], $atts, self::SHORTCODE );
+        $title_supplied = array_key_exists( "title", $atts );
+        $atts = shortcode_atts(
+            [
+                "post_id" => 0,
+                "title" => "Table of Contents",
+                "style" => "",
+                "levels" => "h2,h3,h4",
+                "open" => "",
+                "markers" => "",
+            ],
+            $atts,
+            self::SHORTCODE
+        );
         $post = $this->resolve_post( (int) $atts["post_id"] );
         if ( ! $post ) {
             return "";
         }
-        $items = self::items_for_post( $post );
+        $items = self::filter_items_by_levels( self::items_for_post( $post ), (string) $atts["levels"] );
         if ( empty( $items ) ) {
             return "";
         }
-        return self::build_toc_from_items( $items, (string) $atts["title"], sanitize_key( (string) $atts["style"] ) ) . self::shortcode_anchor_script( $items );
+        $open_mode = self::normalize_open_mode( (string) $atts["open"] );
+        $html = self::build_toc_from_items(
+            $items,
+            (string) $atts["title"],
+            sanitize_key( (string) $atts["style"] ),
+            $title_supplied,
+            $open_mode,
+            sanitize_key( (string) $atts["markers"] )
+        );
+        return $html . self::responsive_open_script( $open_mode ) . self::shortcode_anchor_script( $items );
     }
 
     public function filter_content( string $content ): string {
@@ -98,7 +119,7 @@ final class TableOfContents {
         return [ "level" => 2, "text" => ArticleStyles::summary_title( $style ), "id" => "smpi-summary-heading", "source" => "summary" ];
     }
 
-    private static function build_toc_from_items( array $items, string $title, string $style = "" ): string {
+    private static function build_toc_from_items( array $items, string $title, string $style = "", bool $title_supplied = false, string $open_mode = "", string $markers = "" ): string {
         if ( empty( $items ) ) {
             return "";
         }
@@ -106,20 +127,56 @@ final class TableOfContents {
         $class = TemplateMarkup::root_classes( "toc", [ "smpi-table-of-contents", "smpi-" . $style, "smpi-toc-collapsible" ] );
         $skin = "unstyled" === $style ? "unstyled" : "styled";
         $skin_attribute = " data-smpi-skin=\"" . esc_attr( $skin ) . "\"";
+        $open_attribute = in_array( $open_mode, [ "always", "desktop" ], true ) ? " open" : "";
+        $responsive_attribute = "desktop" === $open_mode ? " data-smpi-open=\"desktop\"" : "";
+        $markers_attribute = "leading-zero" === $markers ? " data-smpi-markers=\"leading-zero\"" : "";
         $caret = "<span class=\"smpi-toc-caret\" aria-hidden=\"true\"></span>";
         if ( "toc04" === $style ) {
-            $html = "<details class=\"" . esc_attr( $class ) . "\"" . $skin_attribute . "><summary class=\"smpi-template-title smpi-toc-label\"><span class=\"smpi-template-text smpi-toc-label-text\">" . esc_html( "Jump to" ) . "</span>" . $caret . "</summary><div class=\"smpi-template-content smpi-template-list smpi-toc-panel smpi-toc-list\">";
-            foreach ( $items as $item ) {
-                $html .= "<a class=\"smpi-template-item smpi-template-link smpi-toc-item smpi-toc-link\" href=#" . esc_attr( $item["id"] ) . ">" . esc_html( $item["text"] ) . "</a>";
+            $label = $title_supplied ? $title : "Jump to";
+            $html = "<details class=\"" . esc_attr( $class ) . "\"" . $skin_attribute . $responsive_attribute . $markers_attribute . $open_attribute . "><summary class=\"smpi-template-title smpi-toc-label\"><span class=\"smpi-template-text smpi-toc-label-text\">" . esc_html( $label ) . "</span>" . $caret . "</summary><div class=\"smpi-template-content smpi-template-list smpi-toc-panel smpi-toc-list\">";
+            foreach ( $items as $index => $item ) {
+                $ordinal = "leading-zero" === $markers ? "<span class=\"smpi-toc-ordinal\" aria-hidden=\"true\">" . esc_html( sprintf( "%02d", $index + 1 ) ) . "</span>" : "";
+                $html .= "<a class=\"smpi-template-item smpi-template-link smpi-toc-item smpi-toc-link\" href=#" . esc_attr( $item["id"] ) . ">" . $ordinal . esc_html( $item["text"] ) . "</a>";
             }
             return $html . "</div></details>";
         }
-        $label = "toc00" === $style ? "In this article" : ( in_array( $style, [ "unstyled", "toc02" ], true ) ? "On this page" : $title );
-        $html = "<details class=\"" . esc_attr( $class ) . "\"" . $skin_attribute . "><summary class=\"smpi-template-title smpi-toc-label\"><span class=\"smpi-template-text smpi-toc-label-text\">" . esc_html( $label ) . "</span>" . $caret . "</summary><ol class=\"smpi-template-content smpi-template-list smpi-toc-list\">";
-        foreach ( $items as $item ) {
-            $html .= "<li class=\"smpi-template-item smpi-toc-item smpi-toc-level-" . esc_attr( (string) $item["level"] ) . "\"><a class=\"smpi-template-link smpi-toc-link\" href=#" . esc_attr( $item["id"] ) . ">" . esc_html( $item["text"] ) . "</a></li>";
+        $label = $title_supplied ? $title : ( "toc00" === $style ? "In this article" : ( in_array( $style, [ "unstyled", "toc02" ], true ) ? "On this page" : $title ) );
+        $html = "<details class=\"" . esc_attr( $class ) . "\"" . $skin_attribute . $responsive_attribute . $markers_attribute . $open_attribute . "><summary class=\"smpi-template-title smpi-toc-label\"><span class=\"smpi-template-text smpi-toc-label-text\">" . esc_html( $label ) . "</span>" . $caret . "</summary><ol class=\"smpi-template-content smpi-template-list smpi-toc-list\">";
+        foreach ( $items as $index => $item ) {
+            $ordinal = "leading-zero" === $markers ? "<span class=\"smpi-toc-ordinal\" aria-hidden=\"true\">" . esc_html( sprintf( "%02d", $index + 1 ) ) . "</span>" : "";
+            $html .= "<li class=\"smpi-template-item smpi-toc-item smpi-toc-level-" . esc_attr( (string) $item["level"] ) . "\">" . $ordinal . "<a class=\"smpi-template-link smpi-toc-link\" href=#" . esc_attr( $item["id"] ) . ">" . esc_html( $item["text"] ) . "</a></li>";
         }
         return $html . "</ol></details>";
+    }
+
+    private static function filter_items_by_levels( array $items, string $levels ): array {
+        $requested = preg_split( "/[\\s,|]+/", strtolower( $levels ), -1, PREG_SPLIT_NO_EMPTY );
+        $requested = is_array( $requested ) ? array_values( array_intersect( [ "h2", "h3", "h4" ], $requested ) ) : [];
+        if ( empty( $requested ) ) {
+            $requested = [ "h2", "h3", "h4" ];
+        }
+        $levels_by_number = array_map(
+            static fn( string $level ): int => (int) substr( $level, 1 ),
+            $requested
+        );
+        return array_values(
+            array_filter(
+                $items,
+                static fn( array $item ): bool => in_array( (int) ( $item["level"] ?? 0 ), $levels_by_number, true )
+            )
+        );
+    }
+
+    private static function normalize_open_mode( string $open ): string {
+        $open = sanitize_key( $open );
+        return in_array( $open, [ "always", "desktop" ], true ) ? $open : "";
+    }
+
+    private static function responsive_open_script( string $open_mode ): string {
+        if ( "desktop" !== $open_mode ) {
+            return "";
+        }
+        return '<script class="smpi-toc-responsive-open-script" data-no-optimize="1">(function(script){var details=script&&script.previousElementSibling;if(!details||!details.matches("details[data-smpi-open=desktop]"))return;var media=window.matchMedia("(min-width:1025px)");function sync(){if(media.matches){details.setAttribute("open","");}else{details.removeAttribute("open");}}sync();if(media.addEventListener){media.addEventListener("change",sync);}else if(media.addListener){media.addListener(sync);}})(document.currentScript);</script>';
     }
 
     private static function items( string $content ): array {

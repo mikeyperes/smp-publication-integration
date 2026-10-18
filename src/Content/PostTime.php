@@ -9,9 +9,43 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 final class PostTime {
+    public const SHORTCODE = 'smp_post_date';
+
     public function register(): void {
         add_filter( 'get_the_date', [ $this, 'filter_date' ], 10, 3 );
         add_filter( 'get_the_time', [ $this, 'filter_time' ], 10, 3 );
+        add_shortcode( self::SHORTCODE, [ $this, 'render_date_shortcode' ] );
+    }
+
+    public function render_date_shortcode( array $atts = [] ): string {
+        $atts = shortcode_atts(
+            [
+                'post_id' => 0,
+                'format'  => 'M j, Y · g:i A',
+            ],
+            $atts,
+            self::SHORTCODE
+        );
+        $post = get_post( (int) $atts['post_id'] ?: null );
+        if ( ! $post instanceof \WP_Post ) {
+            return '';
+        }
+
+        $format = (string) $atts['format'];
+        if ( '' === $format ) {
+            $format = (string) get_option( 'date_format', 'F j, Y' );
+        }
+        $timestamp = function_exists( 'get_post_timestamp' )
+            ? get_post_timestamp( $post, 'date' )
+            : get_post_time( 'U', true, $post );
+        if ( ! is_int( $timestamp ) || $timestamp <= 0 ) {
+            return '';
+        }
+
+        $date = function_exists( 'wp_date' )
+            ? wp_date( $format, $timestamp, wp_timezone() )
+            : date_i18n( $format, $timestamp );
+        return esc_html( (string) $date );
     }
 
     /**
