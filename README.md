@@ -106,7 +106,7 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `2.4.2`
+- Version: `2.4.3`
 
 ## Ownership
 
@@ -193,6 +193,10 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.4.3
+
+- Press-release visibility has one owner: when Hexa PR Wire Distributor is active, its "Show press releases on" switches decide the home, category, tag and author pages, and SMP's author and inclusion switches step aside (they still apply without the Distributor). The SMP settings screens say so.
 
 ### 2.4.2
 

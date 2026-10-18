@@ -1714,7 +1714,9 @@ class DashboardController {
             "add_action(\"pre_get_posts\", function (WP_Query \$q) { /* SMP uses the same main-query guard pattern and selected contexts. */ });",
             $this->press_release_report_html(),
             $this->activity_log_html(),
-            "<p class=\"smpi-muted\">Author archives are controlled on the Authors tab.</p>" . $this->context_select_html( "press_release_include_contexts", [ "home" => "Home page", "category_tag" => "Category and tag pages", "single_recent" => "single.php recent article queries" ], $settings )
+            ( \smp_publication_integration\Content\Visibility::distributor_owns()
+                ? "<p class=\"smpi-muted\">Hexa PR Wire Distributor is active, so its General Settings switches (\"Show press releases on\") decide the home, category, tag and author pages. The choice below applies only to single.php recent article queries.</p>"
+                : "<p class=\"smpi-muted\">Author archives are controlled on the Authors tab.</p>" ) . $this->context_select_html( "press_release_include_contexts", [ "home" => "Home page", "category_tag" => "Category and tag pages", "single_recent" => "single.php recent article queries" ], $settings )
         );
 
         $article_type_reference = "<p class=\"smpi-muted\">The registration toggle is in Custom Fields.</p>" . $this->article_type_selector_options_html();
@@ -3088,7 +3090,9 @@ HTML;
             . '<div class="smpi-author-listing-toggle-list">'
             . $this->inline_toggle_setting_html( "author_listing_hide_without_articles", "Hide members with no articles" )
             . $this->inline_toggle_setting_html( "author_listing_hide_without_featured_image", "Hide members without a featured image" )
-            . $this->inline_toggle_setting_html( "author_listing_show_press_releases", "Show press releases attached to the author" )
+            . ( \smp_publication_integration\Content\Visibility::distributor_owns()
+                ? '<p class="smpi-muted">Press releases on author pages are set in Hexa PR Wire Distributor, General Settings, "Show press releases on".</p>'
+                : $this->inline_toggle_setting_html( "author_listing_show_press_releases", "Show press releases attached to the author" ) )
             . '</div></section>';
     }
 

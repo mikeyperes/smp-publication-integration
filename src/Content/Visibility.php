@@ -280,6 +280,10 @@ final class Visibility {
     }
 
     private function should_include_press_releases( string $context, \WP_Query $query ): bool {
+        $owned = self::distributor_shows( $context, $query );
+        if ( null !== $owned ) {
+            return $owned;
+        }
         if ( "author" === $context ) {
             return self::author_press_releases_enabled();
         }
@@ -292,7 +296,35 @@ final class Visibility {
         return !( "single_recent" === $context && $query->is_main_query() );
     }
 
+    /**
+     * Whether the Hexa PR Wire Distributor owns press-release visibility here:
+     * its "Show press releases on" switches (home, category, author, tag pages)
+     * then decide those pages, and SMP's own switches apply only without it.
+     */
+    public static function distributor_owns(): bool {
+        return class_exists( "\\hpr_distributor\\Content\\PressReleaseLoopExclusion" )
+            && method_exists( "\\hpr_distributor\\Content\\PressReleaseLoopExclusion", "shown" );
+    }
+
+    /** The Distributor's choice for this page type, or null when SMP decides. */
+    public static function distributor_shows( string $context, ?\WP_Query $query = null ): ?bool {
+        if ( ! self::distributor_owns() ) {
+            return null;
+        }
+        $is_tag = $query instanceof \WP_Query ? $query->is_tag() : is_tag();
+        $option = [
+            "home"         => "hide_press_release_from_home_loop",
+            "author"       => "hide_press_release_from_author_loop",
+            "category_tag" => $is_tag ? "hide_press_release_from_tag_loop" : "hide_press_release_from_category_loop",
+        ][ $context ] ?? "";
+        return "" === $option ? null : \hpr_distributor\Content\PressReleaseLoopExclusion::shown( $option );
+    }
+
     public static function author_press_releases_enabled(): bool {
+        $owned = self::distributor_shows( "author" );
+        if ( null !== $owned ) {
+            return $owned && post_type_exists( "press-release" );
+        }
         return Settings::bool( "author_listing_show_press_releases" )
             && post_type_exists( "press-release" )
             && Dependencies::hpr_active();
