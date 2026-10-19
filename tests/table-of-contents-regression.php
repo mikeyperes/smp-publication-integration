@@ -52,6 +52,13 @@ $checks = [
         && ! str_contains( $compatibility, 'smpi-elementor-toc-' ),
     "Elementor sticky menu clones cannot expose duplicate submenu arrows." => str_contains( $compatibility, '.elementor-sticky__spacer{pointer-events:none!important;visibility:hidden!important}' )
         && str_contains( $compatibility, '.elementor-widget-nav-menu a>.sub-arrow~.sub-arrow{display:none!important}' ),
+    "The contents list marks the section being read as the reader scrolls." => str_contains( $table, '"print_scroll_tracking_script" ], 33' )
+        && str_contains( $table, 'smpi-toc-link--active' )
+        && str_contains( $table, '"aria-current","location"' )
+        && str_contains( $toc_css . $article, '.smpi-toc-link--active{color:var(--smpi-toc-accent,#2563eb)' ),
+    "Contents scripts are never deferred by page caches." => substr_count( $table, 'data-no-optimize=' ) >= 4,
+    "Shortcode heading anchors are matched by heading text, never by position." => str_contains( $table, 'norm(nodes[k].textContent)===wanted' )
+        && ! str_contains( $table, 'nodes[j].id=data.headings[j].id' ),
 ];
 
 foreach ( $checks as $message => $passed ) {
@@ -61,4 +68,4 @@ foreach ( $checks as $message => $passed ) {
     }
 }
 
-echo "PASS: TOC output, native Elementor loading, and menu compatibility remain isolated.\n";
+echo "PASS: TOC output, scroll tracking, native Elementor loading, and menu compatibility remain isolated.\n";

@@ -57,6 +57,7 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 - **Does:** a table of contents from the article's headings.
 - **Switch:** `table_of_contents_enabled`; automatic on single posts with `table_of_contents_auto_single`.
 - **Use:** `[smp_table_of_contents post_id="" title="Table of Contents" style="" levels="h2,h3,h4" open="" markers=""]`. `levels` accepts any of `h2,h3,h4`; `open="always"` renders open at every width; `open="desktop"` renders open above 1024px and closed at smaller widths; `markers="leading-zero"` adds explicit `01`, `02` marker spans. Defaults preserve the existing closed h2-h4 output. An explicitly supplied `title` is used by every style, including `unstyled`.
+- **Scroll tracking:** as the reader scrolls, the item for the section being read gets `aria-current="location"` and `smpi-toc-link--active` (its item `smpi-toc-item--active`, the list `smpi-toc-has-active`); styled templates colour it with the contents accent, and `unstyled` leaves the look to the site. Links find their headings by heading text.
 - **Code:** `src/Content/TableOfContents.php`
 
 ### Estimated read time
@@ -111,7 +112,7 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `2.4.6`
+- Version: `2.4.7`
 
 ## Ownership
 
@@ -198,6 +199,12 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.4.7
+
+- The table of contents marks the section being read and moves that mark as the reader scrolls (`aria-current="location"`, `smpi-toc-link--active`, `smpi-toc-item--active`, `smpi-toc-has-active`), for the shortcode and the automatic list alike; styled templates colour it with the contents accent.
+- Shortcode contents links find their headings by heading text instead of position, so a list limited to some heading levels no longer sends readers to the wrong section.
+- Contents scripts are marked so page caches never delay them; before, LiteSpeed's delayed scripts left every contents link dead until the reader first moved the mouse.
 
 ### 2.4.6
 
