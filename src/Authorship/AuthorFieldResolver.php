@@ -266,6 +266,13 @@ final class AuthorFieldResolver {
         if ( ! is_string( $value ) || ! filter_var( $value, FILTER_VALIDATE_URL ) || ! function_exists( "attachment_url_to_postid" ) ) {
             return 0;
         }
-        return abs( (int) attachment_url_to_postid( $value ) );
+        $id = abs( (int) attachment_url_to_postid( $value ) );
+        if ( 0 === $id ) {
+            $original = preg_replace( '/-\d+x\d+(\.[a-z0-9]+)(\?.*)?$/i', '$1', $value );
+            if ( is_string( $original ) && $original !== $value ) {
+                $id = abs( (int) attachment_url_to_postid( $original ) );
+            }
+        }
+        return $id;
     }
 }

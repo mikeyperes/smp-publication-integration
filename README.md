@@ -131,7 +131,7 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `2.4.14`
+- Version: `2.4.15`
 
 ## Ownership
 
@@ -218,6 +218,10 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.4.15
+
+- Author photos saved as a resized copy (for example `-300x300`) now resolve to their media item, so `[author_image size="thumbnail"]` serves the real 150 px thumbnail instead of falling back to the saved larger file.
 
 ### 2.4.14
 
