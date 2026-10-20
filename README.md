@@ -131,7 +131,7 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `2.4.15`
+- Version: `2.4.16`
 
 ## Ownership
 
@@ -218,6 +218,10 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.4.16
+
+- Cards added after page load (Elementor infinite scroll and Load more) now get their MuckRack verified mark: the badge script reruns when new content arrives, ignoring its own badge nodes.
 
 ### 2.4.15
 
