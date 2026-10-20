@@ -539,8 +539,8 @@ SMPI_JS;
         $color_override = sanitize_hex_color( $color_override ) ?: "";
         $inline = array_filter( [
             "" !== $color_override ? "--smpi-muckrack-publication-accent:" . $color_override : "",
-            $size >= 8 && $size <= 64 ? "font-size:" . $size . "px" : "",
-            "" !== ( sanitize_hex_color( $text_color ) ?: "" ) ? "color:" . $text_color : "",
+            $size >= 8 && $size <= 64 ? "--smpi-muckrack-publication-size:" . $size . "px;font-size:" . $size . "px;display:block;line-height:1.5" : "",
+            "" !== ( sanitize_hex_color( $text_color ) ?: "" ) ? "--smpi-muckrack-publication-text:" . $text_color . ";color:" . $text_color : "",
         ] );
         $style_attribute = [] !== $inline ? ' style="' . esc_attr( implode( ";", $inline ) ) . '"' : "";
 
