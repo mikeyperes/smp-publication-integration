@@ -100,7 +100,7 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 - The Plugins tab is the single source of truth for which plugins a publication must, may and must not have.
 - Required: Classic Editor, Elementor, Elementor Pro, GPLVault Update Manager, Hexa PR Wire Distributor, HWS Base Tools, LiteSpeed Cache, Media Cleaner Pro, Rank Math SEO, Rank Math SEO PRO, Simple Local Avatars, Site Kit by Google, SMP Publication Integration, SMP WP Text To Speech, Wordfence and WP Mail SMTP.
 - Optional (installed only on request): Visibility Logic for Elementor and Verified Profiles.
-- Forbidden: JetEngine, WP User Avatars, WP-Optimize and WP Sweep (HWS Base Tools does database cleanup).
+- Forbidden: JetEngine, WP User Avatars, WP-Optimize, WP Sweep (HWS Base Tools does database cleanup), Echo RSS Feed Post Generator and FIFU - Featured Image from URL.
 - Read in code from `PluginInventory::recommended_definitions()`, `optional_definitions()` and `forbidden_definitions()`.
 
 ### Extension points
@@ -112,7 +112,7 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `2.4.8`
+- Version: `2.4.9`
 
 ## Ownership
 
@@ -199,6 +199,10 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.4.9
+
+- Echo RSS Feed Post Generator and FIFU - Featured Image from URL move to the Forbidden list.
 
 ### 2.4.8
 

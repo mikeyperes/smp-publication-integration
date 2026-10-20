@@ -78,6 +78,8 @@ final class PluginInventory {
             self::forbidden( 'wp-user-avatars/wp-user-avatars.php', 'WP User Avatars', 'wp-user-avatars' ),
             self::forbidden( 'wp-optimize/wp-optimize.php', 'WP-Optimize - Clean, Compress, Cache', 'wp-optimize' ),
             self::forbidden( 'wp-sweep/wp-sweep.php', 'WP Sweep', 'wp-sweep' ),
+            self::forbidden( 'rss-feed-post-generator-echo/rss-feed-post-generator-echo.php', 'Echo RSS Feed Post Generator', 'rss-feed-post-generator-echo' ),
+            self::forbidden( 'featured-image-from-url/featured-image-from-url.php', 'FIFU - Featured Image from URL', 'featured-image-from-url' ),
         ];
     }
 
