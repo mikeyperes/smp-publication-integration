@@ -66,6 +66,16 @@
             return;
         }
 
+        // An Elementor shortcode or a theme placement owns its visible breadcrumb.
+        // Only auto-generated bands are replaced during repeated/AJAX initialization.
+        var manual = Array.prototype.some.call(document.querySelectorAll('.smpi-breadcrumbs-band,.smpi-breadcrumbs'), function (element) {
+            return !element.closest('[data-smpi-breadcrumbs-injected],[data-smp-ajax-companion-rendered="smpi-breadcrumbs"]') && visible(element);
+        });
+        if (manual) {
+            removeInjectedBreadcrumbs(null);
+            return;
+        }
+
         var bar = source.content.firstElementChild.cloneNode(true);
 
         var target = null;

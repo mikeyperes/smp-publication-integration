@@ -112,7 +112,7 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `2.4.13`
+- Version: `2.4.14`
 
 ## Ownership
 
@@ -199,6 +199,10 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.4.14
+
+- Automatic breadcrumbs defer to an existing visible shortcode or theme placement, including after AJAX navigation, so an Elementor article does not receive a second breadcrumb band.
 
 ### 2.4.13
 

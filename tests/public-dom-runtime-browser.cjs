@@ -88,6 +88,23 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
     });
 
     await page.evaluate(() => {
+        const manual = document.createElement('nav');
+        manual.id = 'elementor-manual-breadcrumb';
+        manual.className = 'smpi-breadcrumbs';
+        manual.textContent = 'Manually placed article breadcrumb';
+        document.querySelector('main').prepend(manual);
+        document.dispatchEvent(new CustomEvent('smp:content-ready', { detail: { root: document.querySelector('main') } }));
+        document.dispatchEvent(new CustomEvent('smp:content-ready', { detail: { root: document.querySelector('main') } }));
+    });
+    assert.equal(await page.locator('[data-smp-ajax-companion-rendered="smpi-breadcrumbs"]').count(), 0);
+    assert.equal(await page.locator('#elementor-manual-breadcrumb').textContent(), 'Manually placed article breadcrumb');
+    await page.evaluate(() => {
+        document.querySelector('#elementor-manual-breadcrumb').style.display = 'none';
+        document.dispatchEvent(new CustomEvent('smp:content-ready', { detail: { root: document.querySelector('main') } }));
+    });
+    assert.equal(await page.locator('[data-smp-ajax-companion-rendered="smpi-breadcrumbs"]').count(), 1);
+
+    await page.evaluate(() => {
         document.body.classList.remove('smpi-runtime-breadcrumbs');
         document.querySelectorAll('template[data-smp-ajax-companion="smpi-breadcrumbs"],[data-smp-ajax-companion-rendered="smpi-breadcrumbs"]').forEach((node) => node.remove());
         const root = document.querySelector('main[data-smp-ajax-root]');
