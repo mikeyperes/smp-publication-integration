@@ -156,8 +156,8 @@ final class MuckRackVerification {
         if ( ! self::publication_enabled() ) {
             return "";
         }
-        $atts = shortcode_atts( [ 'class' => '', 'style' => '', 'color' => '' ], $atts, 'smp_publication_muckrack_verified' );
-        return self::publication_verification_markup( sanitize_html_class( (string) $atts['class'] ), sanitize_key( (string) $atts['style'] ), sanitize_hex_color( (string) $atts['color'] ) ?: '' );
+        $atts = shortcode_atts( [ 'class' => '', 'style' => '', 'color' => '', 'icon' => '' ], $atts, 'smp_publication_muckrack_verified' );
+        return self::publication_verification_markup( sanitize_html_class( (string) $atts['class'] ), sanitize_key( (string) $atts['style'] ), sanitize_hex_color( (string) $atts['color'] ) ?: '', self::truthy( $atts['icon'] ) );
     }
 
     public function filter_author_name( string $display_name ): string {
@@ -526,7 +526,7 @@ SMPI_JS;
         return self::publication_verification_markup( $class );
     }
 
-    public static function publication_verification_markup( string $class = "", string $style_override = "", string $color_override = "" ): string {
+    public static function publication_verification_markup( string $class = "", string $style_override = "", string $color_override = "", bool $icon = false ): string {
         $mode = (string) Settings::get( "publication_muckrack_text_mode", "news_outlet" );
         $label = "publication_name" === $mode ? get_bloginfo( "name" ) : "News outlet";
         $url = Fields::option_url( "publication_muckrack_url" );
@@ -541,7 +541,11 @@ SMPI_JS;
             ? ' style="--smpi-muckrack-publication-accent:' . esc_attr( $color_override ) . '"'
             : "";
 
-        return '<span class="' . esc_attr( $classes ) . '"' . $style_attribute . '>' . esc_html( $label ) . ' verified by <span class="smpi-muckrack-brand">MuckRack</span> editorial team' . ( "" !== $url ? ' <a href="' . esc_url( $url ) . '" target="_blank" rel="noopener noreferrer">(learn more)</a>' : "" ) . '</span>';
+        $mark = $icon ? '<span class="smpi-muckrack-icon smpi-muckrack-icon-circle smpi-muckrack-publication-icon" aria-hidden="true">' . self::icon_svg_html( "circle" ) . '</span> ' : "";
+        $sentence = "publication_sentence" === $mode
+            ? esc_html( get_bloginfo( "name" ) ) . ' is verified by <span class="smpi-muckrack-brand">MuckRack</span>&#8217;s editorial team.'
+            : esc_html( $label ) . ' verified by <span class="smpi-muckrack-brand">MuckRack</span> editorial team';
+        return '<span class="' . esc_attr( $classes ) . '"' . $style_attribute . '>' . $mark . $sentence . ( "" !== $url ? ' <a href="' . esc_url( $url ) . '" target="_blank" rel="noopener noreferrer">(learn more)</a>' : "" ) . '</span>';
     }
 
     public static function publication_report(): array {

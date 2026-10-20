@@ -637,7 +637,7 @@ class SettingsRepository {
             }
 
             if ( 'publication_muckrack_text_mode' === $key ) {
-                $allowed = [ 'news_outlet', 'publication_name' ];
+                $allowed = [ 'news_outlet', 'publication_name', 'publication_sentence' ];
                 $settings[ $key ] = in_array( $value, $allowed, true ) ? $value : 'news_outlet';
                 continue;
             }
