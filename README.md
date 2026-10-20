@@ -112,7 +112,7 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `2.4.7`
+- Version: `2.4.8`
 
 ## Ownership
 
@@ -199,6 +199,10 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.4.8
+
+- The publication verified line (`[smp_publication_muckrack_verified]`) prints only when the publication verification setting is on and the verified field is set; before, the shortcode printed it on every site. The "(learn more)" link shows only once the outlet's Muck Rack page is saved, instead of linking to muckrack.com.
 
 ### 2.4.7
 

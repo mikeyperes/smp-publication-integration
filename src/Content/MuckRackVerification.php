@@ -153,6 +153,9 @@ final class MuckRackVerification {
     }
 
     public function render_publication_shortcode( array $atts = [] ): string {
+        if ( ! self::publication_enabled() ) {
+            return "";
+        }
         $atts = shortcode_atts( [ 'class' => '', 'style' => '', 'color' => '' ], $atts, 'smp_publication_muckrack_verified' );
         return self::publication_verification_markup( sanitize_html_class( (string) $atts['class'] ), sanitize_key( (string) $atts['style'] ), sanitize_hex_color( (string) $atts['color'] ) ?: '' );
     }
@@ -450,7 +453,6 @@ SMPI_JS;
         $url = (string) self::author_field( $author_id, self::FIELD_URL );
         $description = trim( (string) self::author_field( $author_id, self::FIELD_DESCRIPTION ) );
         $description = "" !== $description ? $description : "Author";
-        $target = "" !== $url ? $url : "https://muckrack.com/";
         return "<span class=\"smpi-muckrack-author-text\">" . esc_html( $description ) . " verified by <span class=\"smpi-muckrack-brand\">MuckRack</span> editorial team <a href=\"" . esc_url( $target ) . "\" target=\"_blank\" rel=\"noopener noreferrer\">(learn more)</a></span>";
     }
 
@@ -539,7 +541,7 @@ SMPI_JS;
             ? ' style="--smpi-muckrack-publication-accent:' . esc_attr( $color_override ) . '"'
             : "";
 
-        return '<span class="' . esc_attr( $classes ) . '"' . $style_attribute . '>' . esc_html( $label ) . ' verified by <span class="smpi-muckrack-brand">MuckRack</span> editorial team <a href="' . esc_url( $target ) . '" target="_blank" rel="noopener noreferrer">(learn more)</a></span>';
+        return '<span class="' . esc_attr( $classes ) . '"' . $style_attribute . '>' . esc_html( $label ) . ' verified by <span class="smpi-muckrack-brand">MuckRack</span> editorial team' . ( "" !== $url ? ' <a href="' . esc_url( $url ) . '" target="_blank" rel="noopener noreferrer">(learn more)</a>' : "" ) . '</span>';
     }
 
     public static function publication_report(): array {
