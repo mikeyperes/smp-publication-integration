@@ -156,8 +156,8 @@ final class MuckRackVerification {
         if ( ! self::publication_enabled() ) {
             return "";
         }
-        $atts = shortcode_atts( [ 'class' => '', 'style' => '', 'color' => '', 'icon' => '' ], $atts, 'smp_publication_muckrack_verified' );
-        return self::publication_verification_markup( sanitize_html_class( (string) $atts['class'] ), sanitize_key( (string) $atts['style'] ), sanitize_hex_color( (string) $atts['color'] ) ?: '', self::truthy( $atts['icon'] ) );
+        $atts = shortcode_atts( [ 'class' => '', 'style' => '', 'color' => '', 'icon' => '', 'size' => '', 'text_color' => '' ], $atts, 'smp_publication_muckrack_verified' );
+        return self::publication_verification_markup( sanitize_html_class( (string) $atts['class'] ), sanitize_key( (string) $atts['style'] ), sanitize_hex_color( (string) $atts['color'] ) ?: '', self::truthy( $atts['icon'] ), absint( $atts['size'] ), sanitize_hex_color( (string) $atts['text_color'] ) ?: '' );
     }
 
     public function filter_author_name( string $display_name ): string {
@@ -526,7 +526,7 @@ SMPI_JS;
         return self::publication_verification_markup( $class );
     }
 
-    public static function publication_verification_markup( string $class = "", string $style_override = "", string $color_override = "", bool $icon = false ): string {
+    public static function publication_verification_markup( string $class = "", string $style_override = "", string $color_override = "", bool $icon = false, int $size = 0, string $text_color = "" ): string {
         $mode = (string) Settings::get( "publication_muckrack_text_mode", "news_outlet" );
         $label = "publication_name" === $mode ? get_bloginfo( "name" ) : "News outlet";
         $url = Fields::option_url( "publication_muckrack_url" );
@@ -537,9 +537,12 @@ SMPI_JS;
         }
         $classes = trim( "smpi-muckrack-publication-text smpi-muckrack-publication-" . $style . ( "publication_sentence" === $mode ? " smpi-muckrack-publication-sentence" : "" ) . " " . $class );
         $color_override = sanitize_hex_color( $color_override ) ?: "";
-        $style_attribute = "" !== $color_override
-            ? ' style="--smpi-muckrack-publication-accent:' . esc_attr( $color_override ) . '"'
-            : "";
+        $inline = array_filter( [
+            "" !== $color_override ? "--smpi-muckrack-publication-accent:" . $color_override : "",
+            $size >= 8 && $size <= 64 ? "font-size:" . $size . "px" : "",
+            "" !== ( sanitize_hex_color( $text_color ) ?: "" ) ? "color:" . $text_color : "",
+        ] );
+        $style_attribute = [] !== $inline ? ' style="' . esc_attr( implode( ";", $inline ) ) . '"' : "";
 
         $mark = $icon ? '<span class="smpi-muckrack-icon smpi-muckrack-icon-circle smpi-muckrack-publication-icon" aria-hidden="true">' . self::icon_svg_html( "circle" ) . '</span> ' : "";
         $sentence = "publication_sentence" === $mode

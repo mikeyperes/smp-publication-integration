@@ -112,7 +112,7 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `2.4.11`
+- Version: `2.4.12`
 
 ## Ownership
 
@@ -199,6 +199,10 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.4.12
+
+- `[smp_publication_muckrack_verified]` takes `size` (px) and `text_color` for one placement, so an article line and a footer line can differ without changing the global publication settings.
 
 ### 2.4.11
 
