@@ -131,7 +131,7 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `2.4.16`
+- Version: `2.4.17`
 
 ## Ownership
 
@@ -218,6 +218,10 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.4.17
+
+- The verified-mark rerun reacts only when story cards are added, not to other page changes, so other scripts changing the page no longer trigger a badge cleanup pass.
 
 ### 2.4.16
 
