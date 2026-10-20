@@ -7,6 +7,23 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 
 **Purpose:** editorial, authorship, verification and publication-profile features for Scale My Publication news sites. **Admin:** WP Admin → SMP Publication (`admin.php?page=smp-publication-integration`); every switch below is a key in the `smpi_settings` option. **Depends on:** ACF Pro, Rank Math (breadcrumbs), HWS Base Tools (primary entity); Elementor optional.
 
+## Design examples and styling
+
+Start with [Article design examples](docs/article-design-examples.md). Each
+example includes its shortcode, representative rendered HTML, editable Elementor
+CSS, a selector map and a link to the owning renderer:
+
+- [What to know: HTML and CSS](docs/article-design-examples.md#what-to-know)
+- [In this article / Contents: HTML and CSS](docs/article-design-examples.md#in-this-article)
+- [FAQs: HTML and CSS](docs/article-design-examples.md#frequently-asked-questions)
+- [Listen / text-to-speech: HTML and CSS](https://github.com/mikeyperes/smp-wp-text-to-speech/blob/main/docs/player-design-examples.md), owned by the companion audio plugin.
+
+To see every built-in visual variant, open **SMP Publication > Features > Article
+design** on an installed site:
+`/wp-admin/admin.php?page=smp-publication-integration&tab=features#smpi-feature-group-article-design`.
+The Summary, Table of contents and FAQ design cards use the same renderer/styles
+as the frontend. The examples explain named skins versus Elementor-owned skins.
+
 ## Features
 
 ### Breadcrumbs band
@@ -59,6 +76,7 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 - **Use:** `[smp_table_of_contents post_id="" title="Table of Contents" style="" levels="h2,h3,h4" open="" markers=""]`. `levels` accepts any of `h2,h3,h4`; `open="always"` renders open at every width; `open="desktop"` renders open above 1024px and closed at smaller widths; `markers="leading-zero"` adds explicit `01`, `02` marker spans. Defaults preserve the existing closed h2-h4 output. An explicitly supplied `title` is used by every style, including `unstyled`.
 - **Scroll tracking:** as the reader scrolls, the item for the section being read gets `aria-current="location"` and `smpi-toc-link--active` (its item `smpi-toc-item--active`, the list `smpi-toc-has-active`); styled templates colour it with the contents accent, and `unstyled` leaves the look to the site. Links find their headings by heading text.
 - **Code:** `src/Content/TableOfContents.php`
+- **HTML/CSS example:** [In this article](docs/article-design-examples.md#in-this-article).
 
 ### Estimated read time
 - **Switch:** `estimated_read_time_enabled`.
@@ -75,6 +93,7 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 - **Switch:** `post_summary_acf_enabled`, `post_faqs_acf_enabled`.
 - **Use:** `[smp_post_summary post_id="" format="html" style=""]`, `[smp_post_faqs post_id="" format="html|accordion|text" style=""]`, any post ACF field `[smp_post_acf field="" post_id="" format="html"]`. `format="accordion"` renders structured FAQ rows as native closed `details` and `summary` elements. It does not parse or migrate FAQ text already embedded in older article content.
 - **Code:** `src/Content/Shortcodes.php`, `src/Content/PostSummaryPlacement.php`, `src/Content/PostFaqPlacement.php`
+- **HTML/CSS examples:** [What to know](docs/article-design-examples.md#what-to-know), [FAQs](docs/article-design-examples.md#frequently-asked-questions).
 
 ### Publication profile values
 - **Does:** the publication's own profile: fields, mission, founders, system user, assigned pages and page templates.
