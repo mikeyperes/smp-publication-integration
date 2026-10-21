@@ -53,9 +53,13 @@ final class Breadcrumbs {
             return false;
         }
 
-        if ( is_category() || is_tag() ) {
+        if ( is_category() || is_tag() || is_tax() ) {
             $term = get_queried_object();
             return $term instanceof \WP_Term && ! Settings::bool( "breadcrumbs_hide_term_archives" );
+        }
+
+        if ( "" !== self::archive_label() ) {
+            return true;
         }
 
         if ( ! is_singular() ) {
@@ -180,9 +184,15 @@ final class Breadcrumbs {
         $items = [];
         $items[] = [ "url" => home_url( "/" ), "label" => __( "Home", "smp-publication-integration" ) ];
         $term = get_queried_object();
-        if ( $term instanceof \WP_Term && ( is_category() || is_tag() ) ) {
+        if ( $term instanceof \WP_Term && ( is_category() || is_tag() || is_tax() ) ) {
             $term_link = get_term_link( $term );
             $items[] = [ "url" => is_wp_error( $term_link ) ? "" : $term_link, "label" => $term->name ];
+            return self::items_markup( $items );
+        }
+
+        $archive = self::archive_label();
+        if ( "" !== $archive ) {
+            $items[] = [ "url" => "", "label" => $archive ];
             return self::items_markup( $items );
         }
 
@@ -228,12 +238,35 @@ final class Breadcrumbs {
 
     private static function current_title(): string {
         $term = get_queried_object();
-        if ( $term instanceof \WP_Term && ( is_category() || is_tag() ) ) {
+        if ( $term instanceof \WP_Term && ( is_category() || is_tag() || is_tax() ) ) {
             return wp_strip_all_tags( single_term_title( "", false ) );
+        }
+
+        $archive = self::archive_label();
+        if ( "" !== $archive ) {
+            return $archive;
         }
 
         $post = get_post();
         return $post instanceof \WP_Post ? wp_strip_all_tags( get_the_title( $post ) ) : "";
+    }
+
+    /** The last crumb on author archives, search results and the page-not-found page; "" elsewhere. */
+    private static function archive_label(): string {
+        if ( is_author() ) {
+            $author = get_queried_object();
+            return $author instanceof \WP_User ? wp_strip_all_tags( $author->display_name ) : "";
+        }
+        if ( is_search() ) {
+            /* translators: %s: the search term. */
+            return sprintf( __( "Results for \u{201C}%s\u{201D}", "smp-publication-integration" ), get_search_query( false ) );
+        }
+        if ( is_404() ) {
+            $rank_math = get_option( "rank-math-options-general" );
+            $label = is_array( $rank_math ) ? trim( (string) ( $rank_math["breadcrumbs_404_label"] ?? "" ) ) : "";
+            return "" !== $label ? $label : __( "404 Error: page not found", "smp-publication-integration" );
+        }
+        return "";
     }
 
     private static function safe_markup( string $html ): string {

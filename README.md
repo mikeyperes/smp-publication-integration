@@ -27,7 +27,7 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 ## Features
 
 ### Breadcrumbs band
-- **Does:** a breadcrumb band built from Rank Math breadcrumbs, injected below the header on single articles and archives.
+- **Does:** a breadcrumb band built from Rank Math breadcrumbs, injected below the header on single articles and archives, including author archives ("Home » <author>"), search results ("Home » Results for “<term>”") and the page-not-found page (Rank Math's 404 label).
 - **Switch:** automatic on singular pages and term archives when Rank Math breadcrumbs are on (`rank_math_breadcrumb_check_enabled`); hide on the home page `breadcrumbs_hide_home`, on category and tag archives `breadcrumbs_hide_term_archives`; custom CSS on the dashboard Breadcrumbs tab.
 - **Use:** `[smp_breadcrumbs style=""]` to place it manually.
 - **Style:** `.smpi-breadcrumbs-band`, `.smpi-breadcrumb-separator`.
@@ -147,7 +147,7 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `2.4.21`
+- Version: `2.4.22`
 
 ## Ownership
 
@@ -234,6 +234,10 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.4.22
+
+- Breadcrumbs now render on author archives, search results, the page-not-found page and custom taxonomy archives, where `[smp_breadcrumbs]` printed nothing before.
 
 ### 2.4.21
 
