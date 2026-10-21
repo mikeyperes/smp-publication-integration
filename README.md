@@ -46,6 +46,12 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 - **Style:** `.smpi-archive-count`.
 - **Code:** `src/Content/ArchiveListing.php`
 
+### Related tags
+- **Does:** on a tag or category archive, links to the tags used most often on the same stories, the archive's own tag left out. Prints nothing, label included, when there are none.
+- **Use:** `[smp_related_tags limit="8" label="Related tags" class=""]`.
+- **Style:** `.smpi-related-tags`, `.smpi-related-tags-label`, `.smpi-related-tag`.
+- **Code:** `src/Content/RelatedTags.php`
+
 ### Author fields
 - **Does:** any author's name, bio, title, socials, image or ACF field for the current post's author (or a given user / co-author).
 - **Use:** `[author_name]`, `[author_bio format="html"]`, `[author_bio_short words="35"]`, `[author_title]`, `[author_subtitle]`, `[author_image size="thumbnail" output="html" class="smpi-author-image"]`, `[author_facebook]` `[author_instagram]` `[author_x]` `[author_linkedin]` `[author_youtube]` `[author_website]` `[author_crunchbase]` `[author_muckrack]` `[author_email]`, `[acf_author_field field=""]`. All accept `user_id`, `post_id`, `author_index`.
@@ -137,7 +143,7 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `2.4.19`
+- Version: `2.4.20`
 
 ## Ownership
 
@@ -224,6 +230,10 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.4.20
+
+- Related tags: `[smp_related_tags]` lists the tags used most often with the current tag or category, for archive templates.
 
 ### 2.4.19
 
