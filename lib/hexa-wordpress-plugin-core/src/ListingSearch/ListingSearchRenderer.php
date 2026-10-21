@@ -21,8 +21,6 @@ use Hexa\PluginCore\QueryFilter\QuerySql;
  * `--hls-panel-bg`, `--hls-field-height`) restyle it.
  */
 final class ListingSearchRenderer {
-    private static bool $assets_printed = false;
-
     /** @var string[] Profiles rendered on this page, so a host can skip adding a second box. */
     private static array $rendered = [];
 
@@ -106,13 +104,13 @@ final class ListingSearchRenderer {
         return $path . ( '' !== $query ? '?' . $query : '' );
     }
 
+    /**
+     * The box's style and script travel with every box: another plugin may render the page
+     * content once and discard it (a description or excerpt builder), so "print once per
+     * request" could leave the visible box bare. The script runs once per page.
+     */
     private function assets(): string {
-        if ( self::$assets_printed ) {
-            return '';
-        }
-        self::$assets_printed = true;
-
-        return '<style id="hexa-listing-search-css">' . self::css() . '</style><script id="hexa-listing-search-js">' . self::js() . '</script>';
+        return '<style class="hexa-listing-search-css">' . self::css() . '</style><script class="hexa-listing-search-js" data-cfasync="false">' . self::js() . '</script>';
     }
 
     public static function css(): string {
@@ -149,6 +147,7 @@ final class ListingSearchRenderer {
     public static function js(): string {
         return <<<'JS'
 (function(){
+if(window.hexaListingSearch)return;window.hexaListingSearch=1;
 function init(form){
 if(form.getAttribute('data-hls-ready'))return;form.setAttribute('data-hls-ready','1');
 if(!window.fetch||!window.DOMParser||!window.URLSearchParams)return;

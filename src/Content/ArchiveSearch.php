@@ -19,7 +19,9 @@ if ( ! defined( "ABSPATH" ) ) {
  * Loop Grid, Posts or Archive Posts widget that shows the current page's stories (Elementor's
  * "Current Query"), or the lead and rest listings (smpi_archive_lead / smpi_archive_rest).
  * Unless the template already places the shortcode, the search box is added right above the
- * first of them, so every existing publication gets it without template edits.
+ * first of them, so every existing publication gets it without template edits. An archive the
+ * theme draws itself (no Elementor template) gets the box above its first story, and its
+ * stories are wrapped as the list to refresh.
  *
  * It also keeps the publication's own rules inside the search: co-authored stories belong to
  * an author's page and author filter, and archive visibility rules apply to every count.
@@ -32,9 +34,13 @@ final class ArchiveSearch {
 
     private bool $box_printed = false;
 
+    private bool $wrapper_open = false;
+
     public function register(): void {
         add_filter( "hexa_plugin_core_listing_search_target", [ $this, "is_listing" ], 10, 2 );
         add_action( "elementor/frontend/widget/before_render", [ $this, "print_search_box" ], 5 );
+        add_action( "loop_start", [ $this, "open_theme_listing" ] );
+        add_action( "loop_end", [ $this, "close_theme_listing" ] );
         add_filter( "hexa_plugin_core_listing_context_args", [ $this, "context_args" ], 10, 2 );
         add_filter( "hexa_plugin_core_query_filter_author_condition", [ $this, "co_author_condition" ], 10, 4 );
     }
@@ -88,7 +94,42 @@ final class ArchiveSearch {
         }
 
         $this->box_printed = true;
-        echo '<div class="' . esc_attr( self::BOX_CLASS ) . '" style="width:100%;flex:0 0 100%">'
+        echo $this->box_html();
+    }
+
+    /**
+     * A theme-drawn archive: the box goes above the main loop's first story and the stories are
+     * wrapped (display: contents keeps the theme's grid) as the list the box refreshes.
+     *
+     * @param \WP_Query $query
+     */
+    public function open_theme_listing( $query ): void {
+        if ( $this->box_printed
+            || ! $query instanceof \WP_Query
+            || ! $query->is_main_query()
+            || ! self::enabled()
+            || ! self::archive_page()
+            || ! shortcode_exists( "hws_listing_search" )
+            || ( class_exists( ListingSearchRenderer::class ) && ListingSearchRenderer::rendered( "listing" ) )
+        ) {
+            return;
+        }
+
+        $this->box_printed  = true;
+        $this->wrapper_open = true;
+        echo $this->box_html() . '<div class="hexa-listing-results smpi-archive-stories" style="display:contents">';
+    }
+
+    /** @param \WP_Query $query */
+    public function close_theme_listing( $query ): void {
+        if ( $this->wrapper_open && $query instanceof \WP_Query && $query->is_main_query() ) {
+            $this->wrapper_open = false;
+            echo "</div>";
+        }
+    }
+
+    private function box_html(): string {
+        return '<div class="' . esc_attr( self::BOX_CLASS ) . '" style="width:100%;flex:0 0 100%;grid-column:1/-1">'
             . do_shortcode( '[hws_listing_search results_one="%d story" results_many="%d stories"]' )
             . "</div>";
     }
