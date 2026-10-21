@@ -197,7 +197,7 @@ final class AuthorShortcodes {
     }
 
     public function render_image( array $atts = [] ): string {
-        $atts = shortcode_atts( [ "user_id" => 0, "post_id" => 0, "author_index" => 0, "size" => "thumbnail", "output" => "html", "class" => "smpi-author-image" ], $atts, "author_image" );
+        $atts = shortcode_atts( [ "user_id" => 0, "post_id" => 0, "author_index" => 0, "size" => "thumbnail", "output" => "html", "class" => "smpi-author-image", "loading" => "lazy" ], $atts, "author_image" );
         $author_id = $this->resolve_author_id( (int) $atts["user_id"], (int) $atts["post_id"], (int) $atts["author_index"] );
         if ( ! $author_id ) {
             return "";
@@ -214,7 +214,9 @@ final class AuthorShortcodes {
             return esc_url( $url );
         }
         $name = get_the_author_meta( "display_name", $author_id );
-        return sprintf( "<img class=\"%s\" src=\"%s\" alt=\"%s\" loading=\"lazy\" decoding=\"async\">", esc_attr( (string) $atts["class"] ), esc_url( $url ), esc_attr( $name ) );
+        // A photo on the first screen (an author page header) loads at once: loading="eager".
+        $loading = "eager" === sanitize_key( (string) $atts["loading"] ) ? "loading=\"eager\" fetchpriority=\"high\"" : "loading=\"lazy\"";
+        return sprintf( "<img class=\"%s\" src=\"%s\" alt=\"%s\" %s decoding=\"async\">", esc_attr( (string) $atts["class"] ), esc_url( $url ), esc_attr( $name ), $loading );
     }
 
     private function render_author_text( string $key, array $atts = [] ): string {
