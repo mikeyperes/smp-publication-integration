@@ -126,6 +126,10 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 ### Publishing guards
 - **Switch:** `post_featured_image_required`, `hide_home_posts_without_featured_image`, post time display `post_time_mode`, Elementor CSS cache busting `elementor_css_cache_busting`.
 
+### Elementor CSS and the page cache
+- **Does:** adds each Elementor CSS file's change time to its link (with `elementor_css_cache_busting` on), and whenever Elementor clears its CSS cache also clears the LiteSpeed page cache, so no cached page links a deleted CSS file and shows unstyled.
+- **Code:** `src/Content/ElementorCssCacheBusting.php`
+
 ### Plugin requirements
 
 - The Plugins tab is the single source of truth for which plugins a publication must, may and must not have.
@@ -143,7 +147,7 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `2.4.20`
+- Version: `2.4.21`
 
 ## Ownership
 
@@ -230,6 +234,10 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.4.21
+
+- Clearing Elementor's CSS cache now also clears the LiteSpeed page cache, so no cached page keeps linking CSS files Elementor just deleted (pages showed unstyled until rebuilt).
 
 ### 2.4.20
 

@@ -11,6 +11,16 @@ if ( ! defined( "ABSPATH" ) ) {
 final class ElementorCssCacheBusting {
     public function register(): void {
         add_filter( "style_loader_src", [ $this, "bust_elementor_upload_css" ], 9999, 1 );
+        add_action( "elementor/core/files/clear_cache", [ $this, "purge_page_cache" ] );
+    }
+
+    /**
+     * Elementor deletes every generated CSS file when its cache is cleared, while cached pages
+     * still link the deleted files and show unstyled until each page is rebuilt. Clearing the
+     * page cache at the same moment makes every page rebuild with fresh CSS.
+     */
+    public function purge_page_cache(): void {
+        do_action( "litespeed_purge_all" );
     }
 
     public function bust_elementor_upload_css( string $src ): string {
