@@ -49,7 +49,7 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 
 ### Archive search
 - **Does:** category, tag, author and search pages get a search box with Category, Tag and Author filters right above the stories; the stories, counts and address refresh as readers type or tick. The archive's story list (a Loop Grid, Posts or Archive Posts widget showing the page's own stories or pinned to the page's own category or tag, or the lead and rest listings) is found by itself, so existing templates need no edit. An archive the theme draws itself gets the box above its first story. Author pages and the Author filter include co-authored stories; archive visibility rules apply to every count.
-- **Use:** on by default (Settings: "Show the search box on archive pages"). A template that places `[hws_listing_search]` itself keeps its own box. Needs HWS Base Tools 13.13.0.
+- **Use:** on by default (Settings: "Show the search box on archive pages"). A template that places `[hws_search]` itself keeps its own box. Needs HWS Base Tools 13.13.0.
 - **Code:** `src/Content/ArchiveSearch.php`
 
 ### Related tags
@@ -240,6 +240,10 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.5.4
+
+- Archive search uses HWS Base Tools' new `[hws_search]` name (falls back to `[hws_listing_search]` on older Base Tools).
 
 ### 2.5.3
 

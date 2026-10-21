@@ -14,7 +14,7 @@ if ( ! defined( "ABSPATH" ) ) {
 /**
  * Search and filters on the publication's category, tag, author and search pages.
  *
- * The shared listing search (HexaWP Core, `[hws_listing_search]` from HWS Base Tools) narrows the
+ * The shared listing search (HexaWP Core, `[hws_search]` from HWS Base Tools) narrows the
  * page's own story list. This class tells it which list that is on a publication: the archive's
  * Loop Grid, Posts or Archive Posts widget that shows the current page's stories (Elementor's
  * "Current Query", or a loop pinned to the page's own category or tag), or the lead and rest listings (smpi_archive_lead / smpi_archive_rest).
@@ -96,7 +96,7 @@ final class ArchiveSearch {
     public function print_search_box( $widget ): void {
         if ( $this->box_printed
             || ! self::enabled()
-            || ! shortcode_exists( "hws_listing_search" )
+            || "" === self::shortcode()
             || ! $this->is_listing( false, $widget )
             || ( class_exists( ListingSearchRenderer::class ) && ListingSearchRenderer::rendered( "listing" ) )
         ) {
@@ -119,7 +119,7 @@ final class ArchiveSearch {
             || ! $query->is_main_query()
             || ! self::enabled()
             || ! self::archive_page()
-            || ! shortcode_exists( "hws_listing_search" )
+            || "" === self::shortcode()
             || ( class_exists( ListingSearchRenderer::class ) && ListingSearchRenderer::rendered( "listing" ) )
         ) {
             return;
@@ -140,7 +140,7 @@ final class ArchiveSearch {
 
     private function box_html(): string {
         return '<div class="' . esc_attr( self::BOX_CLASS ) . '" style="width:100%;flex:0 0 100%;grid-column:1/-1">'
-            . do_shortcode( '[hws_listing_search results_one="%d story" results_many="%d stories"]' )
+            . do_shortcode( '[' . self::shortcode() . ' results_one="%d story" results_many="%d stories"]' )
             . "</div>";
     }
 
@@ -181,6 +181,16 @@ final class ArchiveSearch {
             . " INNER JOIN {$wpdb->terms} {$alias}_t ON {$alias}_t.term_id = {$alias}_tt.term_id"
             . " WHERE {$alias}_tr.object_id = " . preg_replace( "/[^A-Za-z0-9_.]/", "", (string) $table ) . ".ID"
             . $wpdb->prepare( " AND {$alias}_tt.taxonomy = %s AND {$alias}_t.slug = %s)", AuthorAssignmentRepository::TAXONOMY, "smpi-user-" . (int) $user_id ) . ")";
+    }
+
+    /** The search box shortcode HWS Base Tools offers ([hws_search], or its former name on older copies), or ''. */
+    private static function shortcode(): string {
+        foreach ( [ "hws_search", "hws_listing_search" ] as $tag ) {
+            if ( shortcode_exists( $tag ) ) {
+                return $tag;
+            }
+        }
+        return "";
     }
 
     private static function archive_page(): bool {

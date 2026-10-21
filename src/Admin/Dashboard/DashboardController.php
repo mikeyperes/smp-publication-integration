@@ -3083,7 +3083,7 @@ HTML;
         echo $this->author_listing_settings_html();
         echo $this->author_archive_loading_settings_html();
         echo '<section class="smpi-panel smpi-archive-search-settings"><h2>Archive search</h2>'
-            . '<p>Category, tag, author and search pages show a search box with category, tag and author filters above the stories; the list updates as readers type or tick. A template that already places [hws_listing_search] keeps its own box.</p>'
+            . '<p>Category, tag, author and search pages show a search box with category, tag and author filters above the stories; the list updates as readers type or tick. A template that already places [hws_search] keeps its own box.</p>'
             . $this->inline_toggle_setting_html( 'archive_search_enabled', 'Show the search box on archive pages' )
             . '</section>';
         echo $this->multi_author_debug_module_html();
