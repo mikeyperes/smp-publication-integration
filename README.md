@@ -40,6 +40,12 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 - **Style:** `.smpi-muckrack-inline-pair`, `.smpi-muckrack-icon`, `.smpi-muckrack-link`.
 - **Code:** `src/Content/MuckRackVerification.php`
 
+### Archive listings (lead story, the rest, story count)
+- **Does:** lets an Elementor archive template (category, tag, taxonomy, author or search) show the newest story on its own and then the rest of the archive in whole-row batches with Load more, plus the archive's story count. Author listings include co-authored stories.
+- **Use:** give one Loop Grid or Posts widget (Source: Posts) the Query ID `smpi_archive_lead` for the lead story, and a second one the Query ID `smpi_archive_rest` for the rest; the rest listing starts at the second story and uses the widget's own posts per page (8 for four per row). `[smp_archive_count singular="story" plural="stories"]` prints the count ("125 stories") and nothing when the archive is empty.
+- **Style:** `.smpi-archive-count`.
+- **Code:** `src/Content/ArchiveListing.php`
+
 ### Author fields
 - **Does:** any author's name, bio, title, socials, image or ACF field for the current post's author (or a given user / co-author).
 - **Use:** `[author_name]`, `[author_bio format="html"]`, `[author_bio_short words="35"]`, `[author_title]`, `[author_subtitle]`, `[author_image size="thumbnail" output="html" class="smpi-author-image"]`, `[author_facebook]` `[author_instagram]` `[author_x]` `[author_linkedin]` `[author_youtube]` `[author_website]` `[author_crunchbase]` `[author_muckrack]` `[author_email]`, `[acf_author_field field=""]`. All accept `user_id`, `post_id`, `author_index`.
@@ -131,7 +137,7 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `2.4.18`
+- Version: `2.4.19`
 
 ## Ownership
 
@@ -218,6 +224,10 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.4.19
+
+- Archive listings: the `smpi_archive_lead` and `smpi_archive_rest` Query IDs let a category, tag, author or search template show the newest story apart from the rest, with Load more batches that fill whole rows, and `[smp_archive_count]` prints the archive's story count.
 
 ### 2.4.18
 

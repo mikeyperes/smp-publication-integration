@@ -106,6 +106,7 @@ final class Plugin {
             new Content\Visibility(),
             new Content\PostListDefaults(),
             new Content\PostTime(),
+            new Content\ArchiveListing(),
             new Content\EstimatedReadTime(),
             new Content\ElementorCssCacheBusting(),
             new Content\ElementorFrontendCompatibility(),
