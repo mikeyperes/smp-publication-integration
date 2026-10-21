@@ -16,6 +16,7 @@ CSS, a selector map and a link to the owning renderer:
 - [What to know: HTML and CSS](docs/article-design-examples.md#what-to-know)
 - [In this article / Contents: HTML and CSS](docs/article-design-examples.md#in-this-article)
 - [FAQs: HTML and CSS](docs/article-design-examples.md#frequently-asked-questions)
+- [Writes about (author categories): HTML and CSS](docs/article-design-examples.md#writes-about)
 - [Listen / text-to-speech: HTML and CSS](https://github.com/mikeyperes/smp-wp-text-to-speech/blob/main/docs/player-design-examples.md), owned by the companion audio plugin.
 
 To see every built-in visual variant, open **SMP Publication > Features > Article
@@ -54,7 +55,7 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 
 ### Author fields
 - **Does:** any author's name, bio, title, socials, image or ACF field for the current post's author (or a given user / co-author).
-- **Use:** `[author_name]`, `[author_bio format="html"]`, `[author_bio_short words="35"]`, `[author_title]`, `[author_subtitle]`, `[author_image size="thumbnail" output="html" class="smpi-author-image" loading="lazy"]` (`loading="eager"` for a photo on the first screen), `[author_categories limit="4" separator=", "]` (the sections the author writes in most, as links; `.smpi-author-categories`, `.smpi-author-category`), `[author_facebook]` `[author_instagram]` `[author_x]` `[author_linkedin]` `[author_youtube]` `[author_website]` `[author_crunchbase]` `[author_muckrack]` `[author_email]`, `[acf_author_field field=""]`. All accept `user_id`, `post_id`, `author_index`.
+- **Use:** `[author_name]`, `[author_bio format="html"]`, `[author_bio_short words="35"]`, `[author_title]`, `[author_subtitle]`, `[author_image size="thumbnail" output="html" class="smpi-author-image" loading="lazy"]` (`loading="eager"` for a photo on the first screen), `[author_categories limit="4" separator=", "]` (the "Writes about" list: the author's published-post categories, most posts first, ties by oldest category, Uncategorized skipped, empty when none; [HTML and CSS](docs/article-design-examples.md#writes-about); `.smpi-author-categories`, `.smpi-author-category`), `[author_facebook]` `[author_instagram]` `[author_x]` `[author_linkedin]` `[author_youtube]` `[author_website]` `[author_crunchbase]` `[author_muckrack]` `[author_email]`, `[acf_author_field field=""]`. All accept `user_id`, `post_id`, `author_index`.
 - **Code:** `src/Content/AuthorShortcodes.php`
 
 ### Author social icons
@@ -234,6 +235,10 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.4.28
+
+- `[author_categories]` orders equal counts by oldest category, so the "Writes about" list never shuffles; README and design examples show its HTML and CSS.
 
 ### 2.4.27
 

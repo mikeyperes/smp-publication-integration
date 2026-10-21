@@ -195,6 +195,48 @@ The native disclosure remains functional without replacement JavaScript.
 `format="html"` instead renders expanded pairs. FAQ schema uses the same
 structured source; this CSS changes neither content nor schema.
 
+## Writes about
+
+Shortcode: `[author_categories limit="4" separator=", "]` in an Elementor
+Shortcode widget on the author archive or an author box. Put the "Writes
+about" label in its own Heading widget.
+
+Source: [render_categories](../src/Content/AuthorShortcodes.php).
+
+The list is the categories of the author's published posts (newest 200),
+counted per post, most posts first; equal counts keep the oldest category
+first. The default category (Uncategorized) is skipped and tags are never
+used. `limit` is 1 to 12. The author is the current archive author, or the
+post's author elsewhere; `user_id`, `post_id` and `author_index` pick one
+explicitly. No categories means no output.
+
+Representative HTML:
+
+```html
+<span class="smpi-author-categories">
+  <a class="smpi-author-category" href="https://example.com/category/productivity/">Productivity</a>,
+  <a class="smpi-author-category" href="https://example.com/category/careers/">Careers</a>
+</span>
+```
+
+Elementor custom CSS for the Shortcode widget:
+
+```css
+selector .smpi-author-categories {
+  font-size: 15px;
+  line-height: 1.5;
+}
+selector .smpi-author-category {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+selector .smpi-author-category:hover { text-decoration-thickness: 2px; }
+```
+
+Edit the root for size and the separator colour; `-category` for link colour
+and underline. Background and spacing belong to the widget's own controls.
+
 ## Listen
 
 Audio is owned by the companion plugin, not this renderer. See its

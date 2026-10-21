@@ -170,7 +170,7 @@ final class AuthorShortcodes {
         }
         $limit = max( 1, min( 12, absint( $atts["limit"] ) ) );
         // WordPress moves the posts "last changed" marker whenever a story changes, so the cached list renews itself.
-        $key = "smpi_author_categories_" . md5( $author_id . "|" . $limit . "|" . wp_cache_get_last_changed( "posts" ) );
+        $key = "smpi_author_categories_v2_" . md5( $author_id . "|" . $limit . "|" . wp_cache_get_last_changed( "posts" ) );
         $top = get_transient( $key );
         if ( ! is_array( $top ) ) {
             $ids = get_posts( [ "post_type" => "post", "post_status" => "publish", "author" => $author_id, "posts_per_page" => 200, "fields" => "ids", "no_found_rows" => true ] );
@@ -181,7 +181,8 @@ final class AuthorShortcodes {
                     $counts[ (int) $term->term_id ] = ( $counts[ (int) $term->term_id ] ?? 0 ) + 1;
                 }
             }
-            arsort( $counts );
+            // Most stories first; equal counts fall back to the oldest category, so the order never shuffles.
+            uksort( $counts, static fn( $a, $b ) => $counts[ $b ] <=> $counts[ $a ] ?: $a <=> $b );
             $top = array_slice( array_keys( $counts ), 0, $limit );
             set_transient( $key, $top, 12 * HOUR_IN_SECONDS );
         }
