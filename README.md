@@ -241,6 +241,10 @@ The suite covers navigation, article defaults, article/FAQ output, authorship, t
 
 ## Changelog
 
+### 2.5.2
+
+- Bundles Core 3.29.4 (filter lists stay on screen).
+
 ### 2.5.1
 
 - Archive search also appears on archives the theme draws itself (no Elementor template): above the first story, with the stories refreshed in place. Bundles Core 3.29.3.
