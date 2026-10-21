@@ -31,8 +31,14 @@ This package exists to stop each plugin from re-implementing the same admin tabs
 - **Use:** `( new SearchIndex( $settings_provider ) )->register()`, `'index' => true` in the search settings, then build once with `rebuild()` pages.
 - **Code:** `src/SearchQuery/SearchIndex.php`
 
+### Listing search
+- **Does:** a search box and filters (type, category, tag, author, any taxonomy or custom field) that narrow the page's own list of posts in place: category, tag, author, search and post type pages, or any Elementor loop marked as the listing. Filters take several choices (match any or all), show how many results each option gives, nest subcategories, and the address keeps every state. Runs on WordPress's own query.
+- **Use:** register a profile with `ListingSearchRegistry::register( 'id', [...] )` and print `( new ListingSearchRenderer() )->render( 'id' )`; HWS Base Tools ships `[hws_listing_search]`. Mark the Elementor loop with the CSS class `hexa-listing-results` (loops showing the page's own list are found automatically).
+- **Code:** `src/ListingSearch/`, filters and counts in `src/QueryFilter/`.
+- **Extend:** `hexa_plugin_core_listing_search_target`, `hexa_plugin_core_listing_context_args`, `hexa_plugin_core_listing_search_post_types`, `hexa_plugin_core_query_filter_author_condition`, new filter types with `QueryFilterTypes::register()`.
+
 ### Directory search
-- **Does:** a searchable, filterable directory from a registered profile.
+- **Does:** a searchable, filterable directory from a registered profile, on WordPress's own post or user query. Filters take several choices and show counts; placed on an archive it lists only that archive. More results load on scroll with a crawlable Load more link by default (`'load_mode' => 'infinite'`); `'load_mode' => 'load_more'` loads more only when the button is clicked (for a list with content below it, such as a form); `'load_mode' => 'numbered'` gives page links.
 - **Use:** `DirectorySearchRegistry::register( 'id', [...] )`, then `[hexa_directory id="id"]`.
 - **Code:** `src/DirectorySearch/`
 
@@ -101,6 +107,7 @@ hexa-wordpress-plugin-core/
     SchemaDetection/    -> Hexa\PluginCore\SchemaDetection
     SchemaTools/        -> Hexa\PluginCore\SchemaTools
     DirectorySearch/    -> Hexa\PluginCore\DirectorySearch
+    ListingSearch/      -> Hexa\PluginCore\ListingSearch
     Calendar/           -> Hexa\PluginCore\Calendar
     Map/                -> Hexa\PluginCore\Map
     QueryFilter/        -> Hexa\PluginCore\QueryFilter
@@ -145,6 +152,8 @@ Version 2.1.4 keeps Getting Started parent-step and full-checklist runs availabl
 
 Version 3.0.0 establishes the coordinated major release for the expanded Core data-normalization, operations, provisioning, checklist-state, fleet-synchronization, and reusable admin infrastructure shipped in this source tree.
 
+Version 3.29 adds `Hexa\PluginCore\ListingSearch` (search and filters inside any WordPress listing, refreshed in place), moves `DirectorySearch` onto `WP_Query`/`WP_User_Query`, gives `QueryFilter` several-choice checkboxes with any/all matching, number ranges, nested term lists, per-option counts and the `author` and `post_type` types, and removes the JetEngine search adapter.
+
 Version 3.2.1 renames the DirectorySearch URL-owner parameter from `dir` to `hds` (the old name is still read), because common web firewalls such as ModSecurity/Imunify360 reject any request carrying `dir=`, which broke live search and pagination.
 
 Version 3.7.2 keeps every `Map` item card fully inside the map, including on phones: the card always opens above its pin, its width and height are capped to the map (taller content scrolls inside the card), and the map glides just enough to fit the whole card. Before, a card opened near the bottom of a small map could run off the map.
@@ -152,6 +161,24 @@ Version 3.7.2 keeps every `Map` item card fully inside the map, including on pho
 Version 3.15.1 adds the lightbox `media` layout: a large dialog with the original-quality photo filling the left and the details scrolling on the right (stacked on phones), through `ItemLightbox::media()` and `'layout' => 'media'`.
 
 Version 3.21.0 makes site search public-only for everyone: `SearchQueryEngine::restrict_to_public()` limits every prepared search (the regular search page and the Elementor Search widget) to published, non-password items, drops anything marked noindex (Rank Math `rank_math_robots`, Yoast `_yoast_wpseo_meta-robots-noindex`) and never returns the site's front or posts page. Before, the regular search page used WordPress's default, which shows private posts to signed-in editors.
+
+Version 3.28.1 also removes staff plugins' Profile contact fields and footer scripts for clients (Rank Math's Twitter, Facebook and extra-link fields and its "Rank Math SEO" heading).
+
+Version 3.28.0 keeps staff business away from clients (users below administrator) at the source. `WpAdminUiCleanup\ClientFacingPlugins` names the plugins that may speak to clients (`hexa-*`, `hws-*`, ACF, WP User Avatars; filter `hexa_core_client_facing_plugins`) and `strip( $hook )` removes every other plugin's callbacks from a hook before it runs. `CleanupPresets::client_notices()` strips the admin-notice hooks, so Rank Math notices and donation banners never reach clients. `CleanupPresets::client_profile()` strips staff plugins' Profile sections (Rank Math SEO, Elementor AI), turns Application Passwords off through `wp_is_application_passwords_available_for_user`, removes the color picker through its own hook and hides the remaining hook-less Personal Options rows by WordPress's row classes. `Fields\Audience` adds `'hide' => true` to `client_view`: a staff-only group is not registered for client-view users; the registry card offers "Hide the whole group from them".
+
+Version 3.27.0 adds a client-friendly field view (`Fields\Audience`). Any field can carry `developer_instructions` (shortcodes, meta keys, compatibility notes) beside its friendly `instructions`. A group's `client_view` (`['enabled' => true, 'roles' => 'below_admin']` by default, or a role list) decides who sees only the friendly help; everyone else sees both. `AcfFieldGroupRegistry` cards add a Client-friendly view switch with "Everyone below administrator" or chosen roles, saved per group. Filter: `hexa_core_fields_client_view`.
+
+Version 3.27.1 smooths the ImageZoom hover preview: it fades and settles in over about half a second once the image is decoded, with rounder corners (16px) and a softer hint line that follows them.
+
+Version 3.27.2 keeps the hover preview open while the pointer is on it: it closes only when the pointer leaves the preview (or the thumbnail without entering it) or on a click outside. Clicking the preview image opens the full-screen viewer and the detail links are real links (outside links open in a new tab).
+
+Version 3.27.3 makes the hover preview hint line easier to read: brighter text at 12.5px and a soft glow on its accent dot.
+
+Version 3.26.0 gives `ImageZoom` optional `delay` (ms, up to 5000) with a countdown ring on the thumbnail, a one-line `hint` above the preview (a default explainer when a delay is set; empty string hides it) and a `detail` side panel (title, label/value facts, short text, link lines). Without options the markup is unchanged.
+
+Version 3.25.0 gives `TaskRunner` a full dashboard look: `header()`, `segments()` (remembered panel switcher), KPI tiles with tones, toolbars with search and filter chips, a bulk-selection bar, soft badges, expandable lists, a slim progress bar with Stop and a light Activity log. `queue()` accepts `concurrency` for read-only steps. Root class: `hpc-runner-app`.
+
+Version 3.24.1 adds `WpAdminComponents\TaskRunner`, the shared live-progress pieces for admin jobs that run as AJAX steps: stat cards, progress meter, status badges, job tables, a live log and the `HexaWpCoreTaskRunner` client (`post`, one-at-a-time `queue`, batched `loop`, stop between steps). Docs: `docs/task-runner.md`. `DatabaseCleanup` (the WP-Optimize wrapper) is deprecated: HWS Base Tools now owns database cleanup itself, and the module will be removed once every site runs a Base Tools release that no longer calls it.
 
 Version 3.22.0 makes Core the one schema library: `SchemaNodes` builders, `SchemaSources` WordPress adapters, `SchemaIds`, the shared per-page graph `SchemaPage` (one `hexa-schema` block merged from every plugin) and `RankMathSchemaControl`. Plugins decide where they output; Core builds, merges and prints.
 
@@ -300,7 +327,7 @@ Do not create `HWS\BaseTools\PluginCore`, `HexaWordPressPluginCore`, `Hexa\Core`
 - `ContentCleanup`: old content detection, backup file detection/deletion, article/media cleanup, all-matching and all-except-latest-X batch deletion, guarded AJAX actions, collapsible service cards, human-readable rule and scan-location detail cards, AJAX table updates, and collapsed Hexa Core Log Type 1 cleanup activity UI.
 - `ContentTypes`: immutable WordPress post-type keys with reusable registration, editable labels and rewrite slugs, guarded AJAX persistence, functional header toggles, collapsed CPT cards, and immediate external ACF sibling cards.
 - `CredentialVault`: encrypted API-key/secret storage, masking, and credential field examples.
-- `DatabaseCleanup`: guarded provider-backed cleanup sessions, per-task cleanup, per-table optimization, pre/post provider state restoration, and live AJAX progress.
+- `DatabaseCleanup` (deprecated, see 3.24.1): guarded provider-backed cleanup sessions, per-task cleanup, per-table optimization, pre/post provider state restoration, and live AJAX progress.
 - `DataNormalization`: compatibility-friendly scalar, ACF/meta field, and WordPress media normalizers for host-owned data mappings.
 - `EntitySources`: optional canonical website/entity selection, derived semantic types, legacy migration, user/post resolution, complete author/profile cards, attached-author extraction, field inspection, and reusable admin UI.
 - `FieldStructures`: reusable ACF group registration and settings panels, a generic live ACF gallery-details module, plus displays and status checks for ACF groups, custom post types, taxonomies, and option-backed feature structures.
@@ -322,7 +349,7 @@ Do not create `HWS\BaseTools\PluginCore`, `HexaWordPressPluginCore`, `Hexa\Core`
 - `SchemaDetection`: reusable JSON-LD URL scans, source detection, semantic property validation, duplicate schema conflict checks, FAQ validation, and dark admin report rendering.
 - `SchemaTools`: the one schema library for every Hexa plugin: generic node builders (`SchemaNodes`), WordPress data adapters (`SchemaSources`), shared `@id` conventions (`SchemaIds`), one merged graph per page (`SchemaPage`), the Rank Math schema switch (`RankMathSchemaControl`), URL guards, normalization and JSON-LD rendering. Host plugins decide which pages they cover; Core builds and prints.
 - `SearchDisplay`: five reusable front-end WordPress search-form templates with shared markup, CSS, and accessible interactions.
-- `SearchQuery`: bounded native WordPress result matching for all/any/exact terms, whole/prefix/contains word modes, optional natural time windows from shared QueryFilter rules, selected post types and sources, one-query-only SQL hooks, guarded JetEngine and native Elementor Search bridging, and a safe public Elementor text index.
+- `SearchQuery`: bounded native WordPress result matching for all/any/exact terms, whole/prefix/contains word modes, optional natural time windows from shared QueryFilter rules, selected post types and sources, one-query-only SQL hooks, guarded native Elementor Search bridging, and a safe public Elementor text index.
 - `SmartSearch`: smart search/X-Search AJAX endpoint and reusable typeahead renderer.
 - `DirectorySearch`: declarative public directory search over posts or users with filters, sorts, card templates, a public REST endpoint, and a server-rendered shortcode that upgrades to live search.
 - `Calendar`: lightweight public month-grid calendar profiles over dated posts (or a host provider) with linked items, shared filters, bounded month navigation, a public REST endpoint, and a server-rendered shortcode.

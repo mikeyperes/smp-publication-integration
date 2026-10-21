@@ -107,6 +107,7 @@ final class Plugin {
             new Content\PostListDefaults(),
             new Content\PostTime(),
             new Content\ArchiveListing(),
+            new Content\ArchiveSearch(),
             new Content\RelatedTags(),
             new Content\EstimatedReadTime(),
             new Content\ElementorCssCacheBusting(),

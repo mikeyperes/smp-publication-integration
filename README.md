@@ -43,9 +43,14 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 
 ### Archive listings (lead story, the rest, story count)
 - **Does:** lets an Elementor archive template (category, tag, taxonomy, author or search) show the newest story on its own and then the rest of the archive in whole-row batches with Load more, plus the archive's story count. Author listings include co-authored stories.
-- **Use:** give one Loop Grid or Posts widget (Source: Posts) the Query ID `smpi_archive_lead` for the lead story, and a second one the Query ID `smpi_archive_rest` for the rest; the rest listing starts at the second story and uses the widget's own posts per page (8 for four per row). `[smp_archive_count singular="story" plural="stories"]` prints the count ("125 stories") and nothing when the archive is empty. Infinite scroll with a visible Load more button: set a Loop Grid or Posts widget to "Load on click" and give it the CSS class `smpi-auto-load-more`; it then loads the next batch as the button comes into view, and the button stays as the fallback. A page with `window.hexaFreezeAutoLoad = true` (set by our page-capture checks) keeps its first batch.
+- **Use:** give one Loop Grid or Posts widget (Source: Posts) the Query ID `smpi_archive_lead` for the lead story, and a second one the Query ID `smpi_archive_rest` for the rest; the rest listing starts at the second story and uses the widget's own posts per page (8 for four per row). `[smp_archive_count singular="story" plural="stories"]` prints the count ("125 stories") and nothing when the archive is empty. Infinite scroll with a visible Load more button comes from HWS Base Tools (CSS class `hws-auto-load-more`; `smpi-auto-load-more` still works).
 - **Style:** `.smpi-archive-count`.
 - **Code:** `src/Content/ArchiveListing.php`
+
+### Archive search
+- **Does:** category, tag, author and search pages get a search box with Category, Tag and Author filters right above the stories; the stories, counts and address refresh as readers type or tick. The archive's story list (a Loop Grid, Posts or Archive Posts widget showing the page's own stories, or the lead and rest listings) is found by itself, so existing templates need no edit. Author pages and the Author filter include co-authored stories; archive visibility rules apply to every count.
+- **Use:** on by default (Settings: "Show the search box on archive pages"). A template that places `[hws_listing_search]` itself keeps its own box. Needs HWS Base Tools 13.13.0.
+- **Code:** `src/Content/ArchiveSearch.php`
 
 ### Related tags
 - **Does:** on a tag or category archive, links to the tags used most often on the same stories, the archive's own tag left out. Prints nothing, label included, when there are none.
@@ -235,6 +240,12 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.5.0
+
+- Archive search: category, tag, author and search pages show a search box with filters above the stories, refreshed in place (`src/Content/ArchiveSearch.php`, setting `archive_search_enabled`).
+- Infinite scroll with a Load more fallback moved to HWS Base Tools.
+- The publication manifest no longer reads JetEngine listings. Bundles Core 3.29.2.
 
 ### 2.4.28
 

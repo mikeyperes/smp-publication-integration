@@ -72,61 +72,6 @@ namespace {
             };
         }
     }
-    final class SmpiFixtureJetData {
-        public int $listing = 987;
-        public function set_listing_by_id( int $id ): void { $this->listing = $id; }
-        public function get_listing_source(): string {
-            if ( 999 === $this->listing ) { return 'users'; }
-            if ( 501 === $this->listing ) { return 'query'; }
-            return 'posts';
-        }
-    }
-    final class SmpiFixtureJetListings {
-        public SmpiFixtureJetData $data;
-        public function __construct() { $this->data = new SmpiFixtureJetData(); }
-        public function get_render_instance( string $type, array $settings ): object {
-            return new class( $settings ) {
-                public function __construct( private array $settings ) {}
-                public function setup_listing_props(): void {}
-                public function get_settings(): array { return $this->settings; }
-                public function get_query( array $settings ): array {
-                    expect_manifest( jet_engine()->listings->data->listing === (int) $settings['lisitng_id'], 'Jet must bind the exact saved listing before querying.' );
-                    expect_manifest( 42 === $GLOBALS['post']->ID, 'Jet must use homepage post context.' );
-                    return smpi_fixture_query( $settings, $this, 'jet-engine/listing/grid/posts-query-args' )->posts;
-                }
-            };
-        }
-    }
-    final class SmpiFixtureJetQueryListings {
-        public function get_query_id( int $listing_id, array $settings ): int {
-            unset( $listing_id );
-            return absint( $settings['custom_query_id'] ?? 0 );
-        }
-    }
-    final class SmpiFixtureJetQuery {
-        public $final_query = null;
-        public $final_query_raw = null;
-        public $cache_query = true;
-        public array $dynamic_query = [];
-        public function __construct( public int $id, public string $query_type = 'posts', array $dynamic_query = [] ) {
-            $this->dynamic_query = $dynamic_query;
-        }
-        public function get_query_type(): string { return $this->query_type; }
-        public function reset_query(): void {}
-        public function get_items(): array {
-            ++$GLOBALS['smpi_native_executions'];
-            $arguments = apply_filters(
-                'jet-engine/query-builder/types/posts-query/args',
-                [ 'posts_per_page' => 100, 'post_status' => 'any' ],
-                $this
-            );
-            $query = new WP_Query( $arguments );
-            ( $GLOBALS['smpi_manifest_actions']['pre_get_posts'][0] )( $query );
-            $GLOBALS['smpi_last_native_query'] = $query;
-            return array_slice( array_merge( [ 101, 102, 106 ], range( 1000, 1047 ) ), 0, $query->get( 'posts_per_page' ) );
-        }
-    }
-    function jet_engine(): object { return $GLOBALS['smpi_fixture_jet']; }
 }
 
 namespace Elementor {
@@ -137,16 +82,3 @@ namespace ElementorPro\Modules\QueryControl {
     final class Module { public static array $displayed_ids = [ 777 ]; }
 }
 
-namespace Jet_Engine\Query_Builder {
-    final class Manager {
-        public static $instance;
-        public object $listings;
-        /** @var array<int,object> */
-        public array $queries = [];
-        public static function instance(): self { return self::$instance; }
-        public function get_query_by_id_for_context( int $id, array $context ) {
-            if ( (int) ( $context['query_id'] ?? 0 ) !== $id ) { return false; }
-            return $this->queries[ $id ] ?? false;
-        }
-    }
-}

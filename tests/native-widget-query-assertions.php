@@ -13,16 +13,6 @@ $original_post = $GLOBALS['post'];
     'elements_manager' => new SmpiFixtureElements(),
     'db' => new SmpiFixtureElementorDb(),
 ];
-$GLOBALS['smpi_fixture_jet'] = (object) [ 'listings' => new SmpiFixtureJetListings() ];
-$query_builder = new \Jet_Engine\Query_Builder\Manager();
-$query_builder->listings = new SmpiFixtureJetQueryListings();
-$query_builder->queries = [
-    2 => new SmpiFixtureJetQuery( 2 ),
-    3 => new SmpiFixtureJetQuery( 3, 'users' ),
-    4 => new SmpiFixtureJetQuery( 4, 'posts', [ 'post_type' => 'runtime_macro' ] ),
-];
-\Jet_Engine\Query_Builder\Manager::$instance = $query_builder;
-$original_jet_data = jet_engine()->listings->data;
 $native = new NativeWidgetQueryCollector();
 $node = static fn( string $type, array $settings ): array => [ 'id' => 'native-query', 'elType' => 'widget', 'widgetType' => $type, 'settings' => $settings ];
 
@@ -50,20 +40,8 @@ expect_manifest( ! $failed['resolved'] && ! isset( $GLOBALS['smpi_manifest_actio
 $avoid = $native->collect( $node( 'loop-grid', [ 'post_query_avoid_duplicates' => 'yes' ] ), 42 );
 expect_manifest( ! $avoid['resolved'] && 'elementor_previous_results_required' === $avoid['warning']['code'], 'Unreproduced prior-widget exclusions must not be declared complete.' );
 
-$jet = $native->collect( $node( 'jet-listing-grid', [ 'lisitng_id' => 500, 'posts_num' => 1 ] ), 42 );
-expect_manifest( [ 8 ] === $jet['category_ids'] && 'jet_engine' === $jet['provider'], 'Native Jet post results must yield category evidence.' );
-expect_manifest( $original_jet_data === jet_engine()->listings->data && 987 === $original_jet_data->listing && $original_post === $GLOBALS['post'], 'Jet must restore the exact previous listing state and post.' );
-$jet_query_builder = $native->collect( $node( 'jet-listing-grid', [ 'lisitng_id' => 501, 'custom_query' => 'yes', 'custom_query_id' => 2, 'posts_num' => 5 ] ), 42 );
-expect_manifest( [ 8, 6271, 7548 ] === $jet_query_builder['category_ids'] && 'jet_engine_query_builder' === $jet_query_builder['provider'], 'A statically bound Query Builder posts query must yield bounded category evidence before the manifest policy layer removes reserved categories.' );
-expect_manifest( 51 === $GLOBALS['smpi_last_native_query']->get( 'posts_per_page' ) && 'native_query_results_truncated' === $jet_query_builder['warning']['code'], 'Query Builder post results must use the exact-query overflow guard and remain partial when more than fifty results exist.' );
-$before_non_post_query = $GLOBALS['smpi_native_executions'];
-$jet_query_builder_users = $native->collect( $node( 'jet-listing-grid', [ 'lisitng_id' => 501, 'custom_query' => 'yes', 'custom_query_id' => 3 ] ), 42 );
-expect_manifest( ! $jet_query_builder_users['resolved'] && 'jet_engine_query_builder_type_unsupported' === $jet_query_builder_users['warning']['code'] && $before_non_post_query === $GLOBALS['smpi_native_executions'], 'Non-post Query Builder sources must fail before execution.' );
-$jet_query_builder_dynamic = $native->collect( $node( 'jet-listing-grid', [ 'lisitng_id' => 501, 'custom_query' => 'yes', 'custom_query_id' => 4 ] ), 42 );
-expect_manifest( ! $jet_query_builder_dynamic['resolved'] && 'jet_engine_query_builder_dynamic_context_unsupported' === $jet_query_builder_dynamic['warning']['code'] && $before_non_post_query === $GLOBALS['smpi_native_executions'], 'Runtime-dependent Query Builder values must fail before execution.' );
-$before_unsupported = $GLOBALS['smpi_native_executions'];
-$jet_unsupported = $native->collect( $node( 'jet-listing-grid', [ 'lisitng_id' => 999 ] ), 42 );
-expect_manifest( ! $jet_unsupported['resolved'] && $before_unsupported === $GLOBALS['smpi_native_executions'], 'Unsupported non-post Jet queries must not execute.' );
+$unsupported = $native->collect( $node( 'jet-listing-grid', [ 'lisitng_id' => 500 ] ), 42 );
+expect_manifest( ! $unsupported['resolved'] && 'native_query_provider_unsupported' === $unsupported['warning']['code'], 'Widgets other than Elementor posts and loops (such as removed JetEngine listings) have no query adapter.' );
 
 $budget = new NativeWidgetQueryCollector( null, 1 );
 $budget->collect( $node( 'posts', [] ), 42 );

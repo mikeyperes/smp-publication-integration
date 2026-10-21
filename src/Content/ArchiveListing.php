@@ -25,6 +25,7 @@ final class ArchiveListing {
     public const LEAD_QUERY_ID = "smpi_archive_lead";
     public const REST_QUERY_ID = "smpi_archive_rest";
     public const COUNT_SHORTCODE = "smp_archive_count";
+    /** Templates' infinite-scroll class; HWS Base Tools serves it (its own class is hws-auto-load-more). */
     public const AUTO_LOAD_CLASS = "smpi-auto-load-more";
 
     private const OFFSET_BASE_VAR = "smpi_archive_offset_base";
@@ -37,24 +38,6 @@ final class ArchiveListing {
         add_filter( "found_posts", [ $this, "filter_found_posts" ], 10, 2 );
         add_filter( "pre_handle_404", [ $this, "keep_later_batches_reachable" ], 10, 2 );
         add_action( "init", [ $this, "register_shortcode" ] );
-        add_action( "wp_footer", [ $this, "print_auto_load_more_script" ], 34 );
-    }
-
-    /**
-     * Infinite scroll with a visible Load more button. Elementor offers either its Load more
-     * button or infinite scroll, never both. A Loop Grid or Posts widget set to "Load on click"
-     * and given the CSS class smpi-auto-load-more presses its own button as it comes into view,
-     * so stories keep loading while scrolling and the button stays as the fallback. Page captures
-     * that compare first-load states set window.hexaFreezeAutoLoad, which keeps the first batch.
-     */
-    public function print_auto_load_more_script(): void {
-        if ( ! RuntimeContext::is_public_frontend() ) {
-            return;
-        }
-        $selector = "." . self::AUTO_LOAD_CLASS . " .e-loop__load-more .elementor-button, ." . self::AUTO_LOAD_CLASS . " .elementor-button-wrapper .elementor-button";
-        ?>
-<script id="smpi-auto-load-more">(function(){var sel=<?php echo wp_json_encode( $selector ); ?>,queued=false;function check(){queued=false;if(window.hexaFreezeAutoLoad)return;document.querySelectorAll(sel).forEach(function(btn){var w=btn.closest(".<?php echo esc_js( self::AUTO_LOAD_CLASS ); ?>");if(!w||w.classList.contains("e-load-more-pagination-loading")||w.classList.contains("e-load-more-pagination-end")||!btn.offsetParent)return;var r=btn.getBoundingClientRect();if(r.top<window.innerHeight+300&&r.bottom>0)btn.click();});}function queue(){if(!queued){queued=true;window.requestAnimationFrame(check);}}window.addEventListener("scroll",queue,{passive:true});window.addEventListener("resize",queue);document.addEventListener("DOMContentLoaded",queue);window.addEventListener("load",queue);})();</script>
-        <?php
     }
 
     public function register_shortcode(): void {
