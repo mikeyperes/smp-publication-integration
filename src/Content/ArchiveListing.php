@@ -74,7 +74,7 @@ final class ArchiveListing {
         if ( self::LEAD_QUERY_ID === $query_id ) {
             $query_args["posts_per_page"] = 1;
             $query_args["paged"] = 1;
-            $query_args["no_found_rows"] = true;
+            // Elementor reads a zero result count as "nothing found", so the count stays on.
             return $query_args;
         }
 
