@@ -38,6 +38,7 @@ final class AuthorShortcodes {
             "author_email" => "render_email",
             "author_muckrack_verified" => "render_muckrack_verified",
             "author_image" => "render_image",
+            "author_categories" => "render_categories",
         ];
     }
 
@@ -158,6 +159,41 @@ final class AuthorShortcodes {
             }
         }
         return "text" === sanitize_key( (string) $atts["type"] ) ? MuckRackVerification::verification_text( $author_id ) : MuckRackVerification::verification_icon( $author_id, sanitize_key( (string) $atts["style"] ), $context );
+    }
+
+    /** The sections an author writes in most, as links, most stories first; "" when none. */
+    public function render_categories( array $atts = [] ): string {
+        $atts = shortcode_atts( [ "user_id" => 0, "post_id" => 0, "author_index" => 0, "limit" => 4, "separator" => ", " ], $atts, "author_categories" );
+        $author_id = $this->resolve_author_id( (int) $atts["user_id"], (int) $atts["post_id"], (int) $atts["author_index"] );
+        if ( ! $author_id ) {
+            return "";
+        }
+        $limit = max( 1, min( 12, absint( $atts["limit"] ) ) );
+        // WordPress moves the posts "last changed" marker whenever a story changes, so the cached list renews itself.
+        $key = "smpi_author_categories_" . md5( $author_id . "|" . $limit . "|" . wp_cache_get_last_changed( "posts" ) );
+        $top = get_transient( $key );
+        if ( ! is_array( $top ) ) {
+            $ids = get_posts( [ "post_type" => "post", "post_status" => "publish", "author" => $author_id, "posts_per_page" => 200, "fields" => "ids", "no_found_rows" => true ] );
+            $skip = (int) get_option( "default_category" );
+            $counts = [];
+            foreach ( empty( $ids ) ? [] : wp_get_object_terms( $ids, "category", [ "fields" => "all_with_object_id" ] ) as $term ) {
+                if ( (int) $term->term_id !== $skip ) {
+                    $counts[ (int) $term->term_id ] = ( $counts[ (int) $term->term_id ] ?? 0 ) + 1;
+                }
+            }
+            arsort( $counts );
+            $top = array_slice( array_keys( $counts ), 0, $limit );
+            set_transient( $key, $top, 12 * HOUR_IN_SECONDS );
+        }
+        $links = [];
+        foreach ( $top as $term_id ) {
+            $term = get_term( (int) $term_id, "category" );
+            $url = $term instanceof \WP_Term ? get_term_link( $term ) : "";
+            if ( $term instanceof \WP_Term && ! is_wp_error( $url ) ) {
+                $links[] = '<a class="smpi-author-category" href="' . esc_url( $url ) . '">' . esc_html( $term->name ) . "</a>";
+            }
+        }
+        return empty( $links ) ? "" : '<span class="smpi-author-categories">' . implode( esc_html( (string) $atts["separator"] ), $links ) . "</span>";
     }
 
     public function render_image( array $atts = [] ): string {

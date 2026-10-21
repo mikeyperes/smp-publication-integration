@@ -54,7 +54,7 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 
 ### Author fields
 - **Does:** any author's name, bio, title, socials, image or ACF field for the current post's author (or a given user / co-author).
-- **Use:** `[author_name]`, `[author_bio format="html"]`, `[author_bio_short words="35"]`, `[author_title]`, `[author_subtitle]`, `[author_image size="thumbnail" output="html" class="smpi-author-image"]`, `[author_facebook]` `[author_instagram]` `[author_x]` `[author_linkedin]` `[author_youtube]` `[author_website]` `[author_crunchbase]` `[author_muckrack]` `[author_email]`, `[acf_author_field field=""]`. All accept `user_id`, `post_id`, `author_index`.
+- **Use:** `[author_name]`, `[author_bio format="html"]`, `[author_bio_short words="35"]`, `[author_title]`, `[author_subtitle]`, `[author_image size="thumbnail" output="html" class="smpi-author-image"]`, `[author_categories limit="4" separator=", "]` (the sections the author writes in most, as links; `.smpi-author-categories`, `.smpi-author-category`), `[author_facebook]` `[author_instagram]` `[author_x]` `[author_linkedin]` `[author_youtube]` `[author_website]` `[author_crunchbase]` `[author_muckrack]` `[author_email]`, `[acf_author_field field=""]`. All accept `user_id`, `post_id`, `author_index`.
 - **Code:** `src/Content/AuthorShortcodes.php`
 
 ### Author social icons
@@ -147,7 +147,7 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `2.4.22`
+- Version: `2.4.23`
 
 ## Ownership
 
@@ -234,6 +234,10 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.4.23
+
+- `[author_categories]` lists the sections an author writes in most, as links, for author pages and author boxes.
 
 ### 2.4.22
 
