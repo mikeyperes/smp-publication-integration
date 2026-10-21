@@ -17,7 +17,7 @@ if ( ! defined( "ABSPATH" ) ) {
  * The shared listing search (HexaWP Core, `[hws_listing_search]` from HWS Base Tools) narrows the
  * page's own story list. This class tells it which list that is on a publication: the archive's
  * Loop Grid, Posts or Archive Posts widget that shows the current page's stories (Elementor's
- * "Current Query"), or the lead and rest listings (smpi_archive_lead / smpi_archive_rest).
+ * "Current Query", or a loop pinned to the page's own category or tag), or the lead and rest listings (smpi_archive_lead / smpi_archive_rest).
  * Unless the template already places the shortcode, the search box is added right above the
  * first of them, so every existing publication gets it without template edits. An archive the
  * theme draws itself (no Elementor template) gets the box above its first story, and its
@@ -76,6 +76,16 @@ final class ArchiveSearch {
             }
             if ( "_post_type" === substr( $key, -10 ) && "current_query" === $value ) {
                 return true;
+            }
+        }
+
+        // A loop pinned to the page's own category or tag (Include: Terms) lists that page's stories too.
+        $term = ( is_category() || is_tag() || is_tax() ) ? get_queried_object() : null;
+        if ( $term instanceof \WP_Term ) {
+            foreach ( $settings as $key => $value ) {
+                if ( is_string( $key ) && "_include_term_ids" === substr( $key, -17 ) && is_array( $value ) && in_array( (int) $term->term_id, array_map( "intval", $value ), true ) ) {
+                    return true;
+                }
             }
         }
 
