@@ -44,7 +44,8 @@ final class ArchiveListing {
      * Infinite scroll with a visible Load more button. Elementor offers either its Load more
      * button or infinite scroll, never both. A Loop Grid or Posts widget set to "Load on click"
      * and given the CSS class smpi-auto-load-more presses its own button as it comes into view,
-     * so stories keep loading while scrolling and the button stays as the fallback.
+     * so stories keep loading while scrolling and the button stays as the fallback. Page captures
+     * that compare first-load states set window.hexaFreezeAutoLoad, which keeps the first batch.
      */
     public function print_auto_load_more_script(): void {
         if ( ! RuntimeContext::is_public_frontend() ) {
@@ -52,7 +53,7 @@ final class ArchiveListing {
         }
         $selector = "." . self::AUTO_LOAD_CLASS . " .e-loop__load-more .elementor-button, ." . self::AUTO_LOAD_CLASS . " .elementor-button-wrapper .elementor-button";
         ?>
-<script id="smpi-auto-load-more">(function(){var sel=<?php echo wp_json_encode( $selector ); ?>,queued=false;function check(){queued=false;document.querySelectorAll(sel).forEach(function(btn){var w=btn.closest(".<?php echo esc_js( self::AUTO_LOAD_CLASS ); ?>");if(!w||w.classList.contains("e-load-more-pagination-loading")||w.classList.contains("e-load-more-pagination-end")||!btn.offsetParent)return;var r=btn.getBoundingClientRect();if(r.top<window.innerHeight+300&&r.bottom>0)btn.click();});}function queue(){if(!queued){queued=true;window.requestAnimationFrame(check);}}window.addEventListener("scroll",queue,{passive:true});window.addEventListener("resize",queue);document.addEventListener("DOMContentLoaded",queue);window.addEventListener("load",queue);})();</script>
+<script id="smpi-auto-load-more">(function(){var sel=<?php echo wp_json_encode( $selector ); ?>,queued=false;function check(){queued=false;if(window.hexaFreezeAutoLoad)return;document.querySelectorAll(sel).forEach(function(btn){var w=btn.closest(".<?php echo esc_js( self::AUTO_LOAD_CLASS ); ?>");if(!w||w.classList.contains("e-load-more-pagination-loading")||w.classList.contains("e-load-more-pagination-end")||!btn.offsetParent)return;var r=btn.getBoundingClientRect();if(r.top<window.innerHeight+300&&r.bottom>0)btn.click();});}function queue(){if(!queued){queued=true;window.requestAnimationFrame(check);}}window.addEventListener("scroll",queue,{passive:true});window.addEventListener("resize",queue);document.addEventListener("DOMContentLoaded",queue);window.addEventListener("load",queue);})();</script>
         <?php
     }
 

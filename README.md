@@ -42,7 +42,7 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 
 ### Archive listings (lead story, the rest, story count)
 - **Does:** lets an Elementor archive template (category, tag, taxonomy, author or search) show the newest story on its own and then the rest of the archive in whole-row batches with Load more, plus the archive's story count. Author listings include co-authored stories.
-- **Use:** give one Loop Grid or Posts widget (Source: Posts) the Query ID `smpi_archive_lead` for the lead story, and a second one the Query ID `smpi_archive_rest` for the rest; the rest listing starts at the second story and uses the widget's own posts per page (8 for four per row). `[smp_archive_count singular="story" plural="stories"]` prints the count ("125 stories") and nothing when the archive is empty. Infinite scroll with a visible Load more button: set a Loop Grid or Posts widget to "Load on click" and give it the CSS class `smpi-auto-load-more`; it then loads the next batch as the button comes into view, and the button stays as the fallback.
+- **Use:** give one Loop Grid or Posts widget (Source: Posts) the Query ID `smpi_archive_lead` for the lead story, and a second one the Query ID `smpi_archive_rest` for the rest; the rest listing starts at the second story and uses the widget's own posts per page (8 for four per row). `[smp_archive_count singular="story" plural="stories"]` prints the count ("125 stories") and nothing when the archive is empty. Infinite scroll with a visible Load more button: set a Loop Grid or Posts widget to "Load on click" and give it the CSS class `smpi-auto-load-more`; it then loads the next batch as the button comes into view, and the button stays as the fallback. A page with `window.hexaFreezeAutoLoad = true` (set by our page-capture checks) keeps its first batch.
 - **Style:** `.smpi-archive-count`.
 - **Code:** `src/Content/ArchiveListing.php`
 
@@ -147,7 +147,7 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `2.4.25`
+- Version: `2.4.26`
 
 ## Ownership
 
@@ -234,6 +234,10 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.4.26
+
+- `smpi-auto-load-more` stays at the first batch when `window.hexaFreezeAutoLoad` is set, so page-capture checks compare first-load pages.
 
 ### 2.4.25
 
