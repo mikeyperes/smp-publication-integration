@@ -2,8 +2,7 @@
 
 namespace smp_publication_integration\Content;
 
-use smp_publication_integration\Authorship\AuthorFieldResolver;
-use smp_publication_integration\Support\PageStructure;
+use smp_publication_integration\Content\People\PeopleCards;
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
@@ -25,12 +24,7 @@ final class ExecutiveLeadership {
     public const FIELD_MEMBER = 'field_smpi_executive_leadership';
     public const FIELD_TITLE  = 'field_smpi_executive_leadership_title';
     public const PAGE_TYPE    = 'executive_team';
-    public const STYLES       = [
-        'cards' => 'Cards: photo, name, title and short bio in a grid (default)',
-        'list'  => 'List: one person per row with a small photo',
-        'none'  => 'No styling: plain markup for the theme or Elementor to style',
-    ];
-    public const PARTS        = [ 'photo', 'title', 'bio', 'link' ];
+    public const STYLES       = PeopleCards::STYLES;
 
     public function register(): void {
         add_action( 'init', [ $this, 'register_shortcode' ] );
@@ -143,99 +137,12 @@ final class ExecutiveLeadership {
         if ( ! self::enabled() ) {
             return '';
         }
-        $atts = shortcode_atts(
-            [
-                'style'      => self::settings()['style'],
-                'columns'    => 3,
-                'ids'        => '',
-                'limit'      => 0,
-                'hide'       => '',
-                'link'       => 'profile',
-                'bio_words'  => 30,
-                'photo_size' => 'medium',
-                'heading'    => 'h3',
-            ],
-            (array) $atts,
-            self::SHORTCODE
-        );
-
-        $ids = '' !== trim( (string) $atts['ids'] )
-            ? array_values( array_filter( array_map( 'absint', explode( ',', (string) $atts['ids'] ) ) ) )
-            : self::member_ids();
-        if ( (int) $atts['limit'] > 0 ) {
-            $ids = array_slice( $ids, 0, (int) $atts['limit'] );
-        }
-        $users = array_values( array_filter( array_map( 'get_userdata', $ids ) ) );
-        if ( ! $users ) {
-            return '';
-        }
-
-        $style   = isset( self::STYLES[ (string) $atts['style'] ] ) ? (string) $atts['style'] : 'cards';
-        $hide    = array_intersect( array_map( 'trim', explode( ',', strtolower( (string) $atts['hide'] ) ) ), self::PARTS );
-        $show    = static fn( string $part ): bool => ! in_array( $part, $hide, true );
-        $heading = in_array( (string) $atts['heading'], [ 'h2', 'h3', 'h4', 'p' ], true ) ? (string) $atts['heading'] : 'h3';
-        $link    = 'none' !== (string) $atts['link'];
-        $fields  = new AuthorFieldResolver();
-        $columns = max( 1, min( 6, (int) $atts['columns'] ) );
-
-        $people = '';
-        foreach ( $users as $user ) {
-            $id    = (int) $user->ID;
-            $name  = (string) $user->display_name;
-            $url   = get_author_posts_url( $id );
-            $title = self::title( $id );
-            $bio   = wp_trim_words( wp_strip_all_tags( (string) get_the_author_meta( 'description', $id ) ), max( 0, (int) $atts['bio_words'] ), '…' );
-            $photo = $fields->image_url( $id, (string) $atts['photo_size'] );
-
-            $people .= '<article class="smpi-leader smpi-leader--' . esc_attr( $user->user_nicename ) . '">';
-            if ( $show( 'photo' ) && '' !== $photo ) {
-                $img     = '<img class="smpi-leader__image" src="' . esc_url( $photo ) . '" alt="' . esc_attr( $name ) . '" loading="lazy" decoding="async">';
-                $people .= $link ? '<a class="smpi-leader__photo" href="' . esc_url( $url ) . '" tabindex="-1" aria-hidden="true">' . $img . '</a>' : '<span class="smpi-leader__photo">' . $img . '</span>';
-            }
-            $people .= '<div class="smpi-leader__body">';
-            $people .= '<' . $heading . ' class="smpi-leader__name">' . ( $link ? '<a href="' . esc_url( $url ) . '">' . esc_html( $name ) . '</a>' : esc_html( $name ) ) . '</' . $heading . '>';
-            if ( $show( 'title' ) && '' !== $title ) {
-                $people .= '<p class="smpi-leader__title">' . esc_html( $title ) . '</p>';
-            }
-            if ( $show( 'bio' ) && '' !== $bio && (int) $atts['bio_words'] > 0 ) {
-                $people .= '<p class="smpi-leader__bio">' . esc_html( $bio ) . '</p>';
-            }
-            if ( $show( 'link' ) && $link ) {
-                $people .= '<a class="smpi-leader__link" href="' . esc_url( $url ) . '">View profile</a>';
-            }
-            $people .= '</div></article>';
-        }
-
-        return ( 'none' !== $style ? self::styles() : '' )
-            . '<div class="smpi-leadership smpi-leadership--' . esc_attr( $style ) . '" style="--smpi-leadership-columns:' . $columns . '">' . $people . '</div>';
+        $atts = shortcode_atts( PeopleCards::ATTRIBUTES, (array) $atts, self::SHORTCODE );
+        return PeopleCards::render( self::member_ids(), $atts, [ 'block' => 'smpi-leadership', 'item' => 'smpi-leader', 'style' => self::settings()['style'], 'title' => [ self::class, 'title' ] ] );
     }
 
-    /** The built-in look, printed once per page. Every rule is one class so site CSS overrides it. */
     public static function css(): string {
-        return '.smpi-leadership{display:grid;gap:28px}'
-            . '.smpi-leadership--cards{grid-template-columns:repeat(var(--smpi-leadership-columns,3),minmax(0,1fr))}'
-            . '.smpi-leadership--cards .smpi-leader{display:flex;flex-direction:column;gap:14px}'
-            . '.smpi-leadership--cards .smpi-leader__photo{display:block;aspect-ratio:1/1;overflow:hidden;border-radius:6px;background:rgba(127,127,127,.12)}'
-            . '.smpi-leadership--list{grid-template-columns:1fr;gap:20px}'
-            . '.smpi-leadership--list .smpi-leader{display:flex;align-items:flex-start;gap:18px;padding-bottom:20px;border-bottom:1px solid rgba(127,127,127,.2)}'
-            . '.smpi-leadership--list .smpi-leader__photo{flex:0 0 96px;width:96px;height:96px;overflow:hidden;border-radius:50%;background:rgba(127,127,127,.12)}'
-            . '.smpi-leader__image{display:block;width:100%;height:100%;object-fit:cover}'
-            . '.smpi-leader__name{margin:0;font-size:1.15em;line-height:1.3}'
-            . '.smpi-leader__name a{color:inherit;text-decoration:none}'
-            . '.smpi-leader__title{margin:4px 0 0;font-size:.9em;font-weight:600;letter-spacing:.02em;text-transform:uppercase;opacity:.7}'
-            . '.smpi-leader__bio{margin:10px 0 0;font-size:.95em;line-height:1.55}'
-            . '.smpi-leader__link{display:inline-block;margin-top:10px;font-size:.9em;font-weight:600}'
-            . '@media(max-width:900px){.smpi-leadership--cards{grid-template-columns:repeat(min(2,var(--smpi-leadership-columns,3)),minmax(0,1fr))}}'
-            . '@media(max-width:560px){.smpi-leadership--cards{grid-template-columns:1fr}}';
-    }
-
-    private static function styles(): string {
-        static $printed = false;
-        if ( $printed ) {
-            return '';
-        }
-        $printed = true;
-        return '<style id="smpi-leadership-css">' . self::css() . '</style>';
+        return PeopleCards::css( 'smpi-leadership', 'smpi-leader' );
     }
 
     /** The default page content: a short line and the leadership list. */
@@ -245,49 +152,18 @@ final class ExecutiveLeadership {
 
     /** The leadership page: the assigned one, an existing page at a usual address, or a new one with the default template. */
     public static function ensure_page(): array {
-        $page_id = PageStructure::assigned_page_id( self::PAGE_TYPE );
-        $page    = $page_id ? get_post( $page_id ) : null;
-        if ( $page instanceof \WP_Post && 'trash' !== $page->post_status ) {
-            return [ 'id' => $page_id, 'created' => false ];
+        $found = PeopleCards::find_page( self::PAGE_TYPE, [ 'about/executive-leadership-team', 'executive-leadership-team', 'leadership-team', 'executive-team', 'leadership' ] );
+        if ( $found ) {
+            return [ 'id' => $found, 'created' => false ];
         }
-
-        foreach ( [ 'about/executive-leadership-team', 'executive-leadership-team', 'leadership-team', 'executive-team', 'leadership' ] as $path ) {
-            $found = get_page_by_path( $path );
-            if ( $found instanceof \WP_Post && 'trash' !== $found->post_status ) {
-                PageStructure::save_assignment( self::PAGE_TYPE, (int) $found->ID );
-                return [ 'id' => (int) $found->ID, 'created' => false ];
-            }
-        }
-
-        $new_id = wp_insert_post(
-            [
-                'post_type'    => 'page',
-                'post_status'  => 'publish',
-                'post_title'   => 'Executive Leadership Team',
-                'post_name'    => 'executive-leadership-team',
-                'post_content' => self::default_template(),
-            ],
-            true
-        );
-        if ( is_wp_error( $new_id ) ) {
-            return [ 'id' => 0, 'created' => false, 'error' => $new_id->get_error_message() ];
-        }
-        PageStructure::save_assignment( self::PAGE_TYPE, (int) $new_id );
-        return [ 'id' => (int) $new_id, 'created' => true ];
+        return PeopleCards::create_page( self::PAGE_TYPE, 'Executive Leadership Team', 'executive-leadership-team', self::default_template() ) + [ 'created' => true ];
     }
 
-    /** Whether the page already shows the leadership list. */
     public static function page_has_list( int $page_id ): bool {
-        $content = (string) get_post_field( 'post_content', $page_id ) . (string) get_post_meta( $page_id, '_elementor_data', true );
-        return false !== strpos( $content, '[' . self::SHORTCODE );
+        return PeopleCards::page_has_shortcode( $page_id, self::SHORTCODE );
     }
 
-    /** Replaces the page's content with the default template; WordPress keeps the old version as a revision. */
     public static function apply_default_template( int $page_id ): void {
-        wp_update_post( [ 'ID' => $page_id, 'post_content' => self::default_template() ] );
-        if ( 'builder' === get_post_meta( $page_id, '_elementor_edit_mode', true ) ) {
-            // Back to the WordPress editor so the new content shows instead of the Elementor layout.
-            delete_post_meta( $page_id, '_elementor_edit_mode' );
-        }
+        PeopleCards::apply_template( $page_id, self::default_template() );
     }
 }

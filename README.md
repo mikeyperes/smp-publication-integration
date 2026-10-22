@@ -88,7 +88,14 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 - **Switch:** Settings → SMP Publication Integration → Executive Leadership (`options-general.php?page=smp-publication-integration&tab=executive_leadership`); option `smpi_executive_leadership`, user meta `smpi_executive_leadership` and `smpi_executive_leadership_title`.
 - **Use:** `[smpi_executive_leadership style="cards|list|none" columns="3" ids="" limit="" hide="photo,title,bio,link" link="profile|none" bio_words="30" photo_size="medium" heading="h3"]`.
 - **HTML structure and styling:** [docs/executive-leadership.md](docs/executive-leadership.md): markup, classes (`.smpi-leadership--<style>`, `.smpi-leader--<user>`, `__photo`, `__image`, `__name`, `__title`, `__bio`, `__link`), built-in CSS and how to style it.
-- **Code:** `src/Content/ExecutiveLeadership.php`, `src/Admin/ExecutiveLeadershipTab.php`
+- **Code:** `src/Content/ExecutiveLeadership.php`, `src/Admin/ExecutiveLeadershipTab.php`; shared list pieces `src/Content/People/PeopleCards.php`, `src/Admin/People/PeopleEditor.php`
+
+### Contributors
+- **Does:** the publication's contributors: everyone with the chosen roles (Contributor by default), plus people added from other roles, minus people removed, in a chosen order. The tab has role checkboxes, a type-to-search people list (Hexa WP Core user search) with drag ordering, "Added" badges and a "removed from the list" section to put people back, the Contributors page (create it or apply the default template), styles with a live example, CSS structure and the shortcode.
+- **Switch:** Settings → SMP Publication Integration → Contributors (`options-general.php?page=smp-publication-integration&tab=contributors`); option `smpi_contributors`.
+- **Use:** `[smpi_contributors]` with the Executive Leadership attributes plus `roles="contributor,author"` and `with_articles="1"`. The older `[contributors_grid]` is unchanged.
+- **HTML structure and styling:** [docs/contributors.md](docs/contributors.md) (`.smpi-contributors--<style>`, `.smpi-contributor--<user>`, `__photo`, `__image`, `__name`, `__bio`, `__link`).
+- **Code:** `src/Content/Contributors.php`, `src/Admin/ContributorsTab.php`; shared with Executive Leadership: `src/Content/People/PeopleCards.php`, `src/Admin/People/PeopleEditor.php`.
 
 ### Author archive loading
 - **Does:** load-more or infinite loading on author archive pages.
@@ -247,6 +254,11 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.5.8
+
+- New Contributors tab and `[smpi_contributors]`: everyone with the chosen roles (Contributor by default), plus people added from other roles, minus people removed, in a chosen order; Contributors page, styles, CSS structure and attributes `roles` and `with_articles`.
+- Executive Leadership and Contributors now share one list renderer and one admin editor (same markup, classes and behavior as before).
 
 ### 2.5.7
 

@@ -101,6 +101,7 @@ final class Plugin {
             new Content\AuthorSocialIcons(),
             new Content\AuthorListings(),
             new Content\ExecutiveLeadership(),
+            new Content\Contributors(),
             new Content\AuthorArchiveLoading(),
             new Content\Schema(),
             new Content\ArticleTypes(),
@@ -140,6 +141,7 @@ final class Plugin {
             new Admin\Ajax(),
             new Admin\Dashboard(),
             new Admin\ExecutiveLeadershipTab(),
+            new Admin\ContributorsTab(),
         ];
     }
 
