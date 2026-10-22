@@ -4,6 +4,7 @@ namespace smp_publication_integration\Admin\Dashboard\Tabs;
 use Hexa\PluginCore\WpAdminAjax\AjaxGuard;
 use smp_publication_integration\Admin\Ajax;
 use smp_publication_integration\Admin\CodeViews;
+use smp_publication_integration\Pages\LatestPressReleases;
 use smp_publication_integration\Pages\PageLinker;
 use smp_publication_integration\Pages\SourceNotice;
 use smp_publication_integration\Pages\PageTemplates;
@@ -19,7 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 final class PagesTab {
     public function register(): void {
-        foreach ( [ 'link', 'save_template', 'reset_template', 'apply' ] as $action ) {
+        foreach ( [ 'link', 'save_template', 'reset_template', 'apply', 'save_form' ] as $action ) {
             add_action( 'wp_ajax_smpi_pages_' . $action, [ $this, 'ajax_' . $action ] );
         }
     }
@@ -98,9 +99,21 @@ final class PagesTab {
         $html .= '<td>' . esc_html( $template_state ) . '<br><button type="button" class="button-link smpi-pages-view">View / edit</button></td>';
         $html .= '<td>' . ( '' !== $button ? '<button type="button" class="button button-secondary smpi-pages-apply" data-label="' . esc_attr( $button ) . '">' . esc_html( $button ) . '</button>' : '' ) . '<span class="smpi-pages-msg" aria-live="polite"></span></td>';
         $html .= '</tr>';
-        $html .= '<tr class="smpi-pages-editor" data-key="' . esc_attr( $key ) . '" hidden><td colspan="5">' . CodeViews::code( PageTemplates::get( $key ), 'html', 'Current template' ) . '<p class="smpi-muted">Edit it here:</p><textarea class="large-text code" rows="14">' . esc_textarea( PageTemplates::get( $key ) ) . '</textarea>';
+        $html .= '<tr class="smpi-pages-editor" data-key="' . esc_attr( $key ) . '" hidden><td colspan="5">' . ( 'submit_press_release' === $key ? self::form_slot_html() : '' ) . CodeViews::code( PageTemplates::get( $key ), 'html', 'Current template' ) . '<p class="smpi-muted">Edit it here:</p><textarea class="large-text code" rows="14">' . esc_textarea( PageTemplates::get( $key ) ) . '</textarea>';
         $html .= '<p><button type="button" class="button button-primary smpi-pages-save">Save template</button> <button type="button" class="button smpi-pages-reset">Back to default</button> <span class="smpi-muted">Shortcodes fill in the publication name, dates, places and people.</span></p></td></tr>';
         return $html;
+    }
+
+    /** The Submit Your Press Release page's form slot: the shortcode [smp_press_release_form] prints. */
+    private static function form_slot_html(): string {
+        return '<p><strong>Submission form</strong><br><span class="smpi-muted">The form shortcode shown by [smp_press_release_form] on this page, for example [gravityform id="3"]. Set up by the publication-standard-pages skill; empty prints nothing.</span><br>'
+            . '<input type="text" class="regular-text smpi-pages-form" value="' . esc_attr( LatestPressReleases::form_shortcode() ) . '" placeholder="[gravityform id=&quot;3&quot;]"> <button type="button" class="button smpi-pages-form-save">Save form</button></p>';
+    }
+
+    public function ajax_save_form(): void {
+        $key = $this->guard();
+        LatestPressReleases::save_form_shortcode( (string) wp_unslash( $_POST['form'] ?? '' ) );
+        $this->done( $key, 'Form saved.' );
     }
 
     /** A page HWS Base Tools owns (Contact): read-only, under the source banner, linked to Base Tools' Pages tab. */
@@ -199,6 +212,7 @@ final class PagesTab {
             }
             $(document).on('click','.smpi-pages-view',function(){var ed=$(this).closest('tr').next('.smpi-pages-editor');ed.prop('hidden',!ed.prop('hidden'));});
             $(document).on('click','.smpi-pages-save',function(){var ed=$(this).closest('.smpi-pages-editor');post(ed,'save_template',{template:ed.find('textarea').val()});});
+            $(document).on('click','.smpi-pages-form-save',function(){var ed=$(this).closest('.smpi-pages-editor');post(ed,'save_form',{form:ed.find('.smpi-pages-form').val()});});
             $(document).on('click','.smpi-pages-reset',function(){var ed=$(this).closest('.smpi-pages-editor');if(confirm('Replace the edited template with the default?'))post(ed,'reset_template');});
             $(document).on('click','.smpi-pages-apply',function(){var row=$(this).closest('tr'),id=+row.data('page-id');if(id&&!confirm('Put the template into this page? Its current content is kept as a revision.'))return;post(row,'apply');});
             $(document).on('click','.smpi-pages-change',function(){
