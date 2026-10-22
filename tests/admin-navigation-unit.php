@@ -32,6 +32,7 @@ $expected_tabs = [
     'founder_profiles'    => 'Founder Profiles',
     'executive_leadership' => 'Executive Leadership',
     'contributors'        => 'Contributors',
+    'staff'               => 'Staff',
     'brand'               => 'Brand Settings',
     'pages'               => 'Pages',
     'menu'                => 'Menus',
@@ -113,6 +114,7 @@ $legacy_areas = [
     'founder_profiles'    => 'publication',
     'executive_leadership' => 'publication',
     'contributors'         => 'publication',
+    'staff'                => 'publication',
     'brand'               => 'publication',
     'pages'               => 'publication',
     'menu'                => 'publication',
@@ -174,4 +176,4 @@ if ( 'advanced' !== $extension->area() || 'extension_diagnostics' !== $extension
     exit( 1 );
 }
 
-echo "PASS: 25 ordered tabs use the Core registry and preserve legacy routes.\n";
+echo "PASS: " . count( $expected_tabs ) . " ordered tabs use the Core registry and preserve legacy routes.\n";

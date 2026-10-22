@@ -102,6 +102,7 @@ final class Plugin {
             new Content\AuthorListings(),
             new Content\ExecutiveLeadership(),
             new Content\Contributors(),
+            new Content\Staff(),
             new Content\AuthorArchiveLoading(),
             new Content\Schema(),
             new Content\ArticleTypes(),
@@ -142,6 +143,7 @@ final class Plugin {
             new Admin\Dashboard(),
             new Admin\ExecutiveLeadershipTab(),
             new Admin\ContributorsTab(),
+            new Admin\StaffTab(),
         ];
     }
 

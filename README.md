@@ -97,6 +97,13 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 - **HTML structure and styling:** [docs/contributors.md](docs/contributors.md) (`.smpi-contributors--<style>`, `.smpi-contributor--<user>`, `__photo`, `__image`, `__name`, `__bio`, `__link`).
 - **Code:** `src/Content/Contributors.php`, `src/Admin/ContributorsTab.php`; shared with Executive Leadership: `src/Content/People/PeopleCards.php`, `src/Admin/People/PeopleEditor.php`.
 
+### Staff
+- **Does:** everyone with HWS Base Tools' existing Staff writer profile switch on, with no role restriction. Add people by typing a name or email, drag to order, remove them, and optionally set a Staff Title shown under their name. Adding and removing update that same profile switch; changes made on a profile show on the tab too. Shared people-list renderer and editor, Cards/List/No styling with a live example, Staff page tools, CSS structure and full shortcode attributes.
+- **Switch:** Settings → SMP Publication Integration → Staff (`options-general.php?page=smp-publication-integration&tab=staff`); option `smpi_staff` (style/order), existing user meta `staff_writer`, and `smpi_staff_title`.
+- **Use:** `[smpi_staff style="cards|list|none" columns="4" ids="" limit="" hide="photo,title,bio,link" link="profile|none" bio_words="30" photo_size="medium" heading="h3" with_photo="1|0" with_articles="1|0"]`. Photo/article defaults follow the site's author-listing settings, like Contributors. The older `[staff_grid]` is unchanged.
+- **HTML structure and styling:** [docs/staff.md](docs/staff.md): markup, isolated classes, CSS, page defaults and all attributes.
+- **Code:** `src/Content/Staff.php`, `src/Admin/StaffTab.php`; shared `src/Content/People/PeopleCards.php`, `src/Admin/People/PeopleEditor.php`.
+
 ### Author archive loading
 - **Does:** load-more or infinite loading on author archive pages.
 - **Switch:** `author_archive_loading_enabled`, `author_archive_loading_mode`, `author_archive_loading_style`.
@@ -254,6 +261,11 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.5.12
+
+- Adds the Staff tab and `[smpi_staff]`, using the shared people renderer/editor and HWS Base Tools' existing Staff writer switch. Type-to-search add/remove updates profiles, with optional Staff Title, ordering, Cards/List/No styling examples, Staff page tools, CSS structure and all shortcode attributes.
+- Staff defaults to the site's author-listing photo/article visibility settings. Existing staff, contributor and leadership shortcodes and settings remain unchanged.
 
 ### 2.5.11
 
