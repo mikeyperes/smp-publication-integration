@@ -1,6 +1,7 @@
 <?php
 namespace smp_publication_integration\Pages;
 
+use smp_publication_integration\Support\PublicationFounders;
 use smp_publication_integration\Support\Fields;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -25,7 +26,6 @@ final class CompanyFacts {
         'founding_date'         => 'founding_date',
         'founding_location'     => 'founding_location',
         'founding_location_url' => 'founding_location_url',
-        'founders'              => 'founder_users',
         'headquarters_city'     => 'headquarters',
         'headquarters_url'      => 'headquarters_wikipedia_url',
         'email'                 => 'contact_email',
@@ -50,6 +50,9 @@ final class CompanyFacts {
     /** Raw value: Base Tools company fact first, then the older SMP field, then a site default. */
     public static function value( string $field ) {
         $field = sanitize_key( $field );
+        if ( 'founders' === $field ) {
+            return PublicationFounders::user_ids();
+        }
         if ( self::base_tools_available() ) {
             $value = hws_site_identity( 'company.' . $field );
             if ( ! self::empty_value( $value ) ) {

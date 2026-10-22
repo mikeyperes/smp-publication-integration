@@ -161,9 +161,9 @@ final class ContributorsTab {
                 'style'            => $settings['style'],
                 'example_html'     => $this->example_html(),
                 'attributes'       => [
-                    'roles="contributor,author"' => 'uses these roles for this one list instead of the roles chosen above (added and removed people still apply).',
-                    'with_photo="1|0"'           => 'leaves out people without their own profile photo (1), or shows everyone (0). Default: the site\'s "hide authors without a featured image" setting.',
-                    'with_articles="1|0"'        => 'leaves out people who have not published anything yet (1), or shows everyone (0). Default: the site\'s "hide authors without articles" setting.',
+                    'roles'         => [ 'default' => 'the roles chosen above', 'description' => 'Uses these roles for this one list (added and removed people still apply), for example contributor,author.' ],
+                    'with_photo'    => [ 'default' => 'the site\'s "hide authors without a featured image" setting', 'description' => '1 leaves out people without their own profile photo; 0 shows everyone.', 'options' => [ '1', '0' ] ],
+                    'with_articles' => [ 'default' => 'the site\'s "hide authors without articles" setting', 'description' => '1 leaves out people who have not published anything yet; 0 shows everyone.', 'options' => [ '1', '0' ] ],
                 ],
             ]
         );

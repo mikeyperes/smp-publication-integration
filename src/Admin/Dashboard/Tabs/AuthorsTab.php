@@ -1,6 +1,7 @@
 <?php
 namespace smp_publication_integration\Admin\Dashboard\Tabs;
 
+use smp_publication_integration\Admin\CodeViews;
 use Hexa\PluginCore\BrandColors\BrandColorProvider;
 use Hexa\PluginCore\ActivityLog\ActivityLogConfig;
 use Hexa\PluginCore\ActivityLog\ActivityLogRenderer;
@@ -30,7 +31,6 @@ use Hexa\PluginCore\SiteStructure\SiteStructureRenderer;
 use Hexa\PluginCore\SchemaDetection\SchemaPageScanner;
 use Hexa\PluginCore\SchemaDetection\SchemaScanRenderer;
 use smp_publication_integration\Admin\Ajax;
-use smp_publication_integration\Admin\FounderProfiles\FounderProfilePresenter;
 use smp_publication_integration\Admin\QuickStartCleanupWorkflow;
 
 use smp_publication_integration\Admin\Navigation\AdminNavigation;
@@ -173,11 +173,11 @@ trait AuthorsTab {
         ];
         $structure = '<div class="smpi-author-loading-structure"><h3>Stable Elementor wrapper structure</h3>'
             . '<p>The plugin changes Elementor Pro control values and adds scoped classes to the real Loop Grid. Elementor continues to own its query, AJAX anchor, live message, and accessible pagination markup.</p>'
-            . '<pre class="smpi-code">&lt;div class="elementor-widget-loop-grid smpi-author-loading\n'
-            . '  smpi-author-loading--mode-{pagination|infinite_scroll|load_more}\n'
-            . '  smpi-author-loading--style-{selected-style}"&gt;\n'
-            . '  &lt;div class="elementor-widget-container"&gt;...Elementor native controls...&lt;/div&gt;\n'
-            . '&lt;/div&gt;</pre></div>';
+            . CodeViews::code( '<div class="elementor-widget-loop-grid smpi-author-loading' . "\n"
+                . '  smpi-author-loading--mode-{pagination|infinite_scroll|load_more}' . "\n"
+                . '  smpi-author-loading--style-{selected-style}">' . "\n"
+                . '  <div class="elementor-widget-container">...Elementor native controls...</div>' . "\n"
+                . '</div>', 'html' ) . '</div>';
 
         return '<section class="smpi-panel smpi-author-loading-settings"><h2>Author archive post loading</h2>'
             . '<p>Choose one native Elementor Pro loading method for current-query post loops on author archives. Disable this feature to leave every Loop Grid setting untouched.</p>'

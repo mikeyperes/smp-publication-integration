@@ -78,6 +78,9 @@ final class PageStructure {
             if ( ! $include_hws_owned_pages && in_array( (string) $key, self::hws_owned_page_keys(), true ) ) {
                 continue;
             }
+            if ( ! isset( \smp_publication_integration\Pages\PageTypes::default_set()[ $key ] ) ) {
+                continue; // optional pages and pages that do not apply are created only on request
+            }
             $title = (string) ( $config['label'] ?? $key );
             $pages[ (string) $key ] = [
                 'title'       => $title,

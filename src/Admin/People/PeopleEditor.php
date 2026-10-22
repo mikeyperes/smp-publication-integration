@@ -5,6 +5,7 @@ namespace smp_publication_integration\Admin\People;
 use Hexa\PluginCore\SmartSearch\SmartSearchRenderer;
 use Hexa\PluginCore\WpAdminComponents\CoreUi;
 use smp_publication_integration\Admin\Ajax;
+use smp_publication_integration\Admin\CodeViews;
 use smp_publication_integration\Content\People\PeopleCards;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -23,7 +24,7 @@ final class PeopleEditor {
      *   id, ajax_prefix, list_label, people_intro, empty, shortcode, block, item, title_label,
      *   style, example_html, members (int[]), row (callable(int):array{title?:string,badge?:string}),
      *   title_field (bool), removed (int[]), page (array{id,has_list,paths_note}), page_label,
-     *   attributes (array<string,string>), extra_sections_html (string), top_html (string)
+     *   attributes (array<string,array{default,description,options?}>), extra_sections_html (string), top_html (string)
      */
     public static function render( array $c ): void {
         $members = (array) $c['members'];
@@ -114,19 +115,21 @@ final class PeopleEditor {
             <section>
                 <h3>CSS structure</h3>
                 <p class="lead">Style it with these classes in the site's CSS or an Elementor widget's Custom CSS. "No styling" prints the same markup without the built-in CSS.</p>
-                <pre><?php echo esc_html( PeopleCards::structure( $c['block'], $c['item'], (string) ( $c['title_label'] ?? '' ) ) ); ?></pre>
-                <details><summary>Built-in CSS</summary><pre><?php echo esc_html( str_replace( '}', "}\n", PeopleCards::css( $c['block'], $c['item'] ) ) ); ?></pre></details>
+                <?php echo CodeViews::code( PeopleCards::structure( $c['block'], $c['item'], (string) ( $c['title_label'] ?? '' ) ), 'html', 'HTML structure' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                <details><summary>Built-in CSS</summary><?php echo CodeViews::code( str_replace( '}', "}\n", PeopleCards::css( $c['block'], $c['item'] ) ), 'css' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></details>
             </section>
 
             <section>
                 <h3>Shortcode</h3>
-                <p class="lead">Place it on any page. With no attributes it shows everyone above, in order, in the chosen style.</p>
-                <p><code>[<?php echo esc_html( $c['shortcode'] ); ?>]</code> <?php echo CoreUi::copy_button( '[' . $c['shortcode'] . ']' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></p>
-                <ul class="smpi-pe-attrs">
-                    <?php foreach ( array_merge( self::attributes(), (array) ( $c['attributes'] ?? [] ) ) as $code => $text ) : ?>
-                        <li><code><?php echo esc_html( $code ); ?></code> <?php echo esc_html( $text ); ?></li>
-                    <?php endforeach; ?>
-                </ul>
+                <?php
+                echo CodeViews::shortcode( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+                    [
+                        'tag'         => $c['shortcode'],
+                        'description' => 'Place it on any page. With no attributes it shows everyone above, in order, in the chosen style.',
+                        'attributes'  => array_merge( self::attributes(), (array) ( $c['attributes'] ?? [] ) ),
+                    ]
+                );
+                ?>
             </section>
             <?php endif; ?>
         </div>
@@ -134,18 +137,18 @@ final class PeopleEditor {
         self::script( $c );
     }
 
-    /** @return array<string,string> */
+    /** @return array<string,array{default:string,description:string,options?:string[]}> */
     public static function attributes(): array {
         return [
-            'style="cards|list|none"'        => 'overrides the style chosen above.',
-            'columns="3"'                    => 'people per row in Cards (1 to 6; fewer on tablets and phones).',
-            'ids="12,7"'                     => 'shows only these users, in this order (user IDs).',
-            'limit="4"'                      => 'shows only the first people.',
-            'hide="photo,title,bio,link"'    => 'leaves those parts out (any of them, comma separated).',
-            'link="none"'                    => 'stops names and photos linking to the person\'s author page.',
-            'bio_words="30"'                 => 'length of the short bio from the profile\'s Biographical Info; 0 hides it.',
-            'photo_size="medium"'            => 'image size: thumbnail, medium, medium_large, large.',
-            'heading="h3"'                   => 'tag for each name: h2, h3, h4 or p.',
+            'style'      => [ 'default' => 'the style chosen above', 'description' => 'Overrides the style chosen above.', 'options' => [ 'cards', 'list', 'none' ] ],
+            'columns'    => [ 'default' => '3', 'description' => 'People per row in Cards, 1 to 6 (fewer on tablets and phones).' ],
+            'ids'        => [ 'default' => '', 'description' => 'Shows only these users, in this order (user IDs, for example 12,7).' ],
+            'limit'      => [ 'default' => '0', 'description' => 'Shows only the first people; 0 shows everyone.' ],
+            'hide'       => [ 'default' => '', 'description' => 'Leaves those parts out, comma separated.', 'options' => [ 'photo', 'title', 'bio', 'link' ] ],
+            'link'       => [ 'default' => 'profile', 'description' => 'none stops names and photos linking to the person\'s author page.', 'options' => [ 'profile', 'none' ] ],
+            'bio_words'  => [ 'default' => '30', 'description' => 'Length of the short bio from the profile\'s Biographical Info; 0 hides it.' ],
+            'photo_size' => [ 'default' => 'medium', 'description' => 'Image size.', 'options' => [ 'thumbnail', 'medium', 'medium_large', 'large' ] ],
+            'heading'    => [ 'default' => 'h3', 'description' => 'Tag for each name.', 'options' => [ 'h2', 'h3', 'h4', 'p' ] ],
         ];
     }
 

@@ -1,6 +1,7 @@
 <?php
 namespace smp_publication_integration\Content;
 
+use smp_publication_integration\Support\PublicationFounders;
 use Hexa\PluginCore\FaqSets\FaqSetManager;
 use smp_publication_integration\Pages\PageLinker;
 use smp_publication_integration\Pages\PageTemplates;
@@ -176,16 +177,12 @@ final class Shortcodes {
         return $mission ? "<div class=\"smpi-publication-mission\">" . wp_kses_post( wpautop( (string) $mission ) ) . "</div>" : "";
     }
 
+    /** The founders' names, linked to their author pages; the list comes only from HWS Base Tools. */
     public function render_founders( array $atts = [] ): string {
-        if ( ! Settings::bool( "founders_enabled" ) ) {
-            return "";
+        $items = [];
+        foreach ( PublicationFounders::all() as $person ) {
+            $items[] = sprintf( "<li><a href=\"%s\">%s</a></li>", esc_url( $person["url"] ), esc_html( $person["name"] ) );
         }
-
-        $items = array_merge(
-            $this->founder_profile_items( Fields::option( "founders", [] ) ),
-            $this->founder_user_items( Fields::option( "founder_users", [] ) )
-        );
-
         return $items ? "<ul class=\"smpi-publication-founders\">" . implode( "", $items ) . "</ul>" : "";
     }
 
@@ -397,40 +394,5 @@ final class Shortcodes {
             }
         );
         return implode( $separator, array_slice( array_unique( $flat ), 0, 20 ) );
-    }
-
-    private function founder_profile_items( $founders ): array {
-        $founders = is_array( $founders ) ? $founders : [ $founders ];
-        $items = [];
-        foreach ( $founders as $founder ) {
-            $founder_id = $this->founder_profile_id( $founder );
-            if ( $founder_id && get_the_title( $founder_id ) ) {
-                $items[] = sprintf( "<li><a href=\"%s\">%s</a></li>", esc_url( get_permalink( $founder_id ) ), esc_html( get_the_title( $founder_id ) ) );
-            }
-        }
-        return $items;
-    }
-
-    private function founder_profile_id( $founder ): int {
-        if ( is_array( $founder ) && isset( $founder["profile"] ) ) {
-            $founder = $founder["profile"];
-        }
-        if ( is_object( $founder ) && isset( $founder->ID ) ) {
-            return (int) $founder->ID;
-        }
-        return is_numeric( $founder ) ? (int) $founder : 0;
-    }
-
-    private function founder_user_items( $users ): array {
-        $users = is_array( $users ) ? $users : [ $users ];
-        $items = [];
-        foreach ( $users as $user_id ) {
-            $user_id = is_object( $user_id ) && isset( $user_id->ID ) ? (int) $user_id->ID : (int) $user_id;
-            $user = $user_id ? get_user_by( "id", $user_id ) : false;
-            if ( $user ) {
-                $items[] = sprintf( "<li><a href=\"%s\">%s</a></li>", esc_url( get_author_posts_url( $user_id ) ), esc_html( $user->display_name ) );
-            }
-        }
-        return $items;
     }
 }

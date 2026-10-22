@@ -7,8 +7,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /** The read-only "Original content at HWS Base Tools" notice, drawn by Hexa WP Core's SourceBanner. */
 final class SourceNotice {
-    public static function html(): string {
-        $args = [ 'owner' => 'HWS Base Tools', 'edit_url' => CompanyFacts::edit_url() ];
+    public static function html( string $edit_url = '' ): string {
+        $args = [ 'owner' => 'HWS Base Tools', 'edit_url' => '' !== $edit_url ? $edit_url : CompanyFacts::edit_url() ];
         if ( class_exists( '\Hexa\PluginCore\WpAdminComponents\SourceBanner' ) ) {
             ob_start();
             $out = \Hexa\PluginCore\WpAdminComponents\SourceBanner::render( $args );

@@ -57,12 +57,12 @@ final class PublicationContentTypes {
                 [
                     'id'              => 'publication-profile',
                     'label'           => 'Publication Profile Fields',
-                    'description'     => 'Publication identity, policies, contact details, brand assets, founders, and generated schema fields.',
+                    'description'     => 'Publication identity, policies, contact details, brand assets, and generated schema fields.',
                     'group_key'       => 'group_smpi_publication_profile',
                     'enabled_default' => true,
                     'definition'      => [ AcfFields::class, 'publication_profile_group' ],
                     'location'        => 'SMP Publication settings',
-                    'fields'          => [ 'Publication identity', 'Publication author', 'Brand assets', 'Editorial policies', 'Founders', 'Contact information', 'Schema metadata' ],
+                    'fields'          => [ 'Publication identity', 'Publication author', 'Brand assets', 'Editorial policies', 'Contact information', 'Schema metadata' ],
                     'dependencies'    => [ 'Advanced Custom Fields Pro' ],
                 ]
             )

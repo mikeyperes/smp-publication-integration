@@ -30,7 +30,6 @@ use Hexa\PluginCore\SiteStructure\SiteStructureRenderer;
 use Hexa\PluginCore\SchemaDetection\SchemaPageScanner;
 use Hexa\PluginCore\SchemaDetection\SchemaScanRenderer;
 use smp_publication_integration\Admin\Ajax;
-use smp_publication_integration\Admin\FounderProfiles\FounderProfilePresenter;
 use smp_publication_integration\Admin\QuickStartCleanupWorkflow;
 
 use smp_publication_integration\Admin\Navigation\AdminNavigation;
@@ -111,9 +110,9 @@ trait PostFieldsTab {
                 "acf_group_key" => "group_smpi_publication_profile",
                 "object_name" => "smp-publication-integration options page",
                 "location" => "ACF options page: smp-publication-integration",
-                "description" => "Main publication profile fields, schema policy references, contact points, founder setup guidance, and fallback publication identity fields.",
+                "description" => "Main publication profile fields, schema policy references, contact points, and fallback publication identity fields.",
                 "instructions" => "Edit these fields from the Publication Options tab. They stay always on because SMP schema and shortcodes depend on them.",
-                "fields" => [ "smpi_publication_user", "smpi_founder_profiles", "smpi_publication_summary", "smpi_publication_logo", "schema policy pages", "contactPoint", "postalAddress" ],
+                "fields" => [ "smpi_publication_user", "smpi_publication_summary", "smpi_publication_logo", "schema policy pages", "contactPoint", "postalAddress" ],
                 "dependencies" => [ "ACF Pro", "SMP publication options page" ],
                 "code_example" => "[smp_publication_field field=legal_name format=text]",
                 "test_report" => "Custom fields run on " . \Hexa\PluginCore\Fields\Acf::mode() . "; the publication options group should be registered on the options page.",

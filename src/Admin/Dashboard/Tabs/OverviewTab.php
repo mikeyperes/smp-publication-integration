@@ -30,7 +30,6 @@ use Hexa\PluginCore\SiteStructure\SiteStructureRenderer;
 use Hexa\PluginCore\SchemaDetection\SchemaPageScanner;
 use Hexa\PluginCore\SchemaDetection\SchemaScanRenderer;
 use smp_publication_integration\Admin\Ajax;
-use smp_publication_integration\Admin\FounderProfiles\FounderProfilePresenter;
 use smp_publication_integration\Admin\QuickStartCleanupWorkflow;
 
 use smp_publication_integration\Admin\Navigation\AdminNavigation;
@@ -81,7 +80,6 @@ trait OverviewTab {
         </div>
         <?php $this->publication_mapping_panel( $settings ); ?>
         <div class="smpi-panel"><h2>Core Settings</h2><table class="widefat striped"><tbody>
-            <?php $this->toggle( 'founders_enabled', 'Show founder marketing', $settings ); ?>
             <?php $this->toggle( 'shadow_press_releases', 'Shadow all press releases from home/category/tag', $settings ); ?>
             <?php $this->toggle( 'author_social_cleanup', 'Hide empty author social icons', $settings ); ?>
             <?php $this->toggle( 'public_debug_enabled', 'Public safe debug endpoint', $settings ); ?>

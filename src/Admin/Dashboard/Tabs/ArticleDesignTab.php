@@ -1,6 +1,7 @@
 <?php
 namespace smp_publication_integration\Admin\Dashboard\Tabs;
 
+use smp_publication_integration\Admin\CodeViews;
 use Hexa\PluginCore\BrandColors\BrandColorProvider;
 use Hexa\PluginCore\ActivityLog\ActivityLogConfig;
 use Hexa\PluginCore\ActivityLog\ActivityLogRenderer;
@@ -30,7 +31,6 @@ use Hexa\PluginCore\SiteStructure\SiteStructureRenderer;
 use Hexa\PluginCore\SchemaDetection\SchemaPageScanner;
 use Hexa\PluginCore\SchemaDetection\SchemaScanRenderer;
 use smp_publication_integration\Admin\Ajax;
-use smp_publication_integration\Admin\FounderProfiles\FounderProfilePresenter;
 use smp_publication_integration\Admin\QuickStartCleanupWorkflow;
 
 use smp_publication_integration\Admin\Navigation\AdminNavigation;
@@ -1339,7 +1339,7 @@ HTML;
 
     private function author_social_no_style_html(): string {
         $css = "selector .smpi-author-social-list {\n  display: flex;\n  gap: 12px;\n  list-style: none;\n  margin: 0;\n  padding: 0;\n}\n\nselector .smpi-author-social-link {\n  align-items: center;\n  display: inline-flex;\n  gap: 8px;\n  color: #111827;\n}\n\nselector .smpi-author-social-icon svg {\n  display: block;\n  height: 24px;\n  width: 24px;\n}";
-        return "<div class=\"smpi-control-group smpi-author-social-no-style\"><h3>No Style + Elementor</h3><ol><li>Choose <strong>No Style (Elementor/custom CSS)</strong> above.</li><li>Add <code>[smp_author_social_icons]</code> to an Elementor <strong>Shortcode</strong> widget.</li><li>Open that widget's <strong>Advanced &gt; Custom CSS</strong> panel.</li><li>Paste your CSS there and start every rule with <code>selector</code> so it stays scoped to that shortcode widget.</li></ol><pre class=smpi-code>" . esc_html( $css ) . "</pre></div>";
+        return "<div class=\"smpi-control-group smpi-author-social-no-style\"><h3>No Style + Elementor</h3><ol><li>Choose <strong>No Style (Elementor/custom CSS)</strong> above.</li><li>Add <code>[smp_author_social_icons]</code> to an Elementor <strong>Shortcode</strong> widget.</li><li>Open that widget's <strong>Advanced &gt; Custom CSS</strong> panel.</li><li>Paste your CSS there and start every rule with <code>selector</code> so it stays scoped to that shortcode widget.</li></ol>" . CodeViews::code( $css, "css" ) . "</div>";
     }
 
     private function author_social_structure_html( array $settings ): string {
@@ -1354,7 +1354,7 @@ HTML;
             . '    </li>' . "\n"
             . '  </ul>' . "\n"
             . '</nav>';
-        return "<div class=\"smpi-author-social-structure\"><h3>Visual HTML output</h3><p>The same stable class structure is used by every template. Disabled networks and empty author values do not create list items.</p><div class=\"smpi-author-social-structure-preview\">" . AuthorSocialIcons::preview_html( "unstyled", $size ) . "</div><pre class=smpi-code>" . esc_html( $markup ) . "</pre></div>";
+        return "<div class=\"smpi-author-social-structure\"><h3>Visual HTML output</h3><p>The same stable class structure is used by every template. Disabled networks and empty author values do not create list items.</p><div class=\"smpi-author-social-structure-preview\">" . AuthorSocialIcons::preview_html( "unstyled", $size ) . "</div>" . CodeViews::code( $markup, "html" ) . "</div>";
     }
 
     private function breadcrumb_post_type_descriptions(): array {

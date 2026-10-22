@@ -30,7 +30,6 @@ use Hexa\PluginCore\SiteStructure\SiteStructureRenderer;
 use Hexa\PluginCore\SchemaDetection\SchemaPageScanner;
 use Hexa\PluginCore\SchemaDetection\SchemaScanRenderer;
 use smp_publication_integration\Admin\Ajax;
-use smp_publication_integration\Admin\FounderProfiles\FounderProfilePresenter;
 use smp_publication_integration\Admin\QuickStartCleanupWorkflow;
 
 use smp_publication_integration\Admin\Navigation\AdminNavigation;
@@ -65,8 +64,8 @@ trait PluginsTab {
     private function plugins(): void {
         $renderer = new PluginInventoryRenderer();
 
-        // Integrations: Verified Profiles (was its own tab) drives founder records on the Founders tab.
-        echo '<div class="smpi-panel"><h2>Integrations</h2><p>Verified Profiles supplies founder profile records for the Founders tab. SMP still runs without it.</p>';
+        // Integrations: Verified Profiles (was its own tab).
+        echo '<div class="smpi-panel"><h2>Integrations</h2><p>Verified Profiles supplies profile records. SMP still runs without it. Founders are set in HWS Base Tools.</p>';
         $this->plugin_table( [ 'smp-verified-profiles/initialization.php' => PluginRegistry::info( 'smp-verified-profiles/initialization.php' ) ] );
         echo '</div>';
 

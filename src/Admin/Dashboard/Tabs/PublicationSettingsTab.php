@@ -30,7 +30,6 @@ use Hexa\PluginCore\SiteStructure\SiteStructureRenderer;
 use Hexa\PluginCore\SchemaDetection\SchemaPageScanner;
 use Hexa\PluginCore\SchemaDetection\SchemaScanRenderer;
 use smp_publication_integration\Admin\Ajax;
-use smp_publication_integration\Admin\FounderProfiles\FounderProfilePresenter;
 use smp_publication_integration\Admin\QuickStartCleanupWorkflow;
 
 use smp_publication_integration\Admin\Navigation\AdminNavigation;
@@ -129,7 +128,7 @@ trait PublicationSettingsTab {
                 $variation = "[smp_publication_user]";
             } elseif ( "smpi_publication_muckrack_verified" === $name ) {
                 $variation = "[smp_publication_muckrack_verified] [smp_publication_field field=publication_muckrack_verified]";
-            } elseif ( in_array( $name, [ "smpi_founder_users", "smpi_publication_logo" ], true ) ) {
+            } elseif ( in_array( $name, [ "smpi_publication_logo" ], true ) ) {
                 $variation = "[smp_publication_field field=" . $name . " format=json]";
             }
             $html .= "<tr><td>" . esc_html( $label ) . "</td><td><code>" . esc_html( $name ) . "</code></td><td><code>" . esc_html( "[smp_publication_field field=" . $name . "]" ) . "</code></td><td><code>" . esc_html( $variation ) . "</code></td></tr>";

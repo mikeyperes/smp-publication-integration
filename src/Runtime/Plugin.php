@@ -105,7 +105,6 @@ final class Plugin {
             new Content\AuthorListings(),
             new Content\ExecutiveLeadership(),
             new Content\Contributors(),
-            new Content\Founders(),
             new Content\FoundingDate(),
             new Content\Staff(),
             new Content\AuthorArchiveLoading(),

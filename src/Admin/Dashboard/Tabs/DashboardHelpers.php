@@ -1,6 +1,7 @@
 <?php
 namespace smp_publication_integration\Admin\Dashboard\Tabs;
 
+use smp_publication_integration\Admin\CodeViews;
 use Hexa\PluginCore\BrandColors\BrandColorProvider;
 use Hexa\PluginCore\ActivityLog\ActivityLogConfig;
 use Hexa\PluginCore\ActivityLog\ActivityLogRenderer;
@@ -30,7 +31,6 @@ use Hexa\PluginCore\SiteStructure\SiteStructureRenderer;
 use Hexa\PluginCore\SchemaDetection\SchemaPageScanner;
 use Hexa\PluginCore\SchemaDetection\SchemaScanRenderer;
 use smp_publication_integration\Admin\Ajax;
-use smp_publication_integration\Admin\FounderProfiles\FounderProfilePresenter;
 use smp_publication_integration\Admin\QuickStartCleanupWorkflow;
 
 use smp_publication_integration\Admin\Navigation\AdminNavigation;
@@ -67,7 +67,7 @@ trait DashboardHelpers {
         foreach ( $examples as $example ) {
             $label = (string) ( $example[0] ?? "Example" );
             $code = (string) ( $example[1] ?? "" );
-            $html .= "<div class=smpi-shortcode-row><strong>" . esc_html( $label ) . "</strong><span class=smpi-shortcode-code><code>" . esc_html( $code ) . "</code>" . CoreUi::copy_button( $code, "Copy " . strtolower( $label ) . " shortcode" ) . "</span></div>";
+            $html .= CodeViews::code( $code, "shortcode", $label );
         }
         return $html . "</div></div>";
     }
@@ -86,7 +86,7 @@ trait DashboardHelpers {
             $settings_html = "<section class=smpi-feature-settings><header class=smpi-feature-settings-head><h3>Settings</h3></header><div class=smpi-feature-settings-body>" . $extra_controls . "</div></section>";
         }
 
-        $reference_body = "<div class=smpi-feature-reference-grid><section><h4>Data and dependencies</h4><p>" . wp_kses_post( $acf ) . "</p></section><section><h4>Implementation</h4><pre class=smpi-code>" . esc_html( $code ) . "</pre></section></div>";
+        $reference_body = "<div class=smpi-feature-reference-grid><section><h4>Data and dependencies</h4><p>" . wp_kses_post( $acf ) . "</p></section><section><h4>Implementation</h4>" . CodeViews::code( $code, "text" ) . "</section></div>";
         if ( "" !== $reference_extra_html ) {
             $reference_body .= "<div class=smpi-feature-reference-extra>" . $reference_extra_html . "</div>";
         }

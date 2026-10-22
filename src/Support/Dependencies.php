@@ -94,28 +94,6 @@ final class Dependencies {
         return post_type_exists( 'profile' );
     }
 
-    public static function profile_acf_fields_enabled(): bool {
-        if ( (bool) get_option( 'register_profile_general_acf_fields', false ) ) {
-            return true;
-        }
-        return (bool) \Hexa\PluginCore\Fields\FieldGroups::get_group( 'group_656eb036374de' );
-    }
-
-    public static function verified_profiles_ready_for_founders(): bool {
-        return self::verified_profiles_plugin_active() && self::profile_cpt_active() && self::profile_acf_fields_enabled();
-    }
-
-    public static function verified_profiles_readiness(): array {
-        return [
-            'plugin_active' => self::verified_profiles_plugin_active(),
-            'profile_cpt' => self::profile_cpt_active(),
-            'profile_acf' => self::profile_acf_fields_enabled(),
-            'ready' => self::verified_profiles_ready_for_founders(),
-            'settings_url' => admin_url( 'options-general.php?page=smp-verified-profiles' ),
-            'profiles_url' => admin_url( 'edit.php?post_type=profile' ),
-        ];
-    }
-
     public static function sfpf_active(): bool {
         return self::verified_profiles_plugin_active() || self::profile_cpt_active();
     }

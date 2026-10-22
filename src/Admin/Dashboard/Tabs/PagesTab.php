@@ -3,7 +3,9 @@ namespace smp_publication_integration\Admin\Dashboard\Tabs;
 
 use Hexa\PluginCore\WpAdminAjax\AjaxGuard;
 use smp_publication_integration\Admin\Ajax;
+use smp_publication_integration\Admin\CodeViews;
 use smp_publication_integration\Pages\PageLinker;
+use smp_publication_integration\Pages\SourceNotice;
 use smp_publication_integration\Pages\PageTemplates;
 use smp_publication_integration\Pages\PageTypes;
 
@@ -31,6 +33,11 @@ final class PagesTab {
             foreach ( array_keys( $types ) as $key ) {
                 echo self::row_html( $key ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
             }
+            if ( 'reader' === $group ) {
+                foreach ( PageTypes::BASE_TOOLS_OWNED as $owned_key => $owned ) {
+                    echo self::base_tools_row_html( $owned_key, $owned ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+                }
+            }
             echo '</tbody></table>';
         }
         echo '<p class="smpi-muted">Verified profile pages and leadership or culture council pages are managed by their own plugins. Company facts used in these templates (name, founding date, headquarters, founders, parent company, contact) are read from HWS Base Tools.</p>';
@@ -49,6 +56,16 @@ final class PagesTab {
         }
         if ( ! empty( $type['base_tools'] ) ) {
             $badge .= ' <span class="smpi-pages-badge smpi-pages-badge--flag" title="' . esc_attr( (string) $type['base_tools'] ) . '">Belongs in Base Tools</span>';
+        }
+        if ( ! empty( $type['optional'] ) ) {
+            $badge .= ' <span class="smpi-pages-badge" title="Not in the default page set; created only when you ask for it.">Optional, off by default</span>';
+        }
+        $applies = PageTypes::applies( $key );
+        if ( ! $applies ) {
+            $badge .= ' <span class="smpi-pages-badge smpi-pages-badge--flag">Not shown: Website Identity in HWS Base Tools does not represent a company</span>';
+        }
+        if ( 'team' === ( $type['source'] ?? '' ) ) {
+            $badge .= SourceNotice::html( admin_url( 'options-general.php?page=hws-core-tools&tab=team' ) );
         }
 
         if ( $id ) {
@@ -70,17 +87,28 @@ final class PagesTab {
             $edit   = '';
         }
 
+        if ( ! $applies ) {
+            $button = '';
+        }
         $template_state = PageTemplates::is_customized( $key ) ? 'Edited for this site' : 'Default';
         $html  = '<tr class="smpi-pages-row" data-key="' . esc_attr( $key ) . '" data-page-id="' . esc_attr( (string) $id ) . '">';
         $html .= '<td><strong>' . esc_html( (string) $type['label'] ) . '</strong>' . $badge . '<br><span class="smpi-muted">' . esc_html( (string) $type['description'] ) . '</span></td>';
         $html .= '<td class="smpi-pages-link">' . $page . '<br><button type="button" class="button-link smpi-pages-change">Change</button>' . $edit . '</td>';
         $html .= '<td>' . $status . '</td>';
         $html .= '<td>' . esc_html( $template_state ) . '<br><button type="button" class="button-link smpi-pages-view">View / edit</button></td>';
-        $html .= '<td><button type="button" class="button button-secondary smpi-pages-apply" data-label="' . esc_attr( $button ) . '">' . esc_html( $button ) . '</button><span class="smpi-pages-msg" aria-live="polite"></span></td>';
+        $html .= '<td>' . ( '' !== $button ? '<button type="button" class="button button-secondary smpi-pages-apply" data-label="' . esc_attr( $button ) . '">' . esc_html( $button ) . '</button>' : '' ) . '<span class="smpi-pages-msg" aria-live="polite"></span></td>';
         $html .= '</tr>';
-        $html .= '<tr class="smpi-pages-editor" data-key="' . esc_attr( $key ) . '" hidden><td colspan="5"><textarea class="large-text code" rows="14">' . esc_textarea( PageTemplates::get( $key ) ) . '</textarea>';
+        $html .= '<tr class="smpi-pages-editor" data-key="' . esc_attr( $key ) . '" hidden><td colspan="5">' . CodeViews::code( PageTemplates::get( $key ), 'html', 'Current template' ) . '<p class="smpi-muted">Edit it here:</p><textarea class="large-text code" rows="14">' . esc_textarea( PageTemplates::get( $key ) ) . '</textarea>';
         $html .= '<p><button type="button" class="button button-primary smpi-pages-save">Save template</button> <button type="button" class="button smpi-pages-reset">Back to default</button> <span class="smpi-muted">Shortcodes fill in the publication name, dates, places and people.</span></p></td></tr>';
         return $html;
+    }
+
+    /** A page HWS Base Tools owns (Contact): read-only, under the source banner, linked to Base Tools' Pages tab. */
+    private static function base_tools_row_html( string $key, array $owned ): string {
+        $id   = absint( get_option( 'hws_site_page_assignment_' . $key, 0 ) );
+        $page = $id && get_post( $id ) ? '<a href="' . esc_url( (string) get_permalink( $id ) ) . '" target="_blank" rel="noopener">' . esc_html( get_the_title( $id ) ?: '(no title)' ) . '</a>' : '<span class="smpi-muted">Not linked in HWS Base Tools</span>';
+        return '<tr class="smpi-pages-row smpi-pages-row--readonly" data-key="' . esc_attr( $key ) . '"><td><strong>' . esc_html( (string) $owned['label'] ) . '</strong><br><span class="smpi-muted">' . esc_html( (string) $owned['description'] ) . '</span></td>'
+            . '<td colspan="4">' . SourceNotice::html( admin_url( 'options-general.php?page=hws-core-tools&tab=' . $owned['tab'] ) ) . $page . '</td></tr>';
     }
 
     /** @return array<int,array{id:int,label:string}> */
@@ -133,6 +161,9 @@ final class PagesTab {
 
     public function ajax_apply(): void {
         $key    = $this->guard();
+        if ( ! PageTypes::applies( $key ) ) {
+            wp_send_json_error( [ 'message' => 'This page applies only when Website Identity in HWS Base Tools represents a company.' ] );
+        }
         $result = PageLinker::create_or_apply( $key );
         if ( is_wp_error( $result ) ) {
             wp_send_json_error( [ 'message' => $result->get_error_message() ] );

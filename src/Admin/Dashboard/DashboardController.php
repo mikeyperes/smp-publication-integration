@@ -29,7 +29,6 @@ use Hexa\PluginCore\Typography\TemplateTypography;
 use Hexa\PluginCore\SchemaDetection\SchemaPageScanner;
 use Hexa\PluginCore\SchemaDetection\SchemaScanRenderer;
 use smp_publication_integration\Admin\Ajax;
-use smp_publication_integration\Admin\FounderProfiles\FounderProfilePresenter;
 use smp_publication_integration\Admin\QuickStartCleanupWorkflow;
 use smp_publication_integration\Admin\Dashboard\Tabs\PagesTab;
 use smp_publication_integration\Admin\Navigation\AdminNavigation;
@@ -65,7 +64,6 @@ class DashboardController {
     use Tabs\CustomPostTypesTab;
     use Tabs\DashboardAssets;
     use Tabs\DashboardHelpers;
-    use Tabs\FounderProfilesSection;
     use Tabs\MenuTab;
     use Tabs\OverviewTab;
     use Tabs\PluginsTab;
@@ -255,12 +253,6 @@ class DashboardController {
     }
 
     private function tab( string $id ): void {
-        if ( 'founders_list' === $id ) {
-            // Founders tab: the people section (FoundersTab) and the Verified Profile records (was the Founder Profiles tab).
-            apply_filters( 'smpi_render_dashboard_tab', false, $id );
-            $this->founder_profiles();
-            return;
-        }
         if ( 'pages' === $id ) { ( new PagesTab() )->render(); return; }
         if ( apply_filters( 'smpi_render_dashboard_tab', false, $id ) ) {
             return;

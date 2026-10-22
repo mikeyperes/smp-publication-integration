@@ -10,7 +10,6 @@ use Hexa\PluginCore\WpAdminAjax\AjaxFailure;
 use Hexa\PluginCore\WpAdminAjax\AjaxGuard;
 use Hexa\PluginCore\WpAdminAjax\AjaxRequest;
 use smp_publication_integration\Admin\Dashboard;
-use smp_publication_integration\Admin\FounderProfiles\FounderProfilePresenter;
 use smp_publication_integration\Content\AcfFields;
 use smp_publication_integration\Content\Breadcrumbs;
 use smp_publication_integration\Content\MuckRackVerification;
@@ -49,8 +48,6 @@ class AjaxController {
                 'smpi_import_brand_primary_color' => [ 'callback' => [ $this, 'import_brand_primary_color' ] ],
                 'smpi_search_users'            => [ 'callback' => [ $this, 'search_users' ] ],
                 'smpi_shortcode_user_preview'  => [ 'callback' => [ $this, 'shortcode_user_preview' ] ],
-                'smpi_search_profiles'         => [ 'callback' => [ $this, 'search_profiles' ] ],
-                'smpi_save_founder_profiles'   => [ 'callback' => [ $this, 'save_founder_profiles' ] ],
                 'smpi_test_multi_authors'       => [ 'callback' => [ $this, 'test_multi_authors' ] ],
                 'smpi_snippet_toggle'          => [ 'callback' => [ $this, 'toggle_snippet' ] ],
                 'smpi_snippet_test'            => [ 'callback' => [ $this, 'test_snippet' ] ],
@@ -104,7 +101,6 @@ class AjaxController {
 
         add_filter( "hexa_plugin_core_smart_search_results", [ $this, "filter_smart_search_results" ], 10, 4 );
 
-        add_action( 'admin_post_smpi_enable_verified_profile_snippet', [ $this, 'enable_verified_profile_snippet' ] );
     }
 
     public static function nonce(): string {
@@ -145,7 +141,7 @@ class AjaxController {
     public function save_settings( AjaxRequest $request ): array {
         $changes = [];
         $boolean_keys = array_merge(
-            [ "founders_enabled", "shadow_posts_enabled", "shadow_press_releases", "post_list_defaults_enabled", "author_social_cleanup", "author_social_icons_enabled", "public_debug_enabled", "estimated_read_time_enabled", "elementor_css_cache_busting", "elementor_primary_category_enabled", "elementor_primary_category_exclude_default", "publication_social_cleanup", "muckrack_verified_enabled", "muckrack_author_always_show", "publication_muckrack_verified_enabled", "multi_authors_enabled", "author_listing_hide_without_articles", "author_listing_hide_without_featured_image", "author_listing_show_press_releases", "author_archive_loading_enabled", "archive_search_enabled", "press_release_include_enabled", "post_summary_acf_enabled", "post_faqs_acf_enabled", "article_types_enabled", "breadcrumbs_enabled", "breadcrumbs_hide_home", "breadcrumbs_hide_term_archives", "table_of_contents_enabled", "table_of_contents_auto_single", "table_of_contents_include_summary", "article_heading_styles_enabled", "article_numbered_lists_enabled", "article_drop_cap_enabled", "inline_photo_treatments_enabled", "featured_image_caption_templates_enabled", "rank_math_breadcrumb_check_enabled", "hws_masked_admin_report_enabled", "content_generation_enabled", "post_hygiene_enabled", "post_hygiene_strip_inline_styles", "post_hygiene_unwrap_spans", "post_hygiene_remove_font_tags", "post_hygiene_strip_classes_ids", "post_hygiene_strip_empty_tags", "post_hygiene_clean_heading_children" ],
+            [ "shadow_posts_enabled", "shadow_press_releases", "post_list_defaults_enabled", "author_social_cleanup", "author_social_icons_enabled", "public_debug_enabled", "estimated_read_time_enabled", "elementor_css_cache_busting", "elementor_primary_category_enabled", "elementor_primary_category_exclude_default", "publication_social_cleanup", "muckrack_verified_enabled", "muckrack_author_always_show", "publication_muckrack_verified_enabled", "multi_authors_enabled", "author_listing_hide_without_articles", "author_listing_hide_without_featured_image", "author_listing_show_press_releases", "author_archive_loading_enabled", "archive_search_enabled", "press_release_include_enabled", "post_summary_acf_enabled", "post_faqs_acf_enabled", "article_types_enabled", "breadcrumbs_enabled", "breadcrumbs_hide_home", "breadcrumbs_hide_term_archives", "table_of_contents_enabled", "table_of_contents_auto_single", "table_of_contents_include_summary", "article_heading_styles_enabled", "article_numbered_lists_enabled", "article_drop_cap_enabled", "inline_photo_treatments_enabled", "featured_image_caption_templates_enabled", "rank_math_breadcrumb_check_enabled", "hws_masked_admin_report_enabled", "content_generation_enabled", "post_hygiene_enabled", "post_hygiene_strip_inline_styles", "post_hygiene_unwrap_spans", "post_hygiene_remove_font_tags", "post_hygiene_strip_classes_ids", "post_hygiene_strip_empty_tags", "post_hygiene_clean_heading_children" ],
             Settings::typography_preservation_setting_keys()
         );
         foreach ( $boolean_keys as $key ) {
@@ -720,29 +716,6 @@ class AjaxController {
         return $html . "</div>";
     }
 
-    public function search_profiles( AjaxRequest $request ): array {
-        $this->require_verified_profiles();
-        $term = $request->text( 'term', '', 'post' );
-        $query = new \WP_Query(
-            [
-                "post_type" => "profile",
-                "post_status" => [ "publish", "draft", "pending", "private" ],
-                "posts_per_page" => 20,
-                "orderby" => "title",
-                "order" => "ASC",
-                "s" => $term,
-                "no_found_rows" => true,
-            ]
-        );
-
-        $profiles = [];
-        foreach ( $query->posts as $post ) {
-            $profiles[] = $this->profile_result( $post );
-        }
-
-        return [ "profiles" => $profiles ];
-    }
-
     public function filter_smart_search_results( array $results, string $source, string $query, int $limit ): array {
         if ( "smpi_shortcodes" === $source ) {
             $needle = strtolower( $query );
@@ -762,105 +735,7 @@ class AjaxController {
             }
             return $hits;
         }
-        if ( "smpi_profiles" !== $source ) {
-            return $results;
-        }
-
-        if ( ! post_type_exists( "profile" ) ) {
-            return [];
-        }
-
-        global $wpdb;
-
-        $like = "%" . $wpdb->esc_like( $query ) . "%";
-        $statuses = [ "publish", "draft", "pending", "private" ];
-        $placeholders = implode( ",", array_fill( 0, count( $statuses ), "%s" ) );
-        $prepared = $wpdb->prepare(
-            "SELECT DISTINCT p.ID FROM {$wpdb->posts} p LEFT JOIN {$wpdb->postmeta} pm ON pm.post_id = p.ID WHERE p.post_type = %s AND p.post_status IN (" . $placeholders . ") AND (p.post_title LIKE %s OR p.post_content LIKE %s OR pm.meta_value LIKE %s) ORDER BY p.post_title ASC LIMIT %d",
-            array_merge( [ "profile" ], $statuses, [ $like, $like, $like, max( 1, min( 50, $limit ) ) ] )
-        );
-
-        if ( ! is_string( $prepared ) || "" === $prepared ) {
-            return [];
-        }
-
-        $ids = $wpdb->get_col( $prepared );
-        $profiles = [];
-
-        foreach ( $ids as $id ) {
-            $post = get_post( absint( $id ) );
-            if ( $post && "profile" === get_post_type( $post ) ) {
-                $profiles[] = $this->profile_result( $post );
-            }
-        }
-
-        return $profiles;
-    }
-
-    public function save_founder_profiles( AjaxRequest $request ): array {
-        $this->require_verified_profiles();
-        $ids = [];
-        foreach ( $request->items( 'founder_profile_ids', 'post' ) as $id ) {
-            $id = absint( $id );
-            if ( $id && "profile" === get_post_type( $id ) ) {
-                $ids[] = $id;
-            }
-        }
-        $ids = array_values( array_unique( $ids ) );
-        $this->update_founder_profiles( $ids );
-
-        $profiles = [];
-        foreach ( $ids as $id ) {
-            $post = get_post( $id );
-            if ( $post ) {
-                $profiles[] = $this->profile_result( $post );
-            }
-        }
-
-        return [
-            "ids"      => $ids,
-            "profiles" => $profiles,
-            "html"     => ( new FounderProfilePresenter() )->collection_html( $ids ),
-        ];
-    }
-
-    private function require_verified_profiles(): void {
-        if ( ! Dependencies::sfpf_active() ) {
-            throw AjaxFailure::bad_request( "Verified Profiles integration is required to add founders." );
-        }
-        if ( ! post_type_exists( "profile" ) ) {
-            throw AjaxFailure::bad_request( "Verified Profiles is active, but the profile post type is not registered. Enable register_profile_custom_post_type." );
-        }
-    }
-
-    private function profile_result( \WP_Post $post ): array {
-        $title = get_the_title( $post ) ?: "Profile #" . (string) $post->ID;
-        $status = get_post_status( $post ) ?: "unknown";
-
-        return [
-            "id"        => (int) $post->ID,
-            "value"     => (int) $post->ID,
-            "label"     => $title,
-            "name"      => $title,
-            "subtitle"  => "Verified profile - " . $status,
-            "type"      => "profile",
-            "status"    => $status,
-            "edit_url"  => get_edit_post_link( $post->ID, "raw" ),
-            "view_url"  => get_permalink( $post ),
-            "thumbnail" => get_the_post_thumbnail_url( $post, "thumbnail" ) ?: "",
-        ];
-    }
-
-    private function update_founder_profiles( array $ids ): void {
-        update_option( "smpi_founder_profile_ids", $ids, false );
-        if ( \Hexa\PluginCore\Fields\Field::available() ) {
-            $rows = array_map(
-                static fn( int $id ): array => [ "profile" => $id ],
-                $ids
-            );
-            \Hexa\PluginCore\Fields\Field::update( "smpi_founder_profiles", $rows, "option" );
-        }
-        Settings::log( "Founder profiles updated: " . implode( ", ", $ids ) );
+        return $results;
     }
 
     private function sync_publication_mapping( array $settings ): void {
@@ -884,21 +759,6 @@ class AjaxController {
             \Hexa\PluginCore\Fields\Field::update( "smpi_publication_user", $user_id, "option" );
         }
         Settings::log( "Publication author selected: user #" . $user_id );
-    }
-
-    public function enable_verified_profile_snippet(): void {
-        if ( ! current_user_can( "manage_options" ) ) {
-            wp_die( esc_html__( "Permission denied.", "smp-publication-integration" ) );
-        }
-        check_admin_referer( "smpi_enable_verified_profile_snippet" );
-        $snippet = isset( $_GET["snippet"] ) ? sanitize_key( wp_unslash( $_GET["snippet"] ) ) : "";
-        $allowed = [ "register_profile_custom_post_type", "register_profile_general_acf_fields" ];
-        if ( in_array( $snippet, $allowed, true ) ) {
-            update_option( $snippet, true, false );
-            Settings::log( "Verified Profiles snippet enabled: " . $snippet );
-        }
-        wp_safe_redirect( admin_url( "options-general.php?page=smp-publication-integration&tab=publication_options" ) );
-        exit;
     }
 
 }

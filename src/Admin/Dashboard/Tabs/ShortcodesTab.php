@@ -2,6 +2,7 @@
 namespace smp_publication_integration\Admin\Dashboard\Tabs;
 
 use Hexa\PluginCore\BrandColors\BrandColorProvider;
+use smp_publication_integration\Admin\CodeViews;
 use Hexa\PluginCore\ActivityLog\ActivityLogConfig;
 use Hexa\PluginCore\ActivityLog\ActivityLogRenderer;
 use Hexa\PluginCore\PluginChecks\PluginInventoryRenderer;
@@ -30,7 +31,6 @@ use Hexa\PluginCore\SiteStructure\SiteStructureRenderer;
 use Hexa\PluginCore\SchemaDetection\SchemaPageScanner;
 use Hexa\PluginCore\SchemaDetection\SchemaScanRenderer;
 use smp_publication_integration\Admin\Ajax;
-use smp_publication_integration\Admin\FounderProfiles\FounderProfilePresenter;
 use smp_publication_integration\Admin\QuickStartCleanupWorkflow;
 
 use smp_publication_integration\Admin\Navigation\AdminNavigation;
@@ -323,12 +323,12 @@ trait ShortcodesTab {
                 [ "tag" => "smp_post_date", "desc" => "The original published date and time in the site timezone, independent of the relative-date display setting.", "type" => "Text", "params" => "format, post_id", "variations" => [ [ "code" => "[smp_post_date format=\"M j, Y · g:i A\"]", "label" => "Article date row" ] ], "detail" => [ "field" => "post_date", "group" => "WordPress post", "source" => "original WordPress publication timestamp", "file" => $PT, "plugin" => "SMP Publication Integration", "type" => "Text", "edit" => "post" ] ],
               ] ],
             [ "key" => "publication", "title" => "Publication / global", "layer" => "Publication layer", "live" => "publication",
-              "blurb" => "Publication-wide data from the SMP publication profile (legal name, contact, mission, policy pages, founders) plus the publication verified badge. Edited in SMP settings, not per post.",
+              "blurb" => "Publication-wide data from the SMP publication profile (legal name, contact, mission, policy pages; founders come from HWS Base Tools) plus the publication verified badge. Edited in SMP settings, not per post.",
               "register_file" => $S, "access" => "Publication pages: about, masthead, contact, policies.",
               "items" => [
-                [ "tag" => "smp_publication_field", "attrs_enum" => [ [ "field" => "legal_name", "label" => "Legal name" ], [ "field" => "alternate_name", "label" => "Alternate name" ], [ "field" => "telephone", "label" => "Telephone" ], [ "field" => "contact_email", "label" => "Public contact email" ], [ "field" => "website", "label" => "Website URL" ], [ "field" => "mission_statement", "label" => "Mission statement" ], [ "field" => "mission_statement_extended", "label" => "Mission statement (extended)" ], [ "field" => "summary", "label" => "Summary" ], [ "field" => "founding_date", "label" => "Founding date" ], [ "field" => "founding_location", "label" => "Founding location" ], [ "field" => "headquarters", "label" => "Headquarters" ], [ "field" => "area_served", "label" => "Area served" ], [ "field" => "knows_about", "label" => "Coverage topics (knowsAbout)" ], [ "field" => "ownership_funding_info", "label" => "Ownership and funding" ], [ "field" => "parent_organization_name", "label" => "Parent organization name" ], [ "field" => "parent_organization_url", "label" => "Parent organization URL" ], [ "field" => "rss_feed", "label" => "RSS feed" ], [ "field" => "google_news_url", "label" => "Google News URL" ], [ "field" => "has_podcast", "label" => "Has a podcast" ], [ "field" => "publication_muckrack_verified", "label" => "MuckRack verified" ], [ "field" => "publication_muckrack_url", "label" => "MuckRack URL" ], [ "field" => "masthead", "label" => "Masthead page" ], [ "field" => "publishing_principles", "label" => "Publishing principles page" ], [ "field" => "verification_fact_checking_policy", "label" => "Fact-checking policy page" ], [ "field" => "corrections_policy", "label" => "Corrections policy page" ], [ "field" => "ethics_policy", "label" => "Ethics policy page" ], [ "field" => "diversity_policy", "label" => "Diversity policy page" ], [ "field" => "privacy", "label" => "Privacy policy" ], [ "field" => "terms", "label" => "Terms of use" ], [ "field" => "dmca", "label" => "DMCA" ], [ "field" => "become_contributor", "label" => "Become a contributor" ], [ "field" => "brand_assets", "label" => "Brand assets gallery" ] ], "code" => "[smp_publication_field field=\"legal_name\"]", "desc" => "Any single publication profile field by name (for example legal_name, telephone, mission_statement).", "type" => "Text", "params" => "field (the smpi field name), format (html), fallback", "detail" => [ "field" => "smpi_<name>", "group" => "Publication Profile (group_smpi_publication_profile)", "source" => "Publication profile ACF group", "file" => $S, "plugin" => "SMP Publication Integration", "type" => "Varies", "edit" => "publication" ] ],
+                [ "tag" => "smp_publication_field", "attrs_enum" => [ [ "field" => "legal_name", "label" => "Legal name" ], [ "field" => "alternate_name", "label" => "Alternate name" ], [ "field" => "telephone", "label" => "Telephone" ], [ "field" => "contact_email", "label" => "Public contact email" ], [ "field" => "website", "label" => "Website URL" ], [ "field" => "mission_statement", "label" => "Mission statement" ], [ "field" => "mission_statement_extended", "label" => "Mission statement (extended)" ], [ "field" => "summary", "label" => "Summary" ], [ "field" => "founding_date", "label" => "Founding date" ], [ "field" => "founding_location", "label" => "Founding location" ], [ "field" => "headquarters", "label" => "Headquarters" ], [ "field" => "area_served", "label" => "Area served" ], [ "field" => "knows_about", "label" => "Coverage topics (knowsAbout)" ], [ "field" => "ownership_funding_info", "label" => "Ownership and funding" ], [ "field" => "parent_organization_name", "label" => "Parent organization name" ], [ "field" => "parent_organization_url", "label" => "Parent organization URL" ], [ "field" => "rss_feed", "label" => "RSS feed" ], [ "field" => "google_news_url", "label" => "Google News URL" ], [ "field" => "has_podcast", "label" => "Has a podcast" ], [ "field" => "publication_muckrack_verified", "label" => "MuckRack verified" ], [ "field" => "publication_muckrack_url", "label" => "MuckRack URL" ], [ "field" => "masthead", "label" => "Masthead page" ], [ "field" => "publishing_principles", "label" => "Publishing principles page" ], [ "field" => "verification_fact_checking_policy", "label" => "Fact-checking policy page" ], [ "field" => "corrections_policy", "label" => "Corrections policy page" ], [ "field" => "ethics_policy", "label" => "Ethics policy page" ], [ "field" => "diversity_policy", "label" => "Diversity policy page" ], [ "field" => "privacy", "label" => "Privacy policy" ], [ "field" => "terms", "label" => "Terms of use" ], [ "field" => "dmca", "label" => "DMCA" ], [ "field" => "brand_assets", "label" => "Brand assets gallery" ] ], "code" => "[smp_publication_field field=\"legal_name\"]", "desc" => "Any single publication profile field by name (for example legal_name, telephone, mission_statement).", "type" => "Text", "params" => "field (the smpi field name), format (html), fallback", "detail" => [ "field" => "smpi_<name>", "group" => "Publication Profile (group_smpi_publication_profile)", "source" => "Publication profile ACF group", "file" => $S, "plugin" => "SMP Publication Integration", "type" => "Varies", "edit" => "publication" ] ],
                 [ "tag" => "smp_publication_mission_statement", "desc" => "The publication mission statement (rich text).", "type" => "HTML", "params" => "none", "detail" => [ "field" => "smpi_mission_statement", "group" => "Publication Profile", "source" => "ACF: smpi_mission_statement", "file" => $S, "plugin" => "SMP Publication Integration", "type" => "HTML", "edit" => "publication" ] ],
-                [ "tag" => "smp_publication_founders", "requires" => "the Show founder marketing feature (Settings, Features tab)", "requires_key" => "founders_enabled", "desc" => "The publication founders, from the founder author profiles.", "type" => "HTML", "params" => "none", "detail" => [ "field" => "smpi_founder_users", "group" => "Publication Profile", "source" => "ACF founders / founder profile CPT", "file" => $S, "plugin" => "SMP Publication Integration", "type" => "HTML", "edit" => "publication" ] ],
+                [ "tag" => "smp_publication_founders", "desc" => "The publication founders as a linked list, read from HWS Base Tools (Settings, HWS Base Tools, Founders).", "type" => "HTML", "params" => "none", "detail" => [ "field" => "hws_publication_founders()", "group" => "HWS Base Tools", "source" => "HWS Base Tools founders API", "file" => $S, "plugin" => "SMP Publication Integration", "type" => "HTML", "edit" => "publication" ] ],
                 [ "tag" => "smp_publication_user", "desc" => "The WordPress author account that represents this publication.", "type" => "Text", "params" => "none", "detail" => [ "field" => "smpi_publication_user", "group" => "Publication Profile", "source" => "ACF: smpi_publication_user", "file" => $S, "plugin" => "SMP Publication Integration", "type" => "Text", "edit" => "publication" ] ],
                 [ "tag" => "smp_publication_profile", "desc" => "A summary of the publication profile (name, logo, links).", "type" => "HTML", "params" => "none", "detail" => [ "field" => "smpi_* (profile)", "group" => "Publication Profile", "source" => "Publication profile ACF group", "file" => $S, "plugin" => "SMP Publication Integration", "type" => "HTML", "edit" => "publication" ] ],
                 [ "tag" => "smp_publication_page", "desc" => "A link to an assigned publication page (about, contact, masthead, and so on).", "type" => "URL", "params" => "type (the page slug)", "detail" => [ "field" => "page assignments", "group" => "SMP settings", "source" => "page_assignments option", "file" => $S, "plugin" => "SMP Publication Integration", "type" => "URL", "edit" => "publication" ] ],
@@ -422,7 +422,6 @@ trait ShortcodesTab {
                 $useInstead = isset( $item["use_instead"] ) ? (string) $item["use_instead"] : "";
                 $itemReq = isset( $item["requires"] ) ? (string) $item["requires"] : "";
                 $attrs = isset( $item["attrs_enum"] ) ? $item["attrs_enum"] : [];
-                $hasParams = ( "" !== $params && "none" !== $params );
                 $editUrl = self::sc_edit_url( isset( $detail["edit"] ) ? (string) $detail["edit"] : "none", $user_id, $post_id );
                 $filter = strtolower( $tag . " " . $desc . " " . $source . " " . $params . " " . $type . ( $dep ? " deprecated legacy" : "" ) . ( "" !== $itemReq ? " requires" : "" ) );
                 $rows .= "<div class=\"smpi-sc-row" . ( $dep ? " is-deprecated" : "" ) . "\" data-filter=\"" . esc_attr( $filter ) . "\">";
@@ -430,13 +429,12 @@ trait ShortcodesTab {
                 if ( $dep && "" !== $useInstead ) { $rows .= " <span class=\"smpi-sc-use\">Use " . esc_html( $useInstead ) . " instead.</span>"; }
                 $rows .= "</p>";
                 $rows .= self::sc_req_html( $itemReq, isset( $item["requires_key"] ) ? (string) $item["requires_key"] : "", "smpi-sc-req" );
-                $rows .= "<div class=\"smpi-sc-block\"><div class=\"smpi-sc-line\"><code class=\"smpi-sc-tag\">" . esc_html( $code ) . "</code>";
-                $rows .= "<button type=\"button\" class=\"smpi-sc-copy\" data-copy=\"" . esc_attr( $code ) . "\" aria-label=\"Copy shortcode\">Copy</button>";
+                $rows .= CodeViews::shortcode( [ "tag" => $code, "aliases" => array_map( "strval", $aliases ), "attributes" => self::sc_attributes( $params ) ] );
+                $rows .= "<div class=\"smpi-sc-block\"><div class=\"smpi-sc-line\">";
                 if ( $dep ) { $rows .= "<span class=\"smpi-sc-dep\">Deprecated</span>"; }
                 $rows .= "<span class=\"smpi-sc-actions\">";
                 if ( "" !== $editUrl ) { $rows .= "<a class=\"smpi-sc-edit\" href=\"" . esc_url( $editUrl ) . "\" target=\"_blank\" rel=\"noopener\" title=\"Edit the underlying data\">Edit</a>"; }
                 $rows .= "<button type=\"button\" class=\"smpi-sc-det\">Details</button></span></div>";
-                if ( $hasParams ) { $rows .= "<div class=\"smpi-sc-attrs\"><span class=\"smpi-sc-k\">Accepts</span>" . esc_html( $params ) . "</div>"; }
                 if ( $varLive && ! empty( $variations ) ) {
                     $rows .= "<div class=\"smpi-sc-vars\">";
                     foreach ( $variations as $v ) {
@@ -462,9 +460,6 @@ trait ShortcodesTab {
                     $chips = "";
                     foreach ( $variations as $v ) { $chips .= "<span class=\"smpi-sc-vchip\" data-copy=\"" . esc_attr( (string) $v["code"] ) . "\" title=\"" . esc_attr( (string) $v["code"] . " - " . (string) $v["label"] ) . "\">" . esc_html( (string) $v["label"] ) . "</span>"; }
                     $rows .= "<div class=\"smpi-sc-vars-line\"><span class=\"smpi-sc-k\">Variations</span>" . $chips . "</div>";
-                }
-                if ( ! empty( $aliases ) ) {
-                    $rows .= "<div class=\"smpi-sc-alias\"><span class=\"smpi-sc-k\">Aliases</span>" . esc_html( implode( "    ", array_map( "strval", $aliases ) ) ) . "</div>";
                 }
                 $rows .= "<div class=\"smpi-sc-detail\">";
                 if ( "" !== $source ) { $rows .= "<div class=\"r\"><b>Source</b> " . esc_html( $source ) . "</div>"; }
@@ -493,6 +488,40 @@ trait ShortcodesTab {
     }
 
 
+
+    /**
+     * The catalog's "params" text ("type (icon|text), user_id", "words (default 35)") as
+     * Core ShortcodeBreakdown attributes: choices from a|b lists, a default where named.
+     *
+     * @return array<string,array{default:string,description:string,options?:string[]}>
+     */
+    private static function sc_attributes( string $params ): array {
+        $known = [
+            "user_id"      => "The author to show (user ID). Default: the current article's author.",
+            "post_id"      => "The post to read (post ID). Default: the current post.",
+            "author_index" => "Which author of a multi-author post, starting at 1. Default: the first.",
+            "id"           => "The record to show (ID).",
+        ];
+        $out = [];
+        if ( "" === $params || "none" === $params ) {
+            return $out;
+        }
+        preg_match_all( '/([a-z_]+)\s*(?:\(([^)]*)\))?/', $params, $m, PREG_SET_ORDER );
+        foreach ( $m as $part ) {
+            $name = $part[1];
+            $note = isset( $part[2] ) ? trim( $part[2] ) : "";
+            $attr = [ "default" => "", "description" => $known[ $name ] ?? "" ];
+            if ( preg_match( '/^default\s+(.+)$/', $note, $d ) ) {
+                $attr["default"] = $d[1];
+            } elseif ( preg_match( '/^[a-z0-9_-]+([|,][a-z0-9_-]+)+$/i', $note ) ) {
+                $attr["options"] = array_map( "trim", preg_split( '/[|,]/', $note ) );
+            } elseif ( "" !== $note ) {
+                $attr["description"] = ucfirst( $note ) . ".";
+            }
+            $out[ $name ] = $attr;
+        }
+        return $out;
+    }
 
     private static function shortcode_value_html( string $code ): string {
         $value = do_shortcode( $code );

@@ -1,6 +1,7 @@
 <?php
 namespace smp_publication_integration\StructuredData;
 
+use smp_publication_integration\Support\PublicationFounders;
 use Hexa\PluginCore\DataNormalization\ValueNormalizer;
 use Hexa\PluginCore\FaqSets\FaqSetManager;
 use Hexa\PluginCore\FaqSets\FaqSourceResolver;
@@ -473,7 +474,7 @@ class SchemaManager {
                 "slogan" => $summary && $mission && $mission !== $summary ? ValueNormalizer::text( (string) $mission ) : null,
                 "logo" => $logo ?: null,
                 "image" => $logo ?: null,
-                "founder" => array_merge( $this->founder_profiles( Fields::option( "founders", [] ) ), $this->founder_users( Fields::option( "founder_users", [] ) ) ),
+                "founder" => $this->founders(),
                 "foundingDate" => Fields::option( "founding_date" ),
                 "foundingLocation" => SchemaNodes::place( [ "name" => Fields::option( "founding_location" ), "same_as" => Fields::option_url( "founding_location_url" ) ] ),
                 "address" => is_array( Fields::option( "postal_address" ) ) ? SchemaNodes::postal_address( Fields::option( "postal_address" ) ) : [],
@@ -598,29 +599,13 @@ class SchemaManager {
         return $modified ? mysql2date( DATE_W3C, $modified, false ) : current_time( DATE_W3C );
     }
 
-    private function founder_profiles( $founders ): array {
+    /** Founders come only from HWS Base Tools. */
+    private function founders(): array {
         $items = [];
-        foreach ( is_array( $founders ) ? $founders : [ $founders ] as $founder ) {
-            if ( is_array( $founder ) && isset( $founder["profile"] ) ) {
-                $founder = $founder["profile"];
-            }
-            $founder_id = is_object( $founder ) && isset( $founder->ID ) ? (int) $founder->ID : ( is_numeric( $founder ) ? (int) $founder : 0 );
-            if ( $founder_id ) {
-                $items[] = SchemaNodes::person( [ "name" => get_the_title( $founder_id ), "url" => get_permalink( $founder_id ) ] );
-            }
+        foreach ( PublicationFounders::all() as $person ) {
+            $items[] = SchemaNodes::person( [ "name" => $person["name"], "url" => $person["url"] ] );
         }
         return array_values( array_filter( $items ) );
-    }
-
-    private function founder_users( $users ): array {
-        $items = [];
-        foreach ( ValueNormalizer::ids( $users ) as $user_id ) {
-            $user = get_userdata( $user_id );
-            if ( $user ) {
-                $items[] = SchemaNodes::person( [ "name" => $user->display_name, "url" => get_author_posts_url( $user_id ) ] );
-            }
-        }
-        return $items;
     }
 
     private function text_field( string $field ): string {

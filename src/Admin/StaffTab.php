@@ -122,8 +122,8 @@ final class StaffTab {
                 'style'            => $settings['style'],
                 'example_html'     => $this->example_html(),
                 'attributes'       => [
-                    'with_photo="1|0"'           => 'leaves out people without their own profile photo (1), or shows everyone (0). Default: the site\'s "hide authors without a featured image" setting.',
-                    'with_articles="1|0"'        => 'leaves out people who have not published anything yet (1), or shows everyone (0). Default: the site\'s "hide authors without articles" setting.',
+                    'with_photo'    => [ 'default' => 'the site\'s "hide authors without a featured image" setting', 'description' => '1 leaves out people without their own profile photo; 0 shows everyone.', 'options' => [ '1', '0' ] ],
+                    'with_articles' => [ 'default' => 'the site\'s "hide authors without articles" setting', 'description' => '1 leaves out people who have not published anything yet; 0 shows everyone.', 'options' => [ '1', '0' ] ],
                 ],
             ]
         );
