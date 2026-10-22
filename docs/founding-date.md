@@ -6,7 +6,7 @@
 
 - On/off switch (off: the shortcode prints nothing; the details are kept).
 - Section title, "Founded" by default; empty for none. Option `smpi_founding_date_section`: `enabled`, `heading`.
-- Date, place, place link and story are the publication's own fields: `smpi_founding_date` (a full date, `Y-m-d`), `smpi_founding_location`, `smpi_founding_location_url`, `smpi_founding_date_extended`. The structured data's `foundingDate` and `foundingLocation` read the same fields.
+- Date, place, place link and story are the publication's own fields, edited on Publication Settings (the tab only shows them): `smpi_founding_date` (a full date, `Y-m-d`), `smpi_founding_location`, `smpi_founding_location_url`, `smpi_founding_date_extended`. The structured data's `foundingDate` and `foundingLocation` read the same fields.
 
 ## Markup
 

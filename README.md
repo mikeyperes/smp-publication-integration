@@ -98,9 +98,10 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 - **Code:** `src/Content/Founders.php`, `src/Admin/FoundersTab.php`.
 
 ### Founding Date
-- **Does:** a section saying when and where the publication was founded, with its founding story: on/off switch, section title ("Founded" by default), founding date, place, optional place link and story, live example, HTML structure and shortcode on the tab.
+- **Does:** a section saying when and where the publication was founded, with its founding story: on/off switch, section title ("Founded" by default), the founding values read from Publication Settings (edited there), live example, HTML structure and shortcode on the tab.
 - **Data:** the publication's own fields `smpi_founding_date`, `smpi_founding_location`, `smpi_founding_location_url`, `smpi_founding_date_extended`, the same ones the structured data's `foundingDate` and `foundingLocation` read; no second copy.
 - **Switch:** Settings → SMP Publication Integration → Founding Date (`options-general.php?page=smp-publication-integration&tab=founding_date`); option `smpi_founding_date_section`.
+- **Page:** assigned and templated on the Pages tab (starter: founding date and place, then the founders).
 - **Use:** `[smpi_founding_date]` with `show`, `date_format`, `section_title`, `section_tag`, `style="none"`.
 - **HTML structure and styling:** [docs/founding-date.md](docs/founding-date.md).
 - **Code:** `src/Content/FoundingDate.php`, `src/Admin/FoundingDateTab.php`.
@@ -276,6 +277,11 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.5.16
+
+- Founding Date page starter template (Pages tab): `[smpi_founding_date show=date,place]` and `[smpi_founders]` only, with their own CSS.
+- The Founding Date tab no longer edits the founding fields; it shows them and links to Publication Settings, where they live. Pages stay on the Pages tab.
 
 ### 2.5.15
 

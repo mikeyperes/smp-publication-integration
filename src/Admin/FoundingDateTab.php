@@ -13,15 +13,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Settings, SMP, Founding Date: on/off switch, section title (default "Founded"), the
- * founding date, place, place link and story (the publication's own fields, also used by
- * the structured data), a live example, the HTML structure and [smpi_founding_date].
+ * founding values as read from Publication Settings (edited there, not here), a live
+ * example, the HTML structure and [smpi_founding_date]. The page itself is on the Pages tab.
  */
 final class FoundingDateTab {
     public const TAB = 'founding_date';
 
     public function register(): void {
         add_filter( 'smpi_render_dashboard_tab', [ $this, 'maybe_render' ], 10, 2 );
-        foreach ( [ 'toggle', 'save' ] as $action ) {
+        foreach ( [ 'toggle', 'heading' ] as $action ) {
             add_action( 'wp_ajax_smpi_founding_' . $action, [ $this, 'ajax_' . $action ] );
         }
     }
@@ -49,24 +49,11 @@ final class FoundingDateTab {
         wp_send_json_success( [ 'message' => $on ? 'Founding Date is on.' : 'Founding Date is off; the shortcode prints nothing. The details are kept.' ] );
     }
 
-    public function ajax_save(): void {
+    public function ajax_heading(): void {
         $this->guard();
-        $raw  = trim( sanitize_text_field( (string) wp_unslash( $_POST['date'] ?? '' ) ) );
-        $date = FoundingDate::normalize_date( $raw );
-        if ( '' !== $raw && '' === $date ) {
-            wp_send_json_error( [ 'message' => 'The date was not understood. Pick a full date.' ] );
-        }
         FoundingDate::update_settings( [ 'heading' => sanitize_text_field( (string) wp_unslash( $_POST['heading'] ?? '' ) ) ] );
-        FoundingDate::save_values(
-            [
-                'date'      => $date,
-                'place'     => sanitize_text_field( (string) wp_unslash( $_POST['place'] ?? '' ) ),
-                'place_url' => esc_url_raw( (string) wp_unslash( $_POST['place_url'] ?? '' ) ),
-                'story'     => wp_kses_post( (string) wp_unslash( $_POST['story'] ?? '' ) ),
-            ]
-        );
         do_action( 'litespeed_purge_all' );
-        wp_send_json_success( [ 'message' => 'Saved.', 'example' => $this->example_html() ] );
+        wp_send_json_success( [ 'message' => 'Title saved.', 'example' => $this->example_html() ] );
     }
 
     private function example_html(): string {
@@ -78,16 +65,11 @@ final class FoundingDateTab {
         $settings = FoundingDate::settings();
         $values   = FoundingDate::values();
         $nonce    = Ajax::nonce();
+        $edit     = admin_url( 'options-general.php?page=smp-publication-integration&tab=publication_options' );
+        $pages    = admin_url( 'options-general.php?page=smp-publication-integration&tab=pages' );
         ?>
         <div id="smpi-founding-tab" class="hpc-ui smpi-pe">
             <?php PeopleEditor::styles(); ?>
-            <style>
-                #smpi-founding-tab .smpi-fd-field{display:block;margin:0 0 16px;max-width:620px}
-                #smpi-founding-tab .smpi-fd-field>span{display:block;font-size:12px;font-weight:600;margin-bottom:6px}
-                #smpi-founding-tab .smpi-fd-field input{width:100%;height:36px}
-                #smpi-founding-tab .smpi-fd-field textarea{width:100%;min-height:140px}
-                #smpi-founding-tab .smpi-fd-field small{display:block;color:#646970;margin-top:4px}
-            </style>
             <section>
                 <h3>Founding Date</h3>
                 <p class="lead">A section that says when and where the publication was founded, with its founding story. The same date and place feed the publication's structured data for search engines.</p>
@@ -96,14 +78,21 @@ final class FoundingDateTab {
             </section>
             <?php if ( $settings['enabled'] ) : ?>
             <section>
-                <h3>Details</h3>
-                <p class="lead">Saved as you type.</p>
-                <label class="smpi-fd-field"><span>Section title</span><input type="text" data-field="heading" value="<?php echo esc_attr( $settings['heading'] ); ?>" placeholder="Founded"><small>"Founded" by default. Leave it empty for no title.</small></label>
-                <label class="smpi-fd-field"><span>Founding date</span><input type="date" data-field="date" value="<?php echo esc_attr( FoundingDate::normalize_date( $values['date'] ) ); ?>" style="max-width:220px"></label>
-                <label class="smpi-fd-field"><span>Founded in</span><input type="text" data-field="place" value="<?php echo esc_attr( $values['place'] ); ?>" placeholder="New York, New York, United States"></label>
-                <label class="smpi-fd-field"><span>Place link (optional)</span><input type="url" data-field="place_url" value="<?php echo esc_attr( $values['place_url'] ); ?>" placeholder="https://en.wikipedia.org/wiki/New_York_City"></label>
-                <label class="smpi-fd-field"><span>Founding story</span><textarea data-field="story" placeholder="Why and how the publication started."><?php echo esc_textarea( $values['story'] ); ?></textarea></label>
-                <div class="smpi-pe-notice" data-role="save-notice" role="status" aria-live="polite"></div>
+                <h3>Section title</h3>
+                <p class="lead">"Founded" by default. Leave it empty for no title.</p>
+                <input type="text" class="regular-text" id="smpi-fd-heading" value="<?php echo esc_attr( $settings['heading'] ); ?>" placeholder="Founded" style="max-width:420px;height:36px">
+                <div class="smpi-pe-notice" data-role="heading-notice" role="status" aria-live="polite"></div>
+            </section>
+            <section>
+                <h3>Founding details</h3>
+                <p class="lead">Read from the publication's own fields on Publication Settings, the same ones the structured data uses. Edit them there.</p>
+                <ul class="smpi-pe-attrs">
+                    <li><strong>Founding Date:</strong> <?php echo esc_html( '' !== $values['date'] ? FoundingDate::display_date( $values['date'] ) : 'empty' ); ?></li>
+                    <li><strong>foundingLocation:</strong> <?php echo esc_html( '' !== $values['place'] ? $values['place'] : 'empty' ); ?></li>
+                    <li><strong>foundingLocation URL:</strong> <?php echo esc_html( '' !== $values['place_url'] ? $values['place_url'] : 'empty' ); ?></li>
+                    <li><strong>Founding Date Extended (story):</strong> <?php echo esc_html( '' !== $values['story'] ? wp_trim_words( wp_strip_all_tags( $values['story'] ), 20 ) : 'empty' ); ?></li>
+                </ul>
+                <p><a class="hpc-button secondary" href="<?php echo esc_url( $edit ); ?>">Edit on Publication Settings</a> <a class="hpc-button secondary" href="<?php echo esc_url( $pages ); ?>">Founding Date page on the Pages tab</a></p>
             </section>
             <section>
                 <h3>Example</h3>
@@ -132,7 +121,7 @@ final class FoundingDateTab {
         <script>
         (function(){
             var root = document.getElementById('smpi-founding-tab'); if (!root || root.dataset.ready) return; root.dataset.ready = '1';
-            var queue = Promise.resolve(), timer = null;
+            var timer = null;
             function send(action, fields, role, reload){
                 var note = root.querySelector('[data-role="' + role + '"]'); note.className = 'smpi-pe-notice'; note.textContent = 'Saving…';
                 var body = new URLSearchParams(); body.set('action', 'smpi_founding_' + action); body.set('nonce', <?php echo wp_json_encode( $nonce ); ?>);
@@ -146,7 +135,8 @@ final class FoundingDateTab {
             var toggle = document.getElementById('smpi-fd-enabled');
             toggle.addEventListener('change', function(){ send('toggle', { on: toggle.checked ? '1' : '0' }, 'toggle-notice', true); });
             function save(){ var f = {}; root.querySelectorAll('[data-field]').forEach(function(i){ f[i.dataset.field] = i.value; }); queue = queue.then(function(){ return send('save', f, 'save-notice', false); }); }
-            root.querySelectorAll('[data-field]').forEach(function(i){ i.addEventListener('input', function(){ clearTimeout(timer); timer = setTimeout(save, 800); }); if (i.type === 'date') i.addEventListener('change', save); });
+            var heading = document.getElementById('smpi-fd-heading');
+            if (heading) heading.addEventListener('input', function(){ clearTimeout(timer); timer = setTimeout(function(){ send('heading', { heading: heading.value }, 'heading-notice', false); }, 700); });
         })();
         </script>
         <?php

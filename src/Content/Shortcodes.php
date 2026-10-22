@@ -252,6 +252,10 @@ final class Shortcodes {
         if ( "" === $type ) {
             return "";
         }
+        if ( "founding_date" === $type ) {
+            // The founding section and founders print their own markup and CSS; the generic sections and kses would strip that CSS into visible text.
+            return do_shortcode( "[smpi_founding_date show=date,place] [smpi_founders]" );
+        }
         $definition = $this->publication_page_template_definition( $type );
         if ( empty( $definition ) ) {
             return "";

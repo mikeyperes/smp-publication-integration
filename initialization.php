@@ -2,7 +2,7 @@
 /**
  * Legacy bootstrap for SMP Publication Integration.
  * Canonical main plugin file: smp-publication-integration.php
- * Version: 2.5.15
+ * Version: 2.5.16
  * Requires PHP: 8.1
  */
 

@@ -19,12 +19,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class FoundingDate {
     public const OPTION    = 'smpi_founding_date_section';
     public const SHORTCODE = 'smpi_founding_date';
-    public const FIELDS    = [
-        'date'     => 'smpi_founding_date',
-        'place'    => 'smpi_founding_location',
-        'place_url' => 'smpi_founding_location_url',
-        'story'    => 'smpi_founding_date_extended',
-    ];
 
     public function register(): void {
         add_action( 'init', [ $this, 'register_shortcode' ] );
@@ -56,21 +50,6 @@ final class FoundingDate {
             'place_url' => Fields::option_url( 'founding_location_url' ),
             'story'     => trim( (string) Fields::option( 'founding_date_extended' ) ),
         ];
-    }
-
-    /** Saves to the publication's own fields, where Publication Settings and the structured data read them. */
-    public static function save_values( array $values ): void {
-        foreach ( self::FIELDS as $key => $field ) {
-            if ( ! array_key_exists( $key, $values ) ) {
-                continue;
-            }
-            $value = (string) $values[ $key ];
-            if ( \Hexa\PluginCore\Fields\Field::available() ) {
-                \Hexa\PluginCore\Fields\Field::update( $field, $value, 'option' );
-            } else {
-                update_option( 'options_' . $field, $value, false );
-            }
-        }
     }
 
     /** "2019", "2019-04" or "2019-04-12" as the date is known; '' when it is not valid. */
