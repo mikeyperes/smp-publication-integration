@@ -240,7 +240,13 @@ final class SearchBox {
             . '.hls.hls .hls-option input{appearance:auto;-webkit-appearance:auto;flex:none;width:15px;height:15px;margin:0;padding:0;border:0;box-shadow:none;accent-color:var(--hls-accent)}'
             . '.hls.hls .hls-option-label{flex:1}.hls.hls .hls-count{opacity:.6;font-size:12px}'
             . '.hls.hls .hls-clear[hidden],.hls.hls .hls-status[hidden]{display:none}'
+            . '.hls.hls .hls-input::-webkit-search-cancel-button{-webkit-appearance:none;appearance:none}'
             . '.hls.hls .hls-label{display:none}'
+            . '.hls.hls .hls-field{margin:0}'
+            . '.hls.hls .hls-toggle{display:inline-flex;align-items:center;gap:8px;margin:0;cursor:pointer;white-space:nowrap;font-weight:inherit}'
+            . '.hls.hls .hls-toggle input{appearance:auto;-webkit-appearance:auto;flex:none;width:15px;height:15px;margin:0;accent-color:var(--hls-accent)}'
+            . '.hls.hls .hls-range,.hls.hls .hls-range-inputs{display:inline-flex;align-items:center;gap:6px;margin:0}'
+            . '.hls.hls .hls-select,.hls.hls .hls-range input{box-sizing:border-box;margin:0;max-width:100%}'
             . '.hls-visually-hidden{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}'
             // The one loading look: the results dim and a spinner shows until the new ones arrive.
             . '.hls-loading{position:relative;pointer-events:none}'
@@ -273,6 +279,9 @@ final class SearchBox {
                 . '.hls.hls.hls--default-1 .hls-filter-toggle::after{content:"";width:5px;height:5px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:translateY(-2px) rotate(45deg);opacity:.55}'
                 . '.hls.hls.hls--default-1 .hls-filter-badge{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border:1px solid currentColor;border-radius:9px;background:none;color:inherit;font-size:11px;font-weight:600;line-height:1}'
                 . '.hls.hls.hls--default-1 .hls-select{height:var(--hls-field-height);padding:0 10px;border:1px solid var(--hls-border);border-radius:var(--hls-radius);background:transparent;color:inherit;font:inherit;font-size:var(--hls-small)}'
+                . '.hls.hls.hls--default-1 .hls-toggle{height:var(--hls-field-height);padding:0 12px;border:1px solid var(--hls-border);border-radius:var(--hls-radius);font-size:var(--hls-small);transition:border-color .2s}'
+                . '.hls.hls.hls--default-1 .hls-toggle:hover,.hls.hls.hls--default-1 .hls-toggle:has(input:checked){border-color:var(--hls-accent)}'
+                . '.hls.hls.hls--default-1 .hls-range input{height:var(--hls-field-height);padding:0 10px;border:1px solid var(--hls-border);border-radius:var(--hls-radius);background:transparent;color:inherit;font:inherit;font-size:var(--hls-small)}'
                 . '.hls.hls.hls--default-1 .hls-clear{font-size:var(--hls-small);color:inherit;opacity:.7;text-decoration:underline;text-underline-offset:3px}'
                 . '.hls.hls.hls--default-1 .hls-status{margin:10px 0 0;font-size:var(--hls-small);opacity:.7}'
                 . '.hls.hls.hls--default-1 .hls-option:hover{background:rgba(127,127,127,.1);border-radius:4px}';
@@ -289,6 +298,8 @@ final class SearchBox {
                 . '.hls.hls.hls--default-2 .hls-filter-badge{font-size:11px;opacity:.7}'
                 . '.hls.hls.hls--default-2 .hls-filter-badge::before{content:"("}.hls.hls.hls--default-2 .hls-filter-badge::after{content:")"}'
                 . '.hls.hls.hls--default-2 .hls-select{height:var(--hls-field-height);border:0;border-bottom:1px solid var(--hls-border);background:transparent;color:inherit;font:inherit;font-size:12px}'
+                . '.hls.hls.hls--default-2 .hls-toggle{height:var(--hls-field-height);font-size:12px;letter-spacing:.08em;text-transform:uppercase}'
+                . '.hls.hls.hls--default-2 .hls-range input{height:var(--hls-field-height);padding:0 4px;border:0;border-bottom:1px solid var(--hls-border);background:transparent;color:inherit;font:inherit;font-size:12px}'
                 . '.hls.hls.hls--default-2 .hls-clear{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:inherit;opacity:.7}'
                 . '.hls.hls.hls--default-2 .hls-status{margin:10px 0 0;font-size:12px;letter-spacing:.06em;text-transform:uppercase;opacity:.6}';
         } else {

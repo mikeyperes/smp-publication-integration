@@ -116,13 +116,36 @@ final class SearchModule implements ModuleInterface {
         }
     }
 
+    /**
+     * Whether an Elementor widget shows the page's own list: an Archive Posts
+     * widget, or a Loop Grid or Posts widget whose query source is
+     * "Current Query".
+     *
+     * @param object $widget
+     */
+    private static function shows_page_list( $widget ): bool {
+        if ( ! method_exists( $widget, 'get_name' ) || ! method_exists( $widget, 'get_settings' ) ) {
+            return false;
+        }
+        if ( 'archive-posts' === $widget->get_name() ) {
+            return true;
+        }
+        foreach ( [ 'post_query_post_type', 'posts_post_type', 'query_post_type' ] as $key ) {
+            if ( 'current_query' === $widget->get_settings( $key ) ) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /** Whether an Elementor widget is the page's listing. @param object|null $widget */
     public static function is_target( $widget ): bool {
         if ( ! is_object( $widget ) ) {
             return false;
         }
         $classes = method_exists( $widget, 'get_settings' ) ? (string) $widget->get_settings( '_css_classes' ) : '';
-        $target  = in_array( self::TARGET_CLASS, preg_split( '/\s+/', $classes ) ?: [], true );
+        $target  = in_array( self::TARGET_CLASS, preg_split( '/\s+/', $classes ) ?: [], true ) || self::shows_page_list( $widget );
 
         return function_exists( 'apply_filters' ) ? (bool) apply_filters( self::TARGET_FILTER, $target, $widget ) : $target;
     }

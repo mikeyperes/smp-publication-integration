@@ -269,6 +269,10 @@ The suite covers navigation, article defaults, article/FAQ output, authorship, t
 
 ## Changelog
 
+### 2.5.14
+
+- Bundles Hexa WP Core 3.30.4: the archive search also narrows Elementor loops that show the page's own results without a marker class, and its filter controls are styled in every look.
+
 ### 2.5.13
 
 - New Founders tab and `[smpi_founders]`: on/off, section title (default Founders), people from user accounts with optional titles, styles, HTML structure and shortcode.
