@@ -97,6 +97,9 @@ final class AuthorQueryIntegration {
 
         $wp_query->queried_object = $author;
         $wp_query->queried_object_id = $author_id;
+        // WordPress copies the (cleared) author query value into the $author global; restore it,
+        // because breadcrumbs (Rank Math) and themes read the archive's author from that global.
+        $GLOBALS["author"] = $author_id;
     }
 
     public function filter_author_clauses( array $clauses, \WP_Query $query ): array {

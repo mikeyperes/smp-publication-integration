@@ -255,6 +255,10 @@ The suite covers navigation, article defaults, article/FAQ output, authorship, t
 
 ## Changelog
 
+### 2.5.10
+
+- Author pages keep the author in the breadcrumb ("Home - Archives for <name>"). Including co-written stories cleared WordPress's author value, which Rank Math reads for the trail; it is now restored once the page's stories are chosen.
+
 ### 2.5.9
 
 - Archive search runs on Hexa WP Core 3.30.2's one search (bundled): same box, now with the shared loader (the stories dim under a spinner while results load). Needs HWS Base Tools 13.17.1.
