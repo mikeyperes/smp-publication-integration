@@ -3,6 +3,7 @@
 namespace smp_publication_integration\Admin;
 
 use Hexa\PluginCore\WpAdminAjax\AjaxGuard;
+use Hexa\PluginCore\SmartSearch\SmartSearchRenderer;
 use Hexa\PluginCore\WpAdminComponents\CoreUi;
 use smp_publication_integration\Content\ExecutiveLeadership;
 
@@ -109,7 +110,6 @@ final class ExecutiveLeadershipTab {
         $settings = ExecutiveLeadership::settings();
         $nonce    = Ajax::nonce();
         $members  = ExecutiveLeadership::member_ids();
-        $users    = get_users( [ 'role__not_in' => [ 'subscriber' ], 'orderby' => 'display_name', 'fields' => [ 'ID', 'display_name' ] ] );
         ?>
         <div id="smpi-leadership-tab" class="hpc-ui smpi-leadership-admin">
             <style>
@@ -119,13 +119,35 @@ final class ExecutiveLeadershipTab {
                 .smpi-leadership-admin p.lead{color:#646970;margin:0 0 12px}
                 .smpi-leadership-admin .smpi-la-notice{font-size:13px;margin-top:8px;color:#00701a}
                 .smpi-leadership-admin .smpi-la-notice.error{color:#b32d2e}
-                .smpi-leadership-admin .smpi-la-people{list-style:none;margin:0 0 12px;padding:0;max-width:640px}
-                .smpi-leadership-admin .smpi-la-person{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #f0f0f1}
-                .smpi-leadership-admin .smpi-la-person img{width:40px;height:40px;border-radius:50%;object-fit:cover}
-                .smpi-leadership-admin .smpi-la-person strong{min-width:150px}
-                .smpi-leadership-admin .smpi-la-person input{flex:1;min-width:0}
-                .smpi-leadership-admin .smpi-la-add{display:flex;gap:10px;align-items:center;max-width:640px}
-                .smpi-leadership-admin .smpi-la-add select{flex:1}
+                .smpi-leadership-admin .smpi-la-team{max-width:760px;background:#fff;border:1px solid #dcdcde;border-radius:8px;overflow:hidden}
+                .smpi-leadership-admin .smpi-la-team-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;border-bottom:1px solid #f0f0f1;background:#f9fafb}
+                .smpi-leadership-admin .smpi-la-team-head strong{font-size:14px}
+                .smpi-leadership-admin .smpi-la-count{font-size:12px;color:#646970;background:#fff;border:1px solid #dcdcde;border-radius:999px;padding:2px 10px}
+                .smpi-leadership-admin .smpi-la-search{padding:14px 18px;border-bottom:1px solid #f0f0f1}
+                .smpi-leadership-admin .smpi-la-search .hpc-field>span{display:block;font-size:12px;font-weight:600;margin-bottom:6px}
+                .smpi-leadership-admin .smpi-la-search .hpc-smart-search-input{width:100%;height:40px;font-size:14px}
+                .smpi-leadership-admin .smpi-la-search .hpc-smart-search-selected{display:none!important}
+                .smpi-leadership-admin .smpi-la-people{list-style:none;margin:0;padding:0}
+                .smpi-leadership-admin .smpi-la-person{display:grid;grid-template-columns:20px 52px minmax(0,1fr) auto;align-items:center;gap:14px;padding:14px 18px;border-bottom:1px solid #f0f0f1;background:#fff;transition:background .15s}
+                .smpi-leadership-admin .smpi-la-person:last-child{border-bottom:0}
+                .smpi-leadership-admin .smpi-la-person.is-dragging{opacity:.45}
+                .smpi-leadership-admin .smpi-la-person.is-over{background:#f0f6fc}
+                .smpi-leadership-admin .smpi-la-handle{cursor:grab;color:#a7aaad;user-select:none}.smpi-leadership-admin .smpi-la-handle:hover{color:#50575e}
+                .smpi-leadership-admin .smpi-la-avatar{width:52px;height:52px;border-radius:50%;object-fit:cover;background:#f0f0f1}
+                .smpi-leadership-admin .smpi-la-who{min-width:0}
+                .smpi-leadership-admin .smpi-la-name{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+                .smpi-leadership-admin .smpi-la-name strong{font-size:14px}
+                .smpi-leadership-admin .smpi-la-meta{font-size:12px;color:#787c82;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+                .smpi-leadership-admin .smpi-la-title{display:block;margin-top:8px}
+                .smpi-leadership-admin .smpi-la-title span{display:block;font-size:11px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;color:#646970;margin-bottom:4px}
+                .smpi-leadership-admin .smpi-la-title input{width:100%;max-width:420px;height:34px}
+                .smpi-leadership-admin .smpi-la-actions{display:flex;align-items:center;gap:4px}
+                .smpi-leadership-admin .smpi-la-icon{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border:1px solid #dcdcde;border-radius:6px;background:#fff;color:#50575e;cursor:pointer;text-decoration:none;padding:0}
+                .smpi-leadership-admin .smpi-la-icon:hover{border-color:#2271b1;color:#2271b1}
+                .smpi-leadership-admin .smpi-la-icon.is-remove:hover{border-color:#d63638;color:#d63638}
+                .smpi-leadership-admin .smpi-la-icon .dashicons{font-size:16px;width:16px;height:16px;pointer-events:none}
+                .smpi-leadership-admin .smpi-la-empty{padding:28px 18px;text-align:center;color:#646970}
+                .smpi-leadership-admin .smpi-la-team .smpi-la-notice{padding:0 18px 12px;margin:0}
                 .smpi-leadership-admin .smpi-la-styles{list-style:none;margin:0;padding:0}
                 .smpi-leadership-admin .smpi-la-styles li{margin:6px 0}
                 .smpi-leadership-admin .smpi-la-example{border:1px solid #dcdcde;border-radius:6px;padding:24px;background:#fff;margin-top:12px}
@@ -164,31 +186,32 @@ final class ExecutiveLeadershipTab {
                 </section>
 
                 <section>
-                    <h3>Leadership team</h3>
-                    <p class="lead">In order of appearance. Adding someone here turns on "Is part of the executive leadership team" on their profile, and the title here is their Executive Leadership Title. Changes on a profile show here too.</p>
-                    <ul class="smpi-la-people" data-role="people">
-                        <?php foreach ( $members as $id ) : $user = get_userdata( $id ); if ( ! $user ) { continue; } ?>
-                            <li class="smpi-la-person" data-id="<?php echo esc_attr( (string) $id ); ?>">
-                                <img src="<?php echo esc_url( get_avatar_url( $id, [ 'size' => 80 ] ) ); ?>" alt="">
-                                <strong><?php echo esc_html( $user->display_name ); ?></strong>
-                                <input type="text" class="regular-text" data-role="title" value="<?php echo esc_attr( ExecutiveLeadership::title( $id ) ); ?>" placeholder="Executive Leadership Title">
-                                <button type="button" class="button" data-action="up" title="Move up">↑</button>
-                                <button type="button" class="button" data-action="down" title="Move down">↓</button>
-                                <button type="button" class="button-link-delete" data-action="remove">Remove</button>
-                                <a href="<?php echo esc_url( get_edit_user_link( $id ) ); ?>" target="_blank" rel="noopener">Profile</a>
-                            </li>
-                        <?php endforeach; ?>
-                    </ul>
-                    <div class="smpi-la-add">
-                        <select data-role="pick">
-                            <option value="">Choose a person to add…</option>
-                            <?php foreach ( $users as $user ) : ?>
-                                <option value="<?php echo esc_attr( (string) $user->ID ); ?>" data-avatar="<?php echo esc_url( get_avatar_url( (int) $user->ID, [ 'size' => 80 ] ) ); ?>" data-edit="<?php echo esc_url( get_edit_user_link( (int) $user->ID ) ); ?>"><?php echo esc_html( $user->display_name ); ?></option>
+                    <h3>People</h3>
+                    <p class="lead">Drag to set the order of appearance. Adding someone here turns on "Is part of the executive leadership team" on their profile, and the title here is their Executive Leadership Title. Changes on a profile show here too.</p>
+                    <div class="smpi-la-team">
+                        <div class="smpi-la-team-head"><strong>Leadership team</strong><span class="smpi-la-count" data-role="count"><?php echo esc_html( count( $members ) . ( 1 === count( $members ) ? ' person' : ' people' ) ); ?></span></div>
+                        <div class="smpi-la-search">
+                            <?php
+                            ( new SmartSearchRenderer() )->render(
+                                [
+                                    'id'          => 'smpi-leadership-user-search',
+                                    'label'       => 'Add a person',
+                                    'placeholder' => 'Type a name or email',
+                                    'source'      => 'users',
+                                    'min_chars'   => 2,
+                                    'limit'       => 10,
+                                ]
+                            );
+                            ?>
+                        </div>
+                        <ul class="smpi-la-people" data-role="people">
+                            <?php foreach ( $members as $id ) : $user = get_userdata( $id ); if ( ! $user ) { continue; } ?>
+                                <?php echo self::person_html( (int) $id, (string) $user->display_name, (string) $user->user_email, ExecutiveLeadership::title( (int) $id ), get_avatar_url( (int) $id, [ 'size' => 104 ] ), (string) get_edit_user_link( (int) $id ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
                             <?php endforeach; ?>
-                        </select>
-                        <button type="button" class="hpc-button" data-action="add">Add</button>
+                        </ul>
+                        <div class="smpi-la-empty" data-role="empty"<?php echo $members ? ' hidden' : ''; ?>>No one yet. Search above to add the first person.</div>
+                        <div class="smpi-la-notice" data-role="people-notice" role="status" aria-live="polite"></div>
                     </div>
-                    <div class="smpi-la-notice" data-role="people-notice" role="status" aria-live="polite"></div>
                 </section>
 
                 <section>
@@ -245,6 +268,31 @@ final class ExecutiveLeadershipTab {
             var list = root.querySelector('[data-role="people"]');
             function people(){ return list ? Array.prototype.map.call(list.querySelectorAll('.smpi-la-person'), function(li){ return { id: li.dataset.id, title: li.querySelector('[data-role="title"]').value }; }) : []; }
             var timer = null;
+            function refresh(){ var n = list ? list.children.length : 0; var c = root.querySelector('[data-role="count"]'); if (c) c.textContent = n + (n === 1 ? ' person' : ' people'); var em = root.querySelector('[data-role="empty"]'); if (em) em.hidden = n > 0; }
+            var tpl = <?php echo wp_json_encode( self::person_html( 0, '', '', '', '', '' ) ); ?>;
+            document.addEventListener('hexa-search-selected', function(ev){
+                if (!ev.detail || ev.detail.component_id !== 'smpi-leadership-user-search' || !list) return;
+                var item = ev.detail.item || {}, id = String(item.id || '');
+                var search = document.getElementById('smpi-leadership-user-search'), input = search && search.querySelector('.hpc-smart-search-input');
+                if (input) input.value = '';
+                if (!id) return;
+                if (list.querySelector('.smpi-la-person[data-id="' + id + '"]')) { say('people-notice', (item.name || 'This person') + ' is already on the team.', true); return; }
+                var holder = document.createElement('ul'); holder.innerHTML = tpl; var row = holder.firstElementChild;
+                row.dataset.id = id;
+                row.querySelector('.smpi-la-avatar').src = item.thumbnail || '';
+                row.querySelector('.smpi-la-name strong').textContent = item.name || '';
+                var roles = String(item.status || '').split(', ').filter(Boolean).map(function(r){ return r.charAt(0).toUpperCase() + r.slice(1); }).join(', ');
+                row.querySelector('.smpi-la-meta').textContent = [roles, item.email].filter(Boolean).join(' · ');
+                var st = search && search.querySelector('.hpc-smart-search-status'); if (st) st.textContent = 'Added ' + (item.name || '') + '.';
+                row.querySelector('[data-role="profile"]').href = item.edit_url || '#';
+                list.appendChild(row); refresh(); savePeople(); row.querySelector('[data-role="title"]').focus();
+            });
+            var dragged = null;
+            if (list) {
+                list.addEventListener('dragstart', function(e){ var li = e.target.closest('.smpi-la-person'); if (!li) return; dragged = li; li.classList.add('is-dragging'); e.dataTransfer.effectAllowed = 'move'; });
+                list.addEventListener('dragover', function(e){ var li = e.target.closest('.smpi-la-person'); if (!dragged || !li || li === dragged) return; e.preventDefault(); Array.prototype.forEach.call(list.children, function(x){ x.classList.remove('is-over'); }); li.classList.add('is-over'); var r = li.getBoundingClientRect(); list.insertBefore(dragged, (e.clientY - r.top) > r.height / 2 ? li.nextSibling : li); });
+                list.addEventListener('dragend', function(){ if (!dragged) return; dragged.classList.remove('is-dragging'); Array.prototype.forEach.call(list.children, function(x){ x.classList.remove('is-over'); }); dragged = null; savePeople(); });
+            }
             function savePeople(){ clearTimeout(timer); say('people-notice', 'Saving…'); post('save_people', { people: JSON.stringify(people()) }).then(function(d){ say('people-notice', d.message); example(d.example); }).catch(function(e){ say('people-notice', e.message, true); }); }
 
             root.addEventListener('change', function(e){
@@ -259,20 +307,11 @@ final class ExecutiveLeadershipTab {
             });
             root.addEventListener('input', function(e){ if (e.target.dataset.role === 'title') { clearTimeout(timer); timer = setTimeout(savePeople, 800); } });
             root.addEventListener('click', function(e){
-                var action = e.target.getAttribute('data-action'); if (!action) return;
+                var btn = e.target.closest('[data-action]'); var action = btn ? btn.getAttribute('data-action') : ''; if (!action) return;
                 var li = e.target.closest('.smpi-la-person');
-                if (action === 'remove' && li) { li.remove(); savePeople(); }
+                if (action === 'remove' && li) { li.remove(); refresh(); savePeople(); }
                 if (action === 'up' && li && li.previousElementSibling) { list.insertBefore(li, li.previousElementSibling); savePeople(); }
                 if (action === 'down' && li && li.nextElementSibling) { list.insertBefore(li.nextElementSibling, li); savePeople(); }
-                if (action === 'add') {
-                    var pick = root.querySelector('[data-role="pick"]'), opt = pick.options[pick.selectedIndex];
-                    if (!pick.value) { say('people-notice', 'Choose a person first.', true); return; }
-                    if (list.querySelector('[data-id="' + pick.value + '"]')) { say('people-notice', opt.text + ' is already on the team.', true); return; }
-                    var row = document.createElement('li'); row.className = 'smpi-la-person'; row.dataset.id = pick.value;
-                    row.innerHTML = '<img alt=""><strong></strong><input type="text" class="regular-text" data-role="title" placeholder="Executive Leadership Title"><button type="button" class="button" data-action="up" title="Move up">↑</button><button type="button" class="button" data-action="down" title="Move down">↓</button><button type="button" class="button-link-delete" data-action="remove">Remove</button><a target="_blank" rel="noopener">Profile</a>';
-                    row.querySelector('img').src = opt.dataset.avatar; row.querySelector('strong').textContent = opt.text; row.querySelector('a').href = opt.dataset.edit;
-                    list.appendChild(row); pick.value = ''; savePeople(); row.querySelector('input').focus();
-                }
                 if (action === 'apply-template') {
                     if (!window.confirm('Replace this page\'s content with the default template? The current content is kept as a revision.')) return;
                     say('notice', 'Updating the page…');
@@ -282,6 +321,24 @@ final class ExecutiveLeadershipTab {
         })();
         </script>
         <?php
+    }
+
+    /** One person row; also the template the script fills when someone is added. */
+    public static function person_html( int $id, string $name, string $email, string $title, string $avatar, string $edit ): string {
+        $user  = $id ? get_userdata( $id ) : null;
+        $roles = $user instanceof \WP_User ? implode( ', ', array_map( 'ucfirst', (array) $user->roles ) ) : '';
+        $meta  = implode( ' · ', array_filter( [ $roles, $email ] ) );
+        return '<li class="smpi-la-person" draggable="true" data-id="' . esc_attr( (string) $id ) . '">'
+            . '<span class="smpi-la-handle dashicons dashicons-menu" title="Drag to reorder" aria-hidden="true"></span>'
+            . '<img class="smpi-la-avatar" src="' . esc_url( $avatar ) . '" alt="">'
+            . '<div class="smpi-la-who"><div class="smpi-la-name"><strong>' . esc_html( $name ) . '</strong></div><div class="smpi-la-meta">' . esc_html( $meta ) . '</div>'
+            . '<label class="smpi-la-title"><span>Executive Leadership Title</span><input type="text" data-role="title" value="' . esc_attr( $title ) . '" placeholder="For example: Editor-in-Chief"></label></div>'
+            . '<div class="smpi-la-actions">'
+            . '<button type="button" class="smpi-la-icon" data-action="up" title="Move up" aria-label="Move up"><span class="dashicons dashicons-arrow-up-alt2"></span></button>'
+            . '<button type="button" class="smpi-la-icon" data-action="down" title="Move down" aria-label="Move down"><span class="dashicons dashicons-arrow-down-alt2"></span></button>'
+            . '<a class="smpi-la-icon" data-role="profile" href="' . esc_url( $edit ) . '" target="_blank" rel="noopener" title="Open profile" aria-label="Open profile"><span class="dashicons dashicons-admin-users"></span></a>'
+            . '<button type="button" class="smpi-la-icon is-remove" data-action="remove" title="Remove from the team" aria-label="Remove from the team"><span class="dashicons dashicons-no-alt"></span></button>'
+            . '</div></li>';
     }
 
     public static function structure(): string {

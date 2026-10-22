@@ -84,7 +84,7 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 - **Code:** `src/Content/AuthorListings.php`
 
 ### Executive leadership
-- **Does:** the publication's Executive Leadership Team. Each user profile gets "Is part of the executive leadership team" and an Executive Leadership Title (used only on that page); people can also be added, ordered, titled and removed on the tab, and both stay in step. Turning it on links the leadership page or creates it from the default template; off hides the profile fields and the list. Styles: Cards (default), List or No styling, with a live example on the tab.
+- **Does:** the publication's Executive Leadership Team. Each user profile gets "Is part of the executive leadership team" and an Executive Leadership Title (used only on that page); people can also be added on the tab by typing a name or email (Hexa WP Core's user search), dragged into order, titled and removed, and both stay in step. Turning it on links the leadership page or creates it from the default template; off hides the profile fields and the list. Styles: Cards (default), List or No styling, with a live example on the tab.
 - **Switch:** Settings → SMP Publication Integration → Executive Leadership (`options-general.php?page=smp-publication-integration&tab=executive_leadership`); option `smpi_executive_leadership`, user meta `smpi_executive_leadership` and `smpi_executive_leadership_title`.
 - **Use:** `[smpi_executive_leadership style="cards|list|none" columns="3" ids="" limit="" hide="photo,title,bio,link" link="profile|none" bio_words="30" photo_size="medium" heading="h3"]`.
 - **HTML structure and styling:** [docs/executive-leadership.md](docs/executive-leadership.md): markup, classes (`.smpi-leadership--<style>`, `.smpi-leader--<user>`, `__photo`, `__image`, `__name`, `__title`, `__bio`, `__link`), built-in CSS and how to style it.
@@ -247,6 +247,10 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.5.7
+
+- Executive Leadership tab: add people by typing a name or email (Hexa WP Core user search) instead of a long dropdown; each person is a row with photo, role and email, a labelled Executive Leadership Title, drag-to-reorder and icon buttons for move, profile and remove.
 
 ### 2.5.6
 
