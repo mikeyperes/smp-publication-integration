@@ -83,6 +83,13 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 - **Use:** `[staff_grid]`, `[contributors_grid]`.
 - **Code:** `src/Content/AuthorListings.php`
 
+### Executive leadership
+- **Does:** the publication's Executive Leadership Team. Each user profile gets "Is part of the executive leadership team" and an Executive Leadership Title (used only on that page); people can also be added, ordered, titled and removed on the tab, and both stay in step. Turning it on links the leadership page or creates it from the default template; off hides the profile fields and the list. Styles: Cards (default), List or No styling, with a live example on the tab.
+- **Switch:** Settings → SMP Publication Integration → Executive Leadership (`options-general.php?page=smp-publication-integration&tab=executive_leadership`); option `smpi_executive_leadership`, user meta `smpi_executive_leadership` and `smpi_executive_leadership_title`.
+- **Use:** `[smpi_executive_leadership style="cards|list|none" columns="3" ids="" limit="" hide="photo,title,bio,link" link="profile|none" bio_words="30" photo_size="medium" heading="h3"]`.
+- **HTML structure and styling:** [docs/executive-leadership.md](docs/executive-leadership.md): markup, classes (`.smpi-leadership--<style>`, `.smpi-leader--<user>`, `__photo`, `__image`, `__name`, `__title`, `__bio`, `__link`), built-in CSS and how to style it.
+- **Code:** `src/Content/ExecutiveLeadership.php`, `src/Admin/ExecutiveLeadershipTab.php`
+
 ### Author archive loading
 - **Does:** load-more or infinite loading on author archive pages.
 - **Switch:** `author_archive_loading_enabled`, `author_archive_loading_mode`, `author_archive_loading_style`.
@@ -240,6 +247,10 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.5.6
+
+- New Executive Leadership tab: on/off switch that links or creates the leadership page from the default template, people picker with titles and order, Cards/List/No styling with a live example, CSS structure and the `[smpi_executive_leadership]` shortcode. User profiles get "Is part of the executive leadership team" and an Executive Leadership Title, shown only while the feature is on; the tab and profiles stay in step.
 
 ### 2.5.5
 

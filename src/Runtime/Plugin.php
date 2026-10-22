@@ -100,6 +100,7 @@ final class Plugin {
             new Content\AuthorShortcodes(),
             new Content\AuthorSocialIcons(),
             new Content\AuthorListings(),
+            new Content\ExecutiveLeadership(),
             new Content\AuthorArchiveLoading(),
             new Content\Schema(),
             new Content\ArticleTypes(),
@@ -138,6 +139,7 @@ final class Plugin {
             new Admin\UiCleanup(),
             new Admin\Ajax(),
             new Admin\Dashboard(),
+            new Admin\ExecutiveLeadershipTab(),
         ];
     }
 
