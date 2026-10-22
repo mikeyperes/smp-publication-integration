@@ -59,10 +59,16 @@ final class AuthorSocialIcons {
         add_shortcode( self::SHORTCODE, [ $this, "render_shortcode" ] );
     }
 
+    /** Loads the icon styles on articles and author pages, where the icons are placed automatically. */
     public function enqueue_styles(): void {
-        if ( ! Settings::bool( "author_social_icons_enabled" ) ) {
+        if ( ! Settings::bool( "author_social_icons_enabled" ) || ! ( is_singular( "post" ) || is_author() ) ) {
             return;
         }
+        self::enqueue_stylesheet();
+    }
+
+    /** Also called by the shortcode, so any other page that uses it gets the styles. */
+    public static function enqueue_stylesheet(): void {
 
         wp_enqueue_style(
             "smpi-author-social-icons",
@@ -111,6 +117,7 @@ final class AuthorSocialIcons {
         if ( ! Settings::bool( "author_social_icons_enabled" ) ) {
             return "";
         }
+        self::enqueue_stylesheet();
 
         $atts = shortcode_atts(
             [

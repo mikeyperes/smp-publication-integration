@@ -2,6 +2,12 @@
 
 Release notes moved from the README (3.31.1). Newest first; each Core release adds its line here.
 
+Version 3.34.1 draws `ScopedCssOverride`'s HTML structure and CSS examples and `SchemaScanRenderer`'s "View full JSON" in `CodeDisplay`.
+
+Version 3.34.0 shows the schema graph JSON (`SchemaTools\SchemaDashboardRenderer`) and each snippet's readme (`SnippetRegistry\SnippetsTableRenderer`) in `CodeDisplay` instead of plain grey blocks.
+
+Version 3.33.0 makes field reads safe during plugin startup: before ACF has started (`acf/init`), `Field::get()` returns the stored value instead of calling ACF, which started ACF too early and crashed the admin (`Fields\Acf::ready()`). Without ACF, the native field script and media library load only on post, user and term edit screens instead of every admin page (`AdminScreens::field_screen()`). Core's own tab and the field-structure cards show their code samples in `CodeDisplay`.
+
 Version 3.32.0 adds `ShortcodeRegistry\ShortcodeBreakdown` (one shortcode with copy button, aliases, every attribute with default, explanation and choices, and examples) and `WpAdminComponents\CodeDisplay` (colour-coded HTML/CSS/PHP/JS code block with copy button), for every plugin's settings screens.
 
 Version 3.31.1 rewrites the README's `## Features` into one entry per capability (Does / Use / Extend / Code) for every `src/` folder, removes the narrative sections those entries replace, and moves the release notes here. No code changes.

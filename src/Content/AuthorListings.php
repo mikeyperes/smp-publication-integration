@@ -21,7 +21,6 @@ final class AuthorListings {
 
     public function register(): void {
         add_action( "init", [ $this, "register_shortcodes" ], PHP_INT_MAX );
-        add_action( "wp_head", [ $this, "print_styles" ], 35 );
     }
 
     public function register_shortcodes(): void {
@@ -57,11 +56,22 @@ final class AuthorListings {
         return $this->render_grid( $users, "contributor" );
     }
 
-    public function print_styles(): void {
-        echo '<style id="smpi-author-listing-styles">.smpi-author-listing-card.user-card{box-sizing:border-box;color:inherit;cursor:pointer;display:block;height:100%;text-decoration:none}.smpi-author-listing-card.user-card:link,.smpi-author-listing-card.user-card:visited,.smpi-author-listing-card.user-card:hover,.smpi-author-listing-card.user-card:active{color:inherit;text-decoration:none}.smpi-author-listing-card.user-card:focus-visible{outline:3px solid currentColor;outline-offset:3px}.smpi-author-listing-card .smpi-author-listing-image{display:block;object-fit:cover}</style>';
+    /** Adds the card styles only on pages that render a staff or contributor grid. */
+    private function enqueue_styles(): void {
+        if ( wp_style_is( "smpi-author-listing", "enqueued" ) ) {
+            return;
+        }
+        wp_register_style( "smpi-author-listing", false );
+        wp_enqueue_style( "smpi-author-listing" );
+        wp_add_inline_style( "smpi-author-listing", self::css() );
+    }
+
+    public static function css(): string {
+        return '.smpi-author-listing-card.user-card{box-sizing:border-box;color:inherit;cursor:pointer;display:block;height:100%;text-decoration:none}.smpi-author-listing-card.user-card:link,.smpi-author-listing-card.user-card:visited,.smpi-author-listing-card.user-card:hover,.smpi-author-listing-card.user-card:active{color:inherit;text-decoration:none}.smpi-author-listing-card.user-card:focus-visible{outline:3px solid currentColor;outline-offset:3px}.smpi-author-listing-card .smpi-author-listing-image{display:block;object-fit:cover}';
     }
 
     private function render_grid( array $users, string $listing ): string {
+        $this->enqueue_styles();
         $users = apply_filters( "smpi_author_listing_users", $users, $listing );
         $hide_without_image = Settings::bool( "author_listing_hide_without_featured_image" );
         $hide_without_articles = Settings::bool( "author_listing_hide_without_articles" );

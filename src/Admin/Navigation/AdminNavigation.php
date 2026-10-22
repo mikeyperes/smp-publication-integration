@@ -28,6 +28,7 @@ final class AdminNavigation {
         'article_cleanup'      => 'Article & Media Cleanup',
         'plugins'              => 'Plugins',
         'shortcodes'           => 'Shortcodes',
+        'update-center'        => 'Update Center',
         'hexa_core'            => 'Hexa WP Core',
     ];
 
@@ -73,6 +74,7 @@ final class AdminNavigation {
             'article_cleanup' => 'Article & Media Cleanup',
             'plugins'         => 'Plugins',
             'shortcodes'      => 'Shortcodes',
+            'update-center'   => 'Update Center',
             'hexa_core'       => 'Hexa WP Core',
         ],
     ];

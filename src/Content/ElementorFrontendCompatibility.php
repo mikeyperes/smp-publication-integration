@@ -20,7 +20,7 @@ final class ElementorFrontendCompatibility {
         }
 
         $css = self::navigation_css();
-        if ( Settings::bool( "table_of_contents_enabled" ) ) {
+        if ( Settings::bool( "table_of_contents_enabled" ) && is_singular() && ! is_front_page() ) {
             $css .= self::table_of_contents_loading_css();
         }
 

@@ -1,7 +1,7 @@
 <?php
-require_once __DIR__ . '/fixtures/dashboard-source.php';
 
 declare(strict_types=1);
+require_once __DIR__ . '/fixtures/dashboard-source.php';
 
 $root = dirname( __DIR__ );
 $article = (string) file_get_contents( $root . "/src/Content/ArticleStyles.php" );

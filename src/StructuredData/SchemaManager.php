@@ -17,6 +17,7 @@ use smp_publication_integration\Content\ArticleTypes;
 use smp_publication_integration\Content\MultiAuthors;
 use smp_publication_integration\Content\PublicationContentTypes;
 use smp_publication_integration\Support\Fields;
+use smp_publication_integration\Pages\CompanyFacts;
 use smp_publication_integration\Support\RuntimeContext;
 use smp_publication_integration\Support\Settings;
 
@@ -475,8 +476,8 @@ class SchemaManager {
                 "logo" => $logo ?: null,
                 "image" => $logo ?: null,
                 "founder" => $this->founders(),
-                "foundingDate" => Fields::option( "founding_date" ),
-                "foundingLocation" => SchemaNodes::place( [ "name" => Fields::option( "founding_location" ), "same_as" => Fields::option_url( "founding_location_url" ) ] ),
+                "foundingDate" => CompanyFacts::value( "founding_date" ) ?: null,
+                "foundingLocation" => SchemaNodes::place( [ "name" => (string) CompanyFacts::value( "founding_location" ), "same_as" => esc_url_raw( (string) CompanyFacts::value( "founding_location_url" ) ) ] ),
                 "address" => is_array( Fields::option( "postal_address" ) ) ? SchemaNodes::postal_address( Fields::option( "postal_address" ) ) : [],
                 "location" => SchemaNodes::place( [ "name" => Fields::option( "headquarters" ), "same_as" => Fields::option_url( "headquarters_wikipedia_url" ) ] ),
                 "email" => Fields::option( "contact_email" ),

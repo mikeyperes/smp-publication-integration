@@ -1,7 +1,7 @@
 <?php
-require_once __DIR__ . '/fixtures/dashboard-source.php';
 
 declare(strict_types=1);
+require_once __DIR__ . '/fixtures/dashboard-source.php';
 
 define( "ABSPATH", dirname( __DIR__ ) . "/" );
 

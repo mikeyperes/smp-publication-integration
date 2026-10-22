@@ -116,10 +116,10 @@ final class PagesTab {
         $this->done( $key, 'Form saved.' );
     }
 
-    /** A page HWS Base Tools owns (Contact): read-only, under the source banner, linked to Base Tools' Pages tab. */
+    /** A page HWS Base Tools owns (Contact, Headquarters, Logo): read-only, under the source banner, linked to Base Tools' Pages tab. */
     private static function base_tools_row_html( string $key, array $owned ): string {
-        $id   = absint( get_option( 'hws_site_page_assignment_' . $key, 0 ) );
-        $page = $id && get_post( $id ) ? '<a href="' . esc_url( (string) get_permalink( $id ) ) . '" target="_blank" rel="noopener">' . esc_html( get_the_title( $id ) ?: '(no title)' ) . '</a>' : '<span class="smpi-muted">Not linked in HWS Base Tools</span>';
+        $id   = PageTypes::base_tools_linked_id( $key );
+        $page = $id ? '<a href="' . esc_url( (string) get_permalink( $id ) ) . '" target="_blank" rel="noopener">' . esc_html( get_the_title( $id ) ?: '(no title)' ) . '</a>' : '<span class="smpi-muted">Not linked in HWS Base Tools</span>';
         return '<tr class="smpi-pages-row smpi-pages-row--readonly" data-key="' . esc_attr( $key ) . '"><td><strong>' . esc_html( (string) $owned['label'] ) . '</strong><br><span class="smpi-muted">' . esc_html( (string) $owned['description'] ) . '</span></td>'
             . '<td colspan="4">' . SourceNotice::html( admin_url( 'options-general.php?page=hws-core-tools&tab=' . $owned['tab'] ) ) . $page . '</td></tr>';
     }

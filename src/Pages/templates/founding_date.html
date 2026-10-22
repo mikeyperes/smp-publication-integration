@@ -1,2 +1,2 @@
 <h2>When [smp_company field="name"] was founded</h2>
-<p>[smp_company field="name"] was founded on [smp_company field="founding_date"] in [smp_company field="founding_location"].</p>
+[smp_if field="founding_date"]<p>[smp_company field="name"] was founded on [smp_company field="founding_date"][smp_company field="founding_location" before=" in "].</p>[/smp_if]

@@ -80,7 +80,7 @@ final class TableOfContents {
         if ( ! RuntimeContext::is_public_dom_context() ) {
             return;
         }
-        if ( ! Settings::bool( "table_of_contents_enabled" ) ) {
+        if ( ! Settings::bool( "table_of_contents_enabled" ) || ! is_singular() || is_front_page() ) {
             return;
         }
         echo "<style id=smpi-table-of-contents-styles>" . ArticleStyles::toc_css() . "</style>";
@@ -255,7 +255,7 @@ SMPI_JS;
      * smpi-toc-has-active. Works for the shortcode and the automatic list.
      */
     public function print_scroll_tracking_script(): void {
-        if ( ! RuntimeContext::is_public_dom_context() || ! Settings::bool( "table_of_contents_enabled" ) || ! is_singular() ) {
+        if ( ! RuntimeContext::is_public_dom_context() || ! Settings::bool( "table_of_contents_enabled" ) || ! is_singular() || is_front_page() ) {
             return;
         }
         $script = <<<SMPI_JS

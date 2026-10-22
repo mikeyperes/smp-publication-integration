@@ -41,10 +41,17 @@ final class ArticleStyles {
         $featured = self::normalize_featured_image_caption_style( (string) Settings::get( "featured_image_caption_template", "fig2" ) );
         $breadcrumb_override = Settings::bool( "breadcrumbs_enabled" ) ? Breadcrumbs::custom_css() : "";
         $drop_cap_style = self::normalize_article_drop_cap_style( (string) Settings::get( "article_drop_cap_style", "dropcap-classic" ) );
-        if ( Settings::bool( "article_drop_cap_enabled" ) && self::article_drop_cap_uses_template_script_font( $drop_cap_style ) ) {
+        if ( is_singular() && ! is_front_page() && Settings::bool( "article_drop_cap_enabled" ) && self::article_drop_cap_uses_template_script_font( $drop_cap_style ) ) {
             echo self::script_font_link_html_for_style( $drop_cap_style );
         }
-        $breadcrumbs_css = Settings::bool( "breadcrumbs_enabled" ) ? self::breadcrumbs_css() : "";
+        $breadcrumbs_css = Settings::bool( "breadcrumbs_enabled" ) && Breadcrumbs::should_render() ? self::breadcrumbs_css() : "";
+        if ( ! is_singular() || is_front_page() ) {
+            // Listings and the home page carry no article content: breadcrumbs only.
+            if ( "" !== $breadcrumbs_css ) {
+                echo "<style id=smpi-article-style-controls>" . self::frontend_vars_css() . $breadcrumbs_css . ( "" !== $breadcrumb_override ? PHP_EOL . $breadcrumb_override : "" ) . "</style>";
+            }
+            return;
+        }
         echo "<style id=smpi-article-style-controls>" . self::frontend_vars_css() . $breadcrumbs_css . self::article_heading_css( $heading ) . self::article_numbered_list_css( $numbered_list ) . self::article_drop_cap_css() . self::post_acf_css() . self::inline_photo_css( $photo ) . self::featured_image_caption_css( $featured ) . self::font_overrides_css() . ( "" !== $breadcrumb_override ? PHP_EOL . $breadcrumb_override : "" ) . "</style>";
     }
 

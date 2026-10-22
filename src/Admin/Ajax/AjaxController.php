@@ -54,18 +54,7 @@ class AjaxController {
             ]
         );
 
-        ( new SiteStructureAjaxController(
-            PageStructure::menu_manager(),
-            [
-                'capability'   => 'manage_options',
-                'nonce_action' => self::NONCE,
-                'nonce_field'  => 'nonce',
-                'actions'      => PageStructure::ajax_actions(),
-                'logger'       => static function ( \Throwable $throwable ): void {
-                    error_log( '[SMP Publication Integration] SiteStructure AJAX error: ' . $throwable->getMessage() );
-                },
-            ]
-        ) )->register();
+        add_action( 'admin_init', [ $this, 'register_site_structure_actions' ] );
 
         ( new PluginInventoryAjaxController(
             PluginInventory::recommended_definitions(),
@@ -101,6 +90,31 @@ class AjaxController {
 
         add_filter( "hexa_plugin_core_smart_search_results", [ $this, "filter_smart_search_results" ], 10, 4 );
 
+    }
+
+    /**
+     * The page manager reads every page type, and some read HWS Base Tools facts
+     * that need WordPress fully started. It is built only for a request that
+     * calls one of its actions, after init, never at startup.
+     */
+    public function register_site_structure_actions(): void {
+        $action = isset( $_REQUEST['action'] ) ? sanitize_key( wp_unslash( (string) $_REQUEST['action'] ) ) : '';
+        if ( ! wp_doing_ajax() || ! in_array( $action, PageStructure::ajax_actions(), true ) ) {
+            return;
+        }
+
+        ( new SiteStructureAjaxController(
+            PageStructure::menu_manager(),
+            [
+                'capability'   => 'manage_options',
+                'nonce_action' => self::NONCE,
+                'nonce_field'  => 'nonce',
+                'actions'      => PageStructure::ajax_actions(),
+                'logger'       => static function ( \Throwable $throwable ): void {
+                    error_log( '[SMP Publication Integration] SiteStructure AJAX error: ' . $throwable->getMessage() );
+                },
+            ]
+        ) )->register();
     }
 
     public static function nonce(): string {

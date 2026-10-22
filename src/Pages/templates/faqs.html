@@ -1,11 +1,11 @@
 <h2>Frequently asked questions</h2>
 <h2>What is [smp_company field="name"]?</h2>
-<p>[smp_company field="description"]</p>
+[smp_if field="description"]<p>[smp_company field="description"]</p>[/smp_if]
 <h2>How do I contact the newsroom?</h2>
 <p>Email [smp_company field="email"].</p>
 <h2>How do I report an error?</h2>
-<p>Write to [smp_company field="email"] with the article link. See our [smp_publication_page type="corrections_policy" mode="link"].</p>
+<p>Write to [smp_company field="email"] with the article link. [smp_if page="corrections_policy"]See our [smp_publication_page type="corrections_policy" mode="link"].[/smp_if]</p>
 <h2>Can I write for you?</h2>
 <p>Yes. Write to [smp_company field="email"] with your pitch.</p>
 <h2>How do I send a press release?</h2>
-<p>See [smp_publication_page type="submit_press_release" mode="link"].</p>
+<p>Send it through <a href="https://hexaprwire.com" target="_blank" rel="noopener">Hexa PR Wire</a>[smp_if page="submit_press_release"]; see our [smp_publication_page type="submit_press_release" mode="link"] page[/smp_if].</p>

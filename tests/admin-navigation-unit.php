@@ -30,7 +30,7 @@ $expected_tabs = [
     'founders_list' => 'Founders', 'executive_leadership' => 'Executive Leadership', 'staff' => 'Staff', 'contributors' => 'Contributors', 'multiple_authors' => 'Authors',
     'custom_post_types' => 'Custom Post Types', 'features' => 'Article Design', 'custom_fields' => 'Post Fields', 'content_generation' => 'Content Generation', 'snippets' => 'Publishing Rules', 'post_hygiene' => 'Post HTML Cleanup',
     'schema' => 'Schema Settings', 'reports' => 'Schema Tests',
-    'article_cleanup' => 'Article & Media Cleanup', 'plugins' => 'Plugins', 'shortcodes' => 'Shortcodes', 'hexa_core' => 'Hexa WP Core',
+    'article_cleanup' => 'Article & Media Cleanup', 'plugins' => 'Plugins', 'shortcodes' => 'Shortcodes', 'update-center' => 'Update Center', 'hexa_core' => 'Hexa WP Core',
 ];
 
 $tabs = $navigation->tabs();
@@ -90,7 +90,7 @@ $areas = [
     'founders_list' => 'people', 'executive_leadership' => 'people', 'staff' => 'people', 'contributors' => 'people', 'multiple_authors' => 'people',
     'custom_post_types' => 'articles', 'features' => 'articles', 'custom_fields' => 'articles', 'content_generation' => 'articles', 'snippets' => 'articles', 'post_hygiene' => 'articles',
     'schema' => 'search_schema', 'reports' => 'search_schema',
-    'article_cleanup' => 'maintenance', 'plugins' => 'maintenance', 'shortcodes' => 'maintenance', 'hexa_core' => 'maintenance',
+    'article_cleanup' => 'maintenance', 'plugins' => 'maintenance', 'shortcodes' => 'maintenance', 'update-center' => 'maintenance', 'hexa_core' => 'maintenance',
 ];
 foreach ( $areas as $section => $area ) {
     $route = $navigation->resolve( $section );

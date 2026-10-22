@@ -38,7 +38,6 @@ final class Fields {
             "recent_media" => [ "recent_media", "publication_recent_media", "smpi_recent_media" ],
             "quotes" => [ "quotes", "publication_quotes", "smpi_quotes" ],
             "founding_date" => [ "founding_date", "publication_founding_date", "smpi_founding_date" ],
-            "founding_date_extended" => [ "founding_date_extended", "smpi_founding_date_extended" ],
             "headquarters_extended" => [ "headquarters_extended", "smpi_headquarters_extended" ],
             "contact" => [ "contact", "publication_contact", "smpi_contact" ],
             "contact_email" => [ "contact_email", "public_contact_email", "email", "smpi_contact_email" ],

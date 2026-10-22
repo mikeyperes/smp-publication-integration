@@ -14,18 +14,24 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Company facts are owned by HWS Base Tools (hws_site_identity(), "Site
  * identity" on its Website & Primary Entity tab). SMP only reads them. When
  * Base Tools has no company saved, the older SMP publication fields are used.
+ *
+ * Templates adjust to the facts present: before/after on [smp_company] are
+ * printed only with a value (after="." is skipped when the value already
+ * ends in a period), and [smp_if] keeps a sentence only when what it needs
+ * exists: field="<fact>", page="<page type>" (linked page) or
+ * shortcode="<tag>" (registered by its plugin, so feature-off shows nothing).
  */
 final class CompanyFacts {
     public const SHORTCODE = 'smp_company';
+
+    /** [smp_if field="x"]...[/smp_if]: prints its text only when the fact, page or shortcode it names is there. */
+    public const IF_SHORTCODE = 'smp_if';
 
     /** Base Tools key => older SMP field used when Base Tools is empty. */
     private const LEGACY = [
         'name'                  => 'legal_name',
         'legal_name'            => 'legal_name',
         'alternate_names'       => 'alternate_name',
-        'founding_date'         => 'founding_date',
-        'founding_location'     => 'founding_location',
-        'founding_location_url' => 'founding_location_url',
         'headquarters_city'     => 'headquarters',
         'headquarters_url'      => 'headquarters_wikipedia_url',
         'email'                 => 'contact_email',
@@ -36,7 +42,27 @@ final class CompanyFacts {
     public function register(): void {
         add_action( 'init', static function (): void {
             add_shortcode( self::SHORTCODE, [ self::class, 'shortcode' ] );
+            add_shortcode( self::IF_SHORTCODE, [ self::class, 'if_shortcode' ] );
         } );
+        add_filter( 'hws_base_tools_pages_in_use', [ self::class, 'pages_in_use' ] );
+    }
+
+    /**
+     * Tells HWS Base Tools which SMP pages that need its facts are switched on
+     * (linked to a page and applying to this site), so it can warn when a fact
+     * is missing. Base Tools reads it on its own admin pages, after init.
+     *
+     * @param array<string,string> $pages key => label
+     * @return array<string,string>
+     */
+    public static function pages_in_use( $pages ): array {
+        $pages = is_array( $pages ) ? $pages : [];
+        foreach ( [ 'founding_date' ] as $key ) {
+            if ( PageTypes::applies( $key ) && PageLinker::linked_id( $key ) > 0 ) {
+                $pages[ $key ] = (string) PageTypes::get( $key )['label'];
+            }
+        }
+        return $pages;
     }
 
     public static function base_tools_available(): bool {
@@ -86,12 +112,44 @@ final class CompanyFacts {
     }
 
     public static function shortcode( $atts ): string {
-        $atts  = shortcode_atts( [ 'field' => 'name', 'format' => '', 'sep' => ', ', 'size' => 'medium', 'fallback' => '' ], (array) $atts, self::SHORTCODE );
+        $atts  = shortcode_atts( [ 'field' => 'name', 'format' => '', 'sep' => ', ', 'size' => 'medium', 'fallback' => '', 'before' => '', 'after' => '' ], (array) $atts, self::SHORTCODE );
         $field = sanitize_key( (string) $atts['field'] );
         $value = self::value( $field );
         if ( self::empty_value( $value ) ) {
             return esc_html( (string) $atts['fallback'] );
         }
+        $html  = self::format_value( $field, $value, $atts );
+        if ( '' === trim( wp_strip_all_tags( $html ) ) && 'logo' !== $field ) {
+            return esc_html( (string) $atts['fallback'] );
+        }
+        $after = (string) $atts['after'];
+        if ( '' !== $after && '.' === $after[0] && '.' === substr( rtrim( wp_strip_all_tags( $html ) ), -1 ) ) {
+            $after = substr( $after, 1 );
+        }
+        return esc_html( (string) $atts['before'] ) . $html . esc_html( $after );
+    }
+
+    /** Whether a template condition holds: a company fact has a value, a page type is linked, a shortcode is registered. */
+    public static function condition( array $atts ): bool {
+        $atts = shortcode_atts( [ 'field' => '', 'page' => '', 'shortcode' => '', 'not' => '' ], $atts, self::IF_SHORTCODE );
+        $ok   = true;
+        if ( '' !== $atts['field'] ) {
+            $ok = $ok && ! self::empty_value( self::value( (string) $atts['field'] ) );
+        }
+        if ( '' !== $atts['page'] ) {
+            $ok = $ok && PageLinker::linked_id( sanitize_key( (string) $atts['page'] ) ) > 0;
+        }
+        if ( '' !== $atts['shortcode'] ) {
+            $ok = $ok && shortcode_exists( sanitize_key( (string) $atts['shortcode'] ) );
+        }
+        return '' !== $atts['not'] ? ! $ok : $ok;
+    }
+
+    public static function if_shortcode( $atts, $content = '' ): string {
+        return self::condition( (array) $atts ) ? do_shortcode( (string) $content ) : '';
+    }
+
+    private static function format_value( string $field, $value, array $atts ): string {
         $format = sanitize_key( (string) $atts['format'] );
         $sep    = (string) $atts['sep'];
 

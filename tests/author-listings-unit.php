@@ -1,6 +1,6 @@
 <?php
-require_once __DIR__ . '/fixtures/dashboard-source.php';
 namespace {
+    require_once __DIR__ . '/fixtures/dashboard-source.php';
     define( "ABSPATH", __DIR__ );
 
     final class WP_User {
@@ -67,6 +67,10 @@ namespace {
 
     function add_action( string $hook, $callback, int $priority = 10, int $accepted_args = 1 ): void { $GLOBALS["test_actions"][ $hook ][ $priority ][] = $callback; }
     function add_shortcode( string $tag, $callback ): void { $GLOBALS["test_shortcodes"][ $tag ] = $callback; }
+    function wp_style_is( string $handle, string $list = "enqueued" ): bool { return isset( $GLOBALS["test_styles"][ $handle ] ); }
+    function wp_register_style( ...$args ): bool { return true; }
+    function wp_enqueue_style( string $handle, ...$args ): void { $GLOBALS["test_styles"][ $handle ] = true; }
+    function wp_add_inline_style( string $handle, string $css ): bool { $GLOBALS["test_inline_styles"][ $handle ] = $css; return true; }
     function remove_shortcode( string $tag ): void { unset( $GLOBALS["test_shortcodes"][ $tag ] ); }
     function apply_filters( string $hook, $value, ...$args ) { return $value; }
     function get_users( array $args ): array {
@@ -180,9 +184,8 @@ namespace {
     expect_true( 4 === substr_count( $staff_with_fallbacks, 'data-smpi-user-id=' ), "Disabling both filters restores every staff member." );
     expect_true( str_contains( $staff_with_fallbacks, "https://gravatar.test/avatar-2.jpg" ), "Fallback avatars remain available when the explicit-image filter is disabled." );
 
-    ob_start();
-    $listings->print_styles();
-    $styles = (string) ob_get_clean();
+    $styles = \smp_publication_integration\Content\AuthorListings::css();
+    expect_true( isset( $GLOBALS["test_inline_styles"]["smpi-author-listing"] ), "Card styles are added only by a page that renders a grid." );
     expect_true( str_contains( $styles, ":focus-visible" ) && str_contains( $styles, "height:100%" ), "Whole-card links include scoped keyboard focus and stable card sizing." );
 
     $root = dirname( __DIR__ );

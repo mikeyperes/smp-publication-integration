@@ -7,8 +7,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * The one list of SMP publication page types: group, label, the usual
- * addresses used to find the page automatically, and whether the page is
- * really generic (flagged to move to HWS Base Tools later).
+ * addresses used to find the page automatically. Contact, Headquarters and
+ * Logo belong to HWS Base Tools (BASE_TOOLS_OWNED) and are only read here.
  *
  * Verified-profile and leadership/culture council pages belong to their own
  * plugins and are not listed here.
@@ -38,8 +38,6 @@ final class PageTypes {
             'mission_statement' => [ 'group' => 'about', 'label' => 'Mission Statement', 'slugs' => [ 'mission-statement', 'mission', '*mission-statement' ], 'description' => 'The publication mission and its promise to readers.' ],
             'founders' => [ 'group' => 'about', 'label' => 'Founders', 'slugs' => [ 'founders', 'founder', 'founding-team', '*-founder-*', 'founder-*' ], 'description' => 'The founders, from HWS Base Tools (the primary entity when it is a person marked as a founder, plus founders added by hand). No founding date.' ],
             'founding_date' => [ 'group' => 'about', 'label' => 'Founding Date', 'slugs' => [ 'founding-date', 'founded' ], 'description' => 'When and where the publication was founded.', 'requires' => 'company' ],
-            'headquarters' => [ 'group' => 'about', 'label' => 'Headquarters', 'slugs' => [ 'headquarters', 'location' ], 'description' => 'Where the company behind the publication is based.', 'base_tools' => 'Any company website has a headquarters page; its facts already live in HWS Base Tools.' ],
-            'brand_assets' => [ 'group' => 'about', 'label' => 'Logo', 'slugs' => [ 'logo', 'brand-assets', 'press-kit' ], 'description' => 'The official logo and brand files, with usage rules.', 'base_tools' => 'Logo and brand files are owned by HWS Base Tools Brand Assets and fit any website.' ],
             'parent_organization' => [ 'group' => 'about', 'label' => 'Parent Network', 'slugs' => [ 'parent-network', 'parent-organization', 'parent-company' ], 'description' => 'The parent company that owns the publication.', 'optional' => true ],
             'powered_by_smp' => [ 'group' => 'about', 'label' => 'Powered by Scale My Publication', 'slugs' => [ 'powered-by-scale-my-publication', 'powered-by' ], 'description' => 'The platform the publication runs on.' ],
             'ownership_funding' => [ 'group' => 'about', 'label' => 'Ownership and Funding', 'slugs' => [ 'ownership-and-funding', 'ownership' ], 'description' => 'Who owns and funds the publication.', 'google_news' => true, 'optional' => true ],
@@ -67,7 +65,7 @@ final class PageTypes {
             'unnamed_sources_policy' => [ 'group' => 'policies', 'label' => 'Unnamed Sources Policy', 'slugs' => [ 'unnamed-sources-policy' ], 'description' => 'When anonymous sources are used.', 'google_news' => true ],
             'actionable_feedback_policy' => [ 'group' => 'policies', 'label' => 'Actionable Feedback Policy', 'slugs' => [ 'actionable-feedback-policy', 'feedback-policy' ], 'description' => 'How reader feedback is handled.', 'google_news' => true ],
             // Reader
-            'faqs' => [ 'group' => 'reader', 'label' => 'FAQs', 'slugs' => [ 'faqs', 'faq' ], 'description' => 'Common reader questions.', 'base_tools' => 'An FAQ page fits any website; Hexa WP Core already holds the FAQ sets.' ],
+            'faqs' => [ 'group' => 'reader', 'label' => 'FAQs', 'slugs' => [ 'faqs', 'faq' ], 'description' => 'Common reader questions.' ],
             'rss_feed' => [ 'group' => 'reader', 'label' => 'RSS Feed', 'slugs' => [ 'rss-feed', 'rss', 'feeds' ], 'description' => 'Every RSS feed readers can follow.' ],
             'press_releases' => [ 'group' => 'reader', 'label' => 'Latest Press Releases', 'slugs' => [ 'latest-press-releases', 'press-releases' ], 'description' => 'The newest press releases.' ],
             'submit_press_release' => [ 'group' => 'reader', 'label' => 'Submit Your Press Release', 'slugs' => [ 'submit-your-press-release', 'submit-a-press-release' ], 'description' => 'How to send a press release.' ],
@@ -77,8 +75,30 @@ final class PageTypes {
 
     /** Pages HWS Base Tools owns: shown read-only on the Pages tab with a link to edit them there. */
     public const BASE_TOOLS_OWNED = [
-        'contact' => [ 'label' => 'Contact', 'tab' => 'pages', 'description' => 'How readers reach the publication. HWS Base Tools owns this page.' ],
+        'headquarters' => [ 'label' => 'Headquarters', 'tab' => 'pages', 'description' => 'Where the company is based. HWS Base Tools owns this page and its facts.' ],
+        'logo'         => [ 'label' => 'Logo', 'tab' => 'pages', 'description' => 'The official logo and brand files. HWS Base Tools owns this page.' ],
+        'contact'      => [ 'label' => 'Contact', 'tab' => 'pages', 'description' => 'How readers reach the publication. HWS Base Tools owns this page.' ],
     ];
+
+    /** Older SMP keys for pages HWS Base Tools now owns. */
+    public const BASE_TOOLS_ALIASES = [ 'brand_assets' => 'logo' ];
+
+    public static function base_tools_owned( string $key ): bool {
+        $key = sanitize_key( $key );
+        return isset( self::BASE_TOOLS_OWNED[ self::BASE_TOOLS_ALIASES[ $key ] ?? $key ] );
+    }
+
+    /** The page HWS Base Tools has linked for one of its page types (0 when none). */
+    public static function base_tools_linked_id( string $key ): int {
+        $key = sanitize_key( $key );
+        $key = self::BASE_TOOLS_ALIASES[ $key ] ?? $key;
+        if ( function_exists( 'hws_base_tools_linked_page' ) ) {
+            $id = absint( hws_base_tools_linked_page( $key ) );
+        } else {
+            $id = absint( get_option( 'hws_site_page_assignment_' . $key, 0 ) );
+        }
+        return $id && get_post( $id ) ? $id : 0;
+    }
 
     /** Whether the page applies to this site now ('requires' => 'company' needs Base Tools' Website Identity to represent a company). */
     public static function applies( string $key ): bool {

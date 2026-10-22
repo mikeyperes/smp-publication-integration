@@ -1,7 +1,7 @@
 <?php
-require_once __DIR__ . '/fixtures/dashboard-source.php';
 
 namespace {
+    require_once __DIR__ . '/fixtures/dashboard-source.php';
     define( "ABSPATH", __DIR__ );
 
     function sanitize_key( $key ): string {

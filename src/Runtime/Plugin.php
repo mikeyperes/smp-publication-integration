@@ -105,7 +105,6 @@ final class Plugin {
             new Content\AuthorListings(),
             new Content\ExecutiveLeadership(),
             new Content\Contributors(),
-            new Content\FoundingDate(),
             new Content\Staff(),
             new Content\AuthorArchiveLoading(),
             new Content\Schema(),
@@ -149,6 +148,9 @@ final class Plugin {
             new Admin\FoundersTab(),
             new Admin\StaffTab(),
             new Admin\Dashboard\Tabs\PagesTab(),
+            new Admin\Dashboard\Tabs\ContentGenerationTab(),
+            new Admin\Dashboard\Tabs\PostHtmlCleanupTab(),
+            new Admin\Dashboard\Tabs\UpdateCenterTab(),
         ];
     }
 

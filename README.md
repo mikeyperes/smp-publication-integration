@@ -97,15 +97,9 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 - **Removed in 2.5.19:** SMP's own Founders settings and shortcode (`smpi_founders` option is read once by Base Tools to carry the data over), the Founder Profiles section (Verified Profile records), the "Founder Authors" field `smpi_founder_users`, and the "Show founder marketing" switch.
 - **Code:** `src/Support/PublicationFounders.php`, `src/Admin/FoundersTab.php`.
 
-### Founding Date
-- **Does:** a section saying when and where the publication was founded, with its founding story: on/off switch, section title ("Founded" by default), the founding values read from Publication Settings (edited there), live example, HTML structure and shortcode on the tab.
-- **Data:** the publication's own fields `smpi_founding_date`, `smpi_founding_location`, `smpi_founding_location_url`, `smpi_founding_date_extended`, the same ones the structured data's `foundingDate` and `foundingLocation` read; no second copy.
-- **Data:** since 2.5.18 the founding date, city and founders are read from HWS Base Tools' Site identity first (`[smp_company field=founding_date]`); the SMP fields above are the fallback. There is no Founding Date tab any more (old links open Publication Pages).
-- **Switch:** option `smpi_founding_date_section`.
-- **Page:** the Founding Date row on the Publication Pages tab (template: only the date and place, `[smpi_founding_date show="date,place"]`).
-- **Use:** `[smpi_founding_date]` with `show`, `date_format`, `section_title`, `section_tag`, `style="none"`.
-- **HTML structure and styling:** [docs/founding-date.md](docs/founding-date.md).
-- **Code:** `src/Content/FoundingDate.php`.
+### Founding Date (from HWS Base Tools)
+- **Does:** the founding date and city come only from HWS Base Tools' Website Identity (`[smp_company field="founding_date"]`, `field="founding_location"`); the publication's search-engine data (`foundingDate`, `foundingLocation`) reads the same facts. The Founding Date page applies only to company sites.
+- **Removed in 2.5.21:** SMP's own founding fields (`smpi_founding_date`, `smpi_founding_location`, `smpi_founding_location_url`, `smpi_founding_date_extended`), the `[smpi_founding_date]` section, its switch `smpi_founding_date_section` and `docs/founding-date.md`.
 
 ### Contributors
 - **Does:** the publication's contributors: everyone with the chosen roles (Contributor by default), plus people added from other roles, minus people removed, in a chosen order. The tab has role checkboxes, a type-to-search people list (Hexa WP Core user search) with drag ordering, "Added" badges and a "removed from the list" section to put people back, the Contributors page (create it or apply the default template), styles with a live example, CSS structure and the shortcode.
@@ -153,11 +147,12 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 
 ### Publication pages
 - **Does:** the Publication Pages tab lists every standard publication page in four groups (About, People, Policies, Reader). Each row shows the WordPress page it is linked to (found automatically at its usual address, at any level such as `/about/headquarters/`; Change picks another), its status, its template (View / edit, Back to default) and one button: Create page, or Apply template, which saves the page's current content as a revision first.
-- **Page types (35):** About: About, Mission Statement, Founders (Founder merged in; old key `founder_about` still resolves), Founding Date (only when Base Tools' Website Identity represents a company; reads the company's founding date and city), Headquarters, Logo, Parent Network (optional), Powered by Scale My Publication (the standard Scale My Publication text, hard-coded as the template default), Ownership and Funding (optional). People: Executive Leadership Team, Team (reads HWS Base Tools' Team, `[hws_team_members]`, shown read-only under the source banner with a link to Base Tools' Team tab), Staff, Contributors, Masthead. Policies: Editorial Guidelines, Editorial Policy, DMCA Policy, Privacy Policy, Terms of Use, Accessibility, and the Google News policies (Publishing Principles, Verification and Fact Checking, Corrections, Ethics, Diversity, Diversity Staffing Report, Mission and Coverage Priorities, No Bylines, Unnamed Sources, Actionable Feedback). Reader: FAQs, RSS Feed, Latest Press Releases, Submit Your Press Release, Advertise. "Advertise with Us" was merged into Advertise and "Writers" into Contributors (old keys still resolve). Verified-profile and leadership/culture council pages belong to their own plugins.
-- **Flagged for HWS Base Tools** (badge "Belongs in Base Tools"): Headquarters, Logo, FAQs. DMCA, Privacy, Terms, Editorial Guidelines, Editorial Policy, Accessibility and the Google News policies stay in SMP.
-- **Owned elsewhere:** Contact belongs to HWS Base Tools (shown read-only on the tab under the source banner, linked to Base Tools' Pages tab; `PageTypes::BASE_TOOLS_OWNED`). Become a Contributor moves to the Contributor Network plugin (`mikeyperes/smp-contributor-network`); SMP no longer lists it or keeps its field.
-- **Default page set:** `PageTypes::default_set()` leaves out optional pages (Parent Network, Ownership and Funding) and pages that do not apply; those are created only on request. `PageTypes::applies()` reads Website Identity only after `init`, never at plugin boot.
-- **Templates:** one file per page type in `src/Pages/templates/<type>.html`, reader-facing only, generic for every site: no publication name typed in. Names, dates, places and people come from shortcodes: `[smp_company field="name|legal_name|description|url|logo|founding_date|founding_location|founders|headquarters_city|headquarters_address|parent_name|parent_url|email|phone|mission|profiles"]` (reads HWS Base Tools' `hws_site_identity()`, falls back to the older SMP fields), `[smp_publication_page type="contact" mode="link|url|title"]`, Base Tools' `[hws_publication_founders]`, `[smpi_executive_leadership]`, `[smpi_staff]`, `[smpi_contributors]`, `[smpi_founding_date]`, `[smp_latest_press_releases count="10"]`, `[smp_press_release_form]` (submission form slot; both press release pages link to Hexa PR Wire, the parent syndicator), and Base Tools' `[hws_rss_feeds]`, `[site_logo]`, `[brand_asset_gallery]`. A site's edited copy is stored in `smpi_settings[page_templates]`; `[smp_publication_page_template type=""]` prints the current template.
+- **Page types (33):** About: About, Mission Statement, Founders (Founder merged in; old key `founder_about` still resolves), Founding Date (only when Base Tools' Website Identity represents a company; reads the company's founding date and city), Parent Network (optional), Powered by Scale My Publication (the standard Scale My Publication text, hard-coded as the template default), Ownership and Funding (optional). People: Executive Leadership Team, Team (reads HWS Base Tools' Team, `[hws_team_members]`, shown read-only under the source banner with a link to Base Tools' Team tab), Staff, Contributors, Masthead. Policies: Editorial Guidelines, Editorial Policy, DMCA Policy, Privacy Policy, Terms of Use, Accessibility, and the Google News policies (Publishing Principles, Verification and Fact Checking, Corrections, Ethics, Diversity, Diversity Staffing Report, Mission and Coverage Priorities, No Bylines, Unnamed Sources, Actionable Feedback). Reader: FAQs, RSS Feed, Latest Press Releases, Submit Your Press Release, Advertise. "Advertise with Us" was merged into Advertise and "Writers" into Contributors (old keys still resolve). Verified-profile and leadership/culture council pages belong to their own plugins.
+- **Owned elsewhere:** Headquarters, Logo and Contact belong to HWS Base Tools: shown read-only on the tab under the source banner, linked to Base Tools' Pages tab (`PageTypes::BASE_TOOLS_OWNED`, read through `hws_base_tools_linked_page( 'headquarters' | 'logo' | 'contact' )`, falling back to the `hws_site_page_assignment_<key>` option). Existing Headquarters and Logo pages built from SMP's template keep rendering it. FAQs stay in SMP. Become a Contributor moves to the Contributor Network plugin (`mikeyperes/smp-contributor-network`); SMP no longer lists it or keeps its field.
+- **Default page set:** `PageTypes::default_set()` leaves out optional pages (Parent Network, Ownership and Funding) and pages that do not apply; those are created only on request. `PageTypes::applies()` reads Website Identity only after `init`, never at plugin boot. The admin page manager (menus and pages AJAX) is built only for a request that calls one of its actions, on `admin_init`, never at startup.
+- **Smart templates:** every sentence adjusts to the facts present. `[smp_company field="x" before=" in " after="."]` prints `before`/`after` only with a value, and skips `after="."` when the value already ends in a period (no "Inc.."). `[smp_if field="<fact>"]`, `[smp_if page="<page type>"]` (a linked page, including Base Tools' Contact) and `[smp_if shortcode="<tag>"]` (registered, so a feature switched off in Base Tools, such as Team, prints nothing instead of raw shortcode text) keep their text only when it holds; `not="1"` inverts. A paragraph left empty disappears. Example: no founding city gives "founded on December 1, 2021", not "in ."; no linked Contact page drops "or use our Contact page".
+- **Pages in use (for HWS Base Tools):** SMP adds the page types it has switched on (linked and applying to the site) to Base Tools' `hws_base_tools_pages_in_use` filter as `key => label` (today `founding_date`), so Base Tools can warn when a fact those pages need is missing.
+- **Templates:** one file per page type in `src/Pages/templates/<type>.html`, reader-facing only, generic for every site: no publication name typed in. Names, dates, places and people come from shortcodes: `[smp_company field="name|legal_name|description|url|logo|founding_date|founding_location|founders|headquarters_city|headquarters_address|parent_name|parent_url|email|phone|mission|profiles"]` (reads HWS Base Tools' `hws_site_identity()`, falls back to the older SMP fields), `[smp_publication_page type="contact" mode="link|url|title"]`, Base Tools' `[hws_publication_founders]`, `[smpi_executive_leadership]`, `[smpi_staff]`, `[smpi_contributors]`, `[smp_latest_press_releases count="10"]`, `[smp_press_release_form]` (submission form slot; both press release pages link to Hexa PR Wire, the parent syndicator), and Base Tools' `[hws_rss_feeds]`, `[site_logo]`, `[brand_asset_gallery]`. A site's edited copy is stored in `smpi_settings[page_templates]`; `[smp_publication_page_template type=""]` prints the current template.
 - **Switch:** Settings → SMP Publication Integration → Publication Pages (`options-general.php?page=smp-publication-integration&tab=pages`); links in `smpi_settings[page_assignments]`.
 - **Code:** `src/Pages/PageTypes.php` (the list), `PageTemplates.php`, `PageLinker.php` (finding, linking, create/apply), `CompanyFacts.php`, `LatestPressReleases.php`, `SourceNotice.php`; tab `src/Admin/Dashboard/Tabs/PagesTab.php`.
 
@@ -185,8 +180,17 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 - **Code:** `src/Content/ElementorCssCacheBusting.php`
 
 ### Admin code and shortcode displays
-- **Does:** every code block on SMP's tabs (HTML structure, built-in CSS, Elementor CSS samples, feature implementation notes, the Publication Pages templates) is color-coded with a copy button, and every shortcode (people tabs, Shortcodes tab, Article Design examples) is shown with its copy button and each attribute's default and meaning.
+- **Does:** every code block on SMP's tabs (HTML structure, built-in CSS, Elementor CSS samples, feature implementation notes, the Publication Pages templates, Post Fields code examples, Publishing Rules readmes, Schema Settings JSON, Schema Tests results and the Post HTML Cleanup preview) is color-coded with a copy button (Hexa WP Core 3.34.1 or newer), and every shortcode (people tabs, Shortcodes tab, Article Design examples) is shown with its copy button and each attribute's default and meaning.
 - **Code:** `src/Admin/CodeViews.php` over Hexa WP Core's `WpAdminComponents\CodeDisplay` and `ShortcodeRegistry\ShortcodeBreakdown`.
+
+### Update Center
+- **Does:** the Update Center tab (Maintenance group, `tab=update-center`) shows Hexa WP Core's plugin updater with the Git Report (repository, URL, branch, GitHub version against the installed one, update button) and Core's package panel (bundled Hexa WP Core against Core on GitHub). The sidebar's GitHub version reads the same check.
+- **Code:** `src/Admin/Dashboard/Tabs/UpdateCenterTab.php` over `UpdaterPanelRenderer` and `CorePackagePanelRenderer`.
+
+### Asset loading
+- **Rule:** admin CSS and JS load only in wp-admin and only on SMP's own screens (`options-general.php?page=smp-publication-integration`) or the post editor features that need them (Content Generation, Going Live checklist, featured image check). Front-end CSS and JS load only for visitors and only where the feature is used: article styles, table of contents and Elementor table-of-contents fixes on singular content (not the home page); breadcrumb styles and `public-dom.js` where breadcrumbs show or on articles; author social icon styles on articles, author pages and pages using `[smp_author_social_icons]`; staff and contributor card styles only on pages that render a grid. Nothing admin-only loads for visitors. Site-wide features (MuckRack badges in loop cards, empty-social cleanup, Elementor menu fixes) load wherever they are switched on.
+- **How to check:** load the home page, an article, a category page and an SMP admin tab, and list SMP's assets: `curl -s <url> | grep -oE "<(link|script|style)[^>]*(smpi|smp-publication-integration)[^>]*>"`. The public pages must show no `assets/admin/` file and no `smpi-admin` handle; a category or home page must show no `smpi-table-of-contents-styles`, `smpi-article-style-controls` or author-listing styles; signed in, a non-SMP admin screen (Dashboard, Posts) must show no SMP asset.
+- **Code:** the `wp_enqueue_scripts` / `wp_head` / `admin_enqueue_scripts` callbacks in `src/Content/*` and `src/Admin/Dashboard/DashboardController.php`.
 
 ### Plugin requirements
 
@@ -259,14 +263,14 @@ SMP decides which pages it covers and maps the publication's data; every node is
 
 ## Dashboard
 
-22 tabs in six groups, one file per tab under `src/Admin/Dashboard/Tabs/` (the controller `src/Admin/Dashboard/DashboardController.php` only draws the page and routes):
+23 tabs in six groups, one file per tab under `src/Admin/Dashboard/Tabs/` (the controller `src/Admin/Dashboard/DashboardController.php` only draws the page and routes):
 
 - **Overview:** Dashboard, Quick Start.
 - **Publication:** Publication Settings, Publication Pages, Menus.
 - **People:** Founders (read-only, from HWS Base Tools), Executive Leadership, Staff, Contributors, Authors.
-- **Articles:** Custom Post Types, Article Design, Post Fields, Content Generation, Publishing Rules, Post HTML Cleanup.
+- **Articles:** Custom Post Types, Article Design, Post Fields, Content Generation (`ContentGenerationTab.php`), Publishing Rules, Post HTML Cleanup (`PostHtmlCleanupTab.php`).
 - **Search & Schema:** Schema Settings, Schema Tests.
-- **Maintenance:** Article & Media Cleanup, Plugins (with Integrations and Verified Profiles), Shortcodes, Hexa WP Core.
+- **Maintenance:** Article & Media Cleanup, Plugins (with Integrations and Verified Profiles), Shortcodes, Update Center, Hexa WP Core.
 
 Removed in 2.5.18 (old links redirect): Publication Fields, Founding Date, Brand Settings, Database Optimization and WordPress Admin (owned by HWS Base Tools), Founder Profiles (into Founders), Integrations and Verified Profiles (into Plugins).
 
@@ -307,6 +311,17 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.5.21
+
+- Asset loading: front-end CSS and JS only where each feature is used (see Asset loading); admin assets were already limited to SMP's screens.
+- The admin page manager is built only for its own AJAX requests, after `init`.
+- Smart templates: `[smp_if]` and `before`/`after` on `[smp_company]`; templates drop sentences whose fact, page or feature is missing; no double periods.
+- Headquarters and Logo moved to HWS Base Tools (read-only rows like Contact); FAQs no longer marked for Base Tools; `hws_base_tools_pages_in_use` filter.
+- Update Center tab; Content Generation and Post HTML Cleanup tabs in their own files.
+- Remaining plain code boxes replaced with Hexa WP Core's colour-coded display (Hexa WP Core 3.34.1).
+- Removed SMP's founding-date fields, `[smpi_founding_date]`, `docs/founding-date.md`; Her Forward's old `smpi_founders`, founding values and the Become a Contributor and Founder templates deleted.
+- Tests: the 20 files that stopped on "strict_types declaration must be the very first statement" parse again; the shared test fixture loads plugin classes by namespace.
 
 ### 2.5.20
 

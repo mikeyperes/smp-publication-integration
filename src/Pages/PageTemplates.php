@@ -16,7 +16,8 @@ final class PageTemplates {
     public static function default_template( string $key ): string {
         $key  = PageTypes::canonical( $key );
         $file = __DIR__ . '/templates/' . $key . '.html';
-        if ( ! PageTypes::exists( $key ) || ! is_readable( $file ) ) {
+        // Headquarters and Logo pages built before HWS Base Tools owned them keep rendering their template.
+        if ( ! ( PageTypes::exists( $key ) || PageTypes::base_tools_owned( $key ) ) || ! is_readable( $file ) ) {
             return '';
         }
         return trim( (string) file_get_contents( $file ) ) . "\n";
@@ -74,6 +75,11 @@ final class PageTemplates {
     /** Front end: [smp_publication_page_template type=x] prints the template, shortcodes run. */
     public static function render( string $key ): string {
         $template = self::get( $key );
-        return '' === $template ? '' : do_shortcode( shortcode_unautop( wpautop( $template ) ) );
+        if ( '' === $template ) {
+            return '';
+        }
+        $html = do_shortcode( shortcode_unautop( wpautop( $template ) ) );
+        // A paragraph whose only sentence was left out (its fact or page is missing) disappears with it.
+        return (string) preg_replace( '#<p>(?:\s|&nbsp;|<br\s*/?>)*</p>\s*#i', '', $html );
     }
 }

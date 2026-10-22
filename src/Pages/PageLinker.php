@@ -32,6 +32,10 @@ final class PageLinker {
 
     /** @return array{id:int,source:string} source: saved | found | none */
     public static function link( string $key ): array {
+        if ( PageTypes::base_tools_owned( $key ) ) {
+            $id = PageTypes::base_tools_linked_id( $key );
+            return [ 'id' => $id, 'source' => $id ? 'base_tools' : 'none' ];
+        }
         $saved = self::saved_id( $key );
         if ( $saved ) {
             return [ 'id' => $saved, 'source' => 'saved' ];

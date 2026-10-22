@@ -1,4 +1,4 @@
 <h2>Who owns and funds [smp_company field="name"]</h2>
-<p>[smp_company field="name"] is owned by [smp_company field="parent_name"].</p>
+[smp_if field="parent_name"]<p>[smp_company field="name"] is owned by [smp_company field="parent_name" after="."]</p>[/smp_if]
 <p>The publication is funded by advertising, sponsorships and partnerships. Paid content is always labeled, and no advertiser, sponsor or owner can change or approve our editorial coverage.</p>
 <p>Questions about ownership or funding can be sent to [smp_company field="email"].</p>

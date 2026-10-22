@@ -24,7 +24,7 @@ final class PublicDomRuntime {
     }
 
     public function enqueue(): void {
-        if ( ! RuntimeContext::is_public_dom_context() || ! self::needs_runtime() ) {
+        if ( ! RuntimeContext::is_public_dom_context() || ! self::needs_runtime() || ! ( ( is_singular() && ! is_front_page() ) || ( Settings::bool( 'breadcrumbs_enabled' ) && Breadcrumbs::should_render() ) ) ) {
             return;
         }
 
