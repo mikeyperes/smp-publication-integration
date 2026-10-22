@@ -170,7 +170,7 @@ final class PeopleEditor {
             . '</div></li>';
     }
 
-    private static function styles(): void {
+    public static function styles(): void {
         static $printed = false;
         if ( $printed ) {
             return;

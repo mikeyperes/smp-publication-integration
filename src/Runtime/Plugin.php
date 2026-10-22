@@ -103,6 +103,7 @@ final class Plugin {
             new Content\ExecutiveLeadership(),
             new Content\Contributors(),
             new Content\Founders(),
+            new Content\FoundingDate(),
             new Content\Staff(),
             new Content\AuthorArchiveLoading(),
             new Content\Schema(),
@@ -145,6 +146,7 @@ final class Plugin {
             new Admin\ExecutiveLeadershipTab(),
             new Admin\ContributorsTab(),
             new Admin\FoundersTab(),
+            new Admin\FoundingDateTab(),
             new Admin\StaffTab(),
         ];
     }

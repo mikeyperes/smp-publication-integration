@@ -97,6 +97,14 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 - **HTML structure and styling:** [docs/founders.md](docs/founders.md).
 - **Code:** `src/Content/Founders.php`, `src/Admin/FoundersTab.php`.
 
+### Founding Date
+- **Does:** a section saying when and where the publication was founded, with its founding story: on/off switch, section title ("Founded" by default), founding date, place, optional place link and story, live example, HTML structure and shortcode on the tab.
+- **Data:** the publication's own fields `smpi_founding_date`, `smpi_founding_location`, `smpi_founding_location_url`, `smpi_founding_date_extended`, the same ones the structured data's `foundingDate` and `foundingLocation` read; no second copy.
+- **Switch:** Settings → SMP Publication Integration → Founding Date (`options-general.php?page=smp-publication-integration&tab=founding_date`); option `smpi_founding_date_section`.
+- **Use:** `[smpi_founding_date]` with `show`, `date_format`, `section_title`, `section_tag`, `style="none"`.
+- **HTML structure and styling:** [docs/founding-date.md](docs/founding-date.md).
+- **Code:** `src/Content/FoundingDate.php`, `src/Admin/FoundingDateTab.php`.
+
 ### Contributors
 - **Does:** the publication's contributors: everyone with the chosen roles (Contributor by default), plus people added from other roles, minus people removed, in a chosen order. The tab has role checkboxes, a type-to-search people list (Hexa WP Core user search) with drag ordering, "Added" badges and a "removed from the list" section to put people back, the Contributors page (create it or apply the default template), styles with a live example, CSS structure and the shortcode.
 - **Switch:** Settings → SMP Publication Integration → Contributors (`options-general.php?page=smp-publication-integration&tab=contributors`); option `smpi_contributors`.
@@ -268,6 +276,10 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.5.15
+
+- New Founding Date tab and `[smpi_founding_date]`: on/off, section title (default Founded), founding date, place, place link and story saved to the publication's own founding fields (also used by the structured data), live example, HTML structure and shortcode.
 
 ### 2.5.14
 
