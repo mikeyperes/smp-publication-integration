@@ -37,6 +37,7 @@ namespace {
     }
     function wp_strip_all_tags( string $value ): string { return strip_tags( $value ); }
     function sanitize_email( string $value ): string { return $value; }
+    function sanitize_key( string $value ): string { return strtolower( preg_replace( '/[^a-z0-9_\-]/i', '', $value ) ); }
     function absint( $value ): int { return abs( (int) $value ); }
     function get_site_icon_url( int $size = 512 ): string { return 'https://herforward.com/site-icon.png'; }
     function wp_get_attachment_image_src( int $attachment_id, string $size ) { return false; }
@@ -72,6 +73,8 @@ namespace {
         require dirname( __DIR__ ) . '/lib/hexa-wordpress-plugin-core/src/' . $core_class . '.php';
     }
     require dirname( __DIR__ ) . '/src/Support/Fields.php';
+    require dirname( __DIR__ ) . '/src/Support/PublicationFounders.php';
+    require dirname( __DIR__ ) . '/src/Pages/CompanyFacts.php';
     require dirname( __DIR__ ) . '/src/StructuredData/SchemaManager.php';
 
     use Hexa\PluginCore\SchemaTools\SchemaGraph;

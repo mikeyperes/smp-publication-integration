@@ -39,6 +39,10 @@ function is_front_page(): bool { return (bool) $GLOBALS['smpi_test_route']['fron
 function is_home(): bool { return (bool) $GLOBALS['smpi_test_route']['home']; }
 function is_category(): bool { return (bool) $GLOBALS['smpi_test_route']['category']; }
 function is_tag(): bool { return (bool) $GLOBALS['smpi_test_route']['tag']; }
+function is_tax(): bool { return false; }
+function is_author(): bool { return false; }
+function is_search(): bool { return false; }
+function is_404(): bool { return false; }
 function is_singular( mixed $post_type = '' ): bool {
     if ( ! $GLOBALS['smpi_test_route']['singular'] ) {
         return false;
@@ -61,6 +65,7 @@ require dirname( __DIR__ ) . '/lib/hexa-wordpress-plugin-core/src/Typography/Typ
 require dirname( __DIR__ ) . '/lib/hexa-wordpress-plugin-core/src/Typography/TemplateTypography.php';
 require dirname( __DIR__ ) . '/src/Design/TemplateDesignRegistry.php';
 require dirname( __DIR__ ) . '/src/Design/TemplateBackground.php';
+require dirname( __DIR__ ) . '/src/Pages/PageTypes.php';
 require dirname( __DIR__ ) . '/src/Settings/SettingsRepository.php';
 require dirname( __DIR__ ) . '/src/Support/Settings.php';
 require dirname( __DIR__ ) . '/src/Support/RuntimeContext.php';

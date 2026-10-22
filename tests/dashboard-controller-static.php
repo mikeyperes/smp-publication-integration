@@ -102,10 +102,13 @@ foreach (
     }
 }
 
+// The dashboard script lives with the controller's tab classes (Tabs/DashboardAssets.php).
+require_once __DIR__ . '/fixtures/dashboard-source.php';
+$dashboard_source = smpi_test_dashboard_source( $root );
 if (
-    ! str_contains( $controller, 'function setTabMessage(text)' )
-    || ! str_contains( $controller, '#smpi-core-tabs [data-hpc-tab-message]' )
-    || str_contains( $controller, '.smpi-tab-message' )
+    ! str_contains( $dashboard_source, 'function setTabMessage(text)' )
+    || ! str_contains( $dashboard_source, '#smpi-core-tabs [data-hpc-tab-message]' )
+    || str_contains( $dashboard_source, '.smpi-tab-message' )
 ) {
     fwrite( STDERR, "FAIL: SMP save reporting must target the Core tab status element.\n" );
     exit( 1 );
@@ -159,7 +162,7 @@ if (
 
 foreach ( [ '_smpi_shadow_complete', '_smpi_pr_shadow_override' ] as $field_name ) {
     $expected = '\'get_field("' . $field_name . '", $post_id)\'';
-    if ( ! str_contains( $controller, $expected ) ) {
+    if ( ! str_contains( $dashboard_source, $expected ) ) {
         fwrite( STDERR, "FAIL: Literal post ID code example is not safely quoted for {$field_name}.\n" );
         exit( 1 );
     }

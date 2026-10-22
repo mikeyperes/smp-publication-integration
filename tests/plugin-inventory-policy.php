@@ -103,12 +103,14 @@ namespace {
         'wp-user-avatars/wp-user-avatars.php',
         'wp-optimize/wp-optimize.php',
         'wp-sweep/wp-sweep.php',
+        'rss-feed-post-generator-echo/rss-feed-post-generator-echo.php',
+        'featured-image-from-url/featured-image-from-url.php',
     ];
     $actual_forbidden = array_keys( $forbidden_by_file );
     sort( $expected_forbidden );
     sort( $actual_forbidden );
 
-    assert_true( $expected_forbidden === $actual_forbidden, 'Forbidden policy must contain exactly JetEngine, WP User Avatars, WP-Optimize and WP Sweep.' );
+    assert_true( $expected_forbidden === $actual_forbidden, 'Forbidden policy must contain exactly JetEngine, WP User Avatars, WP-Optimize, WP Sweep, Echo RSS Feed Post Generator and FIFU.' );
 
     foreach ( $forbidden_by_file as $plugin_file => $definition ) {
         assert_true( true === $definition['should_not_contain'], $plugin_file . ' must be explicitly forbidden.' );

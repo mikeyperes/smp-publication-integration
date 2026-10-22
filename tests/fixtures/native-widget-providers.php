@@ -25,7 +25,9 @@ namespace {
     function get_post( int $id ) { return $id > 0 ? (object) [ 'ID' => $id ] : null; }
     function get_post_status( int $id ): string { return [ 103 => 'draft', 104 => 'private' ][$id] ?? 'publish'; }
     function get_post_type( int $id ): string { return 105 === $id ? 'private_type' : 'post'; }
-    function get_post_type_object( string $type ): object { return (object) [ 'public' => 'post' === $type ]; }
+    if ( ! function_exists( 'get_post_type_object' ) ) {
+        function get_post_type_object( string $type ): object { return (object) [ 'public' => 'post' === $type ]; }
+    }
     function is_post_type_viewable( object $type ): bool { return $type->public; }
     function wp_get_post_categories( int $id, array $args ): array {
         return [ 101 => [ 8 ], 102 => [ 6271 ], 103 => [ 5712 ], 104 => [ 9542 ], 105 => [ 1496 ], 106 => [ 7548 ] ][$id] ?? [];
@@ -38,7 +40,7 @@ namespace {
         ( $GLOBALS['smpi_manifest_actions']['pre_get_posts'][0] )( $lookup );
         $GLOBALS['smpi_internal_lookup_unchanged'] = -1 === $lookup->get( 'posts_per_page' );
         $query = new WP_Query( apply_filters( $hook, [
-            'posts_per_page' => $settings['fixture_hook_limit'] ?? $settings['post_query_posts_per_page'] ?? $settings['posts_num'] ?? 3,
+            'posts_per_page' => $settings['fixture_hook_limit'] ?? $settings['post_query_posts_per_page'] ?? $settings['posts_per_page'] ?? $settings['posts_num'] ?? 3,
             'post_status' => 'any',
         ], $widget ) );
         ( $GLOBALS['smpi_manifest_actions']['pre_get_posts'][0] )( $query );

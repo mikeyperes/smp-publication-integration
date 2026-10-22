@@ -209,7 +209,7 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `2.4.27`
+- Version: `2.5.22`
 
 ## Ownership
 
@@ -292,7 +292,7 @@ The plugin updater targets the repository's canonical `main` branch and register
 | --- | --- |
 | WordPress | 5.0 |
 | PHP | 8.1 |
-| Hexa WP Core bundle | 3.22.0 |
+| Hexa WP Core bundle | 3.34.1 |
 
 ACF Pro is not required: publication option and content field groups run on Hexa WP Core's custom fields, which use ACF when it is active and store the same data natively when it is not. Feature-specific integrations require their corresponding plugins.
 

@@ -56,6 +56,18 @@ function post_type_exists( string $post_type ): bool {
     return in_array( $post_type, [ 'post', 'team-member', 'staff-profile' ], true );
 }
 
+function get_post_type_object( string $post_type ): object {
+    return (object) [ 'name' => $post_type, 'public' => 'post' === $post_type, 'label' => ucfirst( $post_type ), 'labels' => (object) [ 'name' => ucfirst( $post_type ), 'singular_name' => ucfirst( $post_type ) ], 'rest_base' => $post_type ];
+}
+
+function get_all_post_type_supports( string $post_type ): array {
+    return [ 'title' => true, 'editor' => true, 'author' => true, 'thumbnail' => true ];
+}
+
+function post_type_supports( string $post_type, string $feature ): bool {
+    return isset( get_all_post_type_supports( $post_type )[ $feature ] );
+}
+
 function get_object_taxonomies( string $post_type, string $output = 'names' ): array {
     return $GLOBALS['smpi_manifest_object_taxonomies'][ $post_type ] ?? [];
 }
@@ -157,6 +169,17 @@ require_once dirname( __DIR__ ) . '/src/PublicationManifest/NativeWidgetQueryCol
 require_once dirname( __DIR__ ) . '/src/PublicationManifest/HomepageCollector.php';
 require_once dirname( __DIR__ ) . '/src/Content/PublicationContentTypes.php';
 require_once dirname( __DIR__ ) . '/src/Content/ArticleTypes.php';
+// Stand-in for HexaWP Core's field engine, which is always available on a live site.
+final class SmpiManifestField {
+    public static function available(): bool { return true; }
+}
+class_alias( SmpiManifestField::class, 'Hexa\\PluginCore\\Fields\\Field' );
+require_once dirname( __DIR__ ) . '/src/Support/Dependencies.php';
+// Stand-in for the plugin settings store: every optional field feature off.
+final class SmpiManifestSettings {
+    public static function bool( string $key ): bool { return false; }
+}
+class_alias( SmpiManifestSettings::class, 'smp_publication_integration\\Support\\Settings' );
 require_once dirname( __DIR__ ) . '/src/PublicationManifest/WordPressCollector.php';
 require_once dirname( __DIR__ ) . '/src/PublicationManifest/PayloadSanitizer.php';
 require_once dirname( __DIR__ ) . '/src/PublicationManifest/ManifestBuilder.php';

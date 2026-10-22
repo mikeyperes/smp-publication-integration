@@ -99,6 +99,9 @@ function query_audit_registered_callbacks( string $source, string $file ): array
             && is_string( $method ) && "" !== $method
             && $close_index < $count && "]" === $tokens[ $close_index ];
 
+        if ( ! $auditable && query_audit_is_scoped_manifest_guard( $source, $file, $hook ) ) {
+            continue;
+        }
         if ( ! $auditable ) {
             query_audit_fail( str_replace( dirname( __DIR__ ) . "/", "", $file ) . " contains an unauditable {$hook} callback." );
         }
@@ -107,6 +110,20 @@ function query_audit_registered_callbacks( string $source, string $file ): array
     }
 
     return $callbacks;
+}
+
+/*
+ * The publication manifest's native-widget collector binds one closure to
+ * pre_get_posts around a single Elementor widget render. It is safe only while
+ * it acts solely on queries carrying its own scope marker and is removed again
+ * in the same finally block, so prove both instead of exempting the file blindly.
+ */
+function query_audit_is_scoped_manifest_guard( string $source, string $file, string $hook ): bool {
+    return "pre_get_posts" === $hook
+        && str_ends_with( $file, "/src/PublicationManifest/NativeWidgetQueryCollector.php" )
+        && 1 === substr_count( $source, 'add_action( \'pre_get_posts\', $query_guard, PHP_INT_MAX )' )
+        && 1 === substr_count( $source, 'remove_action( \'pre_get_posts\', $query_guard, PHP_INT_MAX )' )
+        && str_contains( $source, 'if ( $query->get( \'_smpi_manifest_scope\' ) !== spl_object_id( $bounds ) ) {' . "\n" . '                return;' );
 }
 
 function query_audit_method_tokens( string $source, string $method ): array {

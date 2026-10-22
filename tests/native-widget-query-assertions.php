@@ -2,6 +2,12 @@
 
 declare( strict_types=1 );
 
+// Shared assertions included by publication-manifest-unit.php; run directly, delegate to it.
+if ( ! class_exists( 'SmpiFixtureDocuments' ) ) {
+    require __DIR__ . '/publication-manifest-unit.php';
+    return;
+}
+
 use SMP\PublicationIntegration\PublicationManifest\HomepageCollector;
 use SMP\PublicationIntegration\PublicationManifest\NativeWidgetQueryCollector;
 

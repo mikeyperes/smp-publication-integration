@@ -6,6 +6,7 @@ $root = dirname( __DIR__ );
 
 define( 'ABSPATH', '/tmp/smpi-wordpress/' );
 define( 'WP_PLUGIN_DIR', dirname( $root ) );
+define( 'HOUR_IN_SECONDS', 3600 );
 
 $GLOBALS['smpi_test_hooks'] = [];
 $GLOBALS['smpi_test_actions_ran'] = [];

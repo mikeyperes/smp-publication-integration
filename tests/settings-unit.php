@@ -56,6 +56,7 @@ require dirname( __DIR__ ) . '/lib/hexa-wordpress-plugin-core/src/Typography/Typ
 require dirname( __DIR__ ) . '/lib/hexa-wordpress-plugin-core/src/Typography/TemplateTypography.php';
 require dirname( __DIR__ ) . '/src/Design/TemplateDesignRegistry.php';
 require dirname( __DIR__ ) . '/src/Design/TemplateBackground.php';
+require dirname( __DIR__ ) . '/src/Pages/PageTypes.php';
 require dirname( __DIR__ ) . '/src/Settings/SettingsRepository.php';
 require dirname( __DIR__ ) . '/src/Settings/SettingsMigrations.php';
 require dirname( __DIR__ ) . '/src/Support/Settings.php';
