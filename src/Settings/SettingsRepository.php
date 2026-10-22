@@ -1,6 +1,7 @@
 <?php
 namespace smp_publication_integration\Settings;
 
+use smp_publication_integration\Pages\PageTypes;
 use Hexa\PluginCore\ActivityLog\ActivityLogConfig;
 use Hexa\PluginCore\ActivityLog\ActivityLogEntry;
 use Hexa\PluginCore\ActivityLog\ActivityLogger;
@@ -745,8 +746,14 @@ class SettingsRepository {
         return $settings;
     }
 
+    /** Generic pages HWS Base Tools owns (any website). Every publication standard page is SMP's. */
     public static function hws_owned_page_keys(): array {
-        return [ "terms", "privacy", "brand_assets", "headquarters", "contact", "faqs" ];
+        return [ "contact" ];
+    }
+
+    /** Pages HWS Base Tools owned before HWS 13.19.0; their old assignments are still read until reassigned here. */
+    public static function hws_legacy_page_keys(): array {
+        return [ "terms", "privacy", "brand_assets", "headquarters", "faqs" ];
     }
 
     public static function page_assignment_id( string $type ): int {
@@ -754,7 +761,7 @@ class SettingsRepository {
         $settings = self::all();
         $page_id = isset( $settings["page_assignments"][ $type ] ) ? absint( $settings["page_assignments"][ $type ] ) : 0;
 
-        if ( $page_id <= 0 && in_array( $type, self::hws_owned_page_keys(), true ) && function_exists( "get_option" ) ) {
+        if ( $page_id <= 0 && in_array( $type, array_merge( self::hws_owned_page_keys(), self::hws_legacy_page_keys() ), true ) && function_exists( "get_option" ) ) {
             $page_id = absint( get_option( "hws_site_page_assignment_" . $type, 0 ) );
         }
 
@@ -842,90 +849,21 @@ class SettingsRepository {
         return sanitize_title( $label );
     }
 
+    /** Page types now live in src/Pages/PageTypes.php; these keep the older Settings API working. */
     public static function default_page_slugs(): array {
-        return [
-            "about_publication" => "about",
-            "founder_about" => "founder",
-            "writers" => "writers",
-            "contributors" => "contributors",
-            "staff" => "staff",
-            "executive_team" => "executive-team",
-            "team" => "team",
-            "headquarters" => "headquarters",
-            "founding_date" => "founding-date",
-            "mission_statement" => "mission",
-            "founders" => "founders",
-            "become_contributor" => "become-a-contributor",
-            "brand_assets" => "brand-assets",
-            "submit_press_release" => "submit-your-press-release",
-            "press_releases" => "press-releases",
-            "dmca" => "dmca-takedown-request",
-            "terms" => "terms-of-use",
-            "privacy" => "privacy-policy",
-            "editorial_guidelines" => "editorial-guidelines",
-            "editorial_policy" => "editorial-policy",
-            "contact" => "contact",
-            "faqs" => "faqs",
-            "parent_organization" => "parent-organization",
-            "publishing_principles" => "publishing-principles",
-            "verification_fact_checking_policy" => "verification-and-fact-checking-policy",
-            "corrections_policy" => "corrections-policy",
-            "ethics_policy" => "ethics-policy",
-            "diversity_policy" => "diversity-policy",
-            "diversity_staffing_report" => "diversity-staffing-report",
-            "masthead" => "masthead",
-            "mission_coverage_priorities_policy" => "mission-and-coverage-priorities-policy",
-            "no_bylines_policy" => "no-bylines-policy",
-            "unnamed_sources_policy" => "unnamed-sources-policy",
-            "actionable_feedback_policy" => "actionable-feedback-policy",
-            "ownership_funding" => "ownership-and-funding",
-            "advertise" => "advertise",
-            "advertise_with_us" => "advertise-with-us",
-            "accessibility" => "accessibility",
-        ];
+        $slugs = [];
+        foreach ( array_keys( PageTypes::all() ) as $type ) {
+            $slugs[ $type ] = PageTypes::slug( $type );
+        }
+        return $slugs;
     }
 
     public static function page_types(): array {
-        return [
-            "about_publication" => [ "label" => "About The Publication", "description" => "Public overview of the outlet, editorial focus, audience, ownership context, and mission. This is the canonical about page for readers and schema reviewers.", "template" => true ],
-            "founder_about" => [ "label" => "Founder About Page", "description" => "Canonical founder biography page that explains the founder role, background, and relationship to the publication.", "template" => true ],
-            "writers" => [ "label" => "Writers", "description" => "Directory page for writers and author profiles connected to the publication.", "template" => true ],
-            "contributors" => [ "label" => "Contributors", "description" => "Contributor directory and explanation of contributor roles, standards, and submission expectations.", "template" => true ],
-            "staff" => [ "label" => "Staff", "description" => "Staff directory for editorial, operations, business, and support contacts.", "template" => true ],
-            "executive_team" => [ "label" => "Executive Team", "description" => "Leadership page for executive, editorial, and operational decision makers.", "template" => true ],
-            "team" => [ "label" => "Team", "description" => "Combined team page for editors, contributors, leadership, and operational contacts.", "template" => true ],
-            "headquarters" => [ "label" => "Headquarters", "description" => "Canonical headquarters page with public address context, service area, and location references for organization schema.", "template" => true ],
-            "founding_date" => [ "label" => "Founding Date", "description" => "Canonical founding history page explaining when, where, and why the publication was founded.", "template" => true ],
-            "mission_statement" => [ "label" => "Mission Statement", "description" => "Editorial mission, audience promise, coverage priorities, and publication purpose.", "template" => true ],
-            "founders" => [ "label" => "Founders", "description" => "Founder profiles and founding team context, ideally linked to verified profile records where available.", "template" => true ],
-            "become_contributor" => [ "label" => "Become a Contributor", "description" => "Contributor eligibility, pitch requirements, editorial review standards, attribution, and application path.", "template" => true ],
-            "brand_assets" => [ "label" => "Brand Assets", "description" => "Canonical public brand asset page for logos, approved media assets, press kit images, usage rules, and media contact context.", "template" => true ],
-            "submit_press_release" => [ "label" => "Submit Your Press Release", "description" => "Press release intake page with submission requirements, review expectations, disclosure rules, and contact path.", "template" => true ],
-            "press_releases" => [ "label" => "Press Releases", "description" => "Public press release landing page or archive page for release coverage, submission context, and press release access.", "template" => true ],
-            "dmca" => [ "label" => "DMCA", "description" => "Copyright takedown policy and designated contact instructions for rights holders.", "template" => true ],
-            "terms" => [ "label" => "Terms of Use", "description" => "Terms governing use of the website, content, submissions, acceptable behavior, and legal limitations.", "template" => true ],
-            "privacy" => [ "label" => "Privacy Policy", "description" => "Privacy practices, data collection, cookies, analytics, reader rights, and contact path for privacy requests.", "template" => true ],
-            "editorial_guidelines" => [ "label" => "Editorial Guidelines", "description" => "Public editorial standards, sourcing rules, corrections process, transparency, and sponsored content labeling.", "template" => true ],
-            "editorial_policy" => [ "label" => "Editorial Policy", "description" => "Editorial independence, review workflow, accuracy standards, attribution, and update practices.", "template" => true ],
-            "contact" => [ "label" => "Contact", "description" => "General, editorial, advertising, corrections, legal, and reader feedback contact points.", "template" => true ],
-            "faqs" => [ "label" => "FAQs", "description" => "Common reader, contributor, editorial, correction, and publication questions.", "template" => true ],
-            "parent_organization" => [ "label" => "Parent Organization", "description" => "Ownership, parent company, funding, and editorial independence disclosure for organization schema.", "template" => true ],
-            "publishing_principles" => [ "label" => "Publishing Principles", "description" => "Editorial principles page used by NewsMediaOrganization publishingPrinciples schema.", "template" => true ],
-            "verification_fact_checking_policy" => [ "label" => "Verification and Fact Checking Policy", "description" => "Fact checking and verification standards used by NewsMediaOrganization verificationFactCheckingPolicy schema.", "template" => true ],
-            "corrections_policy" => [ "label" => "Corrections Policy", "description" => "Correction, clarification, update, and reader challenge process used by NewsMediaOrganization correctionsPolicy schema.", "template" => true ],
-            "ethics_policy" => [ "label" => "Ethics Policy", "description" => "Editorial ethics policy covering conflicts, gifts, sourcing, sponsor separation, and transparency.", "template" => true ],
-            "diversity_policy" => [ "label" => "Diversity Policy", "description" => "Newsroom diversity policy used by NewsMediaOrganization diversityPolicy schema.", "template" => true ],
-            "diversity_staffing_report" => [ "label" => "Diversity Staffing Report", "description" => "Staffing diversity report or disclosure used by NewsMediaOrganization diversityStaffingReport schema.", "template" => true ],
-            "masthead" => [ "label" => "Masthead", "description" => "Named editorial leadership, senior staff, and accountability contacts used by NewsMediaOrganization masthead schema.", "template" => true ],
-            "mission_coverage_priorities_policy" => [ "label" => "Mission and Coverage Priorities Policy", "description" => "Coverage priorities, audience promise, and editorial scope used by NewsMediaOrganization missionCoveragePrioritiesPolicy schema.", "template" => true ],
-            "no_bylines_policy" => [ "label" => "No Bylines Policy", "description" => "Policy explaining anonymous, staff, wire, newsroom, or no-byline articles used by NewsMediaOrganization noBylinesPolicy schema.", "template" => true ],
-            "unnamed_sources_policy" => [ "label" => "Unnamed Sources Policy", "description" => "Policy explaining anonymous source usage, editorial approval, and verification requirements used by NewsMediaOrganization unnamedSourcesPolicy schema.", "template" => true ],
-            "actionable_feedback_policy" => [ "label" => "Actionable Feedback Policy", "description" => "Reader feedback, correction, tip, and public engagement process used by NewsMediaOrganization actionableFeedbackPolicy schema.", "template" => true ],
-            "ownership_funding" => [ "label" => "Ownership and Funding", "description" => "Detailed public ownership and funding disclosure for schema ownershipFundingInfo and reader transparency.", "template" => true ],
-            "advertise" => [ "label" => "Advertise", "description" => "Advertising, sponsorship, brand partnership, and media kit path with editorial separation language.", "template" => true ],
-            "advertise_with_us" => [ "label" => "Advertise with Us", "description" => "Advertising inquiry page for sponsors, brand partners, media buyers, and partnership leads with public contact and editorial separation language.", "template" => true ],
-            "accessibility" => [ "label" => "Accessibility", "description" => "Accessibility commitment, supported standards, known limitations, and barrier reporting process.", "template" => true ],
-        ];
+        $types = [];
+        foreach ( PageTypes::all() as $type => $config ) {
+            $types[ $type ] = [ 'label' => $config['label'], 'description' => $config['description'], 'template' => true, 'group' => $config['group'] ];
+        }
+        return $types;
     }
 
     public static function default_page_templates(): array {

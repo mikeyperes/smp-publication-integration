@@ -201,8 +201,9 @@ SMP Publication owns publication-specific behavior:
 - Optional multiple authors per article (per-post switch, off by default), bylines, author displays, and MuckRack verification.
 - Publication and article schema object construction.
 - Blog-like custom post types: `knowledge-base` and `resources`.
+- Every publication standard page on the Pages tab, including Terms of Use, Privacy Policy, Brand Assets, Headquarters and FAQs (moved from HWS Base Tools in 2.5.17). Their old HWS assignments (`hws_site_page_assignment_<type>`) are still read until a page is assigned here. Only the generic Contact page stays in HWS Base Tools.
 
-HWS Base Tools owns website classification, the optional primary entity, and the generic reading-progress feature. SMP consumes a canonical Publication or Organization entity from HWS and retains legacy publication-user settings only as migration fallback. Existing reading-progress values remain stored long enough for HWS Base Tools to migrate them without a direct database rewrite.
+HWS Base Tools owns the website's basic identity (company or person basics, read with `hws_site_identity()`; see its README "Site identity"), website classification, the optional primary entity, and the generic reading-progress feature. SMP consumes a canonical Publication or Organization entity from HWS and retains legacy publication-user settings only as migration fallback. Existing reading-progress values remain stored long enough for HWS Base Tools to migrate them without a direct database rewrite.
 
 ## Custom Post Types
 
@@ -277,6 +278,10 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.5.17
+
+- Pages tab shows Terms of Use, Privacy Policy, Brand Assets, Headquarters and FAQs (previously hidden as HWS Base Tools pages). HWS keeps only Contact.
 
 ### 2.5.16
 
