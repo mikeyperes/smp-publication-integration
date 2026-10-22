@@ -27,6 +27,11 @@ This package exists to stop each plugin from re-implementing the same admin tabs
 - **Code:** `src/Search/`, filters and counts in `src/QueryFilter/`, text matching in `src/SearchQuery/`. Markup and styling: HWS Base Tools `docs/hws-search.md`; API: `docs/hexa-search.md`.
 - **Extend:** `hexa_plugin_core_search_target`, `hexa_plugin_core_search_context_args`, `hexa_plugin_core_search_post_types`, `hexa_plugin_core_query_filter_author_condition`, new filter types with `QueryFilterTypes::register()`.
 
+### Source banner
+- **Does:** a read-only notice a plugin shows above data it displays but another plugin owns, with a link to edit it at the owner, e.g. "Original content at HWS Base Tools. Click here to edit."
+- **Use:** `echo \Hexa\PluginCore\WpAdminComponents\SourceBanner::render( [ 'owner' => 'HWS Base Tools', 'edit_url' => admin_url( 'options-general.php?page=hws-core-tools&tab=website-types' ) ] );` Optional `message`, `link_label`, `class`.
+- **Code:** `src/WpAdminComponents/SourceBanner.php`
+
 ### Map
 - **Does:** a map of addresses geocoded without an API key.
 - **Use:** `MapRegistry::register( 'id', [...] )`, then `[hexa_map id="id"]`.
@@ -134,6 +139,8 @@ Version 1.2.0 adds an automatically registered static-front-page query invariant
 Version 2.1.4 keeps Getting Started parent-step and full-checklist runs available when only child tasks are awaiting input. Runnable subtasks execute in their registered order while each input-dependent child validates itself, so an early dependency-provisioning task can install required packages before later actions run. Template selection continues to distinguish selected from loaded states and expose loading, success, and failure feedback. `TemplateSelectionControl` retains its no-design toggle, responsive column constraints, accessible visual grid, scaled preview viewports, selected-state behavior, host save hooks, and AJAX-tab reinitialization.
 
 Version 3.0.0 establishes the coordinated major release for the expanded Core data-normalization, operations, provisioning, checklist-state, fleet-synchronization, and reusable admin infrastructure shipped in this source tree.
+
+Version 3.31.0 adds `WpAdminComponents\SourceBanner` (read-only "Original content at <owner>. Click here to edit." notice for data owned by another plugin) and makes the native field engine (no ACF) honor a field's `wrapper` `class` and `id` and add `data-name`, as ACF does, so hosts can show or hide fields by class.
 
 Version 3.30.4 (loops showing the page's own results are found without a marker class), 3.30.3 (filter controls styled in every look) and 3.30.2 replace the four separate searches (`SearchDisplay`, `SearchQuery\ElementorSearchAdapter`, `DirectorySearch`, `ListingSearch`) with one: `Hexa\PluginCore\Search`. One profile shape covers posts and role-scoped users; one box either narrows the page's own list (archives, the search page, any Elementor loop marked `hexa-listing-results`, with `post_type`/`category`/`tag`/`author` scope for ordinary pages) or renders its own cards with sorts and Load more; one script refreshes every box in place with one loader (the results dim and a spinner shows); `SearchBox::header()` draws the header search box (icon-reveal or field, never a popup). Address parameters are `hs`, `hq`, `hf`, `hp`, `ho`; filters `hexa_plugin_core_search_target`, `hexa_plugin_core_search_context_args`, `hexa_plugin_core_search_post_types`; shortcode `[hexa_search id]`; the directory REST endpoint is removed.
 
