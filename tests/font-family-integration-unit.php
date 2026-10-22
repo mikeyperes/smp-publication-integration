@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/fixtures/dashboard-source.php';
 
 declare(strict_types=1);
 
@@ -235,7 +236,7 @@ if ( "inherit" !== $saved["article_heading_font_weight"] || "" !== Settings::fon
     exit( 1 );
 }
 
-$dashboard = (string) file_get_contents( $root . "/src/Admin/Dashboard/DashboardController.php" );
+$dashboard = smpi_test_dashboard_source( $root );
 $ajax = (string) file_get_contents( $root . "/src/Admin/Ajax/AjaxController.php" );
 $quick_start = (string) file_get_contents( $root . "/src/Support/QuickStartFeatures.php" );
 $core_version = trim( (string) file_get_contents( $root . "/lib/hexa-wordpress-plugin-core/VERSION" ) );

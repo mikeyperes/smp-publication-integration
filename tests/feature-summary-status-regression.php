@@ -1,8 +1,9 @@
 <?php
+require_once __DIR__ . '/fixtures/dashboard-source.php';
 
 declare(strict_types=1);
 
-$dashboard = (string) file_get_contents( dirname( __DIR__ ) . '/src/Admin/Dashboard/DashboardController.php' );
+$dashboard = smpi_test_dashboard_source( dirname( __DIR__ ) );
 
 function assert_feature_summary_status( bool $condition, string $message ): void {
     if ( ! $condition ) {

@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/fixtures/dashboard-source.php';
 
 declare(strict_types=1);
 
@@ -52,7 +53,7 @@ foreach ( $contracts as $style => $accent_contract ) {
 $template = (string) file_get_contents( $root . "/src/Content/TemplateMarkup.php" );
 $article = (string) file_get_contents( $root . "/src/Content/ArticleStyles.php" );
 $public_dom = (string) file_get_contents( $root . "/assets/frontend/public-dom.js" );
-$dashboard = (string) file_get_contents( $root . "/src/Admin/Dashboard/DashboardController.php" );
+$dashboard = smpi_test_dashboard_source( $root );
 $settings = (string) file_get_contents( $root . "/src/Settings/SettingsRepository.php" );
 $ajax = (string) file_get_contents( $root . "/src/Admin/Ajax/AjaxController.php" );
 $quick_start = (string) file_get_contents( $root . "/src/Support/QuickStartFeatures.php" );

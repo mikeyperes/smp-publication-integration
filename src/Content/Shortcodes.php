@@ -2,6 +2,8 @@
 namespace smp_publication_integration\Content;
 
 use Hexa\PluginCore\FaqSets\FaqSetManager;
+use smp_publication_integration\Pages\PageLinker;
+use smp_publication_integration\Pages\PageTemplates;
 use smp_publication_integration\Support\Fields;
 use smp_publication_integration\Support\Settings;
 
@@ -223,7 +225,7 @@ final class Shortcodes {
     public function render_page_assignment( array $atts = [] ): string {
         $atts = shortcode_atts( [ "type" => "", "mode" => "link" ], $atts, "smp_publication_page" );
         $type = sanitize_key( (string) $atts["type"] );
-        $page_id = Settings::page_assignment_id( $type );
+        $page_id = PageLinker::linked_id( $type );
         if ( ! $page_id ) {
             return "";
         }
@@ -246,138 +248,10 @@ final class Shortcodes {
     }
 
 
+    /** Prints a page type's template (default file or the site's edited copy); see src/Pages/. */
     public function render_page_template( array $atts = [] ): string {
         $atts = shortcode_atts( [ "type" => "" ], $atts, "smp_publication_page_template" );
-        $type = sanitize_key( (string) $atts["type"] );
-        if ( "" === $type ) {
-            return "";
-        }
-        if ( "founding_date" === $type ) {
-            // The founding section and founders print their own markup and CSS; the generic sections and kses would strip that CSS into visible text.
-            return do_shortcode( "[smpi_founding_date show=date,place] [smpi_founders]" );
-        }
-        $definition = $this->publication_page_template_definition( $type );
-        if ( empty( $definition ) ) {
-            return "";
-        }
-        return wp_kses_post( do_shortcode( $this->publication_page_template_html( $type, $definition ) ) );
-    }
-
-    private function publication_page_template_definition( string $type ): array {
-        $types = Settings::page_types();
-        $label = isset( $types[ $type ]["label"] ) ? (string) $types[ $type ]["label"] : ucwords( str_replace( "_", " ", $type ) );
-        $description = isset( $types[ $type ]["description"] ) ? (string) $types[ $type ]["description"] : "Public information page for this publication.";
-        $sections = [
-            "Publication Details" => [
-                "Publication: [smp_publication_field field=legal_name format=text fallback=site_name]",
-                "Website: [smp_publication_field field=website format=url fallback=home_url]",
-                "Contact: [smp_publication_field field=contact_email format=email fallback=admin_email]",
-            ],
-            "Page Purpose" => [
-                $description,
-                "Use shortcode-backed publication fields for names, URLs, contacts, policies, founders, and profile links instead of hardcoded values.",
-                "Review this page before publishing and keep it aligned with the live site structure.",
-            ],
-        ];
-
-        if ( in_array( $type, [ "about_publication", "mission_statement", "mission_coverage_priorities_policy" ], true ) ) {
-            $sections["Reader Promise"] = [
-                "Mission: [smp_publication_field field=mission_statement format=html]",
-                "Coverage focus: [smp_publication_field field=knows_about format=text]",
-                "Explain who the outlet serves, what it covers, and how editorial decisions support that mission.",
-            ];
-        } elseif ( in_array( $type, [ "founder_about", "founders", "founding_date" ], true ) ) {
-            $sections["Founder And History"] = [
-                "Founding date: [smp_publication_field field=founding_date format=text]",
-                "Founder records: [smp_publication_founders]",
-                "Use approved profile records and verified public facts; do not expose private personal information.",
-            ];
-        } elseif ( in_array( $type, [ "writers", "contributors", "staff", "executive_team", "team", "masthead" ], true ) ) {
-            $sections["People And Accountability"] = [
-                "Group public people by role, responsibility, and profile link where available.",
-                "Separate editorial accountability from advertising, sales, operations, and ownership roles.",
-                "Route profile corrections through [smp_publication_page type=contact mode=link].",
-            ];
-        } elseif ( "become_contributor" === $type ) {
-            $sections["Contributor Guidelines"] = [
-                "A [smp_publication_field field=legal_name format=text fallback=site_name] piece should be original, authentic, useful, and aligned with the publication mission.",
-                "Writers should disclose conflicts, prior publication, paid relationships, embargoes, and time-sensitive context.",
-                "We welcome informed voices from varied backgrounds when the work fits our audience and editorial standards.",
-            ];
-            $sections["A Strong Pitch Should Include"] = [
-                "A concise summary of the article idea and why it matters now.",
-                "The expertise, reporting access, or lived experience behind the pitch.",
-                "What readers will gain, a rough structure, and the proposed beginning and ending.",
-                "Prior writing links when available and a clear subject line.",
-            ];
-            $sections["How To Pitch"] = [
-                "Email pitches to [smp_publication_field field=contact_email format=email fallback=admin_email].",
-                "If a draft exists, paste it in the message body instead of relying only on attachments.",
-                "Submissions are reviewed for fit, originality, clarity, sourcing, and disclosure before publication.",
-            ];
-        } elseif ( in_array( $type, [ "submit_press_release", "press_releases" ], true ) ) {
-            $sections["Press Release Standards"] = [
-                "Include release text, company boilerplate, contact person, date, location, source links, and embargo details.",
-                "Disclose paid relationships, affiliate relationships, sponsored placement requests, and material conflicts.",
-                "Press releases may be edited for clarity, formatting, disclosure, and compliance; publication is not guaranteed.",
-            ];
-        } elseif ( "brand_assets" === $type ) {
-            $sections["Brand Asset Rules"] = [
-                "Use approved logos, marks, screenshots, and gallery assets without alteration unless written permission is granted.",
-                "Do not imply endorsement, sponsorship, partnership, or editorial approval without written approval.",
-                "Media and brand requests should use the approved publication contact path.",
-            ];
-        } elseif ( "dmca" === $type ) {
-            $sections["Notice Requirements"] = [
-                "Identify the copyrighted work and the exact URL or material at issue.",
-                "Provide contact information, a good-faith statement, an accuracy statement, and a physical or electronic signature.",
-                "Send notices through [smp_publication_page type=contact mode=link] or the approved publication email.",
-            ];
-        } elseif ( in_array( $type, [ "terms", "privacy", "contact", "faqs", "headquarters" ], true ) ) {
-            $sections["Site Information"] = [
-                "Use the HWS Base Tools page assignment for this shared site page when available.",
-                "Keep legal, privacy, location, support, and contact details aligned with actual site operations.",
-                "Do not publish private staff data, private addresses, or internal-only workflows.",
-            ];
-        } elseif ( in_array( $type, [ "editorial_guidelines", "editorial_policy", "publishing_principles", "verification_fact_checking_policy", "corrections_policy", "ethics_policy", "diversity_policy", "diversity_staffing_report", "no_bylines_policy", "unnamed_sources_policy", "actionable_feedback_policy", "ownership_funding", "parent_organization" ], true ) ) {
-            $sections["Trust And Editorial Standards"] = [
-                "Explain accuracy, sourcing, labels, corrections, conflicts, diversity, feedback, and editorial independence in plain language.",
-                "Keep sponsored, affiliate, contributed, and press release material clearly labeled and separate from editorial decisions.",
-                "Use this page as the canonical policy URL for connected NewsMediaOrganization schema fields.",
-            ];
-        } elseif ( in_array( $type, [ "advertise", "advertise_with_us" ], true ) ) {
-            $sections["Advertising And Partnerships"] = [
-                "Describe placements, sponsorships, newsletters, branded content, events, or partnership options without hardcoded pricing.",
-                "Require clear disclosure for sponsored, native, affiliate, or partner content.",
-                "State that paid placements do not control independent editorial decisions.",
-            ];
-        } elseif ( "accessibility" === $type ) {
-            $sections["Accessibility Commitment"] = [
-                "Aim for content that is perceivable, operable, understandable, and robust for a broad range of readers.",
-                "Identify known limitations and the remediation process as the site evolves.",
-                "Report accessibility barriers through [smp_publication_page type=contact mode=link].",
-            ];
-        }
-
-        return [ "title" => $label, "intro" => $description, "sections" => $sections ];
-    }
-
-    private function publication_page_template_html( string $type, array $definition ): string {
-        $html = "<article>";
-        $html .= "<h2>" . esc_html( (string) $definition["title"] ) . "</h2>";
-        $html .= "<p>" . esc_html( (string) $definition["intro"] ) . "</p>";
-        foreach ( (array) $definition["sections"] as $heading => $items ) {
-            $html .= "<h3>" . esc_html( (string) $heading ) . "</h3><ul>";
-            foreach ( (array) $items as $item ) {
-                $html .= "<li>" . wp_kses_post( (string) $item ) . "</li>";
-            }
-            $html .= "</ul>";
-        }
-        if ( "brand_assets" === $type ) {
-            $html .= "<h3>Approved Brand Assets</h3>[smp_publication_field field=brand_assets format=gallery]";
-        }
-        $html .= "</article>";
-        return $html;
+        return PageTemplates::render( sanitize_key( (string) $atts["type"] ) );
     }
 
     private function is_empty_value( $value ): bool {

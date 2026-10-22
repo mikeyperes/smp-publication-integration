@@ -52,7 +52,6 @@ class AjaxController {
                 'smpi_search_profiles'         => [ 'callback' => [ $this, 'search_profiles' ] ],
                 'smpi_save_founder_profiles'   => [ 'callback' => [ $this, 'save_founder_profiles' ] ],
                 'smpi_test_multi_authors'       => [ 'callback' => [ $this, 'test_multi_authors' ] ],
-                'smpi_refresh_optimization'    => [ 'callback' => [ $this, 'refresh_optimization' ] ],
                 'smpi_snippet_toggle'          => [ 'callback' => [ $this, 'toggle_snippet' ] ],
                 'smpi_snippet_test'            => [ 'callback' => [ $this, 'test_snippet' ] ],
             ]
@@ -885,10 +884,6 @@ class AjaxController {
             \Hexa\PluginCore\Fields\Field::update( "smpi_publication_user", $user_id, "option" );
         }
         Settings::log( "Publication author selected: user #" . $user_id );
-    }
-
-    public function refresh_optimization(): array {
-        return [ 'html' => Dashboard::render_optimization_report_html() ];
     }
 
     public function enable_verified_profile_snippet(): void {

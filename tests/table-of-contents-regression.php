@@ -1,10 +1,11 @@
 <?php
+require_once __DIR__ . '/fixtures/dashboard-source.php';
 
 declare(strict_types=1);
 
 $root = dirname( __DIR__ );
 $article = (string) file_get_contents( $root . "/src/Content/ArticleStyles.php" );
-$dashboard = (string) file_get_contents( $root . "/src/Admin/Dashboard/DashboardController.php" );
+$dashboard = smpi_test_dashboard_source( $root );
 $table = (string) file_get_contents( $root . "/src/Content/TableOfContents.php" );
 $compatibility = (string) file_get_contents( $root . "/src/Content/ElementorFrontendCompatibility.php" );
 $registry = (string) file_get_contents( $root . "/src/Design/TemplateDesignRegistry.php" );

@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/fixtures/dashboard-source.php';
 
 declare( strict_types=1 );
 
@@ -168,7 +169,7 @@ namespace {
     expect_author_social( "content" === $plan_renderer->single_post_plan( 55 )["mode"], "A single post with no Elementor author block falls back to the end of the article." );
 
     $root = dirname( __DIR__ );
-    $dashboard = (string) file_get_contents( $root . "/src/Admin/Dashboard/DashboardController.php" );
+    $dashboard = smpi_test_dashboard_source( $root );
     $ajax = (string) file_get_contents( $root . "/src/Admin/Ajax/AjaxController.php" );
     $runtime = (string) file_get_contents( $root . "/src/Runtime/Plugin.php" );
     $registry = (string) file_get_contents( $root . "/src/Design/TemplateDesignRegistry.php" );

@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/fixtures/dashboard-source.php';
 
 namespace {
     define( "ABSPATH", __DIR__ );
@@ -43,7 +44,7 @@ namespace {
     $root = dirname( __DIR__ );
     $settings = (string) file_get_contents( $root . "/src/Settings/SettingsRepository.php" );
     $ajax = (string) file_get_contents( $root . "/src/Admin/Ajax/AjaxController.php" );
-    $dashboard = (string) file_get_contents( $root . "/src/Admin/Dashboard/DashboardController.php" );
+    $dashboard = smpi_test_dashboard_source( $root );
     $quick_start = (string) file_get_contents( $root . "/src/Support/QuickStartFeatures.php" );
     $registry = (string) file_get_contents( $root . "/src/Design/TemplateDesignRegistry.php" );
     assert_heading_preserve( false !== strpos( $settings, 'return TemplateDesignRegistry::typography_preservation_surfaces();' ) && false !== strpos( $registry, '"article_heading" => true' ) && false !== strpos( $settings, 'TypographyPreservation::defaults( $prefix, $preservation_defaults )' ), "Heading preservation defaults must come from the centralized design registry." );

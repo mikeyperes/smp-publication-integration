@@ -7,90 +7,94 @@ use Hexa\PluginCore\WpAdminTabs\TabRegistry;
 
 final class AdminNavigation {
     private const FLAT_TABS = [
-        'overview'            => 'Dashboard',
-        'quick_run'           => 'Quick Start',
-        'publication_options' => 'Publication Settings',
-        'profiles'            => 'Publication Fields',
-        'founder_profiles'    => 'Founder Profiles',
-        'founders_list'       => 'Founders',
-        'founding_date'       => 'Founding Date',
+        'overview'             => 'Dashboard',
+        'quick_run'            => 'Quick Start',
+        'publication_options'  => 'Publication Settings',
+        'pages'                => 'Publication Pages',
+        'menu'                 => 'Menus',
+        'founders_list'        => 'Founders',
         'executive_leadership' => 'Executive Leadership',
-        'contributors'        => 'Contributors',
-        'staff'               => 'Staff',
-        'brand'               => 'Brand Settings',
-        'pages'               => 'Pages',
-        'menu'                => 'Menus',
-        'custom_post_types'   => 'Custom Post Types',
-        'features'            => 'Article Design',
-        'custom_fields'       => 'Post Fields',
-        'multiple_authors'    => 'Authors',
-        'content_generation'  => 'Content Generation',
-        'snippets'            => 'Publishing Rules',
-        'post_hygiene'        => 'Post HTML Cleanup',
-        'schema'              => 'Schema Settings',
-        'reports'             => 'Schema Tests',
-        'verified_profiles'   => 'Verified Profiles',
-        'article_cleanup'     => 'Article & Media Cleanup',
-        'optimization'        => 'Database Optimization',
-        'plugins'             => 'Plugins',
-        'integrations'        => 'Integrations',
-        'ui_cleanup'          => 'WordPress Admin',
-        'shortcodes'          => 'Shortcodes',
-        'hexa_core'           => 'Hexa WP Core',
+        'staff'                => 'Staff',
+        'contributors'         => 'Contributors',
+        'multiple_authors'     => 'Authors',
+        'custom_post_types'    => 'Custom Post Types',
+        'features'             => 'Article Design',
+        'custom_fields'        => 'Post Fields',
+        'content_generation'   => 'Content Generation',
+        'snippets'             => 'Publishing Rules',
+        'post_hygiene'         => 'Post HTML Cleanup',
+        'schema'               => 'Schema Settings',
+        'reports'              => 'Schema Tests',
+        'article_cleanup'      => 'Article & Media Cleanup',
+        'plugins'              => 'Plugins',
+        'shortcodes'           => 'Shortcodes',
+        'hexa_core'            => 'Hexa WP Core',
     ];
 
     private const AREAS = [
-        'overview'        => 'Overview',
-        'publication'     => 'Publication',
-        'editorial'       => 'Articles',
-        'structured_data' => 'Structured Data',
-        'operations'      => 'Operations',
-        'advanced'        => 'Advanced',
+        'overview'      => 'Overview',
+        'publication'   => 'Publication',
+        'people'        => 'People',
+        'articles'      => 'Articles',
+        'search_schema' => 'Search & Schema',
+        'maintenance'   => 'Maintenance',
     ];
 
     private const SECTIONS = [
         'overview' => [
-            'overview' => 'Overview',
+            'overview'  => 'Dashboard',
             'quick_run' => 'Quick Start',
         ],
         'publication' => [
-            'publication_options' => 'Publication Options',
-            'profiles'            => 'Publication Profiles',
-            'founder_profiles'    => 'Founder Profiles',
-            'founders_list'       => 'Founders',
-            'founding_date'       => 'Founding Date',
+            'publication_options' => 'Publication Settings',
+            'pages'               => 'Publication Pages',
+            'menu'                => 'Menus',
+        ],
+        'people' => [
+            'founders_list'        => 'Founders',
             'executive_leadership' => 'Executive Leadership',
-            'contributors'         => 'Contributors',
             'staff'                => 'Staff',
-            'brand'               => 'Brand',
-            'pages'               => 'Pages',
-            'menu'                => 'Menu',
+            'contributors'         => 'Contributors',
+            'multiple_authors'     => 'Authors',
         ],
-        'editorial' => [
-            'custom_post_types' => 'Custom Post Types',
-            'features'           => 'Features',
-            'custom_fields'      => 'Custom Fields',
-            'multiple_authors'   => 'Multiple Authors',
+        'articles' => [
+            'custom_post_types'  => 'Custom Post Types',
+            'features'           => 'Article Design',
+            'custom_fields'      => 'Post Fields',
             'content_generation' => 'Content Generation',
-            'post_hygiene'       => 'Post Hygiene',
+            'snippets'           => 'Publishing Rules',
+            'post_hygiene'       => 'Post HTML Cleanup',
         ],
-        'structured_data' => [
-            'schema'            => 'Schema',
-            'reports'           => 'Reports',
-            'verified_profiles' => 'Verified Profiles',
+        'search_schema' => [
+            'schema'  => 'Schema Settings',
+            'reports' => 'Schema Tests',
         ],
-        'operations' => [
-            'article_cleanup' => 'Article Cleanup',
-            'optimization'    => 'Optimization',
+        'maintenance' => [
+            'article_cleanup' => 'Article & Media Cleanup',
             'plugins'         => 'Plugins',
-            'integrations'    => 'Integrations',
+            'shortcodes'      => 'Shortcodes',
+            'hexa_core'       => 'Hexa WP Core',
         ],
-        'advanced' => [
-            'snippets'   => 'Snippets',
-            'shortcodes' => 'Shortcodes',
-            'ui_cleanup' => 'UI Cleanup',
-            'hexa_core'  => 'Hexa WP Core',
-        ],
+    ];
+
+    /** Removed or merged tabs (old links keep working): old id => where it lives now. */
+    private const MOVED = [
+        'founder_profiles'  => 'founders_list',
+        'founding_date'     => 'pages',
+        'integrations'      => 'plugins',
+        'verified_profiles' => 'plugins',
+        'profiles'          => 'publication_options',
+        'brand'             => 'publication_options',
+        'optimization'      => 'plugins',
+        'ui_cleanup'        => 'overview',
+    ];
+
+    /** Old group ids => new group ids. */
+    private const MOVED_AREAS = [
+        'editorial'       => 'articles',
+        'structured_data' => 'search_schema',
+        'operations'      => 'maintenance',
+        'advanced'        => 'maintenance',
     ];
 
     /**
@@ -101,7 +105,7 @@ final class AdminNavigation {
 
         foreach ( $this->legacy_tab_labels() as $id => $label ) {
             $id = sanitize_key( (string) $id );
-            if ( '' !== $id && ! isset( $tabs[ $id ] ) && ! $this->known_section( $id ) ) {
+            if ( '' !== $id && ! isset( $tabs[ $id ] ) && ! $this->known_section( $id ) && ! isset( self::MOVED[ $id ] ) ) {
                 $tabs[ $id ] = (string) $label;
             }
         }
@@ -193,7 +197,7 @@ final class AdminNavigation {
             }
         }
 
-        if ( 'advanced' === $area ) {
+        if ( 'maintenance' === $area ) {
             foreach ( $legacy as $id => $label ) {
                 if ( ! $this->known_section( (string) $id ) ) {
                     $sections[ sanitize_key( (string) $id ) ] = (string) $label;
@@ -217,7 +221,10 @@ final class AdminNavigation {
             $section = 'hexa_core';
         }
 
-        if ( 'operations' === $tab && 'quick_run' === $section ) {
+        $tab     = self::MOVED_AREAS[ $tab ] ?? ( self::MOVED[ $tab ] ?? $tab );
+        $section = self::MOVED[ $section ] ?? $section;
+
+        if ( 'maintenance' === $tab && 'quick_run' === $section ) {
             return new AdminRoute( 'overview', 'quick_run' );
         }
 
@@ -237,7 +244,7 @@ final class AdminNavigation {
         }
 
         if ( isset( $this->tabs()[ $tab ] ) ) {
-            return new AdminRoute( 'advanced', $tab );
+            return new AdminRoute( 'maintenance', $tab );
         }
 
         return new AdminRoute( 'overview', 'overview' );

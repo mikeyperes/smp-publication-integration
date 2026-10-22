@@ -17,6 +17,7 @@ use SMP\PublicationIntegration\PublicationManifest\ManifestEndpoint;
 use smp_publication_integration\Admin;
 use smp_publication_integration\Config;
 use smp_publication_integration\Content;
+use smp_publication_integration\Pages;
 use smp_publication_integration\Settings\SettingsMigrations;
 
 defined( 'ABSPATH' ) || exit;
@@ -96,6 +97,8 @@ final class Plugin {
             new SettingsMigrations(),
             new Content\AcfFields(),
             new Content\Shortcodes(),
+            new Pages\CompanyFacts(),
+            new Pages\LatestPressReleases(),
             new Content\MultiAuthors(),
             new Content\AuthorShortcodes(),
             new Content\AuthorSocialIcons(),
@@ -140,14 +143,13 @@ final class Plugin {
     /** @return array<int,object> */
     private function admin_modules(): array {
         return [
-            new Admin\UiCleanup(),
             new Admin\Ajax(),
             new Admin\Dashboard(),
             new Admin\ExecutiveLeadershipTab(),
             new Admin\ContributorsTab(),
             new Admin\FoundersTab(),
-            new Admin\FoundingDateTab(),
             new Admin\StaffTab(),
+            new Admin\Dashboard\Tabs\PagesTab(),
         ];
     }
 

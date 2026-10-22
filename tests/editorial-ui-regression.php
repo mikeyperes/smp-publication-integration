@@ -1,9 +1,10 @@
 <?php
+require_once __DIR__ . '/fixtures/dashboard-source.php';
 
 declare(strict_types=1);
 
 $root       = dirname( __DIR__ );
-$dashboard  = (string) file_get_contents( $root . '/src/Admin/Dashboard/DashboardController.php' );
+$dashboard  = smpi_test_dashboard_source( $root );
 $muckrack   = (string) file_get_contents( $root . '/src/Content/MuckRackVerification.php' );
 $dashboard_css = (string) file_get_contents( $root . '/assets/admin/dashboard.css' );
 $core_scoped_css = (string) file_get_contents( $root . '/lib/hexa-wordpress-plugin-core/src/WpAdminComponents/ScopedCssOverride.php' );

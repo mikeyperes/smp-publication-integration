@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/fixtures/dashboard-source.php';
 
 declare(strict_types=1);
 
@@ -13,7 +14,7 @@ use smp_publication_integration\Content\PostFaqPlacement;
 use smp_publication_integration\Content\PostSummaryPlacement;
 
 $article = (string) file_get_contents( $root . "/src/Content/ArticleStyles.php" );
-$dashboard = (string) file_get_contents( $root . "/src/Admin/Dashboard/DashboardController.php" );
+$dashboard = smpi_test_dashboard_source( $root );
 $settings = (string) file_get_contents( $root . "/src/Settings/SettingsRepository.php" );
 $ajax = (string) file_get_contents( $root . "/src/Admin/Ajax/AjaxController.php" );
 $bootstrap = (string) file_get_contents( $root . "/src/Runtime/Plugin.php" );

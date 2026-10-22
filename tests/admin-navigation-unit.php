@@ -25,35 +25,12 @@ use smp_publication_integration\Admin\Navigation\AdminNavigation;
 
 $navigation = new AdminNavigation();
 $expected_tabs = [
-    'overview'            => 'Dashboard',
-    'quick_run'           => 'Quick Start',
-    'publication_options' => 'Publication Settings',
-    'profiles'            => 'Publication Fields',
-    'founder_profiles'    => 'Founder Profiles',
-    'founders_list'       => 'Founders',
-    'executive_leadership' => 'Executive Leadership',
-    'contributors'        => 'Contributors',
-    'staff'               => 'Staff',
-    'brand'               => 'Brand Settings',
-    'pages'               => 'Pages',
-    'menu'                => 'Menus',
-    'custom_post_types'   => 'Custom Post Types',
-    'features'            => 'Article Design',
-    'custom_fields'       => 'Post Fields',
-    'multiple_authors'    => 'Authors',
-    'content_generation'  => 'Content Generation',
-    'snippets'            => 'Publishing Rules',
-    'post_hygiene'        => 'Post HTML Cleanup',
-    'schema'              => 'Schema Settings',
-    'reports'             => 'Schema Tests',
-    'verified_profiles'   => 'Verified Profiles',
-    'article_cleanup'     => 'Article & Media Cleanup',
-    'optimization'        => 'Database Optimization',
-    'plugins'             => 'Plugins',
-    'integrations'        => 'Integrations',
-    'ui_cleanup'          => 'WordPress Admin',
-    'shortcodes'          => 'Shortcodes',
-    'hexa_core'           => 'Hexa WP Core',
+    'overview' => 'Dashboard', 'quick_run' => 'Quick Start',
+    'publication_options' => 'Publication Settings', 'pages' => 'Publication Pages', 'menu' => 'Menus',
+    'founders_list' => 'Founders', 'executive_leadership' => 'Executive Leadership', 'staff' => 'Staff', 'contributors' => 'Contributors', 'multiple_authors' => 'Authors',
+    'custom_post_types' => 'Custom Post Types', 'features' => 'Article Design', 'custom_fields' => 'Post Fields', 'content_generation' => 'Content Generation', 'snippets' => 'Publishing Rules', 'post_hygiene' => 'Post HTML Cleanup',
+    'schema' => 'Schema Settings', 'reports' => 'Schema Tests',
+    'article_cleanup' => 'Article & Media Cleanup', 'plugins' => 'Plugins', 'shortcodes' => 'Shortcodes', 'hexa_core' => 'Hexa WP Core',
 ];
 
 $tabs = $navigation->tabs();
@@ -107,75 +84,39 @@ if ( [ 'features' ] !== $rendered ) {
     exit( 1 );
 }
 
-$legacy_areas = [
-    'overview'            => 'overview',
-    'quick_run'           => 'overview',
-    'publication_options' => 'publication',
-    'profiles'            => 'publication',
-    'founder_profiles'    => 'publication',
-    'founders_list'       => 'publication',
-    'executive_leadership' => 'publication',
-    'contributors'         => 'publication',
-    'staff'                => 'publication',
-    'brand'               => 'publication',
-    'pages'               => 'publication',
-    'menu'                => 'publication',
-    'custom_post_types'   => 'editorial',
-    'features'            => 'editorial',
-    'custom_fields'       => 'editorial',
-    'multiple_authors'    => 'editorial',
-    'content_generation'  => 'editorial',
-    'snippets'            => 'advanced',
-    'post_hygiene'        => 'editorial',
-    'schema'              => 'structured_data',
-    'reports'             => 'structured_data',
-    'verified_profiles'   => 'structured_data',
-    'article_cleanup'     => 'operations',
-    'optimization'        => 'operations',
-    'plugins'             => 'operations',
-    'integrations'        => 'operations',
-    'ui_cleanup'          => 'advanced',
-    'shortcodes'          => 'advanced',
-    'hexa_core'           => 'advanced',
+$areas = [
+    'overview' => 'overview', 'quick_run' => 'overview',
+    'publication_options' => 'publication', 'pages' => 'publication', 'menu' => 'publication',
+    'founders_list' => 'people', 'executive_leadership' => 'people', 'staff' => 'people', 'contributors' => 'people', 'multiple_authors' => 'people',
+    'custom_post_types' => 'articles', 'features' => 'articles', 'custom_fields' => 'articles', 'content_generation' => 'articles', 'snippets' => 'articles', 'post_hygiene' => 'articles',
+    'schema' => 'search_schema', 'reports' => 'search_schema',
+    'article_cleanup' => 'maintenance', 'plugins' => 'maintenance', 'shortcodes' => 'maintenance', 'hexa_core' => 'maintenance',
 ];
-
-foreach ( $legacy_areas as $section => $area ) {
-    $flat_route = $navigation->resolve( $section );
-    $legacy_route = $navigation->resolve( $area, $section );
-
-    if (
-        $section !== $flat_route->section()
-        || $area !== $flat_route->area()
-        || $flat_route->section() !== $legacy_route->section()
-        || $flat_route->area() !== $legacy_route->area()
-    ) {
-        fwrite( STDERR, "FAIL: Flat and legacy routes differ for {$section}.\n" );
+foreach ( $areas as $section => $area ) {
+    $route = $navigation->resolve( $section );
+    if ( $section !== $route->section() || $area !== $route->area() ) {
+        fwrite( STDERR, "FAIL: {$section} is not in the {$area} group.\n" );
         exit( 1 );
     }
 }
-$legacy_quick_start = $navigation->resolve( 'operations', 'quick_run' );
+
+$moved = [ 'founder_profiles' => 'founders_list', 'founding_date' => 'pages', 'integrations' => 'plugins', 'verified_profiles' => 'plugins', 'profiles' => 'publication_options', 'brand' => 'publication_options', 'optimization' => 'plugins', 'ui_cleanup' => 'overview' ];
+foreach ( $moved as $old => $new ) {
+    if ( $new !== $navigation->resolve( $old )->section() ) {
+        fwrite( STDERR, "FAIL: old tab {$old} must open {$new}.\n" );
+        exit( 1 );
+    }
+}
+
 $groups = $navigation->groups();
-if (
-    'overview' !== $legacy_quick_start->area()
-    || 'quick_run' !== $legacy_quick_start->section()
-    || [ 'overview', 'quick_run' ] !== ( $groups[0]['tabs'] ?? [] )
-    || 'Articles' !== ( $groups[2]['label'] ?? null )
-    || in_array( 'quick_run', $groups[4]['tabs'] ?? [], true )
-) {
-    fwrite( STDERR, "FAIL: Quick Start order, Articles group label, or legacy operations route is incorrect.\n" );
+if ( [ 'Overview', 'Publication', 'People', 'Articles', 'Search & Schema', 'Maintenance' ] !== array_slice( array_column( $groups, 'label' ), 0, 6 ) ) {
+    fwrite( STDERR, "FAIL: the six sidebar groups are wrong.\n" );
     exit( 1 );
 }
 
-$legacy_core = $navigation->resolve( 'hexa-core' );
-if ( 'advanced' !== $legacy_core->area() || 'hexa_core' !== $legacy_core->section() ) {
-    fwrite( STDERR, "FAIL: hexa-core must continue to resolve to hexa_core.\n" );
+if ( 'hexa_core' !== $navigation->resolve( 'hexa-core' )->section() || 'extension_diagnostics' !== $navigation->resolve( 'extension_diagnostics' )->section() ) {
+    fwrite( STDERR, "FAIL: hexa-core and extension tabs must stay routable.\n" );
     exit( 1 );
 }
 
-$extension = $navigation->resolve( 'extension_diagnostics' );
-if ( 'advanced' !== $extension->area() || 'extension_diagnostics' !== $extension->section() ) {
-    fwrite( STDERR, "FAIL: Extension tabs must remain routable.\n" );
-    exit( 1 );
-}
-
-echo "PASS: " . count( $expected_tabs ) . " ordered tabs use the Core registry and preserve legacy routes.\n";
+echo "PASS: " . count( $expected_tabs ) . " tabs in six groups use the Core registry; removed tabs redirect.\n";

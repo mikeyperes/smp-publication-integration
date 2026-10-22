@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/fixtures/dashboard-source.php';
 
 declare(strict_types=1);
 
@@ -159,7 +160,7 @@ template_design_assert(
     TemplateDesignRegistry::custom_color_setting_keys() === SettingsRepository::brand_primary_color_keys(),
     "The legacy brand-primary color key API does not return the registered custom template color keys."
 );
-$dashboard_source = (string) file_get_contents( $root . "/src/Admin/Dashboard/DashboardController.php" );
+$dashboard_source = smpi_test_dashboard_source( $root );
 template_design_assert( 12 === substr_count( $dashboard_source, 'template_color_setting_html( "' ), "Every design surface must render through the shared Core template color control." );
 $core_template_color_source = (string) file_get_contents( $core . "/src/WpAdminComponents/TemplateColorControl.php" );
 template_design_assert(

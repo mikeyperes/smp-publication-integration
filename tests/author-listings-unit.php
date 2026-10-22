@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/fixtures/dashboard-source.php';
 namespace {
     define( "ABSPATH", __DIR__ );
 
@@ -185,7 +186,7 @@ namespace {
     expect_true( str_contains( $styles, ":focus-visible" ) && str_contains( $styles, "height:100%" ), "Whole-card links include scoped keyboard focus and stable card sizing." );
 
     $root = dirname( __DIR__ );
-    $dashboard = (string) file_get_contents( $root . "/src/Admin/Dashboard/DashboardController.php" );
+    $dashboard = smpi_test_dashboard_source( $root );
     $ajax = (string) file_get_contents( $root . "/src/Admin/Ajax/AjaxController.php" );
     $bootstrap = (string) file_get_contents( $root . "/src/Runtime/Plugin.php" );
     $author_query = (string) file_get_contents( $root . "/src/Authorship/AuthorQueryIntegration.php" );

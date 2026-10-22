@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/fixtures/dashboard-source.php';
 
 declare( strict_types=1 );
 
@@ -10,7 +11,7 @@ $runtime = (string) file_get_contents( $root . '/src/Runtime/Plugin.php' );
 $updates = (string) file_get_contents( $root . '/src/Infrastructure/Updates.php' );
 $core_version = trim( (string) file_get_contents( $root . '/lib/hexa-wordpress-plugin-core/VERSION' ) );
 $runtime = (string) file_get_contents( $root . '/src/Runtime/Plugin.php' );
-$dashboard = (string) file_get_contents( $root . '/src/Admin/Dashboard/DashboardController.php' );
+$dashboard = smpi_test_dashboard_source( $root );
 $ajax = (string) file_get_contents( $root . '/src/Admin/Ajax/AjaxController.php' );
 $settings = (string) file_get_contents( $root . '/src/Settings/SettingsRepository.php' );
 

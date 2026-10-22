@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/fixtures/dashboard-source.php';
 
 declare(strict_types=1);
 
@@ -12,7 +13,7 @@ $public_dom = (string) file_get_contents( $root . "/assets/frontend/public-dom.j
 $inline = (string) file_get_contents( $root . "/src/Content/InlinePhotoTreatments.php" );
 $featured = (string) file_get_contents( $root . "/src/Content/FeaturedImageCaptions.php" );
 $shortcodes = (string) file_get_contents( $root . "/src/Content/Shortcodes.php" );
-$dashboard = (string) file_get_contents( $root . "/src/Admin/Dashboard/DashboardController.php" );
+$dashboard = smpi_test_dashboard_source( $root );
 
 $css_start = strpos( $article, "public static function breadcrumbs_css" );
 $css_end = strpos( $article, "public static function preview_bundle_css" );

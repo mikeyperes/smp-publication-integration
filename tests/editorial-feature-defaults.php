@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/fixtures/dashboard-source.php';
 
 declare(strict_types=1);
 
@@ -7,7 +8,7 @@ $settings   = (string) file_get_contents( $root . '/src/Settings/SettingsReposit
 $ajax       = (string) file_get_contents( $root . '/src/Admin/Ajax/AjaxController.php' );
 $quick      = (string) file_get_contents( $root . '/src/Support/QuickStartFeatures.php' );
 $muckrack   = (string) file_get_contents( $root . '/src/Content/MuckRackVerification.php' );
-$dashboard  = (string) file_get_contents( $root . '/src/Admin/Dashboard/DashboardController.php' );
+$dashboard  = smpi_test_dashboard_source( $root );
 $bootstrap  = (string) file_get_contents( $root . '/src/Runtime/Plugin.php' );
 
 $checks = [

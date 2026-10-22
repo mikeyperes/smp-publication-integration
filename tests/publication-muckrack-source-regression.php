@@ -1,11 +1,12 @@
 <?php
+require_once __DIR__ . '/fixtures/dashboard-source.php';
 
 declare(strict_types=1);
 
 $root = dirname( __DIR__ );
 $acf = (string) file_get_contents( $root . '/src/Content/AcfFields.php' );
 $ajax = (string) file_get_contents( $root . '/src/Admin/Ajax/AjaxController.php' );
-$dashboard = (string) file_get_contents( $root . '/src/Admin/Dashboard/DashboardController.php' );
+$dashboard = smpi_test_dashboard_source( $root );
 
 function assert_publication_muckrack_source( bool $condition, string $message ): void {
     if ( ! $condition ) {

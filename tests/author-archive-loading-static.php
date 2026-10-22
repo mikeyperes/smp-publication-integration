@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/fixtures/dashboard-source.php';
 
 declare( strict_types=1 );
 
@@ -7,7 +8,7 @@ $main = (string) file_get_contents( $root . '/smp-publication-integration.php' )
 $runtime = (string) file_get_contents( $root . '/src/Runtime/Plugin.php' );
 $settings = (string) file_get_contents( $root . '/src/Settings/SettingsRepository.php' );
 $ajax = (string) file_get_contents( $root . '/src/Admin/Ajax/AjaxController.php' );
-$dashboard = (string) file_get_contents( $root . '/src/Admin/Dashboard/DashboardController.php' );
+$dashboard = smpi_test_dashboard_source( $root );
 
 $checks = [
     'Loads the author archive loading module through the canonical runtime.' => str_contains( $main, 'src/Content/AuthorArchiveLoading.php' )

@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/fixtures/dashboard-source.php';
 namespace {
     define( "ABSPATH", __DIR__ );
 
@@ -82,7 +83,7 @@ namespace {
     }
     assert_drop_cap( false !== strpos( $preserved, "background:var(--smpi-dropcap-soft" ), "Typography preservation must retain the selected drop-cap design." );
 
-    $dashboard = (string) file_get_contents( dirname( __DIR__ ) . "/src/Admin/Dashboard/DashboardController.php" );
+    $dashboard = smpi_test_dashboard_source( dirname( __DIR__ ) );
     $registry = (string) file_get_contents( dirname( __DIR__ ) . "/src/Design/TemplateDesignRegistry.php" );
     assert_drop_cap( false === strpos( $dashboard, "Script letter font" ), "The obsolete full-sentence script-font gallery must be removed." );
     assert_drop_cap( false === strpos( $dashboard, 'select_setting_html( "article_drop_cap_script_font"' ), "The obsolete standalone script-font setting must not remain in the Features UI." );
