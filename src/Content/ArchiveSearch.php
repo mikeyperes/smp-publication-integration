@@ -194,6 +194,7 @@ final class ArchiveSearch {
     }
 
     private static function archive_page(): bool {
-        return ! is_admin() && ( is_category() || is_tag() || is_tax() || is_author() || is_search() );
+        // A category, tag or author feed is also an archive; the box would break its XML.
+        return ! is_admin() && ! is_feed() && ( is_category() || is_tag() || is_tax() || is_author() || is_search() );
     }
 }

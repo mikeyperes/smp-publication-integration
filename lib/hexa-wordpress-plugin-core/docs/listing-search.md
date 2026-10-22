@@ -64,7 +64,7 @@ shows only where several types are listed. HWS Base Tools registers the
 
 ## Styling
 
-The markup inherits the site's fonts and colours. Classes start with `hls-`;
+Three looks: `style` option `none` (only what the dropdowns need), `default-1` (compact boxed) or `default-2` (underlined, text filters). Rules are scoped `.hls.hls` so theme field styles cannot reshape the box; restyle it through the `--hls-*` custom properties (set them on `.hls`), or choose `none`. Classes start with `hls-`;
 custom properties `--hls-accent`, `--hls-border`, `--hls-radius`,
 `--hls-panel-bg` and `--hls-field-height` restyle it. The swapped listing gets
 `hls-loading` while it reloads. `hexa-listing:updated` fires on `document`
