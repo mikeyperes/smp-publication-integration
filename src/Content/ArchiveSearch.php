@@ -1,7 +1,7 @@
 <?php
 namespace smp_publication_integration\Content;
 
-use Hexa\PluginCore\ListingSearch\ListingSearchRenderer;
+use Hexa\PluginCore\Search\SearchBox;
 use smp_publication_integration\Authorship\AuthorAssignmentRepository;
 use smp_publication_integration\Authorship\AuthorQueryIntegration;
 use smp_publication_integration\Support\RuntimeContext;
@@ -14,7 +14,7 @@ if ( ! defined( "ABSPATH" ) ) {
 /**
  * Search and filters on the publication's category, tag, author and search pages.
  *
- * The shared listing search (HexaWP Core, `[hws_search]` from HWS Base Tools) narrows the
+ * The one search (HexaWP Core, `[hws_search]` from HWS Base Tools) narrows the
  * page's own story list. This class tells it which list that is on a publication: the archive's
  * Loop Grid, Posts or Archive Posts widget that shows the current page's stories (Elementor's
  * "Current Query", or a loop pinned to the page's own category or tag), or the lead and rest listings (smpi_archive_lead / smpi_archive_rest).
@@ -37,11 +37,11 @@ final class ArchiveSearch {
     private bool $wrapper_open = false;
 
     public function register(): void {
-        add_filter( "hexa_plugin_core_listing_search_target", [ $this, "is_listing" ], 10, 2 );
+        add_filter( "hexa_plugin_core_search_target", [ $this, "is_listing" ], 10, 2 );
         add_action( "elementor/frontend/widget/before_render", [ $this, "print_search_box" ], 5 );
         add_action( "loop_start", [ $this, "open_theme_listing" ] );
         add_action( "loop_end", [ $this, "close_theme_listing" ] );
-        add_filter( "hexa_plugin_core_listing_context_args", [ $this, "context_args" ], 10, 2 );
+        add_filter( "hexa_plugin_core_search_context_args", [ $this, "context_args" ], 10, 2 );
         add_filter( "hexa_plugin_core_query_filter_author_condition", [ $this, "co_author_condition" ], 10, 4 );
     }
 
@@ -98,7 +98,7 @@ final class ArchiveSearch {
             || ! self::enabled()
             || "" === self::shortcode()
             || ! $this->is_listing( false, $widget )
-            || ( class_exists( ListingSearchRenderer::class ) && ListingSearchRenderer::rendered( "listing" ) )
+            || ( class_exists( SearchBox::class ) && SearchBox::rendered( "listing" ) )
         ) {
             return;
         }
@@ -120,7 +120,7 @@ final class ArchiveSearch {
             || ! self::enabled()
             || ! self::archive_page()
             || "" === self::shortcode()
-            || ( class_exists( ListingSearchRenderer::class ) && ListingSearchRenderer::rendered( "listing" ) )
+            || ( class_exists( SearchBox::class ) && SearchBox::rendered( "listing" ) )
         ) {
             return;
         }
@@ -185,7 +185,7 @@ final class ArchiveSearch {
 
     /** The search box shortcode HWS Base Tools offers ([hws_search], or its former name on older copies), or ''. */
     private static function shortcode(): string {
-        foreach ( [ "hws_search", "hws_listing_search" ] as $tag ) {
+        foreach ( [ "hws_search" ] as $tag ) {
             if ( shortcode_exists( $tag ) ) {
                 return $tag;
             }
