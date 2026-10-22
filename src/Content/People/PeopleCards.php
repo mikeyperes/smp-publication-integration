@@ -116,11 +116,13 @@ final class PeopleCards {
             . ".$b--list .$i{display:flex;align-items:flex-start;gap:18px;padding-bottom:20px;border-bottom:1px solid rgba(127,127,127,.2)}"
             . ".$b--list .{$i}__photo{flex:0 0 96px;width:96px;height:96px;overflow:hidden;border-radius:50%;background:rgba(127,127,127,.12)}"
             . ".{$i}__image{display:block;width:100%;height:100%;object-fit:cover}"
-            . ".{$i}__name{margin:0;font-size:1.15em;line-height:1.3}"
-            . ".{$i}__name a{color:inherit;text-decoration:none}"
-            . ".{$i}__title{margin:4px 0 0;font-size:.9em;font-weight:600;letter-spacing:.02em;text-transform:uppercase;opacity:.7}"
-            . ".{$i}__bio{margin:10px 0 0;font-size:.95em;line-height:1.55}"
-            . ".{$i}__link{display:inline-block;margin-top:10px;font-size:.9em;font-weight:600}"
+            . ".$b.$b .$i .{$i}__name{margin:0;padding:0;font-size:1.25em;line-height:1.3}"
+            // Scoped strongly enough that a theme or page template's blanket link colour cannot recolour the names.
+            . ".$b.$b .$i .{$i}__name a,.$b.$b .$i .{$i}__name a:hover{color:inherit;text-decoration:none}"
+            . ".$b.$b .$i .{$i}__title{margin:4px 0 0;padding:0;font-size:.9em;font-weight:600;letter-spacing:.02em;text-transform:uppercase;opacity:.7}"
+            . ".$b.$b .$i .{$i}__bio{margin:10px 0 0;padding:0;font-size:.95em;line-height:1.55}"
+            . ".$b.$b .$i .{$i}__link{display:inline-block;margin-top:10px;font-size:.9em;font-weight:600;color:inherit;text-decoration:underline;text-underline-offset:3px;transition:opacity .25s}"
+            . ".$b.$b .$i .{$i}__link:hover{color:inherit;opacity:.7}"
             . "@media(max-width:900px){.$b--cards{grid-template-columns:repeat(min(2,var(--$b-columns,3)),minmax(0,1fr))}}"
             . "@media(max-width:560px){.$b--cards{grid-template-columns:1fr}}";
     }

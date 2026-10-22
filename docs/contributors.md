@@ -33,7 +33,8 @@
 All of Executive Leadership's (`style`, `columns`, `ids`, `limit`, `hide`, `link`, `bio_words`, `photo_size`, `heading`), plus:
 
 - `roles="contributor,author"` uses these roles for this one list instead of the tab's roles (added and removed people still apply).
-- `with_articles="1"` leaves out people with no published articles.
+- `with_photo="1|0"` leaves out people without their own profile photo, or shows everyone. Default: the Publication setting "hide authors without a featured image" (`author_listing_hide_without_featured_image`).
+- `with_articles="1|0"` leaves out people with no published articles, or shows everyone. Default: the Publication setting "hide authors without articles" (`author_listing_hide_without_articles`).
 
 ## Built-in CSS
 

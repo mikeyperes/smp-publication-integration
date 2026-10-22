@@ -162,7 +162,8 @@ final class ContributorsTab {
                 'example_html'     => $this->example_html(),
                 'attributes'       => [
                     'roles="contributor,author"' => 'uses these roles for this one list instead of the roles chosen above (added and removed people still apply).',
-                    'with_articles="1"'          => 'leaves out people who have not published anything yet.',
+                    'with_photo="1|0"'           => 'leaves out people without their own profile photo (1), or shows everyone (0). Default: the site\'s "hide authors without a featured image" setting.',
+                    'with_articles="1|0"'        => 'leaves out people who have not published anything yet (1), or shows everyone (0). Default: the site\'s "hide authors without articles" setting.',
                 ],
             ]
         );

@@ -2,7 +2,9 @@
 
 namespace smp_publication_integration\Content;
 
+use smp_publication_integration\Authorship\AuthorFieldResolver;
 use smp_publication_integration\Content\People\PeopleCards;
+use smp_publication_integration\Support\Settings;
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
@@ -86,13 +88,26 @@ final class Contributors {
     }
 
     public static function render( $atts = [] ): string {
-        $atts = shortcode_atts( PeopleCards::ATTRIBUTES + [ 'roles' => '', 'with_articles' => '0' ], (array) $atts, self::SHORTCODE );
+        // By default the list follows the site's author-listing settings (Publication: hide authors without a photo or without articles).
+        $atts = shortcode_atts(
+            PeopleCards::ATTRIBUTES + [
+                'roles'         => '',
+                'with_articles' => Settings::bool( 'author_listing_hide_without_articles' ) ? '1' : '0',
+                'with_photo'    => Settings::bool( 'author_listing_hide_without_featured_image' ) ? '1' : '0',
+            ],
+            (array) $atts,
+            self::SHORTCODE
+        );
         $ids  = self::member_ids();
         if ( '' !== trim( (string) $atts['roles'] ) ) {
             // A different set of roles for this one list; added and removed people still apply.
             $settings = self::settings();
             $roles    = array_values( array_filter( array_map( 'sanitize_key', explode( ',', (string) $atts['roles'] ) ) ) );
             $ids      = array_values( array_diff( array_unique( array_merge( self::role_member_ids( $roles ), $settings['include'] ) ), $settings['exclude'] ) );
+        }
+        if ( in_array( (string) $atts['with_photo'], [ '1', 'yes', 'true' ], true ) ) {
+            $fields = new AuthorFieldResolver();
+            $ids    = array_values( array_filter( $ids, static fn( int $id ): bool => $fields->explicit_image_attachment_id( $id ) > 0 || '' !== $fields->explicit_image_url( $id, 'medium' ) ) );
         }
         if ( in_array( (string) $atts['with_articles'], [ '1', 'yes', 'true' ], true ) ) {
             $ids = array_values( array_filter( $ids, static fn( int $id ): bool => count_user_posts( $id, PublicationContentTypes::article_post_types(), true ) > 0 ) );
