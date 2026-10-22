@@ -35,6 +35,7 @@ final class PeopleEditor {
             <?php echo $c['top_html'] ?? ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 
             <?php if ( ! empty( $c['show_body'] ) ) : ?>
+            <?php if ( null !== ( $c['page'] ?? null ) ) : ?>
             <section>
                 <h3>Page</h3>
                 <?php $page = (array) $c['page']; ?>
@@ -55,6 +56,7 @@ final class PeopleEditor {
                 <?php endif; ?>
                 <div class="smpi-pe-notice" data-role="page-notice" role="status" aria-live="polite"></div>
             </section>
+            <?php endif; ?>
 
             <?php echo $c['extra_sections_html'] ?? ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 
@@ -254,7 +256,9 @@ final class PeopleEditor {
             var list = root.querySelector('[data-role="people"]'), timer = null;
             function refresh(){ var n = list ? list.children.length : 0; var c = root.querySelector('[data-role="count"]'); if (c) c.textContent = n + (n === 1 ? ' person' : ' people'); var em = root.querySelector('[data-role="empty"]'); if (em) em.hidden = n > 0; }
             function people(){ return list ? Array.prototype.map.call(list.children, function(li){ var t = li.querySelector('[data-role="title"]'); return { id: li.dataset.id, title: t ? t.value : '' }; }) : []; }
-            function save(){ clearTimeout(timer); say('people-notice', 'Saving…'); return post('save_people', { people: JSON.stringify(people()) }).then(function(d){ say('people-notice', d.message); example(d.example); }).catch(function(e){ say('people-notice', e.message, true); }); }
+            // Saves run one after another, each sending the list as it is when it starts, so a slow save never overwrites a newer one.
+            var queue = Promise.resolve();
+            function save(){ clearTimeout(timer); say('people-notice', 'Saving…'); queue = queue.then(function(){ return post('save_people', { people: JSON.stringify(people()) }).then(function(d){ say('people-notice', d.message); example(d.example); }).catch(function(e){ say('people-notice', e.message, true); }); }); return queue; }
             function addRow(item){
                 var holder = document.createElement('ul'); holder.innerHTML = tpl; var row = holder.firstElementChild;
                 row.dataset.id = String(item.id);

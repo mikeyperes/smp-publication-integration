@@ -90,6 +90,13 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 - **HTML structure and styling:** [docs/executive-leadership.md](docs/executive-leadership.md): markup, classes (`.smpi-leadership--<style>`, `.smpi-leader--<user>`, `__photo`, `__image`, `__name`, `__title`, `__bio`, `__link`), built-in CSS and how to style it.
 - **Code:** `src/Content/ExecutiveLeadership.php`, `src/Admin/ExecutiveLeadershipTab.php`; shared list pieces `src/Content/People/PeopleCards.php`, `src/Admin/People/PeopleEditor.php`
 
+### Founders
+- **Does:** a founders section: on/off switch, a section title ("Founders" by default, e.g. "Executives"), user accounts picked by type-to-search, dragged into order, each with an optional Founder Title; photo, name and bio from the user profile. Styles with a live example, HTML structure and shortcode on the tab.
+- **Switch:** Settings → SMP Publication Integration → Founders (`options-general.php?page=smp-publication-integration&tab=founders_list`); option `smpi_founders`.
+- **Use:** `[smpi_founders]` with the shared people-list attributes plus `section_title` and `section_tag`.
+- **HTML structure and styling:** [docs/founders.md](docs/founders.md).
+- **Code:** `src/Content/Founders.php`, `src/Admin/FoundersTab.php`.
+
 ### Contributors
 - **Does:** the publication's contributors: everyone with the chosen roles (Contributor by default), plus people added from other roles, minus people removed, in a chosen order. The tab has role checkboxes, a type-to-search people list (Hexa WP Core user search) with drag ordering, "Added" badges and a "removed from the list" section to put people back, the Contributors page (create it or apply the default template), styles with a live example, CSS structure and the shortcode.
 - **Switch:** Settings → SMP Publication Integration → Contributors (`options-general.php?page=smp-publication-integration&tab=contributors`); option `smpi_contributors`.
@@ -261,6 +268,11 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.5.13
+
+- New Founders tab and `[smpi_founders]`: on/off, section title (default Founders), people from user accounts with optional titles, styles, HTML structure and shortcode.
+- People lists save one change at a time, so a quick add-then-type never loses the title.
 
 ### 2.5.12
 
