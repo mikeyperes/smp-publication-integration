@@ -279,7 +279,9 @@ final class WordPressCollector {
             'post_summary'      => $acf_active && Settings::bool( 'post_summary_acf_enabled' ),
             'post_faq_items'    => $acf_active && Settings::bool( 'post_faqs_acf_enabled' ),
             'smpi_article_type' => in_array( ArticleTypes::TAXONOMY, $taxonomies, true ),
-            'article_audio'    => class_exists( '\\smp_text_to_speech\\Plugin' ),
+            // Audio plugin installed and its "Listen to this article" switch on
+            // (older plugin versions have no switch, so the default is on).
+            'article_audio'    => class_exists( '\\smp_text_to_speech\\Plugin' ) && (bool) apply_filters( 'smp_wp_text_to_speech_article_audio_enabled', true ),
             'public_manifest'  => [
                 'namespace' => 'smpi/v1',
                 'route'     => '/publication-manifest',

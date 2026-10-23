@@ -218,7 +218,7 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `2.5.23`
+- Version: `2.5.24`
 
 ## Ownership
 
@@ -320,6 +320,10 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.5.24
+
+- The publication manifest reports `article_audio` as supported only while SMP WP Text To Speech's "Listen to this article" switch is on (`smp_wp_text_to_speech_article_audio_enabled`), so Publish stops generating audio for sites that turned it off.
 
 ### 2.5.23
 
