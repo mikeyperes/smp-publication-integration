@@ -138,6 +138,16 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 - **Use:** `[smp_post_date post_id="" format="M j, Y · g:i A"]`.
 - **Code:** `src/Content/PostTime.php`
 
+### Site feature switches (read route)
+- **Does:** tells Publish and the skills, in one quick public request, which article features this site has switched on, so a campaign never produces a feature the site turned off.
+- **Use:** `GET https://<site>/wp-json/smpi/v1/publication-manifest`, field `delivery_capabilities`:
+  - `post_summary` - "What to know" summary (`post_summary_acf_enabled`)
+  - `post_faq_items` - FAQs (`post_faq_items` / `post_faqs_acf_enabled`)
+  - `article_audio` - "Listen to this article", reported from SMP WP Text To Speech's switch (`smp_wp_text_to_speech_article_audio_enabled`)
+  - Quick read: `curl -s https://<site>/wp-json/smpi/v1/publication-manifest | jq .delivery_capabilities`
+- **Extend:** `smpi_publication_manifest_*` filters (see Extension points).
+- **Code:** `src/PublicationManifest/WordPressCollector.php` (`delivery_capabilities`)
+
 ### What to know (article summary)
 - **Does:** the article's "What to know" summary block, placed automatically or by shortcode. A summary with no visible text (blank lines saved as non-breaking spaces) shows nothing.
 - **Switch:** `post_summary_acf_enabled` (Article Design, "What to know"). Off removes everything: the editor field, the automatic placement, the shortcodes, the contents link, the go-live checklist item and the styles.
