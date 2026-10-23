@@ -68,15 +68,28 @@ final class PublicationContentTypes {
             )
             ->add(
                 [
-                    'id'              => 'article-fields',
-                    'label'           => 'Article Editor Fields',
-                    'description'     => 'Shared summary and FAQ fields for posts, press releases, Knowledge Base articles, and Resources. Authors have their own Authors box.',
-                    'group_key'       => 'group_64a7290b61191',
+                    'id'              => 'post-summary',
+                    'label'           => 'What to Know Fields',
+                    'description'     => 'The "What to know" article summary field. Registered only while the What to know feature is on.',
+                    'group_key'       => AcfFields::POST_SUMMARY_GROUP_KEY,
                     'enabled_default' => true,
-                    'definition'      => [ AcfFields::class, 'article_fields_group' ],
+                    'definition'      => [ AcfFields::class, 'post_summary_group' ],
                     'location'        => implode( ', ', self::article_post_types() ) . ' editors',
-                    'fields'          => [ 'Post Summary', 'FAQ Schema', 'Structured FAQs' ],
-                    'dependencies'    => [ 'Advanced Custom Fields Pro', 'SMP article feature settings' ],
+                    'fields'          => [ 'Post Summary' ],
+                    'dependencies'    => [ 'Advanced Custom Fields Pro', 'What to know feature switch' ],
+                ]
+            )
+            ->add(
+                [
+                    'id'              => 'post-faqs',
+                    'label'           => 'FAQ Fields',
+                    'description'     => 'Structured FAQ rows and the FAQ schema switch. Registered only while the FAQs feature is on.',
+                    'group_key'       => AcfFields::POST_FAQS_GROUP_KEY,
+                    'enabled_default' => true,
+                    'definition'      => [ AcfFields::class, 'post_faqs_group' ],
+                    'location'        => implode( ', ', self::article_post_types() ) . ' editors',
+                    'fields'          => [ 'FAQ Schema', 'Structured FAQs' ],
+                    'dependencies'    => [ 'Advanced Custom Fields Pro', 'FAQs feature switch' ],
                 ]
             );
 

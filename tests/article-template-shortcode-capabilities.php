@@ -42,7 +42,7 @@ namespace smp_publication_integration\Support {
     }
     final class RuntimeContext {}
     final class Settings {
-        public static function bool( string $key ): bool { return 'table_of_contents_enabled' === $key; }
+        public static function bool( string $key ): bool { return in_array( $key, [ 'table_of_contents_enabled', 'post_faqs_acf_enabled' ], true ); }
         public static function get( string $key, $default = null ) { return $default; }
     }
 }

@@ -273,8 +273,18 @@ final class ArticleStyles {
         return in_array( $style, [ "unstyled", "none", "faq00", "faq01", "faq02", "faq03", "faq04" ], true ) ? $style : "none";
     }
 
+    /**
+     * True when markup contains text a reader can see. An editor can save
+     * blank paragraphs as non-breaking spaces; those must not draw a block.
+     */
+    public static function has_visible_text( $html ): bool {
+        $text = html_entity_decode( wp_strip_all_tags( (string) $html ), ENT_QUOTES | ENT_HTML5, "UTF-8" );
+
+        return "" !== trim( str_replace( "\xC2\xA0", " ", $text ) );
+    }
+
     public static function wrap_post_summary( string $html, string $style = "" ): string {
-        if ( "" === trim( $html ) ) {
+        if ( ! self::has_visible_text( $html ) ) {
             return "";
         }
         $style = self::normalize_summary_style( $style );

@@ -236,6 +236,11 @@ class SchemaManager {
     }
 
     public static function faq_rows_for_post( int $post_id, bool $schema_only = true ): array {
+        // The FAQs feature switch removes FAQ output everywhere: shortcode,
+        // automatic placement and FAQPage schema.
+        if ( ! Settings::bool( "post_faqs_acf_enabled" ) ) {
+            return [];
+        }
         if ( $schema_only && ! self::faq_schema_enabled_for_post( $post_id ) ) {
             return [];
         }

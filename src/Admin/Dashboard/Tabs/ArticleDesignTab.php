@@ -230,10 +230,10 @@ trait ArticleDesignTab {
                 ]
             );
         $this->feature_card(
-            "Article summary block",
+            "What to know (article summary)",
             "post_summary_acf_enabled",
-            "Registers and reads the existing <code>post_summary</code> editor field. The feature toggle and Custom Fields tab update the same setting.",
-            "Displays the article summary with a selectable design, color, typography, and manual or automatic placement.",
+            "Owns the What to Know field group <code>group_64a7290b61191</code> (<code>post_summary</code>). Off removes the editor field, the automatic placement, the shortcodes, the contents link and the styles. The Custom Fields tab updates the same setting.",
+            "Displays the article summary with a selectable design, color, typography, and manual or automatic placement. A summary with no visible text shows nothing.",
             "[smp_post_summary]\n[smp_post_acf field=\"post_summary\"]",
             $this->post_summary_report_html(),
             $this->activity_log_html(),
@@ -255,9 +255,9 @@ trait ArticleDesignTab {
                 ]
             );
         $this->feature_card(
-            "Article FAQ block",
+            "FAQs",
             "post_faqs_acf_enabled",
-            "Registers and reads the existing <code>post_faq_items</code> editor fields. FAQPage schema continues to use the same rows.",
+            "Owns the <code>group_smpi_post_faqs</code> field group (<code>post_faq_items</code>, <code>post_faq_schema_enabled</code>). Off removes the editor fields, the automatic placement, the shortcodes, the FAQPage schema and the styles.",
             "Displays structured article FAQs with a selectable design, color, typography, and manual or automatic placement.",
             "[smp_post_faqs]\n[smp_post_acf field=\"post_faq_items\"]",
             $this->post_faq_report_html(),

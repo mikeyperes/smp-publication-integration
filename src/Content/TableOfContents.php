@@ -113,7 +113,7 @@ final class TableOfContents {
             return [];
         }
         $summary = Fields::get( $post_id, "post_summary", "" );
-        if ( ! Fields::has_value( $summary ) ) {
+        if ( ! Fields::has_value( $summary ) || ( is_string( $summary ) && ! ArticleStyles::has_visible_text( $summary ) ) ) {
             return [];
         }
         $style = ArticleStyles::normalize_summary_style( (string) Settings::get( "post_summary_style", "none" ) );

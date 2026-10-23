@@ -138,12 +138,21 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 - **Use:** `[smp_post_date post_id="" format="M j, Y · g:i A"]`.
 - **Code:** `src/Content/PostTime.php`
 
-### Post summary and FAQs
-- **Does:** an article's ACF summary and FAQ blocks, placed automatically or by shortcode.
-- **Switch:** `post_summary_acf_enabled`, `post_faqs_acf_enabled`.
-- **Use:** `[smp_post_summary post_id="" format="html" style=""]`, `[smp_post_faqs post_id="" format="html|accordion|text" style=""]`, any post ACF field `[smp_post_acf field="" post_id="" format="html"]`. `format="accordion"` renders structured FAQ rows as native closed `details` and `summary` elements. It does not parse or migrate FAQ text already embedded in older article content.
-- **Code:** `src/Content/Shortcodes.php`, `src/Content/PostSummaryPlacement.php`, `src/Content/PostFaqPlacement.php`
-- **HTML/CSS examples:** [What to know](docs/article-design-examples.md#what-to-know), [FAQs](docs/article-design-examples.md#frequently-asked-questions).
+### What to know (article summary)
+- **Does:** the article's "What to know" summary block, placed automatically or by shortcode. A summary with no visible text (blank lines saved as non-breaking spaces) shows nothing.
+- **Switch:** `post_summary_acf_enabled` (Article Design, "What to know"). Off removes everything: the editor field, the automatic placement, the shortcodes, the contents link, the go-live checklist item and the styles.
+- **Fields:** its own field group "What to Know", key `group_64a7290b61191`, field `post_summary` (`field_65ab7ba0e849b`). The key is kept because sites carry a database "Post - Header" group with that key; SMP's local group replaces it, and with the switch off it is registered empty and inactive so neither copy shows.
+- **Use:** `[smp_post_summary post_id="" format="html" style=""]`, `[smp_post_acf field="post_summary"]`.
+- **Code:** `src/Content/AcfFields.php` (`post_summary_group`), `src/Content/Shortcodes.php`, `src/Content/PostSummaryPlacement.php`, `src/Content/ArticleStyles.php` (`has_visible_text`)
+- **HTML/CSS example:** [What to know](docs/article-design-examples.md#what-to-know).
+
+### FAQs
+- **Does:** structured article FAQs, placed automatically or by shortcode, and the FAQPage schema built from the same rows.
+- **Switch:** `post_faqs_acf_enabled` (Article Design, "FAQs"). Off removes everything: the editor fields, the automatic placement, the shortcodes, the FAQPage schema, the go-live checklist item and the styles.
+- **Fields:** its own field group "FAQs", key `group_smpi_post_faqs`, fields `post_faq_schema_enabled` and `post_faq_items` (keys unchanged).
+- **Use:** `[smp_post_faqs post_id="" format="html|accordion|text" style=""]`, `[smp_post_acf field="post_faq_items"]`. `format="accordion"` renders structured FAQ rows as native closed `details` and `summary` elements. It does not parse or migrate FAQ text already embedded in older article content.
+- **Code:** `src/Content/AcfFields.php` (`post_faqs_group`), `src/Content/Shortcodes.php`, `src/Content/PostFaqPlacement.php`, `src/StructuredData/SchemaManager.php` (`faq_rows_for_post`)
+- **HTML/CSS example:** [FAQs](docs/article-design-examples.md#frequently-asked-questions).
 
 ### Publication pages
 - **Does:** the Publication Pages tab lists every standard publication page in four groups (About, People, Policies, Reader). Each row shows the WordPress page it is linked to (found automatically at its usual address, at any level such as `/about/headquarters/`; Change picks another), its status, its template (View / edit, Back to default) and one button: Create page, or Apply template, which saves the page's current content as a revision first.
@@ -209,7 +218,7 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `2.5.22`
+- Version: `2.5.23`
 
 ## Ownership
 
@@ -311,6 +320,11 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.5.23
+
+- "What to know" and FAQs are separate features, each with its own switch and its own field group ("What to Know" and "FAQs" replace the shared "Article Fields" group). Off removes the editor fields and every output: automatic placement, shortcodes, contents link, FAQPage schema and go-live checklist item.
+- A summary made only of blank lines (non-breaking spaces) no longer draws an empty "What to know" box or contents link.
 
 ### 2.5.21
 

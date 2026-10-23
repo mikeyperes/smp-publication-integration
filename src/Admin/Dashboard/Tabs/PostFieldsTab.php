@@ -94,7 +94,7 @@ trait PostFieldsTab {
         $settings = Settings::all();
         $acf_active = Dependencies::fields_available();
         $post_header_group_registered = function(): bool {
-            return \Hexa\PluginCore\Fields\Field::available() && (bool) \Hexa\PluginCore\Fields\FieldGroups::get_group( "group_64a7290b61191" );
+            return \Hexa\PluginCore\Fields\Field::available() && ( (bool) \Hexa\PluginCore\Fields\FieldGroups::get_group( "group_64a7290b61191" ) || (bool) \Hexa\PluginCore\Fields\FieldGroups::get_group( "group_smpi_post_faqs" ) );
         };
         $visibility_group_registered = function(): bool {
             return \Hexa\PluginCore\Fields\Field::available() && (bool) \Hexa\PluginCore\Fields\FieldGroups::get_group( "group_smpi_visibility_controls" );
@@ -130,7 +130,7 @@ trait PostFieldsTab {
                 "description" => "Optional article summary field used by shortcodes and single article treatments.",
                 "instructions" => "Enable this when editors need a reusable post summary separate from the article body. Styling controls remain in Features.",
                 "fields" => [ "post_summary" ],
-                "dependencies" => [ "ACF Pro", "Post Header local field group" ],
+                "dependencies" => [ "ACF Pro", "What to Know local field group" ],
                 "code_example" => "[smp_post_summary style=\"sum00\"]",
                 "test_report" => $this->post_acf_addons_report_text(),
             ],
@@ -141,7 +141,7 @@ trait PostFieldsTab {
                 "setting_key" => "post_faqs_acf_enabled",
                 "enabled" => Settings::bool( "post_faqs_acf_enabled" ),
                 "registered" => function(): bool { return Settings::bool( "post_faqs_acf_enabled" ) && \Hexa\PluginCore\Fields\Field::available() && (bool) \Hexa\PluginCore\Fields\FieldGroups::get_field( "field_smpi_post_faq_items" ); },
-                "acf_group_key" => "group_64a7290b61191",
+                "acf_group_key" => "group_smpi_post_faqs",
                 "object_name" => "post_faq_items",
                 "location" => "post, press-release, knowledge-base, and resources editors",
                 "description" => "Structured FAQ rows that power FAQPage schema and display shortcodes.",

@@ -10,6 +10,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 final class AcfFields {
+    public const POST_SUMMARY_GROUP_KEY = 'group_64a7290b61191';
+    public const POST_FAQS_GROUP_KEY = 'group_smpi_post_faqs';
     public const PUBLICATION_MUCKRACK_VERIFIED_FIELD_KEY = 'field_smpi_publication_muckrack_verified';
     public const PUBLICATION_MUCKRACK_VERIFIED_FIELD_NAME = 'smpi_publication_muckrack_verified';
     public const PUBLICATION_MUCKRACK_URL_FIELD_KEY = 'field_smpi_publication_muckrack_url';
@@ -118,11 +120,20 @@ final class AcfFields {
         return array_values( $types );
     }
 
-    public static function article_fields_group(): array {
-        $fields = [];
+    /**
+     * "What to know" summary field group. It keeps the legacy key
+     * group_64a7290b61191 because sites carry a database "Post - Header" group
+     * with that key and the same summary field; this local group replaces it.
+     * With the summary feature off the group is registered empty and inactive,
+     * so neither copy appears in the editor.
+     */
+    public static function post_summary_group(): array {
+        if ( ! Settings::bool( "post_summary_acf_enabled" ) ) {
+            return [ "active" => false ] + self::article_group( self::POST_SUMMARY_GROUP_KEY, "What to Know", [], 0 );
+        }
 
-        if ( Settings::bool( "post_summary_acf_enabled" ) ) {
-            $fields[] = [
+        return self::article_group( self::POST_SUMMARY_GROUP_KEY, "What to Know", [
+            [
                 "key" => "field_65ab7ba0e849b",
                 "label" => "Post Summary",
                 "name" => "post_summary",
@@ -132,31 +143,39 @@ final class AcfFields {
                 "toolbar" => "full",
                 "media_upload" => 1,
                 "delay" => 0,
-            ];
-        }
+            ],
+        ], 0 );
+    }
 
-        if ( Settings::bool( "post_faqs_acf_enabled" ) ) {
-            $fields[] = [ "key" => "field_smpi_post_faq_summary", "label" => "Post FAQ Summary", "name" => "", "type" => "message", "message" => "<div class=\"smpi-faq-summary-card\" data-smpi-faq-summary><strong>FAQ summary</strong><p class=\"smpi-faq-summary-empty\">No structured FAQ rows yet.</p></div>", "esc_html" => 0, "new_lines" => "wpautop", "instructions" => "Live read-only summary of the structured FAQ rows below." ];
-            $fields[] = [ "key" => "field_smpi_post_faq_schema_enabled", "label" => "FAQ Schema", "name" => "post_faq_schema_enabled", "type" => "true_false", "ui" => 1, "default_value" => 1, "instructions" => "One switch for the whole FAQ block. On by default." ];
-            $fields[] = [ "key" => "field_smpi_post_faq_accordion", "label" => "Structured FAQs", "name" => "", "type" => "accordion", "instructions" => "Expand to edit article-specific FAQ rows. Rows feed the FAQPage schema and the [smp_post_faqs] shortcode when FAQ Schema is on.", "open" => 0, "multi_expand" => 0, "endpoint" => 0 ];
-            $fields[] = [ "key" => "field_smpi_post_faq_items", "label" => "Post FAQ Items", "name" => "post_faq_items", "type" => "repeater", "instructions" => "Use structured FAQ rows for reliable FAQPage schema. Add one question and one answer per row. Row order controls schema order.", "layout" => "row", "button_label" => "Add FAQ", "collapsed" => "field_smpi_post_faq_question", "sub_fields" => [ [ "key" => "field_smpi_post_faq_question", "label" => "Question", "name" => "question", "type" => "text", "instructions" => "Plain text question. Example: What record did Lionel Messi recently tie?" ], [ "key" => "field_smpi_post_faq_answer", "label" => "Answer", "name" => "answer", "type" => "wysiwyg", "instructions" => "Answer content. Keep it factual and concise. Sanitized HTML is allowed.", "tabs" => "all", "toolbar" => "basic", "media_upload" => 0, "delay" => 0, "wrapper" => [ "class" => "smpi-faq-answer-field" ] ] ] ];
-            $fields[] = [ "key" => "field_smpi_post_faq_accordion_end", "label" => "", "name" => "", "type" => "accordion", "endpoint" => 1 ];
-        }
-
-
-        if ( empty( $fields ) ) {
+    /**
+     * FAQ field group. Registered only while the FAQ feature is on, so
+     * switching it off removes the editor fields entirely.
+     */
+    public static function post_faqs_group(): array {
+        if ( ! Settings::bool( "post_faqs_acf_enabled" ) ) {
             return [];
         }
 
+        $fields = [];
+        $fields[] = [ "key" => "field_smpi_post_faq_summary", "label" => "Post FAQ Summary", "name" => "", "type" => "message", "message" => "<div class=\"smpi-faq-summary-card\" data-smpi-faq-summary><strong>FAQ summary</strong><p class=\"smpi-faq-summary-empty\">No structured FAQ rows yet.</p></div>", "esc_html" => 0, "new_lines" => "wpautop", "instructions" => "Live read-only summary of the structured FAQ rows below." ];
+        $fields[] = [ "key" => "field_smpi_post_faq_schema_enabled", "label" => "FAQ Schema", "name" => "post_faq_schema_enabled", "type" => "true_false", "ui" => 1, "default_value" => 1, "instructions" => "One switch for the whole FAQ block. On by default." ];
+        $fields[] = [ "key" => "field_smpi_post_faq_accordion", "label" => "Structured FAQs", "name" => "", "type" => "accordion", "instructions" => "Expand to edit article-specific FAQ rows. Rows feed the FAQPage schema and the [smp_post_faqs] shortcode when FAQ Schema is on.", "open" => 0, "multi_expand" => 0, "endpoint" => 0 ];
+        $fields[] = [ "key" => "field_smpi_post_faq_items", "label" => "Post FAQ Items", "name" => "post_faq_items", "type" => "repeater", "instructions" => "Use structured FAQ rows for reliable FAQPage schema. Add one question and one answer per row. Row order controls schema order.", "layout" => "row", "button_label" => "Add FAQ", "collapsed" => "field_smpi_post_faq_question", "sub_fields" => [ [ "key" => "field_smpi_post_faq_question", "label" => "Question", "name" => "question", "type" => "text", "instructions" => "Plain text question. Example: What record did Lionel Messi recently tie?" ], [ "key" => "field_smpi_post_faq_answer", "label" => "Answer", "name" => "answer", "type" => "wysiwyg", "instructions" => "Answer content. Keep it factual and concise. Sanitized HTML is allowed.", "tabs" => "all", "toolbar" => "basic", "media_upload" => 0, "delay" => 0, "wrapper" => [ "class" => "smpi-faq-answer-field" ] ] ] ];
+        $fields[] = [ "key" => "field_smpi_post_faq_accordion_end", "label" => "", "name" => "", "type" => "accordion", "endpoint" => 1 ];
+
+        return self::article_group( self::POST_FAQS_GROUP_KEY, "FAQs", $fields, 1 );
+    }
+
+    private static function article_group( string $key, string $title, array $fields, int $menu_order ): array {
         return [
-            "key" => "group_64a7290b61191",
-            "title" => "Article Fields",
+            "key" => $key,
+            "title" => $title,
             "fields" => $fields,
             "location" => array_map(
                 static fn( string $post_type ): array => [ [ "param" => "post_type", "operator" => "==", "value" => $post_type ] ],
                 PublicationContentTypes::article_post_types()
             ),
-            "menu_order" => 0,
+            "menu_order" => $menu_order,
             "position" => "normal",
             "style" => "default",
             "label_placement" => "top",

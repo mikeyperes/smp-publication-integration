@@ -80,9 +80,9 @@ $checks = [
         && str_contains( $background, 'self::CUSTOM' )
         && str_contains( $ajax, '"post_summary_background_mode"' )
         && str_contains( $ajax, "'post_summary_background_color'" ),
-    "Summary and FAQ are independent feature cards." => str_contains( $dashboard, '"Article summary block",' )
+    "Summary and FAQ are independent feature cards." => str_contains( $dashboard, '"What to know (article summary)",' )
         && str_contains( $dashboard, '"post_summary_acf_enabled",' )
-        && str_contains( $dashboard, '"Article FAQ block",' )
+        && str_contains( $dashboard, '"FAQs",' )
         && str_contains( $dashboard, '"post_faqs_acf_enabled",' )
         && ! str_contains( $dashboard, '"Article Summary & FAQ Blocks"' ),
     "Both cards expose visible use instructions and canonical shortcodes." => str_contains( $dashboard, 'shortcode_usage_html(' )
