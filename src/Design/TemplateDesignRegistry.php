@@ -23,15 +23,6 @@ final class TemplateDesignRegistry {
         $muckrack = "#2d5277";
 
         return [
-            "breadcrumbs" => [
-                "source_key" => "breadcrumbs_color_source",
-                "custom_key" => "breadcrumbs_accent_color",
-                "template_key" => "breadcrumbs_style",
-                "default_template" => "bc-b2",
-                "fallback" => $red,
-                "palettes" => array_fill_keys( [ "bc-b1", "bc-b2", "bc-b3", "bc-b4", "bc-b5", "bc-b6" ], [ "accent" => $red ] ),
-                "variables" => [ "--smpi-bc-accent" => "color", "--smpi-bc-tint" => "rgba:0.07" ],
-            ],
             "table_of_contents" => [
                 "source_key" => "table_of_contents_color_source",
                 "custom_key" => "table_of_contents_accent_color",
@@ -221,13 +212,6 @@ final class TemplateDesignRegistry {
 
     public static function typography_definitions(): array {
         return [
-            "breadcrumbs" => [
-                "title" => "Breadcrumb typography",
-                "font_family" => [ "key" => "breadcrumbs_font_family", "label" => "Breadcrumb font" ],
-                "font_weight" => [ "key" => "breadcrumbs_font_weight", "label" => "Breadcrumb weight" ],
-                "font_color" => [ "key" => "breadcrumbs_text_color", "label" => "Breadcrumb text color" ],
-                "font_size" => [ "key" => "breadcrumbs_font_size", "label" => "Breadcrumb font size", "min" => 8, "max" => 64, "suffix" => "px" ],
-            ],
             "table_of_contents" => [
                 "title" => "Table of contents typography",
                 "font_family" => [ "key" => "table_of_contents_font_family", "label" => "Table of contents font" ],
@@ -309,7 +293,6 @@ final class TemplateDesignRegistry {
 
     public static function typography_variable_definitions(): array {
         return [
-            "breadcrumbs" => [ "font_color" => [ "--smpi-bc-text", "breadcrumbs_text_color", "color", "#374151" ], "font_size" => [ "--smpi-bc-font-size", "breadcrumbs_font_size", "size", 13, 8, 64 ] ],
             "table_of_contents" => [ "font_color" => [ "--smpi-toc-text", "table_of_contents_text_color", "color", "#1f2937" ], "font_size" => [ "--smpi-toc-size", "table_of_contents_text_font_size", "size", 15, 8, 64 ], "font_style" => [ "--smpi-toc-fstyle", "table_of_contents_text_font_style", "style", "normal" ] ],
             "article_heading" => [ "font_color" => [ "--smpi-heading-ink", "article_heading_text_color", "color", "#111827" ], "font_size_h2" => [ "--smpi-heading-h2-size", "article_heading_h2_font_size", "size", 23, 8, 64 ], "font_size_h3" => [ "--smpi-heading-h3-size", "article_heading_h3_font_size", "size", 20, 8, 64 ] ],
             "article_numbered_list" => [ "font_color" => [ "--smpi-numbered-list-text", "article_numbered_list_text_color", "color", "#1f2937" ], "font_size" => [ "--smpi-numbered-list-size", "article_numbered_list_font_size", "size", 16, 8, 64 ] ],
@@ -325,7 +308,6 @@ final class TemplateDesignRegistry {
 
     public static function typography_preservation_surfaces(): array {
         return [
-            "breadcrumbs" => [ "font_family" => false, "font_size" => false, "font_color" => true, "font_weight" => false ],
             "table_of_contents" => false,
             "article_heading" => true,
             "article_numbered_list" => false,
@@ -346,7 +328,6 @@ final class TemplateDesignRegistry {
 
     public static function font_family_css_variables(): array {
         return [
-            "breadcrumbs_font_family" => "--smpi-bc-font",
             "table_of_contents_font_family" => "--smpi-toc-font",
             "article_heading_font_family" => "--smpi-heading-font",
             "article_numbered_list_font_family" => "--smpi-numbered-list-font",
@@ -362,7 +343,6 @@ final class TemplateDesignRegistry {
 
     public static function font_weight_css_variables(): array {
         return [
-            "breadcrumbs_font_weight" => "--smpi-bc-weight",
             "table_of_contents_font_weight" => "--smpi-toc-weight",
             "article_heading_font_weight" => "--smpi-heading-weight",
             "article_numbered_list_font_weight" => "--smpi-numbered-list-weight",
@@ -422,12 +402,6 @@ final class TemplateDesignRegistry {
 
     public static function preview_typography_selectors(): array {
         return [
-            "breadcrumbs" => [
-                "font_family" => ".smpi-breadcrumbs,.smpi-breadcrumb-title,.smpi-breadcrumb-list,.smpi-breadcrumb-link,.smpi-breadcrumb-current",
-                "font_weight" => ".smpi-breadcrumbs,.smpi-breadcrumb-title,.smpi-breadcrumb-list,.smpi-breadcrumb-link,.smpi-breadcrumb-current",
-                "font_color" => ".smpi-breadcrumb-title,.smpi-breadcrumb-list,.smpi-breadcrumb-current",
-                "font_size" => ".smpi-breadcrumb-title,.smpi-breadcrumb-list,.smpi-breadcrumb-link,.smpi-breadcrumb-current",
-            ],
             "table_of_contents" => [
                 "font_family" => ".smpi-table-of-contents,.smpi-toc-label,.smpi-toc-link",
                 "font_weight" => ".smpi-table-of-contents,.smpi-toc-label,.smpi-toc-link",

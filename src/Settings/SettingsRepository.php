@@ -103,7 +103,9 @@ class SettingsRepository {
             'post_summary_acf_enabled' => false,
             'post_faqs_acf_enabled' => false,
             'article_types_enabled' => false,
-            "breadcrumbs_enabled" => true,
+            // Breadcrumbs moved to HWS Base Tools (off by default). These keys stay
+            // only so Base Tools can carry over a site that had them switched on.
+            "breadcrumbs_enabled" => false,
             "breadcrumbs_style" => "bc-b2",
             "breadcrumbs_accent_color" => '',
             "breadcrumbs_background_color" => '',

@@ -73,7 +73,6 @@ final class AcfFields {
             [ "key" => "field_smpi_knows_about", "label" => "knowsAbout or keywords", "name" => "smpi_knows_about", "type" => "textarea", "instructions" => "Editorial coverage topics, comma or line separated. Example: technology, startups, sports business, venture capital, digital media.", "rows" => 3, "new_lines" => "br" ],
             [ "key" => self::PUBLICATION_MUCKRACK_VERIFIED_FIELD_KEY, "label" => "Publication Verified by MuckRack", "name" => self::PUBLICATION_MUCKRACK_VERIFIED_FIELD_NAME, "type" => "true_false", "ui" => 1, "instructions" => "Marks this news outlet as verified by the MuckRack editorial team. Display placement is controlled in Settings > SMP Publication Integration > Features." ],
             [ "key" => self::PUBLICATION_MUCKRACK_URL_FIELD_KEY, "label" => "Publication MuckRack URL", "name" => self::PUBLICATION_MUCKRACK_URL_FIELD_NAME, "type" => "url", "instructions" => "Public MuckRack outlet/profile URL used by the publication verification text." ],
-            AcfFieldFactory::multiPostObject( [ "key" => "field_smpi_breadcrumb_disabled_objects", "label" => "Disable SMP Breadcrumbs On Specific Posts Or Pages", "name" => "smpi_breadcrumb_disabled_objects", "instructions" => "Select any posts, pages, or public custom post type entries where SMP breadcrumbs should not render. This is one multi-select field, not a repeater.", "post_types" => self::breadcrumb_disable_post_types() ] ),
         ];
         self::add_publication_shortcode_instructions( $fields );
 
@@ -113,12 +112,6 @@ final class AcfFields {
         unset( $field );
     }
 
-
-    private static function breadcrumb_disable_post_types(): array {
-        $types = get_post_types( [ "public" => true ], "names" );
-        unset( $types["attachment"] );
-        return array_values( $types );
-    }
 
     /**
      * "What to know" summary field group. It keeps the legacy key

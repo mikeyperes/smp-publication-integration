@@ -38,7 +38,6 @@ use smp_publication_integration\Config;
 use smp_publication_integration\Content\AcfFields;
 use smp_publication_integration\Content\AuthorSocialIcons;
 use smp_publication_integration\Content\AuthorArchiveLoading;
-use smp_publication_integration\Content\Breadcrumbs;
 use smp_publication_integration\Content\MuckRackVerification;
 use smp_publication_integration\Content\MultiAuthors;
 use smp_publication_integration\Content\PublicationContentTypes;
@@ -240,7 +239,7 @@ trait ShortcodesTab {
     }
 
     public static function shortcode_catalog(): array {
-        $A = "src/Content/AuthorShortcodes.php"; $AS = "src/Content/AuthorSocialIcons.php"; $S = "src/Content/Shortcodes.php"; $M = "src/Content/MultiAuthors.php"; $MR = "src/Content/MuckRackVerification.php"; $TOC = "src/Content/TableOfContents.php"; $BC = "src/Content/Breadcrumbs.php"; $RT = "src/Content/EstimatedReadTime.php"; $PT = "src/Content/PostTime.php";
+        $A = "src/Content/AuthorShortcodes.php"; $AS = "src/Content/AuthorSocialIcons.php"; $S = "src/Content/Shortcodes.php"; $M = "src/Content/MultiAuthors.php"; $MR = "src/Content/MuckRackVerification.php"; $TOC = "src/Content/TableOfContents.php"; $BC = "src/Content/EstimatedReadTime.php"; $RT = "src/Content/EstimatedReadTime.php"; $PT = "src/Content/PostTime.php";
         $authDetail = function( $source, $file, $type ) use ( $A ) { return [ "field" => "user meta", "group" => "WP user profile", "source" => $source, "file" => $file, "plugin" => "SMP Publication Integration", "type" => $type, "edit" => "author" ]; };
         return [
             [ "key" => "author-identity", "title" => "Author identity & bio", "layer" => "Author layer", "live" => "author",
@@ -315,10 +314,9 @@ trait ShortcodesTab {
                 [ "tag" => "smp_post_acf", "attrs_enum" => [ [ "field" => "post_summary", "label" => "Post summary" ], [ "field" => "post_faq_items", "label" => "Post FAQ items" ] ], "desc" => "Renders a named post ACF field (post_summary or post_faq_items) with SMP block styling.", "type" => "HTML block", "params" => "field (post_summary|post_faq_items), style, post_id", "detail" => [ "field" => "post_summary | post_faq_items", "group" => "Post - Header", "source" => "ACF post field passed via field=", "file" => $S, "plugin" => "SMP Publication Integration", "type" => "HTML", "edit" => "post" ] ],
               ] ],
             [ "key" => "article-meta", "title" => "Article meta", "layer" => "Post layer", "live" => "post",
-              "blurb" => "Small inline meta for an article: a breadcrumb trail and an estimated reading time. Both derive from the post itself.",
+              "blurb" => "Small inline meta for an article: the estimated reading time and the published date. Both derive from the post itself. Breadcrumbs moved to HWS Base Tools.",
               "register_file" => $BC, "access" => "Single-post header or body.",
               "items" => [
-                [ "tag" => "smp_breadcrumbs", "requires" => "the Breadcrumbs feature (Settings, Features tab)", "requires_key" => "breadcrumbs_enabled", "desc" => "The breadcrumb trail for the current post or page. Skips posts listed in the breadcrumb disable setting.", "type" => "HTML", "params" => "post_id", "detail" => [ "field" => "smpi_breadcrumb_disabled_objects (disable list)", "group" => "Publication Profile", "source" => "WP object hierarchy plus breadcrumb disable setting", "file" => $BC, "plugin" => "SMP Publication Integration", "type" => "HTML", "edit" => "post" ] ],
                 [ "tag" => "smp_estimated_read_time", "requires" => "the Estimated read time feature (Settings, Features tab)", "requires_key" => "estimated_read_time_enabled", "desc" => "The estimated reading time of the post, computed from its word count.", "type" => "Text", "params" => "post_id", "detail" => [ "field" => "-", "group" => "-", "source" => "computed from post word count", "file" => $RT, "plugin" => "SMP Publication Integration", "type" => "Text", "edit" => "post" ] ],
                 [ "tag" => "smp_post_date", "desc" => "The original published date and time in the site timezone, independent of the relative-date display setting.", "type" => "Text", "params" => "format, post_id", "variations" => [ [ "code" => "[smp_post_date format=\"M j, Y · g:i A\"]", "label" => "Article date row" ] ], "detail" => [ "field" => "post_date", "group" => "WordPress post", "source" => "original WordPress publication timestamp", "file" => $PT, "plugin" => "SMP Publication Integration", "type" => "Text", "edit" => "post" ] ],
               ] ],

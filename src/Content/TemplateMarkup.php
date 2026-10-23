@@ -24,34 +24,6 @@ final class TemplateMarkup {
         return implode( " ", array_values( array_unique( array_filter( $classes ) ) ) );
     }
 
-    public static function decorate_breadcrumbs( string $html ): string {
-        return self::mutate(
-            $html,
-            static function ( $processor ): array {
-                $tag = $processor->get_tag();
-                if ( "NAV" === $tag ) {
-                    return [ self::CONTENT, "smpi-breadcrumb-nav" ];
-                }
-                if ( in_array( $tag, [ "P", "OL", "UL" ], true ) ) {
-                    return [ self::LIST, "smpi-breadcrumb-list" ];
-                }
-                if ( "LI" === $tag ) {
-                    return [ self::ITEM, "smpi-breadcrumb-item" ];
-                }
-                if ( "A" === $tag ) {
-                    return [ self::ITEM, self::LINK, "smpi-breadcrumb-item", "smpi-breadcrumb-link" ];
-                }
-                if ( "SPAN" === $tag && self::has_class( $processor, "separator" ) ) {
-                    return [ "smpi-breadcrumb-separator" ];
-                }
-                if ( "SPAN" === $tag && self::has_class( $processor, "last" ) ) {
-                    return [ self::ITEM, "smpi-breadcrumb-item", "smpi-breadcrumb-current" ];
-                }
-                return [];
-            }
-        );
-    }
-
     public static function decorate_article_content( string $html, array $heading_ids = [], bool $decorate_headings = true, bool $decorate_lead = true ): string {
         $heading_index = 0;
         $lead_found = false;

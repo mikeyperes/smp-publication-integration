@@ -27,13 +27,10 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 
 ## Features
 
-### Breadcrumbs band
-- **Does:** a breadcrumb band built from Rank Math breadcrumbs, injected below the header on single articles and archives, including author archives ("Home » <author>"), search results ("Home » Results for “<term>”") and the page-not-found page (Rank Math's 404 label).
-- **Switch:** automatic on singular pages and term archives when Rank Math breadcrumbs are on (`rank_math_breadcrumb_check_enabled`); hide on the home page `breadcrumbs_hide_home`, on category and tag archives `breadcrumbs_hide_term_archives`; custom CSS on the dashboard Breadcrumbs tab.
-- **Use:** `[smp_breadcrumbs style=""]` to place it manually.
-- **Style:** `.smpi-breadcrumbs-band`, `.smpi-breadcrumb-separator`.
-- **Code:** `src/Content/Breadcrumbs.php`
-
+### Breadcrumbs (moved)
+- **Does:** nothing here any more. The breadcrumb bar under the site header moved to HWS Base Tools (WP Admin → Settings → HWS Base Tools → Breadcrumbs, `options-general.php?page=hws-core-tools&tab=breadcrumbs`), where it is switched off by default.
+- **Carry-over:** the old `breadcrumbs_*` keys stay in `smpi_settings` only so Base Tools can copy a site's look the first time it is switched on there. `[smp_breadcrumbs]` keeps working through Base Tools.
+- **Schema:** the `BreadcrumbList` schema stays in SMP (`src/StructuredData/SchemaManager.php`).
 ### MuckRack verified badge
 - **Does:** a "Verified by MuckRack" icon or label next to verified authors and the publication, in loop cards, bylines and author boxes.
 - **Switch:** `muckrack_verified_enabled`, where it shows `muckrack_verified_contexts`, `muckrack_author_always_show`; look `muckrack_verified_style`, `muckrack_icon_style`, `muckrack_icon_color`, `muckrack_verified_font_*`, `muckrack_verified_text_color`. Publication badge: `publication_muckrack_verified_enabled`, `publication_muckrack_placements`, `publication_muckrack_*`.
@@ -228,14 +225,14 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `2.5.24`
+- Version: `2.5.25`
 
 ## Ownership
 
 SMP Publication owns publication-specific behavior:
 
 - Publication identity and publication article types.
-- Editorial features, article templates, breadcrumbs, summaries, FAQs, tables of contents, captions, and inline-photo treatments.
+- Editorial features, article templates, summaries, FAQs, tables of contents, captions, and inline-photo treatments.
 - Optional multiple authors per article (per-post switch, off by default), bylines, author displays, and MuckRack verification.
 - Publication and article schema object construction.
 - Blog-like custom post types: `knowledge-base` and `resources`.
@@ -311,7 +308,7 @@ The plugin updater targets the repository's canonical `main` branch and register
 | --- | --- |
 | WordPress | 5.0 |
 | PHP | 8.1 |
-| Hexa WP Core bundle | 3.34.1 |
+| Hexa WP Core bundle | 3.34.2 |
 
 ACF Pro is not required: publication option and content field groups run on Hexa WP Core's custom fields, which use ACF when it is active and store the same data natively when it is not. Feature-specific integrations require their corresponding plugins.
 
@@ -327,9 +324,13 @@ Run every focused regression file with:
 for file in tests/*.php; do php "$file" || exit 1; done
 ```
 
-The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, breadcrumbs, content types, schema fallbacks, and updater configuration.
+The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.5.25
+
+- Breadcrumbs left SMP: the bar under the header is now its own section in HWS Base Tools, off by default. SMP no longer prints, styles or places a breadcrumb bar, and its Article design tab points to the new section. The saved breadcrumb settings stay so Base Tools can carry over a site that had them on. Bundles Hexa WP Core 3.34.2.
 
 ### 2.5.24
 

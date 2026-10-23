@@ -38,7 +38,6 @@ use smp_publication_integration\Config;
 use smp_publication_integration\Content\AcfFields;
 use smp_publication_integration\Content\AuthorSocialIcons;
 use smp_publication_integration\Content\AuthorArchiveLoading;
-use smp_publication_integration\Content\Breadcrumbs;
 use smp_publication_integration\Content\MuckRackVerification;
 use smp_publication_integration\Content\MultiAuthors;
 use smp_publication_integration\Content\PublicationContentTypes;
@@ -106,19 +105,8 @@ trait ArticleDesignTab {
     private function render_article_design_feature_group( array $settings ): void {
         $this->feature_group_open( "article-design", "Article design", "Article navigation, headings, images, and structured content blocks." );
 
-        $breadcrumb_controls = $this->breadcrumb_controls_html( $settings );
-        $this->feature_card(
-            "Breadcrumb navigation",
-            "breadcrumbs_enabled",
-            "Registers a Hexa core-generated ACF multi post selector on Publication Theme Options: <code>smpi_breadcrumb_disabled_objects</code>. No repeater.",
-            "Adds breadcrumbs below the site header on posts, pages, custom post types, and category or tag archives. Rank Math markup is used when available; SMP provides the fallback.",
-            "[smp_breadcrumbs]\n[smp_breadcrumbs style=\"bc-b2\"]\nACF option: smpi_breadcrumb_disabled_objects\nRank Math source: rank-math-options-general",
-            $this->breadcrumbs_report_html(),
-            $this->activity_log_html(),
-            $breadcrumb_controls,
-            true,
-            $this->breadcrumb_css_override_html()
-        );
+        // Breadcrumbs moved to HWS Base Tools (its own sidebar section, off by default).
+        echo '<div class="smpi-alert"><strong>Breadcrumbs moved to HWS Base Tools.</strong> The breadcrumb bar under the site header is now its own section in HWS Base Tools, switched off by default. <a href="' . esc_url( admin_url( 'options-general.php?page=hws-core-tools&tab=breadcrumbs' ) ) . '">Open HWS Base Tools &rarr; Breadcrumbs</a></div>';
 
         $toc_controls = $this->inline_toggle_setting_html( "table_of_contents_auto_single", "Automatically place above article content" )
             . $this->inline_toggle_setting_html( "table_of_contents_include_summary", "Include the Article Summary link" )
@@ -472,9 +460,9 @@ trait ArticleDesignTab {
 .smpi-feature-settings{display:grid;gap:4px;min-width:0}
 .smpi-feature-settings-head{padding-bottom:4px}
 .smpi-feature-settings-body{display:grid;min-width:0}
-.smpi-feature-settings-body>.smpi-control-group,.smpi-feature-settings-body>.smpi-control-row,.smpi-feature-settings-body>.smpi-breadcrumb-flow,.smpi-feature-settings-body>.smpi-drop-cap-preview{border-top:1px solid #e6eaf0;margin:0;padding:16px 0}
+.smpi-feature-settings-body>.smpi-control-group,.smpi-feature-settings-body>.smpi-control-row,.smpi-feature-settings-body>.smpi-drop-cap-preview{border-top:1px solid #e6eaf0;margin:0;padding:16px 0}
 .smpi-feature-settings-body>:first-child{border-top:0;padding-top:8px}
-.smpi-feature-card .smpi-control-group h3,.smpi-feature-card .smpi-breadcrumb-section-head h3{letter-spacing:0;text-transform:none}
+.smpi-feature-card .smpi-control-group h3{letter-spacing:0;text-transform:none}
 .smpi-feature-card .smpi-choice-card{border-radius:8px}
 .smpi-feature-card .smpi-selected-pill{letter-spacing:0}
 .smpi-feature-card>.hpc-detail-card,.smpi-feature-before-activity>.hpc-detail-card{margin:0;min-width:0}
@@ -536,119 +524,6 @@ HTML;
                 ]
             )
             . "<span class=spinner></span><span class=smpi-save-state></span></div>";
-    }
-
-    private function breadcrumb_controls_html( array $settings ): string {
-        $template = $this->select_setting_html( "breadcrumbs_style", $this->breadcrumb_style_options(), $settings, "Breadcrumb template" );
-        $appearance = "<div class=\"smpi-breadcrumb-appearance-grid\">"
-            . $this->template_color_setting_html( "breadcrumbs", "Breadcrumb design color", $settings )
-            . $this->optional_color_setting_html( "breadcrumbs_background_color", "Background override", $settings, "Use template background" )
-            . $this->typography_surface_control_html( "breadcrumbs", $settings )
-            . "</div>";
-        $visibility = "<div class=\"smpi-breadcrumb-visibility-grid\">"
-            . $this->inline_toggle_setting_html( "breadcrumbs_hide_home", "Hide on front page and posts page" )
-            . $this->inline_toggle_setting_html( "breadcrumbs_hide_term_archives", "Hide on category and tag pages" )
-            . "</div>"
-            . $this->breadcrumb_post_type_toggles_html( $settings );
-
-        return "<div class=\"smpi-breadcrumb-flow\">"
-            . $this->breadcrumb_section_html( "template", "01", "Template", $template )
-            . $this->breadcrumb_section_html( "appearance", "02", "Appearance", $appearance )
-            . $this->breadcrumb_section_html( "visibility", "03", "Visibility", $visibility )
-            . "</div>";
-    }
-
-    private function breadcrumb_css_override_html(): string {
-        $selector = Breadcrumbs::CSS_SELECTOR;
-        $html_example = <<<'HTML'
-<div class="smpi-breadcrumbs-band">
-  <div class="smpi-template smpi-template--breadcrumbs smpi-breadcrumbs smpi-bc-b6">
-    <nav class="smpi-template-content smpi-breadcrumb-nav" aria-label="Breadcrumbs">
-      <p class="smpi-template-list smpi-breadcrumb-list">
-        <a class="smpi-template-item smpi-template-link smpi-breadcrumb-item smpi-breadcrumb-link" href="/">Home</a>
-        <span class="smpi-breadcrumb-separator"> / </span>
-        <span class="smpi-template-item smpi-breadcrumb-item smpi-breadcrumb-current">Current page</span>
-      </p>
-    </nav>
-  </div>
-</div>
-HTML;
-        $css_example = <<<'CSS'
-body .smpi-breadcrumbs-band {
-  --smpi-bc-background: #111827;
-  --smpi-bc-accent: #60a5fa;
-  background: var(--smpi-bc-background);
-}
-
-body .smpi-breadcrumbs-band .smpi-breadcrumbs[class*="smpi-bc-"] .smpi-breadcrumb-link,
-body .smpi-breadcrumbs-band .smpi-breadcrumbs[class*="smpi-bc-"] .smpi-breadcrumb-current {
-  color: #f8fafc;
-}
-
-body.page-id-123 .smpi-breadcrumbs-band {
-  --smpi-bc-background: #ffffff;
-}
-
-CSS;
-
-        return ScopedCssOverride::render(
-            [
-                "title"        => "Breadcrumb CSS override",
-                "selector"     => $selector,
-                "instructions" => [
-                    "Enter the CSS you want to apply in the editor below.",
-                    "Use the band selector for the full background and its breadcrumb child for text. Add body.page-id-123 for one page only.",
-                    "Changes save when you leave the editor and load after the Breadcrumb template CSS.",
-                ],
-                "html_example" => $html_example,
-                "css_example"  => $css_example,
-                "setting_key"  => Breadcrumbs::CSS_SETTING,
-                "value"        => (string) Settings::get( Breadcrumbs::CSS_SETTING, "" ),
-                "input_class"  => "smpi-setting",
-                "editor_label" => "Your CSS override",
-                "editor_description" => "Edit scoped CSS here. Changes save automatically when you leave the field.",
-                "placeholder"  => $css_example,
-                "status_html" => '<span class="spinner"></span><span class="smpi-save-state"></span>',
-                "open"         => false,
-            ]
-        );
-    }
-
-    private function breadcrumb_section_html( string $slug, string $step, string $title, string $body_html ): string {
-        $slug = sanitize_html_class( $slug );
-        $title_id = "smpi-breadcrumb-" . $slug . "-title";
-        return "<section class=\"smpi-breadcrumb-section smpi-breadcrumb-section--" . esc_attr( $slug ) . "\" aria-labelledby=\"" . esc_attr( $title_id ) . "\"><header class=smpi-breadcrumb-section-head><span class=smpi-breadcrumb-step aria-hidden=true>" . esc_html( $step ) . "</span><h3 id=\"" . esc_attr( $title_id ) . "\">" . esc_html( $title ) . "</h3></header>" . $body_html . "</section>";
-    }
-
-    private function breadcrumb_post_type_toggles_html( array $settings ): string {
-        $key = "breadcrumbs_disabled_post_types";
-        $selected = isset( $settings[ $key ] ) && is_array( $settings[ $key ] ) ? $settings[ $key ] : [];
-        $options = $this->breadcrumb_post_type_options();
-        $html = "<div class=\"smpi-control-group smpi-context-control smpi-breadcrumb-post-type-control\"><h3>Hide breadcrumbs by post type</h3><p class=smpi-muted>Choose each individual post type where breadcrumbs should be hidden.</p>";
-
-        if ( empty( $options ) ) {
-            return $html . "<p class=smpi-muted>No public post types are registered.</p></div>";
-        }
-
-        $html .= "<div class=smpi-breadcrumb-toggle-grid>";
-        foreach ( $options as $value => $label ) {
-            $html .= "<div class=smpi-breadcrumb-toggle-item>"
-                . CoreUi::toggle(
-                    $key . "[]",
-                    in_array( $value, $selected, true ),
-                    (string) $label,
-                    [
-                        "id"          => "smpi-breadcrumb-hide-" . $value,
-                        "value"       => $value,
-                        "class"       => "smpi-breadcrumb-post-type-toggle",
-                        "input_class" => "smpi-setting-array",
-                        "data"        => [ "key" => $key ],
-                    ]
-                )
-                . "</div>";
-        }
-
-        return $html . "</div><span class=spinner></span><span class=smpi-save-state></span></div>";
     }
 
     private function context_select_html( string $key, array $options, array $settings, string $label = "Placement contexts" ): string {
@@ -815,10 +690,6 @@ HTML;
                 TemplateDesignRegistry::typography_css_variables( $surface, $all_settings )
             );
         }
-        $breadcrumb_background = sanitize_hex_color( (string) ( $all_settings["breadcrumbs_background_color"] ?? "" ) );
-        if ( $breadcrumb_background ) {
-            $variables["--smpi-bc-background"] = $breadcrumb_background;
-        }
         $summary_background = TemplateBackground::css_value(
             (string) ( $all_settings["post_summary_background_mode"] ?? TemplateBackground::TEMPLATE ),
             (string) ( $all_settings["post_summary_background_color"] ?? "#ffffff" )
@@ -884,28 +755,6 @@ HTML;
                 . "</div>";
         }
         return $html . "</div><span class=spinner></span><span class=\"smpi-save-state\" aria-live=\"polite\"></span></div>";
-    }
-
-    private function breadcrumb_style_options(): array {
-        return [
-            "bc-b1" => [ "label" => "Option 1: Tinted Band + Title", "description" => "Page title above a soft brand-tinted band; breadcrumb beneath in muted text.", "preview" => $this->breadcrumb_design_preview_html( "bc-b1" ) ],
-            "bc-b2" => [ "label" => "Option 2: Minimal Hairline", "description" => "Thin row over a hairline divider, chevron separators, current page in bold ink.", "preview" => $this->breadcrumb_design_preview_html( "bc-b2" ) ],
-            "bc-b3" => [ "label" => "Option 3: Uppercase Eyebrow", "description" => "Letter-spaced uppercase crumbs over a short accent rule.", "preview" => $this->breadcrumb_design_preview_html( "bc-b3" ) ],
-            "bc-b4" => [ "label" => "Option 4: Soft Chips", "description" => "Each crumb is a rounded chip; current page becomes a filled accent pill.", "preview" => $this->breadcrumb_design_preview_html( "bc-b4" ) ],
-            "bc-b5" => [ "label" => "Option 5: Gradient Lead-in", "description" => "Breadcrumb above a large serif headline on a soft top-down gradient.", "preview" => $this->breadcrumb_design_preview_html( "bc-b5" ) ],
-            "bc-b6" => [ "label" => "Option 6: Flush Minimal", "description" => "Capital-case crumbs aligned to the header grid on a full-width background band, with no forced divider.", "preview" => $this->breadcrumb_design_preview_html( "bc-b6" ) ],
-        ];
-    }
-
-    private function breadcrumb_post_type_options(): array {
-        $options = [];
-        foreach ( get_post_types( [ "public" => true ], "objects" ) as $type => $object ) {
-            if ( "attachment" === $type ) {
-                continue;
-            }
-            $options[ $type ] = isset( $object->labels->name ) ? (string) $object->labels->name : $type;
-        }
-        return $options;
     }
 
     private function toc_style_options(): array {
@@ -1080,16 +929,6 @@ HTML;
         return "Table of Contents";
     }
 
-    private function breadcrumb_design_preview_html( string $style ): string {
-        $style = \smp_publication_integration\Content\ArticleStyles::normalize_breadcrumb_style( $style );
-        $title = "Amazon Shelves Guadagnino Film";
-        $crumbs = "<nav aria-label=\"breadcrumbs\" class=\"rank-math-breadcrumb smpi-template-content smpi-breadcrumb-nav\"><p class=\"smpi-template-list smpi-breadcrumb-list\"><a class=\"smpi-template-item smpi-template-link smpi-breadcrumb-item smpi-breadcrumb-link\" href=\"#\">Home</a><span class=\"separator smpi-breadcrumb-separator\"> - </span><a class=\"smpi-template-item smpi-template-link smpi-breadcrumb-item smpi-breadcrumb-link\" href=\"#\">Entertainment</a><span class=\"separator smpi-breadcrumb-separator\"> - </span><span class=\"last smpi-template-item smpi-breadcrumb-item smpi-breadcrumb-current\">" . esc_html( $title ) . "</span></p></nav>";
-        $title_html = in_array( $style, [ "bc-b1", "bc-b5" ], true ) ? "<div class=\"smpi-template-title smpi-breadcrumb-title\">" . esc_html( $title ) . "</div>" : "";
-        $inner = "bc-b5" === $style ? $crumbs . $title_html : $title_html . $crumbs;
-        $classes = \smp_publication_integration\Content\TemplateMarkup::root_classes( "breadcrumbs", [ "smpi-breadcrumbs", "smpi-" . $style ] );
-        return "<div class=\"smpi-breadcrumbs-band\"><div class=\"" . esc_attr( $classes ) . "\">" . $inner . "</div></div>";
-    }
-
     private function toc_design_preview_html( string $style ): string {
         $content = "<h2>The rise of new technology</h2><h2>What the data reveals</h2>";
         return \smp_publication_integration\Content\TableOfContents::build_toc( $content, $this->toc_preview_label( $style ), $style );
@@ -1223,8 +1062,6 @@ HTML;
         return "<section class=\"" . esc_attr( $classes ) . "\"><h2 class=\"smpi-template-title smpi-post-faqs-title\">" . $title . "</h2><div class=\"smpi-template-content smpi-post-faqs-content\">" . $content . "</div></section>";
     }
 
-
-
     private function icon_style_setting_html( array $settings ): string {
         return $this->select_setting_html( "muckrack_icon_style", [
             "circle_check" => [ "label" => "Solid circle check", "description" => "Uses the supplied filled-circle SVG. The selected icon color controls the SVG fill.", "preview" => $this->author_icon_preview_html( $settings, "circle_check" ) ],
@@ -1284,7 +1121,6 @@ HTML;
                 "author" => "Allows press releases to appear on author archive pages.",
                 "single_recent" => "Allows press releases in recent-article modules shown on single posts.",
             ],
-            "breadcrumbs_disabled_post_types" => $this->breadcrumb_post_type_descriptions(),
         ];
         return $descriptions[ $key ][ $value ] ?? "Controls where this feature is allowed to run on the front end.";
     }
@@ -1357,18 +1193,6 @@ HTML;
         return "<div class=\"smpi-author-social-structure\"><h3>Visual HTML output</h3><p>The same stable class structure is used by every template. Disabled networks and empty author values do not create list items.</p><div class=\"smpi-author-social-structure-preview\">" . AuthorSocialIcons::preview_html( "unstyled", $size ) . "</div>" . CodeViews::code( $markup, "html" ) . "</div>";
     }
 
-    private function breadcrumb_post_type_descriptions(): array {
-        $descriptions = [];
-        foreach ( get_post_types( [ "public" => true ], "objects" ) as $type => $object ) {
-            if ( "attachment" === $type ) {
-                continue;
-            }
-            $label = isset( $object->labels->singular_name ) ? (string) $object->labels->singular_name : $type;
-            $descriptions[ $type ] = "Do not inject SMP breadcrumbs on single " . $label . " templates.";
-        }
-        return $descriptions;
-    }
-
     private function author_icon_preview_html( array $settings, string $style = "" ): string {
         $style = "" !== $style ? $style : (string) ( $settings["muckrack_icon_style"] ?? "circle_check" );
         if ( ! in_array( $style, [ "circle_check", "circle_outline_check", "check" ], true ) ) {
@@ -1432,13 +1256,11 @@ HTML;
         return $html . "</div></div>";
     }
 
-
     private function publication_preview_sample_html( string $style, array $settings ): string {
         $label = "publication_name" === (string) ( $settings["publication_muckrack_text_mode"] ?? "news_outlet" ) ? get_bloginfo( "name" ) : "News outlet";
         $class = "smpi-publication-preview-" . sanitize_html_class( $style );
         return '<span class="smpi-muckrack-publication-text smpi-muckrack-publication-' . esc_attr( $style ) . ' ' . esc_attr( $class ) . '">' . esc_html( $label ) . ' verified by <span class="smpi-muckrack-brand smpi-publication-preview-brand">MuckRack</span> editorial team <a href="#">(learn more)</a></span>';
     }
-
 
     private static function ico( bool $ok, bool $strict = false ): string {
         if ( $ok ) {
@@ -1465,9 +1287,6 @@ HTML;
         $properties = array_keys( array_filter( $values ) );
         return [] === $properties ? "None" : implode( ", ", array_map( static fn( string $property ): string => str_replace( "_", " ", $property ), $properties ) );
     }
-
-
-
 
     private function post_summary_report_html(): string {
         return $this->post_content_block_report_html( "summary" );

@@ -126,7 +126,6 @@ function template_design_assert( bool $condition, string $message ): void {
 }
 
 $expected_templates = [
-    "breadcrumbs" => [ "bc-b1", "bc-b2", "bc-b3", "bc-b4", "bc-b5", "bc-b6" ],
     "table_of_contents" => [ "none", "toc00", "toc01", "toc02", "toc03", "toc04" ],
     "article_heading" => [ "none", "h2-tick", "h2-leftrule", "h2-underline", "h2-topline", "h2-dot", "h2-trailingrule", "h2-serif", "h2-uppercase", "h2-gradient", "h2-bracket", "h2-number", "h2-square", "h2-highlight", "h2-double", "h2-corner_tick" ],
     "article_numbered_list" => [ "none", "nlist01", "nlist02", "nlist03", "nlist04", "nlist05" ],
@@ -140,7 +139,6 @@ $expected_templates = [
     "publication_muckrack" => [ "block", "mini_block", "compact", "minimalist" ],
 ];
 $expected_native_accents = [
-    "breadcrumbs" => array_fill_keys( $expected_templates["breadcrumbs"], "#d63428" ),
     "table_of_contents" => [ "none" => "#9ca3af", "toc00" => "#2563eb", "toc01" => "#2563eb", "toc02" => "#2563eb", "toc03" => "#2563eb", "toc04" => "#2563eb" ],
     "article_heading" => array_replace( array_fill_keys( $expected_templates["article_heading"], "#d63428" ), [ "h2-topline" => "#e5e7eb", "h2-trailingrule" => "#e5e7eb" ] ),
     "article_numbered_list" => [ "none" => "#9ca3af", "nlist01" => "#00ff41", "nlist02" => "#2563eb", "nlist03" => "#d63428", "nlist04" => "#111827", "nlist05" => "#a16207" ],
@@ -155,13 +153,13 @@ $expected_native_accents = [
 ];
 
 $definitions = TemplateDesignRegistry::definitions();
-template_design_assert( array_keys( $expected_templates ) === array_keys( $definitions ), "The twelve design surfaces changed without updating the canonical matrix." );
+template_design_assert( array_keys( $expected_templates ) === array_keys( $definitions ), "The eleven design surfaces changed without updating the canonical matrix." );
 template_design_assert(
     TemplateDesignRegistry::custom_color_setting_keys() === SettingsRepository::brand_primary_color_keys(),
     "The legacy brand-primary color key API does not return the registered custom template color keys."
 );
 $dashboard_source = smpi_test_dashboard_source( $root );
-template_design_assert( 12 === substr_count( $dashboard_source, 'template_color_setting_html( "' ), "Every design surface must render through the shared Core template color control." );
+template_design_assert( 11 === substr_count( $dashboard_source, 'template_color_setting_html( "' ), "Every design surface must render through the shared Core template color control." );
 $core_template_color_source = (string) file_get_contents( $core . "/src/WpAdminComponents/TemplateColorControl.php" );
 template_design_assert(
     str_contains( $core_template_color_source, 'var explicit=hex(color);if(!explicit)syncCustomDisplay(control);color=explicit||base(control,mode)' ),
@@ -266,9 +264,9 @@ foreach ( $definitions as $surface => $definition ) {
     }
 }
 
-template_design_assert( 80 === $template_count, "Expected exactly 80 registered template choices; found " . $template_count . "." );
-template_design_assert( 320 === $color_case_count, "Expected exactly 320 color mode/template cases; ran " . $color_case_count . "." );
-template_design_assert( 222 === $typography_case_count, "Expected exactly 222 typography mode/template cases; ran " . $typography_case_count . "." );
+template_design_assert( 74 === $template_count, "Expected exactly 74 registered template choices; found " . $template_count . "." );
+template_design_assert( 296 === $color_case_count, "Expected exactly 296 color mode/template cases; ran " . $color_case_count . "." );
+template_design_assert( 204 === $typography_case_count, "Expected exactly 204 typography mode/template cases; ran " . $typography_case_count . "." );
 
 foreach ( $definitions as $surface => $definition ) {
     foreach ( array_keys( $definition["variables"] ) as $variable ) {
@@ -338,19 +336,6 @@ foreach ( $featured_contracts as $template => $needle ) {
     ++$mapped_contract_count;
 }
 
-$breadcrumb_css = ArticleStyles::breadcrumbs_css( false );
-$breadcrumb_contracts = [
-    "bc-b1" => ".smpi-bc-b1 .smpi-breadcrumb-link{color:var(--smpi-bc-accent,#d63428)",
-    "bc-b2" => ".smpi-bc-b2 .smpi-breadcrumb-link:hover{color:var(--smpi-bc-accent,#d63428)",
-    "bc-b3" => ".smpi-bc-b3::after{content:\"\";position:absolute;left:24px;bottom:-1px;width:46px;height:2px;background:var(--smpi-bc-accent,#d63428)",
-    "bc-b4" => ".smpi-bc-b4 .smpi-breadcrumb-current{background:var(--smpi-bc-accent,#d63428)",
-    "bc-b5" => ".smpi-bc-b5 .smpi-breadcrumb-link{color:var(--smpi-bc-accent,#d63428)",
-    "bc-b6" => ".smpi-bc-b6 .smpi-breadcrumb-link,.smpi-bc-b6 .smpi-breadcrumb-current{color:var(--smpi-bc-accent,#d63428)",
-];
-foreach ( $breadcrumb_contracts as $template => $needle ) {
-    template_design_assert( str_contains( $breadcrumb_css, $needle ), "Breadcrumb " . $template . " is not wired to its original decorative color surface." );
-    ++$mapped_contract_count;
-}
 
 $toc_css = ArticleStyles::toc_css( false );
 template_design_assert( str_contains( $toc_css, ".smpi-table-of-contents:not(.smpi-unstyled) .smpi-toc-caret{border-color:var(--smpi-toc-accent,#9ca3af)}" ), "The table of contents caret is not wired to the selected design color." );
@@ -417,7 +402,7 @@ foreach ( $author_social_contracts as $template => $needle ) {
 }
 template_design_assert( ! str_contains( $author_social_source, ".smpi-author-socials--unstyled " ), "Author social No Style unexpectedly receives plugin presentation." );
 
-template_design_assert( 73 === $mapped_contract_count, "Expected 73 color-bearing templates; verified " . $mapped_contract_count . "." );
+template_design_assert( 67 === $mapped_contract_count, "Expected 67 color-bearing templates; verified " . $mapped_contract_count . "." );
 template_design_assert( 7 === $template_count - $mapped_contract_count, "Only the seven explicit None/No Style templates may have no decorative color mapping." );
 
 foreach ( ArticleStyles::article_drop_cap_script_template_fonts() as $style => $font_key ) {
@@ -486,4 +471,4 @@ $publication_custom = MuckRackVerification::publication_verification_markup( "",
 template_design_assert( ! str_contains( $publication_default, "style=" ) && ! str_contains( $publication_default, "--smpi-muckrack-author-accent" ), "MuckRack emitted a default inline publication color." );
 template_design_assert( str_contains( $publication_custom, 'style="--smpi-muckrack-publication-accent:#abcdef"' ) && ! str_contains( $publication_custom, "--smpi-muckrack-author-accent" ), "MuckRack did not isolate an explicit shortcode color to the publication accent." );
 
-echo "PASS: 80 templates, 320 color cases, 222 typography cases, 73 frontend color contracts, migration, Quick Start, script fonts, and MuckRack inline-color isolation.\n";
+echo "PASS: 74 templates, 296 color cases, 204 typography cases, 67 frontend color contracts, migration, Quick Start, script fonts, and MuckRack inline-color isolation.\n";

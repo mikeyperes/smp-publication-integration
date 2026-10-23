@@ -9,7 +9,7 @@ $core = (string) file_get_contents( $root . "/lib/hexa-wordpress-plugin-core/src
 $core_version = trim( (string) file_get_contents( $root . "/lib/hexa-wordpress-plugin-core/VERSION" ) );
 
 $start = strpos( $dashboard, "private function author_context_overrides_html" );
-$end = false !== $start ? strpos( $dashboard, "private function breadcrumb_style_options", $start ) : false;
+$end = false !== $start ? strpos( $dashboard, "private function toc_style_options", $start ) : false;
 $context_renderer = false !== $start && false !== $end ? substr( $dashboard, $start, $end - $start ) : "";
 
 $checks = [

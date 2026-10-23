@@ -37,70 +37,6 @@
         return rect.width > 1 && rect.height > 1 && window.getComputedStyle(element).display !== 'none';
     }
 
-    function breadcrumbSelectors(bar) {
-        try {
-            var selectors = JSON.parse(bar.getAttribute('data-smpi-header-selectors') || '[]');
-            return Array.isArray(selectors) ? selectors.filter(function (selector) {
-                return typeof selector === 'string' && selector.length > 0 && selector.length <= 240;
-            }) : [];
-        } catch (error) {
-            return [];
-        }
-    }
-
-    function removeInjectedBreadcrumbs(except) {
-        document.querySelectorAll('.smpi-breadcrumbs-band[data-smp-ajax-companion-rendered="smpi-breadcrumbs"],.smpi-breadcrumbs-band[data-smpi-breadcrumbs-injected]').forEach(function (bar) {
-            if (bar !== except) bar.remove();
-        });
-    }
-
-    function initializeBreadcrumbs() {
-        var source = document.querySelector('template[data-smp-ajax-companion="smpi-breadcrumbs"]');
-        if (!bodyHas('smpi-runtime-breadcrumbs')) {
-            removeInjectedBreadcrumbs(null);
-            return;
-        }
-
-        if (!source || !source.content || !source.content.firstElementChild) {
-            removeInjectedBreadcrumbs(null);
-            return;
-        }
-
-        // An Elementor shortcode or a theme placement owns its visible breadcrumb.
-        // Only auto-generated bands are replaced during repeated/AJAX initialization.
-        var manual = Array.prototype.some.call(document.querySelectorAll('.smpi-breadcrumbs-band,.smpi-breadcrumbs'), function (element) {
-            return !element.closest('[data-smpi-breadcrumbs-injected],[data-smp-ajax-companion-rendered="smpi-breadcrumbs"]') && visible(element);
-        });
-        if (manual) {
-            removeInjectedBreadcrumbs(null);
-            return;
-        }
-
-        var bar = source.content.firstElementChild.cloneNode(true);
-
-        var target = null;
-        breadcrumbSelectors(bar).some(function (selector) {
-            try {
-                var candidate = document.querySelector(selector);
-                if (candidate && visible(candidate)) {
-                    target = candidate;
-                    return true;
-                }
-            } catch (error) {
-                return false;
-            }
-            return false;
-        });
-
-        removeInjectedBreadcrumbs(bar);
-        bar.hidden = false;
-        bar.setAttribute('data-smp-ajax-companion-rendered', 'smpi-breadcrumbs');
-        bar.setAttribute('data-smpi-breadcrumbs-injected', '1');
-        if (target && target.parentNode) target.insertAdjacentElement('afterend', bar);
-        else if (document.body.firstElementChild) document.body.insertBefore(bar, document.body.firstElementChild);
-        else document.body.appendChild(bar);
-    }
-
     function articleRoot(scope) {
         for (var index = 0; index < articleSelectors.length; index += 1) {
             var root = query(scope, articleSelectors[index]);
@@ -207,7 +143,6 @@
 
     function initialize(scope, navigation) {
         var root = scope && scope.querySelector ? scope : document;
-        initializeBreadcrumbs();
         initializeArticle(root);
     }
 

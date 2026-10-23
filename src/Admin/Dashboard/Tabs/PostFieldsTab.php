@@ -37,7 +37,6 @@ use smp_publication_integration\Config;
 use smp_publication_integration\Content\AcfFields;
 use smp_publication_integration\Content\AuthorSocialIcons;
 use smp_publication_integration\Content\AuthorArchiveLoading;
-use smp_publication_integration\Content\Breadcrumbs;
 use smp_publication_integration\Content\MuckRackVerification;
 use smp_publication_integration\Content\MultiAuthors;
 use smp_publication_integration\Content\PublicationContentTypes;
@@ -260,23 +259,6 @@ trait PostFieldsTab {
         $summary_registered = \Hexa\PluginCore\Fields\Field::available() && (bool) \Hexa\PluginCore\Fields\FieldGroups::get_field( "field_65ab7ba0e849b" );
         $faqs_registered = \Hexa\PluginCore\Fields\Field::available() && (bool) \Hexa\PluginCore\Fields\FieldGroups::get_field( "field_smpi_post_faq_items" );
         return "Article Summary editor field: " . ( $summary_enabled && $summary_registered ? "ready" : "not ready" ) . ". Structured FAQ editor fields: " . ( $faqs_enabled && $faqs_registered ? "ready" : "not ready" ) . ".";
-    }
-
-    private function breadcrumbs_report_html(): string {
-        $report = \smp_publication_integration\Content\Breadcrumbs::integrity_report();
-        $disabled = ! empty( $report["disabled_post_types"] ) ? implode( ", ", array_map( "strval", $report["disabled_post_types"] ) ) : "none";
-        $rank = get_option( "rank-math-options-general", [] );
-        $rank_on = is_array( $rank ) && ( $rank["breadcrumbs"] ?? "" ) === "on";
-        $html = $this->simple_status_html( ! empty( $report["enabled"] ), "Breadcrumb feature: " . ( ! empty( $report["enabled"] ) ? "enabled" : "disabled" ) . ". Rank Math renderer available: " . ( ! empty( $report["rank_math_active"] ) ? "yes" : "fallback renderer will be used" ) . "." );
-        $html .= "<table class=\"widefat striped\"><tbody>";
-        $html .= "<tr><th>Current template</th><td><code>" . esc_html( (string) $report["style"] ) . "</code></td></tr>";
-        $html .= "<tr><th>Font</th><td>" . esc_html( Settings::font_family_label( "breadcrumbs_font_family" ) ) . "</td></tr>";
-        $html .= "<tr><th>Rank Math source</th><td>" . self::ico( $rank_on, true ) . esc_html( $rank_on ? "Rank Math breadcrumbs are enabled and available to SMP." : "Rank Math breadcrumbs are disabled or missing; SMP fallback breadcrumbs will be used." ) . "</td></tr>";
-        $html .= "<tr><th>Hidden post types</th><td><code>" . esc_html( $disabled ) . "</code></td></tr>";
-        $html .= "<tr><th>ACF disabled posts/pages selected</th><td><code>" . esc_html( (string) (int) $report["disabled_object_count"] ) . "</code></td></tr>";
-        $html .= "<tr><th>Shortcode</th><td><code>" . esc_html( (string) $report["shortcode"] ) . "</code></td></tr>";
-        $html .= "<tr><th>Sample proof URL</th><td>" . ( "" !== (string) $report["sample_url"] ? "<a target=\"_blank\" rel=\"noopener noreferrer\" href=\"" . esc_url( (string) $report["sample_url"] ) . "\">Open sample</a>" : "<span class=smpi-warn>No published sample found</span>" ) . "</td></tr>";
-        return $html . "</tbody></table>";
     }
 
     private function table_of_contents_report_html(): string {

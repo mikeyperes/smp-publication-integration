@@ -6,7 +6,6 @@ require_once __DIR__ . '/fixtures/dashboard-source.php';
 $root = dirname( __DIR__ );
 $bootstrap = (string) file_get_contents( $root . "/smp-publication-integration.php" );
 $template = (string) file_get_contents( $root . "/src/Content/TemplateMarkup.php" );
-$breadcrumbs = (string) file_get_contents( $root . "/src/Content/Breadcrumbs.php" );
 $toc = (string) file_get_contents( $root . "/src/Content/TableOfContents.php" );
 $article = (string) file_get_contents( $root . "/src/Content/ArticleStyles.php" );
 $public_dom = (string) file_get_contents( $root . "/assets/frontend/public-dom.js" );
@@ -15,7 +14,7 @@ $featured = (string) file_get_contents( $root . "/src/Content/FeaturedImageCapti
 $shortcodes = (string) file_get_contents( $root . "/src/Content/Shortcodes.php" );
 $dashboard = smpi_test_dashboard_source( $root );
 
-$css_start = strpos( $article, "public static function breadcrumbs_css" );
+$css_start = strpos( $article, "public static function toc_css" );
 $css_end = strpos( $article, "public static function preview_bundle_css" );
 $css_source = false !== $css_start && false !== $css_end
     ? substr( $article, $css_start, $css_end - $css_start )
@@ -24,7 +23,7 @@ $css_source = false !== $css_start && false !== $css_end
 $checks = [
     "Template markup is loaded before every renderer that consumes it." =>
         str_contains( $bootstrap, 'require_once __DIR__ . "/src/Content/TemplateMarkup.php";' )
-        && strpos( $bootstrap, "/src/Content/TemplateMarkup.php" ) < strpos( $bootstrap, "/src/Content/Breadcrumbs.php" ),
+        && strpos( $bootstrap, "/src/Content/TemplateMarkup.php" ) < strpos( $bootstrap, "/src/Content/TableOfContents.php" ),
 
     "Shared semantic classes are defined in one helper." =>
         str_contains( $template, 'public const ROOT = "smpi-template";' )
@@ -42,15 +41,6 @@ $checks = [
         && str_contains( $template, '$processor->next_token()' )
         && str_contains( $template, '$processor->add_class( $class_name )' )
         && str_contains( $template, 'return $processor->get_updated_html();' ),
-
-    "Breadcrumb PHP and fallback paths expose the full class contract." =>
-        str_contains( $breadcrumbs, 'TemplateMarkup::decorate_breadcrumbs( $crumbs )' )
-        && str_contains( $breadcrumbs, 'TemplateMarkup::root_classes( "breadcrumbs"' )
-        && str_contains( $breadcrumbs, "smpi-breadcrumb-title" )
-        && str_contains( $breadcrumbs, "smpi-breadcrumb-link" )
-        && str_contains( $breadcrumbs, "smpi-breadcrumb-separator" )
-        && str_contains( $breadcrumbs, "smpi-breadcrumb-current" )
-        && str_contains( $breadcrumbs, "smpi-breadcrumbs-band" ),
 
     "TOC PHP and JavaScript paths use component classes for every structural element." =>
         str_contains( $toc, 'TemplateMarkup::root_classes( "toc"' )
@@ -129,7 +119,6 @@ $checks = [
         && str_contains( $dashboard, 'TemplateMarkup::root_classes( "featured-image-caption"' )
         && str_contains( $dashboard, 'TemplateMarkup::root_classes( "article-summary"' )
         && str_contains( $dashboard, 'TemplateMarkup::root_classes( "article-faqs"' )
-        && str_contains( $dashboard, 'smpi-breadcrumbs-band' )
         && str_contains( $dashboard, 'smpi-author-inline-demo smpi-muckrack-author-text' )
         && str_contains( $dashboard, 'smpi-muckrack-brand smpi-muckrack-author-brand' )
         && str_contains( $dashboard, 'smpi-author-block-demo smpi-muckrack-author-note' )

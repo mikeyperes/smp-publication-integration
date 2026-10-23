@@ -121,7 +121,6 @@ final class Plugin {
             new Content\ElementorPrimaryCategory(),
             new Content\MuckRackVerification(),
             new Content\AuthorSocialCleanup(),
-            new Content\Breadcrumbs(),
             new Content\PublicDomRuntime(),
             new Content\TableOfContents(),
             new Content\InlinePhotoTreatments(),

@@ -18,19 +18,19 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
     });
 
     await page.setContent(`<!doctype html>
-<html><body class="smpi-runtime-breadcrumbs smpi-runtime-article-markup smpi-runtime-article-headings smpi-runtime-article-dropcap smpi-runtime-article-numbered-lists smpi-runtime-numbered-list-nlist03">
+<html><body class="smpi-runtime-article-markup smpi-runtime-article-headings smpi-runtime-article-dropcap smpi-runtime-article-numbered-lists smpi-runtime-numbered-list-nlist03">
 <header style="display:block;width:1200px;height:80px">Header</header>
 <section id="canonical-page-title" data-smpi-breadcrumbs-injected="1"><nav aria-label="breadcrumb">Canonical breadcrumb</nav><h1>Canonical page title</h1></section>
 <main data-smp-ajax-root="content"><article><div class="entry-content"><h2>Initial heading</h2><p id="initial-lead">Initial lead.</p><ol><li><strong>Initial item</strong><p>Copy.</p></li></ol><h2>Contact Information</h2><p id="initial-contact" class="smpi-article-lead">Press desk: <a href="tel:13234506187">1-323-450-6187</a></p></div></article></main>
 <template data-smp-ajax-companion="smpi-breadcrumbs"><div class="smpi-breadcrumbs-band" data-smpi-header-selectors='["header"]'><nav aria-label="breadcrumbs"><p><a href="/">Home</a><span aria-current="page">Initial</span></p></nav></div></template>
 </body></html>`);
     await page.addScriptTag({ path: path.resolve(__dirname, '../assets/frontend/public-dom.js') });
-    await page.waitForFunction(() => document.querySelector('[data-smp-ajax-companion-rendered="smpi-breadcrumbs"]'));
+    await page.waitForFunction(() => document.querySelector('.entry-content.smpi-article-content'));
 
     let state = await page.evaluate(() => ({
+        // Breadcrumbs belong to HWS Base Tools: SMP leaves the template alone.
         breadcrumbCount: document.querySelectorAll('[data-smp-ajax-companion-rendered="smpi-breadcrumbs"]').length,
-        breadcrumb: document.querySelector('[data-smp-ajax-companion-rendered="smpi-breadcrumbs"] [aria-current="page"]')?.textContent,
-        afterHeader: document.querySelector('header')?.nextElementSibling?.getAttribute('data-smp-ajax-companion-rendered'),
+        afterHeader: document.querySelector('header')?.nextElementSibling?.id,
         article: document.querySelector('.entry-content')?.classList.contains('smpi-article-content'),
         heading: document.querySelector('.entry-content h2')?.classList.contains('smpi-article-heading'),
         dropcap: document.querySelector('#initial-lead')?.classList.contains('smpi-article-lead'),
@@ -39,9 +39,8 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
         canonicalTitle: document.querySelector('#canonical-page-title h1')?.textContent
     }));
     assert.deepEqual(state, {
-        breadcrumbCount: 1,
-        breadcrumb: 'Initial',
-        afterHeader: 'smpi-breadcrumbs',
+        breadcrumbCount: 0,
+        afterHeader: 'canonical-page-title',
         article: true,
         heading: true,
         dropcap: true,
@@ -67,7 +66,6 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
     state = await page.evaluate(() => ({
         templateCount: document.querySelectorAll('template[data-smp-ajax-companion="smpi-breadcrumbs"]').length,
         breadcrumbCount: document.querySelectorAll('[data-smp-ajax-companion-rendered="smpi-breadcrumbs"]').length,
-        breadcrumb: document.querySelector('[data-smp-ajax-companion-rendered="smpi-breadcrumbs"] [aria-current="page"]')?.textContent,
         article: document.querySelector('.entry-content')?.classList.contains('smpi-article-content'),
         heading: document.querySelector('.entry-content h2')?.classList.contains('smpi-article-heading'),
         dropcap: document.querySelector('#target-lead')?.classList.contains('smpi-article-lead'),
@@ -77,8 +75,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
     }));
     assert.deepEqual(state, {
         templateCount: 1,
-        breadcrumbCount: 1,
-        breadcrumb: 'Target',
+        breadcrumbCount: 0,
         article: true,
         heading: true,
         dropcap: true,
@@ -87,35 +84,11 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
         canonicalTitle: 'Canonical page title'
     });
 
-    await page.evaluate(() => {
-        const manual = document.createElement('nav');
-        manual.id = 'elementor-manual-breadcrumb';
-        manual.className = 'smpi-breadcrumbs';
-        manual.textContent = 'Manually placed article breadcrumb';
-        document.querySelector('main').prepend(manual);
-        document.dispatchEvent(new CustomEvent('smp:content-ready', { detail: { root: document.querySelector('main') } }));
-        document.dispatchEvent(new CustomEvent('smp:content-ready', { detail: { root: document.querySelector('main') } }));
-    });
-    assert.equal(await page.locator('[data-smp-ajax-companion-rendered="smpi-breadcrumbs"]').count(), 0);
-    assert.equal(await page.locator('#elementor-manual-breadcrumb').textContent(), 'Manually placed article breadcrumb');
-    await page.evaluate(() => {
-        document.querySelector('#elementor-manual-breadcrumb').style.display = 'none';
-        document.dispatchEvent(new CustomEvent('smp:content-ready', { detail: { root: document.querySelector('main') } }));
-    });
-    assert.equal(await page.locator('[data-smp-ajax-companion-rendered="smpi-breadcrumbs"]').count(), 1);
-
-    await page.evaluate(() => {
-        document.body.classList.remove('smpi-runtime-breadcrumbs');
-        document.querySelectorAll('template[data-smp-ajax-companion="smpi-breadcrumbs"],[data-smp-ajax-companion-rendered="smpi-breadcrumbs"]').forEach((node) => node.remove());
-        const root = document.querySelector('main[data-smp-ajax-root]');
-        document.dispatchEvent(new CustomEvent('smp:content-ready', { detail: { root, url: '/without-breadcrumbs/' } }));
-    });
-    assert.equal(await page.locator('[data-smp-ajax-companion-rendered="smpi-breadcrumbs"]').count(), 0);
     assert.equal(await page.locator('#canonical-page-title h1').textContent(), 'Canonical page title');
     assert.deepEqual(errors, []);
 
     await browser.close();
-    process.stdout.write('PASS: public DOM runtime replaces breadcrumb companions and reinitializes article markup idempotently.\n');
+    process.stdout.write('PASS: public DOM runtime reinitializes article markup idempotently and leaves breadcrumbs to HWS Base Tools.\n');
 })().catch((error) => {
     process.stderr.write(`FAIL: ${error.stack || error.message}\n`);
     process.exit(1);

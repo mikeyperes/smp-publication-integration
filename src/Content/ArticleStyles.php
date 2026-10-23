@@ -31,7 +31,7 @@ final class ArticleStyles {
         if ( ! RuntimeContext::is_public_dom_context() ) {
             return;
         }
-        $needs = Settings::bool( "breadcrumbs_enabled" ) || Settings::bool( "article_heading_styles_enabled" ) || Settings::bool( "article_numbered_lists_enabled" ) || Settings::bool( "article_drop_cap_enabled" ) || Settings::bool( "inline_photo_treatments_enabled" ) || Settings::bool( "featured_image_caption_templates_enabled" ) || Settings::bool( "post_summary_acf_enabled" ) || Settings::bool( "post_faqs_acf_enabled" ) || Settings::bool( "table_of_contents_enabled" );
+        $needs = Settings::bool( "article_heading_styles_enabled" ) || Settings::bool( "article_numbered_lists_enabled" ) || Settings::bool( "article_drop_cap_enabled" ) || Settings::bool( "inline_photo_treatments_enabled" ) || Settings::bool( "featured_image_caption_templates_enabled" ) || Settings::bool( "post_summary_acf_enabled" ) || Settings::bool( "post_faqs_acf_enabled" ) || Settings::bool( "table_of_contents_enabled" );
         if ( ! $needs ) {
             return;
         }
@@ -39,20 +39,15 @@ final class ArticleStyles {
         $numbered_list = self::normalize_article_numbered_list_style( (string) Settings::get( "article_numbered_list_style", "nlist01" ) );
         $photo = self::normalize_inline_photo_style( (string) Settings::get( "inline_photo_treatment", "none" ) );
         $featured = self::normalize_featured_image_caption_style( (string) Settings::get( "featured_image_caption_template", "fig2" ) );
-        $breadcrumb_override = Settings::bool( "breadcrumbs_enabled" ) ? Breadcrumbs::custom_css() : "";
         $drop_cap_style = self::normalize_article_drop_cap_style( (string) Settings::get( "article_drop_cap_style", "dropcap-classic" ) );
         if ( is_singular() && ! is_front_page() && Settings::bool( "article_drop_cap_enabled" ) && self::article_drop_cap_uses_template_script_font( $drop_cap_style ) ) {
             echo self::script_font_link_html_for_style( $drop_cap_style );
         }
-        $breadcrumbs_css = Settings::bool( "breadcrumbs_enabled" ) && Breadcrumbs::should_render() ? self::breadcrumbs_css() : "";
         if ( ! is_singular() || is_front_page() ) {
-            // Listings and the home page carry no article content: breadcrumbs only.
-            if ( "" !== $breadcrumbs_css ) {
-                echo "<style id=smpi-article-style-controls>" . self::frontend_vars_css() . $breadcrumbs_css . ( "" !== $breadcrumb_override ? PHP_EOL . $breadcrumb_override : "" ) . "</style>";
-            }
+            // Listings and the home page carry no article content.
             return;
         }
-        echo "<style id=smpi-article-style-controls>" . self::frontend_vars_css() . $breadcrumbs_css . self::article_heading_css( $heading ) . self::article_numbered_list_css( $numbered_list ) . self::article_drop_cap_css() . self::post_acf_css() . self::inline_photo_css( $photo ) . self::featured_image_caption_css( $featured ) . self::font_overrides_css() . ( "" !== $breadcrumb_override ? PHP_EOL . $breadcrumb_override : "" ) . "</style>";
+        echo "<style id=smpi-article-style-controls>" . self::frontend_vars_css() . self::article_heading_css( $heading ) . self::article_numbered_list_css( $numbered_list ) . self::article_drop_cap_css() . self::post_acf_css() . self::inline_photo_css( $photo ) . self::featured_image_caption_css( $featured ) . self::font_overrides_css() . "</style>";
     }
 
     public function decorate_article_content( string $content ): string {
@@ -106,11 +101,6 @@ final class ArticleStyles {
     public static function normalize_toc_style( string $style = "" ): string {
         $style = sanitize_key( "" !== $style ? $style : (string) Settings::get( "table_of_contents_style", "toc02" ) );
         return in_array( $style, [ "unstyled", "none", "toc00", "toc01", "toc02", "toc03", "toc04" ], true ) ? $style : "toc02";
-    }
-
-    public static function normalize_breadcrumb_style( string $style = "" ): string {
-        $style = sanitize_key( "" !== $style ? $style : (string) Settings::get( "breadcrumbs_style", "bc-b2" ) );
-        return in_array( $style, [ "bc-b1", "bc-b2", "bc-b3", "bc-b4", "bc-b5", "bc-b6" ], true ) ? $style : "bc-b2";
     }
 
     public static function normalize_article_heading_style( string $style = "" ): string {
@@ -327,7 +317,6 @@ final class ArticleStyles {
         $settings = Settings::all();
         $css = "";
         $selectors = [
-            "breadcrumbs" => ".smpi-breadcrumbs-band,.smpi-breadcrumbs",
             "table_of_contents" => ".smpi-table-of-contents:not(.smpi-unstyled)",
             "article_heading" => "body.single-post",
             "article_numbered_list" => "body.single-post",
@@ -345,12 +334,6 @@ final class ArticleStyles {
                 TemplateDesignRegistry::css_variables( $surface, $settings ),
                 TemplateDesignRegistry::typography_css_variables( $surface, $settings )
             );
-            if ( "breadcrumbs" === $surface ) {
-                $background = sanitize_hex_color( (string) ( $settings["breadcrumbs_background_color"] ?? "" ) );
-                if ( $background ) {
-                    $variables["--smpi-bc-background"] = $background;
-                }
-            }
             if ( "post_summary" === $surface ) {
                 $background = TemplateBackground::css_value(
                     (string) ( $settings["post_summary_background_mode"] ?? TemplateBackground::TEMPLATE ),
@@ -380,7 +363,6 @@ final class ArticleStyles {
 
     private static function surface_enabled( string $surface ): bool {
         $settings = [
-            "breadcrumbs" => "breadcrumbs_enabled",
             "table_of_contents" => "table_of_contents_enabled",
             "article_heading" => "article_heading_styles_enabled",
             "article_numbered_list" => "article_numbered_lists_enabled",
@@ -396,16 +378,6 @@ final class ArticleStyles {
 
     public static function font_overrides_css(): string {
         $surfaces = [
-            "breadcrumbs" => [
-                "font_family" => "breadcrumbs_font_family",
-                "font_weight" => "breadcrumbs_font_weight",
-                "rules" => [
-                    "font_family" => [ [ ".smpi-breadcrumbs,.smpi-breadcrumbs .smpi-breadcrumb-title,.smpi-breadcrumbs .smpi-breadcrumb-list,.smpi-breadcrumbs .smpi-breadcrumb-link,.smpi-breadcrumbs .smpi-breadcrumb-current" ] ],
-                    "font_weight" => [ [ ".smpi-breadcrumbs,.smpi-breadcrumbs .smpi-breadcrumb-title,.smpi-breadcrumbs .smpi-breadcrumb-list,.smpi-breadcrumbs .smpi-breadcrumb-link,.smpi-breadcrumbs .smpi-breadcrumb-current" ] ],
-                    "font_color" => [ [ ".smpi-breadcrumbs .smpi-breadcrumb-title,.smpi-breadcrumbs .smpi-breadcrumb-list,.smpi-breadcrumbs .smpi-breadcrumb-current", "var(--smpi-bc-text,#374151)" ] ],
-                    "font_size" => [ [ ".smpi-breadcrumbs .smpi-breadcrumb-title,.smpi-breadcrumbs .smpi-breadcrumb-list,.smpi-breadcrumbs .smpi-breadcrumb-link,.smpi-breadcrumbs .smpi-breadcrumb-current", "var(--smpi-bc-font-size,13px)" ] ],
-                ],
-            ],
             "table_of_contents" => [
                 "font_family" => "table_of_contents_font_family",
                 "font_weight" => "table_of_contents_font_weight",
@@ -573,12 +545,6 @@ final class ArticleStyles {
                 return true;
             }
         }
-        if ( "breadcrumbs" === $prefix ) {
-            if ( false === strpos( $selector, "smpi-breadcrumb" ) || false !== strpos( $selector, "smpi-breadcrumb-separator" ) ) {
-                return false;
-            }
-            return "font_color" !== $property || false === strpos( $selector, "smpi-breadcrumb-link" );
-        }
         if ( "table_of_contents" === $prefix ) {
             return false !== strpos( $selector, "smpi-toc-label" ) || false !== strpos( $selector, "smpi-toc-link" );
         }
@@ -603,25 +569,6 @@ final class ArticleStyles {
         }
 
         return false;
-    }
-
-    /* ---------------------------------------------------------------------
-     * Breadcrumbs
-     * ------------------------------------------------------------------- */
-    public static function breadcrumbs_css( bool $respect_preservation = true ): string {
-        $css = self::breadcrumbs_css_base();
-        $css = str_replace( ".smpi-breadcrumbs-band{background:var(--smpi-bc-background,#fff)", ".smpi-breadcrumbs-band{background:var(--smpi-bc-background,transparent)", $css );
-        $css = str_replace( ".smpi-bc-b1{background:var(--smpi-bc-tint,rgba(214,52,40,.07))", ".smpi-bc-b1{background:var(--smpi-bc-background,var(--smpi-bc-tint,rgba(214,52,40,.07)))", $css );
-        $css = str_replace( ".smpi-bc-b4{padding:14px 22px;background:var(--smpi-bc-soft,#f7f8f9)", ".smpi-bc-b4{padding:14px 22px;background:var(--smpi-bc-background,var(--smpi-bc-soft,#f7f8f9))", $css );
-        $css = str_replace( ".smpi-bc-b5{padding:24px;background:linear-gradient(180deg,var(--smpi-bc-tint,rgba(214,52,40,.07)),#fff)", ".smpi-bc-b5{padding:24px;background:var(--smpi-bc-background,linear-gradient(180deg,var(--smpi-bc-tint,rgba(214,52,40,.07)),#fff))", $css );
-        $css = str_replace( ".smpi-breadcrumbs.smpi-bc-b1,.smpi-breadcrumbs.smpi-bc-b4,.smpi-breadcrumbs.smpi-bc-b5{background:var(--smpi-bc-background,#fff)}", "", $css );
-        $css .= '.smpi-breadcrumbs[class*="smpi-bc-"]{max-width:1140px;padding-left:50px;padding-right:50px}@media(max-width:767px){.smpi-breadcrumbs[class*="smpi-bc-"]{padding-left:20px;padding-right:20px}}';
-        return $respect_preservation ? self::remove_preserved_typography( $css, "breadcrumbs" ) : $css;
-    }
-
-    private static function breadcrumbs_css_base(): string {
-        $css = ".smpi-breadcrumbs-band{background:var(--smpi-bc-background,#fff);box-sizing:border-box;clear:both;margin:0;max-width:none;width:100%}.smpi-breadcrumbs{--smpi-bc-line:#e5e7eb;--smpi-bc-muted:#6b7280;--smpi-bc-ink:#111827;--smpi-bc-body:#374151;--smpi-bc-soft:#f7f8f9;background:var(--smpi-bc-background,#fff);box-sizing:border-box;max-width:var(--content-width,1120px);margin:0 auto;font-family:inherit;font-size:var(--smpi-bc-font-size,13px);clear:both}.smpi-breadcrumbs *{box-sizing:border-box}.smpi-breadcrumbs .smpi-breadcrumb-list{margin:0}.smpi-breadcrumbs .smpi-breadcrumb-link{text-decoration:none}.smpi-breadcrumbs .smpi-breadcrumb-title{font-family:Georgia,serif;font-weight:700;letter-spacing:-.01em}.smpi-bc-b1{background:var(--smpi-bc-tint,rgba(214,52,40,.07));padding:20px 24px}.smpi-bc-b1 .smpi-breadcrumb-title{font-size:25px;line-height:1.15;color:var(--smpi-bc-ink,#111827);margin:0 0 8px}.smpi-bc-b1 .smpi-breadcrumb-list{font-size:var(--smpi-bc-font-size,13px);color:var(--smpi-bc-muted,#6b7280);line-height:1.5}.smpi-bc-b1 .smpi-breadcrumb-link{color:var(--smpi-bc-accent,#d63428)}.smpi-bc-b1 .smpi-breadcrumb-link:hover{text-decoration:underline}.smpi-bc-b1 .smpi-breadcrumb-separator{color:#b9b9b9}.smpi-bc-b1 .smpi-breadcrumb-current{color:var(--smpi-bc-muted,#6b7280)}.smpi-bc-b2{padding:14px 24px;border-bottom:1px solid var(--smpi-bc-line,#e5e7eb)}.smpi-bc-b2 .smpi-breadcrumb-list{display:flex;flex-wrap:wrap;align-items:center;font-size:var(--smpi-bc-font-size,13px);color:var(--smpi-bc-muted,#6b7280)}.smpi-bc-b2 .smpi-breadcrumb-link{color:var(--smpi-bc-muted,#6b7280)}.smpi-bc-b2 .smpi-breadcrumb-link:hover{color:var(--smpi-bc-accent,#d63428)}.smpi-bc-b2 .smpi-breadcrumb-separator{font-size:0;margin:0 9px}.smpi-bc-b2 .smpi-breadcrumb-separator::after{content:\"\\203A\";font-size:14px;color:#c3c3c3}.smpi-bc-b2 .smpi-breadcrumb-current{color:var(--smpi-bc-ink,#111827);font-weight:600}.smpi-bc-b3{padding:16px 24px;border-bottom:1px solid var(--smpi-bc-line,#e5e7eb);position:relative}.smpi-bc-b3::after{content:\"\";position:absolute;left:24px;bottom:-1px;width:46px;height:2px;background:var(--smpi-bc-accent,#d63428)}.smpi-bc-b3 .smpi-breadcrumb-list{font-size:var(--smpi-bc-font-size,11px);letter-spacing:.18em;text-transform:uppercase;color:var(--smpi-bc-muted,#6b7280)}.smpi-bc-b3 .smpi-breadcrumb-link{color:var(--smpi-bc-accent,#d63428);font-weight:600}.smpi-bc-b3 .smpi-breadcrumb-separator{font-size:0;margin:0 8px}.smpi-bc-b3 .smpi-breadcrumb-separator::after{content:\"/\";font-size:11px;letter-spacing:0;color:#ccc}.smpi-bc-b3 .smpi-breadcrumb-current{color:var(--smpi-bc-ink,#111827)}.smpi-bc-b4{padding:14px 22px;background:var(--smpi-bc-soft,#f7f8f9);border-bottom:1px solid var(--smpi-bc-line,#e5e7eb)}.smpi-bc-b4 .smpi-breadcrumb-list{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.smpi-bc-b4 .smpi-breadcrumb-link,.smpi-bc-b4 .smpi-breadcrumb-current{display:inline-block;padding:5px 13px;border-radius:999px;font-size:var(--smpi-bc-font-size,12px);line-height:1.4}.smpi-bc-b4 .smpi-breadcrumb-link{background:#fff;border:1px solid var(--smpi-bc-line,#e5e7eb);color:var(--smpi-bc-body,#374151)}.smpi-bc-b4 .smpi-breadcrumb-link:hover{border-color:var(--smpi-bc-accent,#d63428);color:var(--smpi-bc-accent,#d63428)}.smpi-bc-b4 .smpi-breadcrumb-current{background:var(--smpi-bc-accent,#d63428);color:#fff;max-width:100%}.smpi-bc-b4 .smpi-breadcrumb-separator{display:none}.smpi-bc-b5{padding:24px;background:linear-gradient(180deg,var(--smpi-bc-tint,rgba(214,52,40,.07)),#fff)}.smpi-bc-b5 .smpi-breadcrumb-list{font-size:var(--smpi-bc-font-size,12px);letter-spacing:.03em;color:var(--smpi-bc-muted,#6b7280);margin:0 0 11px}.smpi-bc-b5 .smpi-breadcrumb-link{color:var(--smpi-bc-accent,#d63428)}.smpi-bc-b5 .smpi-breadcrumb-separator{font-size:0;margin:0 8px}.smpi-bc-b5 .smpi-breadcrumb-separator::after{content:\"\\2014\";font-size:12px;color:#cdcdcd}.smpi-bc-b5 .smpi-breadcrumb-current{color:var(--smpi-bc-muted,#6b7280)}.smpi-bc-b5 .smpi-breadcrumb-title{font-size:30px;line-height:1.12;color:var(--smpi-bc-ink,#111827);margin:0}.smpi-bc-b6{max-width:var(--content-width,1140px);padding:14px 0;border-bottom:0}.smpi-bc-b6 .smpi-breadcrumb-list{display:flex;flex-wrap:wrap;align-items:center;font-size:var(--smpi-bc-font-size,13px);letter-spacing:.01em;text-transform:capitalize;color:var(--smpi-bc-muted,#6b7280)}.smpi-bc-b6 .smpi-breadcrumb-link,.smpi-bc-b6 .smpi-breadcrumb-current{color:var(--smpi-bc-accent,#d63428)}.smpi-bc-b6 .smpi-breadcrumb-link{font-weight:600}.smpi-bc-b6 .smpi-breadcrumb-link:hover{text-decoration:underline}.smpi-bc-b6 .smpi-breadcrumb-separator{font-size:0;margin:0 8px}.smpi-bc-b6 .smpi-breadcrumb-separator::after{content:\"/\";font-size:13px;letter-spacing:0;color:#cfcfcf}.smpi-bc-b6 .smpi-breadcrumb-current{font-weight:500}.smpi-breadcrumbs.smpi-bc-b1,.smpi-breadcrumbs.smpi-bc-b4,.smpi-breadcrumbs.smpi-bc-b5{background:var(--smpi-bc-background,#fff)}@media(max-width:680px){.smpi-breadcrumbs{max-width:100%}.smpi-bc-b1,.smpi-bc-b2,.smpi-bc-b3,.smpi-bc-b4,.smpi-bc-b5,.smpi-bc-b6{padding-left:16px;padding-right:16px}.smpi-bc-b1 .smpi-breadcrumb-title{font-size:21px}.smpi-bc-b5 .smpi-breadcrumb-title{font-size:24px}}";
-        return $css;
     }
 
     /* ---------------------------------------------------------------------
@@ -972,7 +919,7 @@ final class ArticleStyles {
      * containers. This is the one-source-of-truth bundle.
      * ------------------------------------------------------------------- */
     public static function preview_bundle_css(): string {
-        $css = self::breadcrumbs_css( false ) . self::toc_css( false ) . self::post_acf_css( false );
+        $css = self::toc_css( false ) . self::post_acf_css( false );
         $css .= ".smpi-choice-preview .smpi-ah-preview-stack{display:grid;gap:14px;max-width:760px}.smpi-choice-preview .smpi-ah-preview{background:#fff;border:1px solid var(--smpi-heading-line,#e5e7eb);border-radius:12px;box-sizing:border-box;counter-reset:hx;display:block;margin:0!important;max-width:100%;padding:26px 28px}.smpi-choice-preview .smpi-ah-preview .smpi-article-paragraph{font-size:15px;line-height:1.7;color:#475569;margin:14px 0 0;max-width:680px}.smpi-choice-preview .smpi-ah-preview .smpi-article-heading{line-height:1.3;margin:0;clear:none;text-transform:none;letter-spacing:0}";
         foreach ( array_diff( self::article_heading_style_keys(), [ "none" ] ) as $style ) {
             $sel = ".smpi-choice-preview .smpi-ah-preview.smpi-ah-preview-" . $style;
@@ -996,7 +943,7 @@ final class ArticleStyles {
             $sel = ".smpi-fi-preview.smpi-fi-preview-" . $style;
             $css .= self::featured_image_caption_rules( $style, $sel, $sel . " .smpi-featured-image-caption-image", $sel . " .smpi-featured-image-caption-text", false );
         }
-        $css .= ".smpi-choice-preview .smpi-breadcrumbs,.smpi-choice-preview .smpi-table-of-contents,.smpi-choice-preview .smpi-numbered-list,.smpi-choice-preview .smpi-post-summary,.smpi-choice-preview .smpi-post-faqs,.smpi-choice-preview .smpi-pp,.smpi-choice-preview .smpi-fi-preview{max-width:100%!important;margin:0!important}.smpi-choice-preview .smpi-pp,.smpi-choice-preview .smpi-fi-preview{display:block}.smpi-choice-preview .smpi-inline-photo-image,.smpi-choice-preview .smpi-featured-image-caption-image{height:120px;width:100%;object-fit:cover}.smpi-choice-preview .smpi-toc-link,.smpi-choice-preview .smpi-post-faq-item{font-size:13px}.smpi-choice-preview .smpi-faq03>.smpi-post-faqs-content:before{content:none!important}";
+        $css .= ".smpi-choice-preview .smpi-table-of-contents,.smpi-choice-preview .smpi-numbered-list,.smpi-choice-preview .smpi-post-summary,.smpi-choice-preview .smpi-post-faqs,.smpi-choice-preview .smpi-pp,.smpi-choice-preview .smpi-fi-preview{max-width:100%!important;margin:0!important}.smpi-choice-preview .smpi-pp,.smpi-choice-preview .smpi-fi-preview{display:block}.smpi-choice-preview .smpi-inline-photo-image,.smpi-choice-preview .smpi-featured-image-caption-image{height:120px;width:100%;object-fit:cover}.smpi-choice-preview .smpi-toc-link,.smpi-choice-preview .smpi-post-faq-item{font-size:13px}.smpi-choice-preview .smpi-faq03>.smpi-post-faqs-content:before{content:none!important}";
         return $css;
     }
 

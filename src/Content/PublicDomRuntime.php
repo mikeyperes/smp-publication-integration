@@ -24,7 +24,7 @@ final class PublicDomRuntime {
     }
 
     public function enqueue(): void {
-        if ( ! RuntimeContext::is_public_dom_context() || ! self::needs_runtime() || ! ( ( is_singular() && ! is_front_page() ) || ( Settings::bool( 'breadcrumbs_enabled' ) && Breadcrumbs::should_render() ) ) ) {
+        if ( ! RuntimeContext::is_public_dom_context() || ! self::needs_runtime() || ! is_singular() || is_front_page() ) {
             return;
         }
 
@@ -43,10 +43,6 @@ final class PublicDomRuntime {
     public function body_classes( array $classes ): array {
         if ( ! RuntimeContext::is_public_dom_context() ) {
             return $classes;
-        }
-
-        if ( Settings::bool( 'breadcrumbs_enabled' ) && Breadcrumbs::should_render() ) {
-            $classes[] = 'smpi-runtime-breadcrumbs';
         }
 
         if ( is_singular( [ 'post', 'press-release' ] ) && ArticleStyles::article_markup_enabled() ) {
@@ -72,8 +68,7 @@ final class PublicDomRuntime {
     }
 
     public static function needs_runtime(): bool {
-        return Settings::bool( 'breadcrumbs_enabled' )
-            || Settings::bool( 'article_heading_styles_enabled' )
+        return Settings::bool( 'article_heading_styles_enabled' )
             || Settings::bool( 'article_drop_cap_enabled' )
             || Settings::bool( 'article_numbered_lists_enabled' )
             || Settings::bool( 'inline_photo_treatments_enabled' )
