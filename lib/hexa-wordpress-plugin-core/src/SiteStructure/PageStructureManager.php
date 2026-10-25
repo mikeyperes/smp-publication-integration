@@ -113,11 +113,11 @@ final class PageStructureManager {
     }
 
     /** A page at the slug at any level, published first (0 when none). */
-    public function find_page_by_slug( string $slug ): int {
+    public function find_page_by_slug( string $slug, array $only_statuses = [] ): int {
         if ( '' === $slug || ! function_exists( 'get_posts' ) ) {
             return 0;
         }
-        foreach ( [ [ 'publish' ], [ 'draft', 'private', 'pending' ] ] as $statuses ) {
+        foreach ( $only_statuses ? [ $only_statuses ] : [ [ 'publish' ], [ 'draft', 'private', 'pending' ] ] as $statuses ) {
             $ids = get_posts( [ 'name' => $slug, 'post_type' => 'page', 'post_status' => $statuses, 'posts_per_page' => 1, 'fields' => 'ids', 'orderby' => 'ID', 'order' => 'ASC' ] );
             if ( ! empty( $ids ) ) {
                 return (int) $ids[0];
@@ -128,13 +128,15 @@ final class PageStructureManager {
     }
 
     /** A page whose slug matches a pattern with * wildcards ("*mission-statement"), published first (0 when none). */
-    public function find_page_by_pattern( string $pattern ): int {
+    public function find_page_by_pattern( string $pattern, array $only_statuses = [] ): int {
         global $wpdb;
         if ( '' === $pattern || ! isset( $wpdb ) ) {
             return 0;
         }
-        $like = str_replace( "\0", '%', $wpdb->esc_like( str_replace( '*', "\0", $pattern ) ) );
-        $sql  = $wpdb->prepare( "SELECT ID FROM {$wpdb->posts} WHERE post_type = 'page' AND post_name LIKE %s AND post_status IN ('publish','draft','private','pending') ORDER BY post_status = 'publish' DESC, ID ASC LIMIT 1", $like ); // phpcs:ignore WordPress.DB.PreparedSQL
+        $statuses = array_values( array_intersect( $only_statuses ?: [ 'publish', 'draft', 'private', 'pending' ], [ 'publish', 'draft', 'private', 'pending' ] ) );
+        $like     = str_replace( "\0", '%', $wpdb->esc_like( str_replace( '*', "\0", $pattern ) ) );
+        $in       = implode( ',', array_fill( 0, count( $statuses ), '%s' ) );
+        $sql      = $wpdb->prepare( "SELECT ID FROM {$wpdb->posts} WHERE post_type = 'page' AND post_name LIKE %s AND post_status IN ($in) ORDER BY post_status = 'publish' DESC, ID ASC LIMIT 1", array_merge( [ $like ], $statuses ) ); // phpcs:ignore WordPress.DB.PreparedSQL
 
         return (int) $wpdb->get_var( $sql ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
     }
@@ -190,10 +192,14 @@ final class PageStructureManager {
         $created    = false;
         $page_id    = $this->resolve_page_id( $page_key );
         if ( $page_id <= 0 ) {
-            foreach ( array_merge( [ (string) ( $def['slug'] ?? $page_key ) ], array_map( 'strval', (array) ( $def['slugs'] ?? [] ) ) ) as $slug ) {
-                $page_id = false !== strpos( $slug, '*' ) ? $this->find_page_by_pattern( $slug ) : $this->find_page_by_slug( $slug );
-                if ( $page_id > 0 ) {
-                    break;
+            // A published page at any of its addresses wins over a draft at the main one.
+            $slugs = array_merge( [ (string) ( $def['slug'] ?? $page_key ) ], array_map( 'strval', (array) ( $def['slugs'] ?? [] ) ) );
+            foreach ( [ [ 'publish' ], [ 'draft', 'private', 'pending' ] ] as $statuses ) {
+                foreach ( $slugs as $slug ) {
+                    $page_id = false !== strpos( $slug, '*' ) ? $this->find_page_by_pattern( $slug, $statuses ) : $this->find_page_by_slug( $slug, $statuses );
+                    if ( $page_id > 0 ) {
+                        break 2;
+                    }
                 }
             }
             if ( $page_id > 0 ) {
@@ -267,12 +273,20 @@ final class PageStructureManager {
         return (string) $this->config['option_prefix'] . $page_key;
     }
 
+    /** The linked page; 0 when none, or when the linked page was deleted or is in the trash. */
     public function assigned_page_id( string $page_key ): int {
         if ( isset( $this->config['assignment_getter'] ) && is_callable( $this->config['assignment_getter'] ) ) {
-            return max( 0, (int) call_user_func( $this->config['assignment_getter'], $page_key ) );
+            $id = max( 0, (int) call_user_func( $this->config['assignment_getter'], $page_key ) );
+        } else {
+            $id = function_exists( 'get_option' ) ? max( 0, (int) get_option( $this->option_key( $page_key ), 0 ) ) : 0;
         }
-
-        return function_exists( 'get_option' ) ? max( 0, (int) get_option( $this->option_key( $page_key ), 0 ) ) : 0;
+        if ( $id > 0 && function_exists( 'get_post_status' ) ) {
+            $status = get_post_status( $id );
+            if ( false === $status || 'trash' === $status ) {
+                return 0;
+            }
+        }
+        return $id;
     }
 
     public function assigned_page( string $page_key ): ?\WP_Post {

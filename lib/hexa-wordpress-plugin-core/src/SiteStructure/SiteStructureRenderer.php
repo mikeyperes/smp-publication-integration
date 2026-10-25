@@ -29,6 +29,7 @@ final class SiteStructureRenderer {
                 'show_pages'            => true,
                 'show_menus'            => true,
                 'show_page_details'     => false,
+                'show_default_content'  => true,
                 'lazy_page_workspace'   => false,
                 'actions'               => [],
                 'labels'                => [],
@@ -75,38 +76,53 @@ final class SiteStructureRenderer {
     }
 
     /**
+     * The page list, in sections: one section per page that has pages under it
+     * (that page first, then its pages), then one section for the other pages.
+     *
      * @param array<string,string> $labels
      */
     private function render_pages_card( array $labels ): string {
-        $pages = $this->manager->pages();
+        $pages     = self::nest_by_parent( $this->manager->pages() );
         $all_pages = $this->manager->all_pages();
+
+        $sections = [];
+        $others   = [];
+        foreach ( $pages as $page_key => $page_data ) {
+            $page_data = is_array( $page_data ) ? $page_data : [];
+            if ( ! empty( $page_data['children'] ) ) {
+                $sections[ (string) $page_key ] = $page_data;
+            } else {
+                $others[ (string) $page_key ] = $page_data;
+            }
+        }
 
         ob_start();
         ?>
         <div class="<?php echo esc_attr( (string) $this->config['card_class'] ); ?> hpc-site-pages-card">
-            <div class="sfpf-card-header hpc-card-header">
-                <span class="dashicons dashicons-admin-page" style="color:#8b5cf6;"></span>
+            <?php echo self::page_list_styles(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+            <div class="hpc-sp-intro">
                 <h3><?php echo esc_html( $labels['pages_title'] ); ?></h3>
+                <p><?php echo esc_html( $labels['pages_description'] ); ?></p>
             </div>
-
-            <h4 style="margin:0 0 8px;font-size:15px;"><?php echo esc_html( $labels['pages_heading'] ); ?></h4>
-            <p style="color:#666;margin:0 0 20px;"><?php echo esc_html( $labels['pages_description'] ); ?></p>
-
-            <table class="<?php echo esc_attr( (string) $this->config['table_class'] ); ?> hpc-critical-pages-table">
-                <thead>
-                    <tr>
-                        <th style="width:25%;">Page</th>
-                        <th style="width:30%;">Assigned WordPress Page</th>
-                        <th style="width:15%;">Status</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ( $pages as $page_key => $page_data ) : ?>
-                        <?php echo $this->render_page_row( (string) $page_key, $page_data, $all_pages, null, true ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
+            <?php foreach ( $sections as $page_key => $page_data ) : ?>
+                <?php $title = (string) ( $page_data['title'] ?? $page_key ); ?>
+                <section class="hpc-sp-section-group">
+                    <h4 class="hpc-sp-group-title"><?php echo esc_html( $title ); ?> <span><?php echo esc_html( 'The ' . $title . ' page and the pages under it' ); ?></span></h4>
+                    <div class="hpc-sp-list">
+                        <?php echo $this->render_page_row( $page_key, $page_data, $all_pages, null, true ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                    </div>
+                </section>
+            <?php endforeach; ?>
+            <?php if ( ! empty( $others ) ) : ?>
+                <section class="hpc-sp-section-group">
+                    <h4 class="hpc-sp-group-title"><?php echo esc_html( empty( $sections ) ? 'Pages' : 'Other pages' ); ?> <span>Each one at the top level of the site</span></h4>
+                    <div class="hpc-sp-list">
+                        <?php foreach ( $others as $page_key => $page_data ) : ?>
+                            <?php echo $this->render_page_row( $page_key, $page_data, $all_pages, null, true ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                        <?php endforeach; ?>
+                    </div>
+                </section>
+            <?php endif; ?>
             <?php if ( ! empty( $this->config['lazy_page_workspace'] ) ) : ?>
                 <?php echo $this->render_page_workspace(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
             <?php endif; ?>
@@ -117,115 +133,173 @@ final class SiteStructureRenderer {
     }
 
     /**
+     * Puts each page listed with a 'parent' key under that parent's 'children',
+     * so the list shows the same hierarchy the site has.
+     *
+     * @param array<string,array<string,mixed>> $pages
+     * @return array<string,array<string,mixed>>
+     */
+    private static function nest_by_parent( array $pages ): array {
+        $moved = false;
+        foreach ( $pages as $key => $data ) {
+            $parent = is_array( $data ) ? (string) ( $data['parent'] ?? '' ) : '';
+            if ( '' !== $parent && $parent !== $key && isset( $pages[ $parent ] ) ) {
+                $pages[ $parent ]['children'] = array_merge( (array) ( $pages[ $parent ]['children'] ?? [] ), [ $key => $data ] );
+                unset( $pages[ $key ] );
+                $moved = true;
+            }
+        }
+        return $moved ? self::nest_by_parent( $pages ) : $pages;
+    }
+
+    /** Where a page that does not exist yet will be: under its parent's address. */
+    private function planned_address( string $slug, ?string $parent_key ): string {
+        $parent_id = null !== $parent_key && '' !== $parent_key ? $this->manager->assigned_page_id( $parent_key ) : 0;
+        $base      = $parent_id > 0 && function_exists( 'get_permalink' ) ? rtrim( (string) wp_make_link_relative( (string) get_permalink( $parent_id ) ), '/' ) : '';
+        return $base . '/' . $slug . '/';
+    }
+
+    /**
+     * One page row: name and address; the linked page; actions and Details.
+     * Pages under it follow as rows of their own, not indented: the address
+     * and the "Under <parent>" note show where each one sits.
+     *
      * @param array<string,mixed> $page_data
      * @param \WP_Post[] $all_pages
      */
-    private function render_page_row( string $page_key, array $page_data, array $all_pages, ?string $parent_key = null, bool $top_level = false ): string {
+    private function render_page_row( string $page_key, array $page_data, array $all_pages, ?string $parent_key = null, bool $top_level = false, string $parent_title = '' ): string {
         $page_id = $this->manager->assigned_page_id( $page_key );
-        $page    = $page_id > 0 && function_exists( 'get_post' ) ? get_post( $page_id ) : null;
         $is_set  = $this->manager->is_assigned_page_set( $page_key );
         $title   = (string) ( $page_data['title'] ?? $page_key );
         $slug    = (string) ( $page_data['slug'] ?? $page_key );
+        $address = $page_id > 0 && function_exists( 'get_permalink' ) ? (string) wp_make_link_relative( (string) get_permalink( $page_id ) ) : $this->planned_address( $slug, $parent_key );
+        $more    = $this->render_page_more( $page_key, $page_id, $page_data );
+        $body_id = sanitize_html_class( (string) $this->config['instance_id'] . '-' . $page_key . '-details' );
 
         ob_start();
         ?>
-        <tr class="hpc-site-page-row" data-page-key="<?php echo esc_attr( $page_key ); ?>" data-page-title="<?php echo esc_attr( $title ); ?>" data-page-slug="<?php echo esc_attr( $slug ); ?>" data-parent-key="<?php echo esc_attr( (string) $parent_key ); ?>" style="<?php echo $top_level ? 'background:#f9fafb;' : ''; ?>">
-            <td style="<?php echo $parent_key ? 'padding-left:30px;' : ''; ?>">
-                <?php if ( $parent_key ) : ?>
-                    <span style="color:#9ca3af;margin-right:8px;">&#9492;&#9472;</span>
-                <?php endif; ?>
-                <strong><?php echo esc_html( $title ); ?></strong>
-                <div style="margin-top:3px;<?php echo $parent_key ? 'margin-left:22px;' : ''; ?>">
-                    <code><?php echo esc_html( $slug ); ?></code>
+        <div class="hpc-sp hpc-site-page-row" data-page-key="<?php echo esc_attr( $page_key ); ?>" data-page-title="<?php echo esc_attr( $title ); ?>" data-page-slug="<?php echo esc_attr( $slug ); ?>" data-parent-key="<?php echo esc_attr( (string) $parent_key ); ?>">
+            <div class="hpc-sp-head">
+                <div class="hpc-sp-name">
+                    <div class="hpc-sp-title"><strong><?php echo esc_html( $title ); ?></strong><span class="hpc-site-page-status"><?php echo self::page_pill( $is_set ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span></div>
+                    <div class="hpc-sp-path"><?php echo esc_html( $address ); ?><?php echo '' !== $parent_title ? '<span class="hpc-sp-under">Under ' . esc_html( $parent_title ) . '</span>' : ''; ?></div>
                 </div>
-            </td>
-            <td>
-                <select class="hpc-site-page-select" data-page="<?php echo esc_attr( $page_key ); ?>" data-parent="<?php echo esc_attr( (string) $parent_key ); ?>" style="width:100%;max-width:280px;">
-                    <option value="">- Select Page -</option>
-                    <?php foreach ( $all_pages as $candidate ) : ?>
-                        <option value="<?php echo esc_attr( (string) $candidate->ID ); ?>" <?php selected( $page_id, $candidate->ID ); ?>>
-                            <?php echo esc_html( $candidate->post_title ); ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-            </td>
-            <td class="hpc-site-page-status"><?php echo $this->status_badge( $is_set, $is_set ? 'Set' : 'Not Set' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></td>
-            <td class="hpc-site-page-actions"><?php echo $this->page_actions( $page_id, $page_key, $is_set, $page_data, $parent_key ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></td>
-        </tr>
-        <?php if ( empty( $this->config['lazy_page_workspace'] ) ) : ?>
-            <?php echo $this->render_page_detail_row( $page_key, $page_id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-            <?php echo $this->render_template_row( $page_key, $page_data ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-        <?php endif; ?>
+                <div class="hpc-sp-link">
+                    <select class="hpc-site-page-select" data-page="<?php echo esc_attr( $page_key ); ?>" data-parent="<?php echo esc_attr( (string) $parent_key ); ?>" aria-label="<?php echo esc_attr( 'Page used for ' . $title ); ?>">
+                        <option value="">Not linked</option>
+                        <?php foreach ( $all_pages as $candidate ) : ?>
+                            <option value="<?php echo esc_attr( (string) $candidate->ID ); ?>" <?php selected( $page_id, $candidate->ID ); ?>><?php echo esc_html( $candidate->post_title ); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="hpc-sp-buttons">
+                    <span class="hpc-site-page-actions"><?php echo $this->page_actions( $page_id, $page_key, $is_set, $page_data, $parent_key ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
+                    <?php if ( '' !== $more ) : ?>
+                        <button type="button" class="button button-small hpc-sp-toggle" aria-expanded="false" aria-controls="<?php echo esc_attr( $body_id ); ?>">Details</button>
+                    <?php endif; ?>
+                </div>
+            </div>
+            <?php if ( '' !== $more ) : ?>
+                <div class="hpc-sp-body" id="<?php echo esc_attr( $body_id ); ?>" hidden><?php echo $more; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></div>
+            <?php endif; ?>
+        </div>
         <?php foreach ( (array) ( $page_data['children'] ?? [] ) as $child_key => $child_data ) : ?>
-            <?php echo $this->render_page_row( (string) $child_key, is_array( $child_data ) ? $child_data : [], $all_pages, $page_key, false ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+            <?php echo $this->render_page_row( (string) $child_key, is_array( $child_data ) ? $child_data : [], $all_pages, $page_key, false, $title ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
         <?php endforeach; ?>
         <?php
 
         return (string) ob_get_clean();
     }
 
-    private function render_page_detail_row( string $page_key, int $page_id ): string {
-        if ( empty( $this->config['show_page_details'] ) ) {
-            return '';
-        }
-
-        $detail_html = '';
-        if ( $page_id > 0 ) {
-            $payload = $this->manager->page_payload( $page_id );
-            $detail_html = (string) ( $payload['detail_html'] ?? '' );
-        }
-
-        ob_start();
-        ?>
-        <tr class="hpc-site-page-detail-row" data-page-key="<?php echo esc_attr( $page_key ); ?>" style="<?php echo '' === $detail_html ? 'display:none;' : ''; ?>">
-            <td colspan="4" style="padding:0 16px 16px;">
-                <div class="hpc-page-detail-wrap" aria-live="polite"><?php echo $detail_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></div>
-            </td>
-        </tr>
-        <?php
-
-        return (string) ob_get_clean();
-    }
-
     /**
+     * A page's Details, in three parts: the page itself, the default content
+     * as it reads on the site, and what goes into the page.
+     *
      * @param array<string,mixed> $page_data
      */
-    private function render_template_row( string $page_key, array $page_data ): string {
-        if ( empty( $this->config['enable_templates'] ) || empty( $this->config['enable_template_editors'] ) || empty( $page_data['template'] ) ) {
-            return '';
+    private function render_page_more( string $page_key, int $page_id, array $page_data ): string {
+        $sections = '';
+
+        if ( ! empty( $this->config['show_page_details'] ) && empty( $this->config['lazy_page_workspace'] ) ) {
+            $detail_html = $page_id > 0 ? (string) ( $this->manager->page_payload( $page_id )['detail_html'] ?? '' ) : '';
+            $sections   .= '<div class="hpc-site-page-detail-row hpc-sp-part" data-page-key="' . esc_attr( $page_key ) . '"' . ( '' === $detail_html ? ' style="display:none;"' : '' ) . '><h5>This page</h5><div class="hpc-page-detail-wrap" aria-live="polite">' . $detail_html . '</div></div>';
         }
 
-        $raw_editor_id = sanitize_key( (string) $this->config['instance_id'] . '_' . $page_key . '_template' );
-        $editor_id = preg_replace( '/[^a-z0-9_]/', '_', $raw_editor_id ) ?: 'hpc_page_template';
-        $template = $this->manager->template_content( $page_key );
-        $rows = max( 4, (int) $this->config['template_editor_rows'] );
+        if ( ! empty( $this->config['show_default_content'] ) ) {
+            $template = $this->manager->default_template( $page_key );
+            if ( '' !== trim( $template ) ) {
+                $html      = function_exists( 'do_shortcode' ) ? do_shortcode( $template ) : $template;
+                // The page's own <style> blocks are kept so the preview looks as it does on the site; scripts are dropped.
+                preg_match_all( '#<style\b[^>]*>.*?</style>#is', $html, $styles );
+                $html      = (string) preg_replace( '#<(style|script)\b[^>]*>.*?</\1>#is', '', $html );
+                $sections .= '<div class="hpc-sp-part"><h5>Default page content</h5><p class="hpc-sp-note">How the page reads on the site, filled in from the site\'s details.</p><div class="hpc-sp-preview">' . implode( '', $styles[0] ) . wp_kses_post( $html ) . '</div></div>';
+            }
+        }
 
-        ob_start();
-        ?>
-        <tr class="hpc-site-template-row" data-page-key="<?php echo esc_attr( $page_key ); ?>">
-            <td colspan="4" style="padding:0 16px 16px;">
-                <details class="hpc-template-panel" style="border:1px solid #e5e7eb;border-radius:8px;background:#fff;margin:0;">
-                    <summary style="cursor:pointer;padding:12px 14px;font-weight:700;display:flex;align-items:center;justify-content:space-between;gap:12px;">
-                        <span>Starter/template text</span>
-                        <small style="color:#64748b;font-weight:500;">Saved template is used when creating or applying this page.</small>
-                    </summary>
-                    <div class="hpc-template-editor" data-editor-id="<?php echo esc_attr( $editor_id ); ?>" style="border-top:1px solid #e5e7eb;padding:14px;">
-                        <?php if ( function_exists( 'wp_editor' ) ) : ?>
-                            <?php wp_editor( $template, $editor_id, [ 'textarea_name' => $editor_id, 'textarea_rows' => $rows, 'media_buttons' => ! empty( $this->config['template_editor_media_buttons'] ), 'teeny' => false, 'quicktags' => true, 'tinymce' => true ] ); ?>
-                        <?php else : ?>
-                            <textarea id="<?php echo esc_attr( $editor_id ); ?>" rows="<?php echo esc_attr( (string) $rows ); ?>" style="width:100%;"><?php echo esc_textarea( $template ); ?></textarea>
-                        <?php endif; ?>
-                        <p style="display:flex;align-items:center;gap:8px;margin:12px 0 0;">
-                            <button type="button" class="button button-secondary hpc-save-page-template" data-page-key="<?php echo esc_attr( $page_key ); ?>">Save Template</button>
-                            <span class="hpc-template-status" style="font-size:13px;color:#64748b;"></span>
-                        </p>
-                    </div>
-                </details>
-            </td>
-        </tr>
-        <?php
+        if ( empty( $this->config['lazy_page_workspace'] ) && ! empty( $this->config['enable_templates'] ) && ! empty( $this->config['enable_template_editors'] ) && ! empty( $page_data['template'] ) ) {
+            $raw_editor_id = sanitize_key( (string) $this->config['instance_id'] . '_' . $page_key . '_template' );
+            $editor_id     = preg_replace( '/[^a-z0-9_]/', '_', $raw_editor_id ) ?: 'hpc_page_template';
+            $rows          = max( 4, (int) $this->config['template_editor_rows'] );
+            $template      = $this->manager->template_content( $page_key );
+            ob_start();
+            ?>
+            <div class="hpc-sp-part hpc-template-editor" data-editor-id="<?php echo esc_attr( $editor_id ); ?>">
+                <h5>What goes into the page</h5>
+                <p class="hpc-sp-note">Create page and Apply template put this into the page. <?php echo false !== strpos( $template, '[' ) && ! empty( $this->config['show_default_content'] ) ? 'A line in [square brackets] prints the Default page content above on the site, filled in from the site\'s details, so it stays up to date. ' : ''; ?>Replace it with your own text to use different wording on this site.</p>
+                <textarea id="<?php echo esc_attr( $editor_id ); ?>" class="large-text code" rows="<?php echo esc_attr( (string) min( $rows, 4 ) ); ?>"><?php echo esc_textarea( $template ); ?></textarea>
+                <p class="hpc-sp-save"><button type="button" class="button hpc-save-page-template" data-page-key="<?php echo esc_attr( $page_key ); ?>">Save</button> <span class="hpc-template-status"></span></p>
+            </div>
+            <?php
+            $sections .= (string) ob_get_clean();
+        }
 
-        return (string) ob_get_clean();
+        return $sections;
+    }
+
+    private static function page_list_styles(): string {
+        static $printed = false;
+        if ( $printed ) {
+            return '';
+        }
+        $printed = true;
+
+        return '<style>
+            .hpc-sp-intro h3{margin:0 0 4px;font-size:16px}
+            .hpc-sp-intro p{margin:0 0 20px;color:#50575e;max-width:760px}
+            .hpc-sp-section-group{margin:0 0 24px}
+            .hpc-sp-group-title{margin:0 0 8px;font-size:14px}
+            .hpc-sp-group-title span{margin-left:6px;font-weight:400;font-size:12px;color:#646970}
+            .hpc-sp-list{border:1px solid #dcdcde;border-radius:8px;background:#fff;overflow:hidden}
+            .hpc-sp{border-top:1px solid #f0f0f1;padding:12px 16px}
+            .hpc-sp:first-child{border-top:0}
+            .hpc-sp-head{display:grid;grid-template-columns:minmax(220px,1fr) minmax(200px,280px) minmax(300px,auto);gap:16px;align-items:center}
+            .hpc-sp-title{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+            .hpc-sp-title strong{font-size:14px}
+            .hpc-sp-path{margin-top:3px;color:#646970;font-size:12px;word-break:break-all}
+            .hpc-sp-under{margin-left:8px;padding-left:8px;border-left:1px solid #dcdcde}
+            .hpc-sp-link select{width:100%;max-width:none}
+            .hpc-sp-buttons{display:flex;gap:6px;justify-content:flex-end;align-items:center;flex-wrap:wrap}
+            .hpc-site-page-actions{display:inline-flex;gap:6px;flex-wrap:wrap}
+            .hpc-site-page-actions .hpc-delete-page{color:#b32d2e;border-color:#e6b6b6}
+            .hpc-sp-toggle[aria-expanded="true"]{background:#f0f0f1}
+            .hpc-sp-status{display:inline-block;padding:1px 8px;border-radius:10px;font-size:11px;font-weight:600;line-height:18px}
+            .hpc-sp-status--on{background:#e7f6ec;color:#16632d}
+            .hpc-sp-status--off{background:#fcf0e3;color:#8a4b0f}
+            .hpc-sp-body[hidden]{display:none}
+            .hpc-sp-body{display:grid;gap:0;margin-top:12px;border:1px solid #dcdcde;border-radius:6px;overflow:hidden}
+            .hpc-sp-part{padding:14px 16px;background:#f6f7f7;border-top:1px solid #dcdcde}
+            .hpc-sp-part:first-child{border-top:0}
+            .hpc-sp-part h5{margin:0 0 4px;font-size:13px;color:#1d2327}
+            .hpc-sp-note{margin:0 0 10px;color:#646970;font-size:12px}
+            .hpc-sp-preview{max-height:320px;overflow:auto;padding:14px 16px;background:#fff;border:1px solid #dcdcde;border-radius:6px}
+            .hpc-sp-preview > :first-child{margin-top:0}
+            .hpc-sp-preview > :last-child{margin-bottom:0}
+            .hpc-template-editor textarea{display:block;width:100%;font-family:Menlo,Consolas,monospace;font-size:12px}
+            .hpc-sp-save{display:flex;align-items:center;gap:8px;margin:10px 0 0}
+            .hpc-template-status{font-size:12px;color:#646970}
+            .hpc-page-detail-wrap .hws-pages-detail{display:flex;flex-wrap:wrap;gap:6px 20px;font-size:13px}
+            @media (max-width:1100px){.hpc-sp-head{grid-template-columns:1fr}.hpc-sp-buttons{justify-content:flex-start}}
+        </style>';
     }
 
     private function render_page_workspace(): string {
@@ -271,19 +345,19 @@ final class SiteStructureRenderer {
      */
     private function page_actions( int $page_id, string $page_key, bool $is_set, array $page_data, ?string $parent_key ): string {
         if ( $is_set ) {
-            $html = '<a href="' . esc_url( get_edit_post_link( $page_id ) ) . '" target="_blank" rel="noopener" class="button button-small">Edit</a> ';
-            $html .= '<a href="' . esc_url( get_permalink( $page_id ) ) . '" target="_blank" rel="noopener" class="button button-small">View</a> ';
+            $html = '<a href="' . esc_url( get_permalink( $page_id ) ) . '" target="_blank" rel="noopener" class="button button-small">View</a> ';
+            $html .= '<a href="' . esc_url( get_edit_post_link( $page_id ) ) . '" target="_blank" rel="noopener" class="button button-small">Edit</a> ';
 
             $actions = is_array( $this->config['actions'] ) ? $this->config['actions'] : [];
             if ( empty( $this->config['lazy_page_workspace'] ) && ! empty( $this->config['enable_templates'] ) && ( ! empty( $this->config['apply_template_action'] ) || ! empty( $actions['apply_template'] ) ) ) {
-                $html .= '<button type="button" class="button button-small hpc-apply-page-template" data-page-id="' . esc_attr( (string) $page_id ) . '" data-page-key="' . esc_attr( $page_key ) . '">Apply Template</button> ';
+                $html .= '<button type="button" class="button button-small hpc-apply-page-template" data-page-id="' . esc_attr( (string) $page_id ) . '" data-page-key="' . esc_attr( $page_key ) . '">Apply template</button> ';
             }
 
             if ( ! empty( $this->config['lazy_page_workspace'] ) ) {
                 $html .= '<button type="button" class="button button-small hpc-open-page-workspace" data-page-key="' . esc_attr( $page_key ) . '" data-page-id="' . esc_attr( (string) $page_id ) . '">Manage</button> ';
             }
 
-            $html .= '<button type="button" class="button button-small hpc-delete-page" data-page="' . esc_attr( $page_key ) . '" data-page-id="' . esc_attr( (string) $page_id ) . '" style="color:#dc2626;border-color:#fca5a5;">Delete</button>';
+            $html .= '<button type="button" class="button button-small hpc-delete-page" data-page="' . esc_attr( $page_key ) . '" data-page-id="' . esc_attr( (string) $page_id ) . '">Delete</button>';
 
             return $html;
         }
@@ -294,7 +368,7 @@ final class SiteStructureRenderer {
         }
 
         if ( ! $parent_exists ) {
-            return '<span style="color:#9ca3af;font-size:12px;">Create parent page first</span>';
+            return '<span class="hpc-sp-note">Create the parent page first</span>';
         }
 
         $title = (string) ( $page_data['title'] ?? $page_key );
@@ -304,7 +378,7 @@ final class SiteStructureRenderer {
         if ( null !== $parent_key && '' !== $parent_key ) {
             $html .= ' data-parent="' . esc_attr( $parent_key ) . '"';
         }
-        $html .= '>+ Create</button>';
+        $html .= '>Create page</button>';
 
         if ( ! empty( $this->config['lazy_page_workspace'] ) ) {
             $html .= ' <button type="button" class="button button-small hpc-open-page-workspace" data-page-key="' . esc_attr( $page_key ) . '" data-page-id="0">Manage</button>';
@@ -521,12 +595,8 @@ final class SiteStructureRenderer {
         return $html;
     }
 
-    private function status_badge( bool $status, string $text ): string {
-        $bg    = $status ? '#dcfce7' : '#fee2e2';
-        $color = $status ? '#166534' : '#991b1b';
-        $icon  = $status ? '&#10003;' : '&times;';
-
-        return '<span style="display:inline-block;background:' . esc_attr( $bg ) . ';color:' . esc_attr( $color ) . ';padding:4px 10px;border-radius:4px;font-size:12px;font-weight:500;">' . $icon . ' ' . esc_html( $text ) . '</span>';
+    private static function page_pill( bool $is_set ): string {
+        return '<span class="hpc-sp-status hpc-sp-status--' . ( $is_set ? 'on' : 'off' ) . '">' . ( $is_set ? 'Linked' : 'Not created' ) . '</span>';
     }
 
     /**
