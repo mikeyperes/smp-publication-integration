@@ -225,7 +225,7 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `2.6.0`
+- Version: `2.6.1`
 
 ## Ownership
 
@@ -327,6 +327,10 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.6.1
+
+- Pages tab: each page shows the page it sits under, or will go under; company pages are shown read-only as HWS Base Tools pages.
 
 ### 2.6.0
 
