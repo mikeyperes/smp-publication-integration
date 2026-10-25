@@ -69,6 +69,8 @@ final class SiteStructureRenderer {
         return array_merge(
             [
                 'pages_title'       => 'Critical Pages',
+                'main_pages_title'  => 'Main pages',
+                'main_pages_note'   => 'Pages at the top level of the site',
                 'pages_heading'     => 'Required Website Pages',
                 'pages_description' => 'Assign existing WordPress pages or create the required page structure with parent-child hierarchy.',
                 'menus_title'       => 'Navigation Menus',
@@ -120,7 +122,7 @@ final class SiteStructureRenderer {
             <?php endforeach; ?>
             <?php if ( ! empty( $others ) ) : ?>
                 <section class="hpc-sp-section-group">
-                    <h4 class="hpc-sp-group-title"><?php echo esc_html( empty( $sections ) ? 'Pages' : 'Other pages' ); ?> <span>Each one at the top level of the site</span></h4>
+                    <h4 class="hpc-sp-group-title"><?php echo esc_html( $labels['main_pages_title'] ); ?> <span><?php echo esc_html( $labels['main_pages_note'] ); ?></span></h4>
                     <div class="hpc-sp-list">
                         <?php foreach ( $others as $page_key => $page_data ) : ?>
                             <?php echo $this->render_page_row( $page_key, $page_data, $all_pages, null, true ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
