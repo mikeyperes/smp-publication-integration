@@ -29,6 +29,7 @@ final class PagesTab {
     public function render(): void {
         echo '<div class="smpi-panel smpi-pages"><h2>Publication Pages</h2>';
         echo '<p>Every standard publication page. Each one is linked to the WordPress page at its usual address automatically and placed under its parent page; use Change to pick another. Company pages (About, Contact, Privacy, Terms and the rest) belong to HWS Base Tools and are shown read-only. The template is the starting content; Create or Apply puts it into the page and keeps the old content as a revision.</p>';
+        echo self::shortcode_reference_html(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
         foreach ( PageTypes::grouped() as $group => $types ) {
             echo '<h3 class="smpi-pages-group">' . esc_html( PageTypes::GROUPS[ $group ] ) . '</h3>';
             echo '<table class="widefat striped smpi-pages-table"><thead><tr><th>Page</th><th>Linked WordPress page</th><th>Status</th><th>Template</th><th></th></tr></thead><tbody>';
@@ -61,6 +62,11 @@ final class PagesTab {
         }
         if ( ! empty( $type['optional'] ) ) {
             $badge .= ' <span class="smpi-pages-badge" title="Not in the default page set; created only when you ask for it.">Optional, off by default</span>';
+        }
+        $facts   = self::facts_used( $key );
+        $missing = count( array_filter( $facts, static fn( $value ): bool => '' === (string) $value ) );
+        if ( $missing > 0 ) {
+            $badge .= ' <span class="smpi-pages-badge smpi-pages-badge--flag">' . esc_html( 1 === $missing ? '1 detail missing' : $missing . ' details missing' ) . '</span>';
         }
         $applies = PageTypes::applies( $key );
         if ( ! $applies ) {
@@ -103,9 +109,46 @@ final class PagesTab {
         $html .= '<td>' . esc_html( $template_state ) . '<br><button type="button" class="button-link smpi-pages-view">View / edit</button></td>';
         $html .= '<td>' . ( '' !== $button ? '<button type="button" class="button button-secondary smpi-pages-apply" data-label="' . esc_attr( $button ) . '">' . esc_html( $button ) . '</button>' : '' ) . '<span class="smpi-pages-msg" aria-live="polite"></span></td>';
         $html .= '</tr>';
-        $html .= '<tr class="smpi-pages-editor" data-key="' . esc_attr( $key ) . '" hidden><td colspan="5">' . ( 'submit_press_release' === $key ? self::form_slot_html() : '' ) . CodeViews::code( PageTemplates::get( $key ), 'html', 'Current template' ) . '<p class="smpi-muted">Edit it here:</p><textarea class="large-text code" rows="14">' . esc_textarea( PageTemplates::get( $key ) ) . '</textarea>';
+        $html .= '<tr class="smpi-pages-editor" data-key="' . esc_attr( $key ) . '" hidden><td colspan="5">' . self::facts_html( $facts ) . ( 'submit_press_release' === $key ? self::form_slot_html() : '' ) . CodeViews::code( PageTemplates::get( $key ), 'html', 'Current template' ) . '<p class="smpi-muted">Edit it here:</p><textarea class="large-text code" rows="14">' . esc_textarea( PageTemplates::get( $key ) ) . '</textarea>';
         $html .= '<p><button type="button" class="button button-primary smpi-pages-save">Save template</button> <button type="button" class="button smpi-pages-reset">Back to default</button> <span class="smpi-muted">Shortcodes fill in the publication name, dates, places and people.</span></p></td></tr>';
         return $html;
+    }
+
+    /**
+     * The company details a page's template uses, label => value ('' when not set), read from
+     * HWS Base Tools' Website Identity.
+     *
+     * @return array<string,string>
+     */
+    private static function facts_used( string $key ): array {
+        $facts = '\\HWS\\BaseTools\\CompanyPages\\CompanyFacts';
+        return class_exists( $facts ) && method_exists( $facts, 'used_in' ) ? $facts::used_in( PageTemplates::get( $key ) ) : [];
+    }
+
+    /** @param array<string,string> $facts */
+    private static function facts_html( array $facts ): string {
+        if ( empty( $facts ) ) {
+            return '';
+        }
+        $items = '';
+        foreach ( $facts as $label => $value ) {
+            $items .= '<li><span class="smpi-muted">' . esc_html( (string) $label ) . ':</span> ' . ( '' === (string) $value ? '<strong class="smpi-warn">Not set</strong>' : '<strong>' . esc_html( (string) $value ) . '</strong>' ) . '</li>';
+        }
+        $edit = class_exists( '\\HWS\\BaseTools\\SiteProfile\\SiteIdentity' ) ? ' <a href="' . esc_url( \HWS\BaseTools\SiteProfile\SiteIdentity::edit_url() ) . '">Edit these details</a>' : '';
+        return '<p><strong>Details this page uses</strong><br><span class="smpi-muted">Filled in automatically from Website Identity in HWS Base Tools. A detail that is not set is left out of the page.' . $edit . '</span></p><ul class="smpi-pages-facts">' . $items . '</ul>';
+    }
+
+    /** The shortcodes page templates are built from, with what each does (from HWS Base Tools). */
+    private static function shortcode_reference_html(): string {
+        $facts = '\\HWS\\BaseTools\\CompanyPages\\CompanyFacts';
+        if ( ! class_exists( $facts ) || ! method_exists( $facts, 'reference' ) ) {
+            return '';
+        }
+        $renderer = '\\Hexa\\PluginCore\\SiteStructure\\SiteStructureRenderer';
+        if ( ! method_exists( $renderer, 'shortcode_items_html' ) ) {
+            return '';
+        }
+        return '<details class="smpi-pages-shortcodes"><summary>Shortcodes for page content</summary>' . $renderer::shortcode_items_html( $facts::reference() ) . '</details>';
     }
 
     /** The Submit Your Press Release page's form slot: the shortcode [smp_press_release_form] prints. */
@@ -199,6 +242,16 @@ final class PagesTab {
             .smpi-pages-badge--flag{background:#fff7ed;color:#9a3412}
             .smpi-pages-msg{display:block;margin-top:4px;font-size:12px}
             .smpi-pages-editor textarea{font-size:12px}
+            .smpi-pages-facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:4px 20px;margin:0 0 12px}
+            .smpi-pages-shortcodes{margin:12px 0 20px;padding:14px 16px;background:#fff;border:1px solid #dcdcde;border-radius:8px}
+            .smpi-pages-shortcodes > summary{cursor:pointer;font-size:14px;font-weight:600}
+            .smpi-pages-shortcodes[open] > summary{margin-bottom:12px}
+            .smpi-pages-shortcodes ul{display:grid;gap:8px;margin:0}
+            .smpi-pages-shortcodes li{display:grid;grid-template-columns:minmax(220px,340px) 1fr;gap:16px;margin:0;align-items:baseline}
+            .smpi-pages-shortcodes li.hpc-sp-sc--value{grid-template-columns:minmax(220px,340px) 170px 1fr}
+            .smpi-pages-shortcodes h5{margin:14px 0 4px;font-size:13px}
+            .smpi-pages-shortcodes .hpc-sp-note{margin:0 0 8px;color:#646970;font-size:12px}
+            .smpi-pages-shortcodes code{font-size:12px;word-break:break-word}
         </style>
         <script>
         (function($){

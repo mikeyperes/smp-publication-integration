@@ -225,7 +225,7 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `2.6.2`
+- Version: `2.7.0`
 
 ## Ownership
 
@@ -327,6 +327,13 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.7.0
+
+- Every publication page default text rewritten: no repeated title headings, plain titles, concrete editorial policies (corrections, verification, ethics, sources, diversity), a factual Powered by Scale My Publication page, and an Ownership and Funding page linked from Policies.
+- Templates use HWS Base Tools' building blocks ([hws_company], [hws_if], [hws_page_link]), so every page reads company details from Website Identity in one place.
+- Pages tab: a collapsible list of every company detail shortcode with its current value, and each page shows the details it uses, with a missing-details tag.
+- Bundles Hexa WP Core 3.40.1.
 
 ### 2.6.2
 

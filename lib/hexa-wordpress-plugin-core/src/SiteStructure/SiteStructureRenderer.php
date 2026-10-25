@@ -30,6 +30,10 @@ final class SiteStructureRenderer {
                 'show_menus'            => true,
                 'show_page_details'     => false,
                 'show_default_content'  => true,
+                'facts_used'            => null,
+                'facts_edit_url'        => '',
+                'shortcode_reference'   => [],
+                'shortcode_reference_title' => 'Shortcodes for page content',
                 'lazy_page_workspace'   => false,
                 'actions'               => [],
                 'labels'                => [],
@@ -104,6 +108,7 @@ final class SiteStructureRenderer {
                 <h3><?php echo esc_html( $labels['pages_title'] ); ?></h3>
                 <p><?php echo esc_html( $labels['pages_description'] ); ?></p>
             </div>
+            <?php echo self::shortcode_reference_html( (array) $this->config['shortcode_reference'], (string) $this->config['shortcode_reference_title'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
             <?php foreach ( $sections as $page_key => $page_data ) : ?>
                 <?php $title = (string) ( $page_data['title'] ?? $page_key ); ?>
                 <section class="hpc-sp-section-group">
@@ -173,7 +178,9 @@ final class SiteStructureRenderer {
         $title   = (string) ( $page_data['title'] ?? $page_key );
         $slug    = (string) ( $page_data['slug'] ?? $page_key );
         $address = $page_id > 0 && function_exists( 'get_permalink' ) ? (string) wp_make_link_relative( (string) get_permalink( $page_id ) ) : $this->planned_address( $slug, $parent_key );
-        $more    = $this->render_page_more( $page_key, $page_id, $page_data );
+        $facts   = $this->facts_used( $page_key );
+        $missing = count( array_filter( $facts, static fn( $value ): bool => '' === (string) $value ) );
+        $more    = $this->render_page_more( $page_key, $page_id, $page_data, $facts );
         $body_id = sanitize_html_class( (string) $this->config['instance_id'] . '-' . $page_key . '-details' );
 
         ob_start();
@@ -181,7 +188,7 @@ final class SiteStructureRenderer {
         <div class="hpc-sp hpc-site-page-row" data-page-key="<?php echo esc_attr( $page_key ); ?>" data-page-title="<?php echo esc_attr( $title ); ?>" data-page-slug="<?php echo esc_attr( $slug ); ?>" data-parent-key="<?php echo esc_attr( (string) $parent_key ); ?>">
             <div class="hpc-sp-head">
                 <div class="hpc-sp-name">
-                    <div class="hpc-sp-title"><strong><?php echo esc_html( $title ); ?></strong><span class="hpc-site-page-status"><?php echo self::page_pill( $is_set ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span></div>
+                    <div class="hpc-sp-title"><strong><?php echo esc_html( $title ); ?></strong><span class="hpc-site-page-status"><?php echo self::page_pill( $is_set ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span><?php echo $missing > 0 ? '<span class="hpc-sp-status hpc-sp-status--warn">' . esc_html( 1 === $missing ? '1 detail missing' : $missing . ' details missing' ) . '</span>' : ''; ?></div>
                     <div class="hpc-sp-path"><?php echo esc_html( $address ); ?><?php echo '' !== $parent_title ? '<span class="hpc-sp-under">Under ' . esc_html( $parent_title ) . '</span>' : ''; ?></div>
                 </div>
                 <div class="hpc-sp-link">
@@ -194,13 +201,10 @@ final class SiteStructureRenderer {
                 </div>
                 <div class="hpc-sp-buttons">
                     <span class="hpc-site-page-actions"><?php echo $this->page_actions( $page_id, $page_key, $is_set, $page_data, $parent_key ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
-                    <?php if ( '' !== $more ) : ?>
-                        <button type="button" class="button button-small hpc-sp-toggle" aria-expanded="false" aria-controls="<?php echo esc_attr( $body_id ); ?>">Details</button>
-                    <?php endif; ?>
                 </div>
             </div>
             <?php if ( '' !== $more ) : ?>
-                <div class="hpc-sp-body" id="<?php echo esc_attr( $body_id ); ?>" hidden><?php echo $more; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></div>
+                <details class="hpc-sp-more" id="<?php echo esc_attr( $body_id ); ?>"><summary>Page details</summary><div class="hpc-sp-body"><?php echo $more; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></div></details>
             <?php endif; ?>
         </div>
         <?php foreach ( (array) ( $page_data['children'] ?? [] ) as $child_key => $child_data ) : ?>
@@ -217,8 +221,18 @@ final class SiteStructureRenderer {
      *
      * @param array<string,mixed> $page_data
      */
-    private function render_page_more( string $page_key, int $page_id, array $page_data ): string {
+    private function render_page_more( string $page_key, int $page_id, array $page_data, array $facts = [] ): string {
         $sections = '';
+
+        if ( ! empty( $facts ) ) {
+            $items = '';
+            foreach ( $facts as $label => $value ) {
+                $value  = (string) $value;
+                $items .= '<li><span>' . esc_html( (string) $label ) . '</span>' . ( '' === $value ? '<strong class="hpc-sp-missing">Not set</strong>' : '<strong>' . esc_html( $value ) . '</strong>' ) . '</li>';
+            }
+            $edit      = (string) $this->config['facts_edit_url'];
+            $sections .= '<div class="hpc-sp-part"><h5>Details this page uses</h5><p class="hpc-sp-note">Filled in automatically. A detail that is not set is left out of the page.' . ( '' !== $edit ? ' <a href="' . esc_url( $edit ) . '">Edit these details</a>' : '' ) . '</p><ul class="hpc-sp-facts">' . $items . '</ul></div>';
+        }
 
         if ( ! empty( $this->config['show_page_details'] ) && empty( $this->config['lazy_page_workspace'] ) ) {
             $detail_html = $page_id > 0 ? (string) ( $this->manager->page_payload( $page_id )['detail_html'] ?? '' ) : '';
@@ -256,6 +270,49 @@ final class SiteStructureRenderer {
         return $sections;
     }
 
+    /** The details a page's content uses (label => value, '' when not set), from the 'facts_used' callback. */
+    private function facts_used( string $page_key ): array {
+        $callback = $this->config['facts_used'] ?? null;
+        return is_callable( $callback ) ? (array) call_user_func( $callback, $page_key ) : [];
+    }
+
+    /**
+     * The shortcodes page content can use, each with what it does, shown above the page list.
+     *
+     * @param array<int,array{code?:string,description?:string}> $items
+     */
+    private static function shortcode_reference_html( array $items, string $title ): string {
+        if ( empty( $items ) ) {
+            return '';
+        }
+        return '<details class="hpc-sp-shortcodes"><summary>' . esc_html( $title ) . '</summary>' . self::shortcode_items_html( $items ) . '</details>';
+    }
+
+    /**
+     * Reference rows: a 'heading' (with optional 'note') starts a group; a row has 'code',
+     * 'description' and, for a detail, its current 'value'.
+     *
+     * @param array<int,array<string,string>> $items
+     */
+    public static function shortcode_items_html( array $items ): string {
+        $html = '';
+        $open = false;
+        foreach ( $items as $item ) {
+            if ( isset( $item['heading'] ) ) {
+                $html .= ( $open ? '</ul>' : '' ) . '<h5>' . esc_html( (string) $item['heading'] ) . '</h5>' . ( ! empty( $item['note'] ) ? '<p class="hpc-sp-note">' . esc_html( (string) $item['note'] ) . '</p>' : '' ) . '<ul>';
+                $open  = true;
+                continue;
+            }
+            if ( ! $open ) {
+                $html .= '<ul>';
+                $open  = true;
+            }
+            $value = array_key_exists( 'value', $item ) ? ( '' === (string) $item['value'] ? '<em class="hpc-sp-missing">Not set</em>' : '<strong>' . esc_html( (string) $item['value'] ) . '</strong>' ) : '';
+            $html .= '<li class="' . ( array_key_exists( 'value', $item ) ? 'hpc-sp-sc--value' : '' ) . '"><code>' . esc_html( (string) ( $item['code'] ?? '' ) ) . '</code><span>' . esc_html( (string) ( $item['description'] ?? '' ) ) . '</span>' . $value . '</li>';
+        }
+        return $html . ( $open ? '</ul>' : '' );
+    }
+
     private static function page_list_styles(): string {
         static $printed = false;
         if ( $printed ) {
@@ -272,21 +329,38 @@ final class SiteStructureRenderer {
             .hpc-sp-list{border:1px solid #dcdcde;border-radius:8px;background:#fff;overflow:hidden}
             .hpc-sp{border-top:1px solid #f0f0f1;padding:12px 16px}
             .hpc-sp:first-child{border-top:0}
-            .hpc-sp-head{display:grid;grid-template-columns:minmax(220px,1fr) minmax(200px,280px) minmax(300px,auto);gap:16px;align-items:center}
-            .hpc-sp-title{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+            .hpc-sp-head{display:grid;grid-template-columns:minmax(320px,1fr) 260px 270px;gap:20px;align-items:center}
+            .hpc-sp-title{display:flex;align-items:center;gap:8px;flex-wrap:nowrap;white-space:nowrap}
             .hpc-sp-title strong{font-size:14px}
-            .hpc-sp-path{margin-top:3px;color:#646970;font-size:12px;word-break:break-all}
+            .hpc-sp-path{margin-top:3px;color:#646970;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
             .hpc-sp-under{margin-left:8px;padding-left:8px;border-left:1px solid #dcdcde}
             .hpc-sp-link select{width:100%;max-width:none}
-            .hpc-sp-buttons{display:flex;gap:6px;justify-content:flex-end;align-items:center;flex-wrap:wrap}
-            .hpc-site-page-actions{display:inline-flex;gap:6px;flex-wrap:wrap}
+            .hpc-sp-buttons{display:flex;gap:6px;justify-content:flex-end;align-items:center;flex-wrap:nowrap}
+            .hpc-site-page-actions{display:inline-flex;gap:6px;flex-wrap:nowrap}
             .hpc-site-page-actions .hpc-delete-page{color:#b32d2e;border-color:#e6b6b6}
-            .hpc-sp-toggle[aria-expanded="true"]{background:#f0f0f1}
             .hpc-sp-status{display:inline-block;padding:1px 8px;border-radius:10px;font-size:11px;font-weight:600;line-height:18px}
             .hpc-sp-status--on{background:#e7f6ec;color:#16632d}
             .hpc-sp-status--off{background:#fcf0e3;color:#8a4b0f}
-            .hpc-sp-body[hidden]{display:none}
-            .hpc-sp-body{display:grid;gap:0;margin-top:12px;border:1px solid #dcdcde;border-radius:6px;overflow:hidden}
+            .hpc-sp-status--warn{background:#fcf0e3;color:#8a4b0f}
+            .hpc-sp-facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:6px 20px;margin:0}
+            .hpc-sp-facts li{display:flex;gap:8px;margin:0;font-size:13px}
+            .hpc-sp-facts li span{color:#646970;min-width:120px}
+            .hpc-sp-facts strong{font-weight:600;word-break:break-word}
+            .hpc-sp-missing{color:#8a4b0f}
+            .hpc-sp-shortcodes{margin:0 0 24px;padding:12px 16px;background:#fff;border:1px solid #dcdcde;border-radius:8px}
+            .hpc-sp-shortcodes > summary{cursor:pointer;font-size:14px;font-weight:600}
+            .hpc-sp-shortcodes[open] > summary{margin-bottom:12px}
+            .hpc-sp-shortcodes h4{margin:0 0 10px;font-size:14px}
+            .hpc-sp-shortcodes ul{display:grid;gap:8px;margin:0}
+            .hpc-sp-shortcodes li{display:grid;grid-template-columns:minmax(220px,340px) 1fr;gap:16px;margin:0;font-size:13px;align-items:baseline}
+            .hpc-sp-shortcodes code{font-size:12px;word-break:break-word}
+            .hpc-sp-shortcodes h5{margin:14px 0 4px;font-size:13px}
+            .hpc-sp-shortcodes h5:first-of-type{margin-top:0}
+            .hpc-sp-shortcodes li.hpc-sp-sc--value{grid-template-columns:minmax(220px,340px) 170px 1fr}
+            .hpc-sp-shortcodes li strong,.hpc-sp-shortcodes li em{word-break:break-word}
+                        .hpc-sp-more{margin-top:6px}
+            .hpc-sp-more summary{cursor:pointer;color:#2271b1;font-size:12px;font-weight:600;width:max-content}
+            .hpc-sp-body{display:grid;gap:0;margin-top:10px;border:1px solid #dcdcde;border-radius:6px;overflow:hidden}
             .hpc-sp-part{padding:14px 16px;background:#f6f7f7;border-top:1px solid #dcdcde}
             .hpc-sp-part:first-child{border-top:0}
             .hpc-sp-part h5{margin:0 0 4px;font-size:13px;color:#1d2327}
