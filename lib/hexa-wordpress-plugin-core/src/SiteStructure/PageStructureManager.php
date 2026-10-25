@@ -232,6 +232,7 @@ final class PageStructureManager {
     public function ensure_pages( array $keys = [] ): array {
         $flat    = $this->flat_pages();
         $keys    = empty( $keys ) ? array_keys( $flat ) : array_values( array_intersect( array_map( 'strval', $keys ), array_keys( $flat ) ) );
+        $keys    = array_values( array_filter( $keys, fn( string $key ): bool => $this->is_enabled( $key ) ) );
         $depth   = static function ( string $key ) use ( $flat, &$depth ): int {
             $parent = (string) ( $flat[ $key ]['parent'] ?? '' );
             return '' !== $parent && isset( $flat[ $parent ] ) && $parent !== $key ? 1 + $depth( $parent ) : 0;
@@ -267,6 +268,42 @@ final class PageStructureManager {
      */
     public function menu_structures(): array {
         return is_array( $this->config['menu_structures'] ) ? $this->config['menu_structures'] : [];
+    }
+
+    /** Option holding each page's on/off choice (page key => bool). */
+    public function enabled_option(): string {
+        return (string) $this->config['option_prefix'] . 'enabled_pages';
+    }
+
+    /**
+     * Whether a page is part of the site: the saved on/off choice, else on,
+     * except an 'optional' page, which is on only once it has a page.
+     */
+    public function is_enabled( string $page_key ): bool {
+        $saved = function_exists( 'get_option' ) ? (array) get_option( $this->enabled_option(), [] ) : [];
+        if ( array_key_exists( $page_key, $saved ) ) {
+            return (bool) $saved[ $page_key ];
+        }
+        $def = $this->flat_pages()[ $page_key ] ?? [];
+
+        return empty( $def['optional'] ) || $this->assigned_page_id( $page_key ) > 0;
+    }
+
+    /**
+     * Turns a page on or off. Off pages are skipped by ensure_pages() and show as Off in the page list;
+     * an existing page is left as it is.
+     *
+     * @return array<string,mixed>|\WP_Error
+     */
+    public function set_enabled( string $page_key, bool $enabled ): array|\WP_Error {
+        if ( ! isset( $this->flat_pages()[ $page_key ] ) ) {
+            return new \WP_Error( 'hpc_unknown_page', 'Unknown page.' );
+        }
+        $saved              = (array) get_option( $this->enabled_option(), [] );
+        $saved[ $page_key ] = $enabled;
+        update_option( $this->enabled_option(), $saved, false );
+
+        return [ 'page_key' => $page_key, 'enabled' => $enabled, 'message' => $enabled ? 'Page turned on.' : 'Page turned off.' ];
     }
 
     public function option_key( string $page_key ): string {

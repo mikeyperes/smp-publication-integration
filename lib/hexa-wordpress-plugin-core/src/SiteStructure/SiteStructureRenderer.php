@@ -165,9 +165,10 @@ final class SiteStructureRenderer {
     }
 
     /**
-     * One page row: name and address; the linked page; actions and Details.
-     * Pages under it follow as rows of their own, not indented: the address
-     * and the "Under <parent>" note show where each one sits.
+     * One page row: an on/off switch, the page name and address, its status, and one
+     * main button (Edit page or Create page). "Page details" opens everything else:
+     * the linked page and its actions, the details it uses, its default content and
+     * what goes into it. Pages under it follow as rows of their own, not indented.
      *
      * @param array<string,mixed> $page_data
      * @param \WP_Post[] $all_pages
@@ -175,37 +176,53 @@ final class SiteStructureRenderer {
     private function render_page_row( string $page_key, array $page_data, array $all_pages, ?string $parent_key = null, bool $top_level = false, string $parent_title = '' ): string {
         $page_id = $this->manager->assigned_page_id( $page_key );
         $is_set  = $this->manager->is_assigned_page_set( $page_key );
+        $enabled = $this->manager->is_enabled( $page_key );
         $title   = (string) ( $page_data['title'] ?? $page_key );
         $slug    = (string) ( $page_data['slug'] ?? $page_key );
-        $address = $page_id > 0 && function_exists( 'get_permalink' ) ? (string) wp_make_link_relative( (string) get_permalink( $page_id ) ) : $this->planned_address( $slug, $parent_key );
+        $url     = $page_id > 0 && function_exists( 'get_permalink' ) ? (string) get_permalink( $page_id ) : '';
+        $address = '' !== $url ? (string) wp_make_link_relative( $url ) : $this->planned_address( $slug, $parent_key );
         $facts   = $this->facts_used( $page_key );
-        $missing = count( array_filter( $facts, static fn( $value ): bool => '' === (string) $value ) );
-        $more    = $this->render_page_more( $page_key, $page_id, $page_data, $facts );
+        $missing = array_keys( array_filter( $facts, static fn( $value ): bool => '' === (string) $value ) );
         $body_id = sanitize_html_class( (string) $this->config['instance_id'] . '-' . $page_key . '-details' );
+        $toggle  = ! empty( ( is_array( $this->config['actions'] ) ? $this->config['actions'] : [] )['toggle_page'] );
 
         ob_start();
         ?>
-        <div class="hpc-sp hpc-site-page-row" data-page-key="<?php echo esc_attr( $page_key ); ?>" data-page-title="<?php echo esc_attr( $title ); ?>" data-page-slug="<?php echo esc_attr( $slug ); ?>" data-parent-key="<?php echo esc_attr( (string) $parent_key ); ?>">
+        <div class="hpc-sp hpc-site-page-row<?php echo $enabled ? '' : ' is-off'; ?>" data-page-key="<?php echo esc_attr( $page_key ); ?>" data-page-title="<?php echo esc_attr( $title ); ?>" data-page-slug="<?php echo esc_attr( $slug ); ?>" data-parent-key="<?php echo esc_attr( (string) $parent_key ); ?>" data-linked="<?php echo $is_set ? '1' : '0'; ?>">
             <div class="hpc-sp-head">
+                <?php if ( $toggle ) : ?>
+                    <label class="hpc-sp-switch" title="<?php echo esc_attr( $enabled ? 'On: part of this site' : 'Off: not part of this site' ); ?>"><input type="checkbox" class="hpc-sp-enable" data-page="<?php echo esc_attr( $page_key ); ?>" <?php checked( $enabled ); ?> aria-label="<?php echo esc_attr( 'Use the ' . $title . ' page on this site' ); ?>"><span aria-hidden="true"></span></label>
+                <?php endif; ?>
                 <div class="hpc-sp-name">
-                    <div class="hpc-sp-title"><strong><?php echo esc_html( $title ); ?></strong><span class="hpc-site-page-status"><?php echo self::page_pill( $is_set ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span><?php echo $missing > 0 ? '<span class="hpc-sp-status hpc-sp-status--warn">' . esc_html( 1 === $missing ? '1 detail missing' : $missing . ' details missing' ) . '</span>' : ''; ?></div>
-                    <div class="hpc-sp-path"><?php echo esc_html( $address ); ?><?php echo '' !== $parent_title ? '<span class="hpc-sp-under">Under ' . esc_html( $parent_title ) . '</span>' : ''; ?></div>
+                    <strong><?php echo esc_html( $title ); ?></strong>
+                    <div class="hpc-sp-path"><?php echo '' !== $url ? '<a href="' . esc_url( $url ) . '" target="_blank" rel="noopener">' . esc_html( $address ) . '</a>' : esc_html( $address ); ?><?php echo '' !== $parent_title ? '<span class="hpc-sp-under">Under ' . esc_html( $parent_title ) . '</span>' : ''; ?></div>
+                    <button type="button" class="hpc-sp-toggle" aria-expanded="false" aria-controls="<?php echo esc_attr( $body_id ); ?>">Page details</button>
                 </div>
-                <div class="hpc-sp-link">
-                    <select class="hpc-site-page-select" data-page="<?php echo esc_attr( $page_key ); ?>" data-parent="<?php echo esc_attr( (string) $parent_key ); ?>" aria-label="<?php echo esc_attr( 'Page used for ' . $title ); ?>">
-                        <option value="">Not linked</option>
-                        <?php foreach ( $all_pages as $candidate ) : ?>
-                            <option value="<?php echo esc_attr( (string) $candidate->ID ); ?>" <?php selected( $page_id, $candidate->ID ); ?>><?php echo esc_html( $candidate->post_title ); ?></option>
-                        <?php endforeach; ?>
-                    </select>
+                <div class="hpc-sp-state">
+                    <span class="hpc-site-page-status"><?php echo self::page_pill( $is_set, $enabled ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
+                    <?php if ( ! empty( $missing ) ) : ?>
+                        <span class="hpc-sp-missing-line" title="<?php echo esc_attr( implode( ', ', $missing ) ); ?>"><?php echo esc_html( 'Missing: ' . implode( ', ', $missing ) ); ?></span>
+                    <?php endif; ?>
                 </div>
-                <div class="hpc-sp-buttons">
-                    <span class="hpc-site-page-actions"><?php echo $this->page_actions( $page_id, $page_key, $is_set, $page_data, $parent_key ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
-                </div>
+                <div class="hpc-sp-primary"><?php echo $this->primary_action( $page_id, $page_key, $is_set, $page_data, $parent_key ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></div>
             </div>
-            <?php if ( '' !== $more ) : ?>
-                <details class="hpc-sp-more" id="<?php echo esc_attr( $body_id ); ?>"><summary>Page details</summary><div class="hpc-sp-body"><?php echo $more; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></div></details>
-            <?php endif; ?>
+            <div class="hpc-sp-body" id="<?php echo esc_attr( $body_id ); ?>" hidden>
+                <div class="hpc-sp-part">
+                    <h5>Linked page</h5>
+                    <p class="hpc-sp-note">The WordPress page used for <?php echo esc_html( $title ); ?>. Pick another page to use it instead.</p>
+                    <div class="hpc-sp-linkrow">
+                        <select class="hpc-site-page-select" data-page="<?php echo esc_attr( $page_key ); ?>" data-parent="<?php echo esc_attr( (string) $parent_key ); ?>" aria-label="<?php echo esc_attr( 'Page used for ' . $title ); ?>">
+                            <option value="">Not linked</option>
+                            <?php foreach ( $all_pages as $candidate ) : ?>
+                                <option value="<?php echo esc_attr( (string) $candidate->ID ); ?>" <?php selected( $page_id, $candidate->ID ); ?>><?php echo esc_html( $candidate->post_title ); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <span class="hpc-site-page-actions"><?php echo $is_set ? $this->page_actions( $page_id, $page_key, $is_set, $page_data, $parent_key ) : ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
+                    </div>
+                    <?php echo $this->page_detail_block( $page_key, $page_id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                </div>
+                <?php echo $this->render_page_more( $page_key, $page_id, $page_data, $facts ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+            </div>
         </div>
         <?php foreach ( (array) ( $page_data['children'] ?? [] ) as $child_key => $child_data ) : ?>
             <?php echo $this->render_page_row( (string) $child_key, is_array( $child_data ) ? $child_data : [], $all_pages, $page_key, false, $title ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
@@ -215,8 +232,27 @@ final class SiteStructureRenderer {
         return (string) ob_get_clean();
     }
 
+    /** The row's one main button: Edit page when the page exists, else Create page. */
+    private function primary_action( int $page_id, string $page_key, bool $is_set, array $page_data, ?string $parent_key ): string {
+        if ( $is_set ) {
+            return '<a href="' . esc_url( (string) get_edit_post_link( $page_id ) ) . '" target="_blank" rel="noopener" class="button">Edit page</a>';
+        }
+
+        return $this->page_actions( $page_id, $page_key, $is_set, $page_data, $parent_key );
+    }
+
+    /** Status, author and last change of the linked page (from the plugin's page_detail_renderer). */
+    private function page_detail_block( string $page_key, int $page_id ): string {
+        if ( empty( $this->config['show_page_details'] ) || ! empty( $this->config['lazy_page_workspace'] ) ) {
+            return '';
+        }
+        $detail_html = $page_id > 0 ? (string) ( $this->manager->page_payload( $page_id )['detail_html'] ?? '' ) : '';
+
+        return '<div class="hpc-site-page-detail-row" data-page-key="' . esc_attr( $page_key ) . '"' . ( '' === $detail_html ? ' style="display:none;"' : '' ) . '><div class="hpc-page-detail-wrap" aria-live="polite">' . $detail_html . '</div></div>';
+    }
+
     /**
-     * A page's Details, in three parts: the page itself, the default content
+     * The rest of Page details: the details the page uses, the default content
      * as it reads on the site, and what goes into the page.
      *
      * @param array<string,mixed> $page_data
@@ -232,11 +268,6 @@ final class SiteStructureRenderer {
             }
             $edit      = (string) $this->config['facts_edit_url'];
             $sections .= '<div class="hpc-sp-part"><h5>Details this page uses</h5><p class="hpc-sp-note">Filled in automatically. A detail that is not set is left out of the page.' . ( '' !== $edit ? ' <a href="' . esc_url( $edit ) . '">Edit these details</a>' : '' ) . '</p><ul class="hpc-sp-facts">' . $items . '</ul></div>';
-        }
-
-        if ( ! empty( $this->config['show_page_details'] ) && empty( $this->config['lazy_page_workspace'] ) ) {
-            $detail_html = $page_id > 0 ? (string) ( $this->manager->page_payload( $page_id )['detail_html'] ?? '' ) : '';
-            $sections   .= '<div class="hpc-site-page-detail-row hpc-sp-part" data-page-key="' . esc_attr( $page_key ) . '"' . ( '' === $detail_html ? ' style="display:none;"' : '' ) . '><h5>This page</h5><div class="hpc-page-detail-wrap" aria-live="polite">' . $detail_html . '</div></div>';
         }
 
         if ( ! empty( $this->config['show_default_content'] ) ) {
@@ -327,40 +358,56 @@ final class SiteStructureRenderer {
             .hpc-sp-group-title{margin:0 0 8px;font-size:14px}
             .hpc-sp-group-title span{margin-left:6px;font-weight:400;font-size:12px;color:#646970}
             .hpc-sp-list{border:1px solid #dcdcde;border-radius:8px;background:#fff;overflow:hidden}
-            .hpc-sp{border-top:1px solid #f0f0f1;padding:12px 16px}
+            .hpc-sp{border-top:1px solid #f0f0f1;padding:14px 18px}
             .hpc-sp:first-child{border-top:0}
-            .hpc-sp-head{display:grid;grid-template-columns:minmax(320px,1fr) 260px 270px;gap:20px;align-items:center}
-            .hpc-sp-title{display:flex;align-items:center;gap:8px;flex-wrap:nowrap;white-space:nowrap}
-            .hpc-sp-title strong{font-size:14px}
-            .hpc-sp-path{margin-top:3px;color:#646970;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+            .hpc-sp-head{display:grid;grid-template-columns:auto minmax(0,1fr) 220px 130px;gap:18px;align-items:center}
+            .hpc-sp-name strong{font-size:14px;color:#1d2327}
+            .hpc-sp-path{margin-top:2px;color:#646970;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+            .hpc-sp-path a{color:#646970;text-decoration:none}
+            .hpc-sp-path a:hover{color:#2271b1;text-decoration:underline}
             .hpc-sp-under{margin-left:8px;padding-left:8px;border-left:1px solid #dcdcde}
-            .hpc-sp-link select{width:100%;max-width:none}
-            .hpc-sp-buttons{display:flex;gap:6px;justify-content:flex-end;align-items:center;flex-wrap:nowrap}
-            .hpc-site-page-actions{display:inline-flex;gap:6px;flex-wrap:nowrap}
-            .hpc-site-page-actions .hpc-delete-page{color:#b32d2e;border-color:#e6b6b6}
+            .hpc-sp-toggle{margin:4px 0 0;padding:0;border:0;background:none;color:#2271b1;font-size:12px;font-weight:600;cursor:pointer}
+            .hpc-sp-toggle::before{content:"";display:inline-block;margin-right:6px;border-style:solid;border-width:4px 0 4px 6px;border-color:transparent transparent transparent currentColor;transition:transform .15s}
+            .hpc-sp-toggle[aria-expanded="true"]::before{transform:rotate(90deg)}
+            .hpc-sp-state{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0}
+            .hpc-sp-missing-line{max-width:100%;color:#8a4b0f;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+            .hpc-sp-primary{text-align:right}
+            .hpc-sp-primary .button{min-width:110px;text-align:center}
+            .hpc-sp.is-off .hpc-sp-name,.hpc-sp.is-off .hpc-sp-state{opacity:.55}
+            .hpc-sp.is-off .hpc-sp-primary{visibility:hidden}
+            .hpc-sp-switch{position:relative;display:inline-block;width:36px;height:20px;cursor:pointer}
+            .hpc-sp-switch input{position:absolute;opacity:0;width:0;height:0}
+            .hpc-sp-switch span{position:absolute;inset:0;border-radius:20px;background:#c3c4c7;transition:background .15s}
+            .hpc-sp-switch span::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .15s}
+            .hpc-sp-switch input:checked + span{background:#2271b1}
+            .hpc-sp-switch input:checked + span::after{transform:translateX(16px)}
+            .hpc-sp-switch input:focus-visible + span{outline:2px solid #2271b1;outline-offset:2px}
             .hpc-sp-status{display:inline-block;padding:1px 8px;border-radius:10px;font-size:11px;font-weight:600;line-height:18px}
             .hpc-sp-status--on{background:#e7f6ec;color:#16632d}
             .hpc-sp-status--off{background:#fcf0e3;color:#8a4b0f}
-            .hpc-sp-status--warn{background:#fcf0e3;color:#8a4b0f}
-            .hpc-sp-facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:6px 20px;margin:0}
-            .hpc-sp-facts li{display:flex;gap:8px;margin:0;font-size:13px}
-            .hpc-sp-facts li span{color:#646970;min-width:120px}
+            .hpc-sp-status--muted{background:#f0f0f1;color:#50575e}
+            .hpc-sp-body[hidden]{display:none}
+            .hpc-sp-body{display:grid;gap:0;margin:14px 0 0;border:1px solid #dcdcde;border-radius:6px;overflow:hidden}
+            .hpc-sp-linkrow{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+            .hpc-sp-linkrow select{min-width:280px}
+            .hpc-site-page-actions{display:inline-flex;gap:6px;flex-wrap:wrap}
+            .hpc-site-page-actions .hpc-delete-page{color:#b32d2e;border-color:#e6b6b6}
+            .hpc-page-detail-wrap{margin-top:10px}
+            .hpc-sp-facts{display:grid;gap:6px;margin:0;max-width:900px}
+            .hpc-sp-facts li{display:grid;grid-template-columns:170px minmax(0,1fr);gap:12px;margin:0;font-size:13px}
+            .hpc-sp-facts li span{color:#646970}
             .hpc-sp-facts strong{font-weight:600;word-break:break-word}
             .hpc-sp-missing{color:#8a4b0f}
             .hpc-sp-shortcodes{margin:0 0 24px;padding:12px 16px;background:#fff;border:1px solid #dcdcde;border-radius:8px}
             .hpc-sp-shortcodes > summary{cursor:pointer;font-size:14px;font-weight:600}
             .hpc-sp-shortcodes[open] > summary{margin-bottom:12px}
-            .hpc-sp-shortcodes h4{margin:0 0 10px;font-size:14px}
             .hpc-sp-shortcodes ul{display:grid;gap:8px;margin:0}
             .hpc-sp-shortcodes li{display:grid;grid-template-columns:minmax(220px,340px) 1fr;gap:16px;margin:0;font-size:13px;align-items:baseline}
+            .hpc-sp-shortcodes li.hpc-sp-sc--value{grid-template-columns:minmax(220px,340px) 170px 1fr}
             .hpc-sp-shortcodes code{font-size:12px;word-break:break-word}
             .hpc-sp-shortcodes h5{margin:14px 0 4px;font-size:13px}
             .hpc-sp-shortcodes h5:first-of-type{margin-top:0}
-            .hpc-sp-shortcodes li.hpc-sp-sc--value{grid-template-columns:minmax(220px,340px) 170px 1fr}
             .hpc-sp-shortcodes li strong,.hpc-sp-shortcodes li em{word-break:break-word}
-                        .hpc-sp-more{margin-top:6px}
-            .hpc-sp-more summary{cursor:pointer;color:#2271b1;font-size:12px;font-weight:600;width:max-content}
-            .hpc-sp-body{display:grid;gap:0;margin-top:10px;border:1px solid #dcdcde;border-radius:6px;overflow:hidden}
             .hpc-sp-part{padding:14px 16px;background:#f6f7f7;border-top:1px solid #dcdcde}
             .hpc-sp-part:first-child{border-top:0}
             .hpc-sp-part h5{margin:0 0 4px;font-size:13px;color:#1d2327}
@@ -372,7 +419,7 @@ final class SiteStructureRenderer {
             .hpc-sp-save{display:flex;align-items:center;gap:8px;margin:10px 0 0}
             .hpc-template-status{font-size:12px;color:#646970}
             .hpc-page-detail-wrap .hws-pages-detail{display:flex;flex-wrap:wrap;gap:6px 20px;font-size:13px}
-            @media (max-width:1100px){.hpc-sp-head{grid-template-columns:1fr}.hpc-sp-buttons{justify-content:flex-start}}
+            @media (max-width:960px){.hpc-sp-head{grid-template-columns:auto minmax(0,1fr)}.hpc-sp-state,.hpc-sp-primary{grid-column:2}.hpc-sp-primary{text-align:left}}
         </style>';
     }
 
@@ -419,19 +466,18 @@ final class SiteStructureRenderer {
      */
     private function page_actions( int $page_id, string $page_key, bool $is_set, array $page_data, ?string $parent_key ): string {
         if ( $is_set ) {
-            $html = '<a href="' . esc_url( get_permalink( $page_id ) ) . '" target="_blank" rel="noopener" class="button button-small">View</a> ';
-            $html .= '<a href="' . esc_url( get_edit_post_link( $page_id ) ) . '" target="_blank" rel="noopener" class="button button-small">Edit</a> ';
+            $html = '<a href="' . esc_url( get_permalink( $page_id ) ) . '" target="_blank" rel="noopener" class="button">View</a> ';
 
             $actions = is_array( $this->config['actions'] ) ? $this->config['actions'] : [];
             if ( empty( $this->config['lazy_page_workspace'] ) && ! empty( $this->config['enable_templates'] ) && ( ! empty( $this->config['apply_template_action'] ) || ! empty( $actions['apply_template'] ) ) ) {
-                $html .= '<button type="button" class="button button-small hpc-apply-page-template" data-page-id="' . esc_attr( (string) $page_id ) . '" data-page-key="' . esc_attr( $page_key ) . '">Apply template</button> ';
+                $html .= '<button type="button" class="button hpc-apply-page-template" data-page-id="' . esc_attr( (string) $page_id ) . '" data-page-key="' . esc_attr( $page_key ) . '">Apply template</button> ';
             }
 
             if ( ! empty( $this->config['lazy_page_workspace'] ) ) {
                 $html .= '<button type="button" class="button button-small hpc-open-page-workspace" data-page-key="' . esc_attr( $page_key ) . '" data-page-id="' . esc_attr( (string) $page_id ) . '">Manage</button> ';
             }
 
-            $html .= '<button type="button" class="button button-small hpc-delete-page" data-page="' . esc_attr( $page_key ) . '" data-page-id="' . esc_attr( (string) $page_id ) . '">Delete</button>';
+            $html .= '<button type="button" class="button hpc-delete-page" data-page="' . esc_attr( $page_key ) . '" data-page-id="' . esc_attr( (string) $page_id ) . '">Delete</button>';
 
             return $html;
         }
@@ -448,7 +494,7 @@ final class SiteStructureRenderer {
         $title = (string) ( $page_data['title'] ?? $page_key );
         $slug  = (string) ( $page_data['slug'] ?? $page_key );
 
-        $html = '<button type="button" class="button button-small button-primary hpc-create-page" data-page="' . esc_attr( $page_key ) . '" data-title="' . esc_attr( $title ) . '" data-slug="' . esc_attr( $slug ) . '"';
+        $html = '<button type="button" class="button button-primary hpc-create-page" data-page="' . esc_attr( $page_key ) . '" data-title="' . esc_attr( $title ) . '" data-slug="' . esc_attr( $slug ) . '"';
         if ( null !== $parent_key && '' !== $parent_key ) {
             $html .= ' data-parent="' . esc_attr( $parent_key ) . '"';
         }
@@ -669,8 +715,11 @@ final class SiteStructureRenderer {
         return $html;
     }
 
-    private static function page_pill( bool $is_set ): string {
-        return '<span class="hpc-sp-status hpc-sp-status--' . ( $is_set ? 'on' : 'off' ) . '">' . ( $is_set ? 'Linked' : 'Not created' ) . '</span>';
+    private static function page_pill( bool $is_set, bool $enabled = true ): string {
+        if ( ! $enabled ) {
+            return '<span class="hpc-sp-status hpc-sp-status--muted">Off</span>';
+        }
+        return '<span class="hpc-sp-status hpc-sp-status--' . ( $is_set ? 'on' : 'off' ) . '">' . ( $is_set ? 'Published' : 'Not created' ) . '</span>';
     }
 
     /**
@@ -693,6 +742,7 @@ final class SiteStructureRenderer {
                 'page_details'             => '',
                 'page_workspace'           => '',
                 'update_page_slug'         => '',
+                'toggle_page'              => '',
             ],
             is_array( $this->config['actions'] ) ? $this->config['actions'] : []
         );

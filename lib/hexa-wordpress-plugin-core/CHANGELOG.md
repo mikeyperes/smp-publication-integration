@@ -3,6 +3,8 @@
 Release notes moved from the README (3.31.1). Newest first; each Core release adds its line here.
 
 
+Version 3.41.0 redoes each page row in the page list: an on/off switch, the page name with its address (a link once the page exists), one status (Published, Not created or Off) with the missing details named under it, and one main button (Edit page or Create page). "Page details" opens the linked-page choice with View, Apply template and Delete, then the details used, the default content and what goes into the page. New `PageStructureManager::is_enabled()` / `set_enabled()` (option `<option_prefix>enabled_pages`; an `optional` page is off until it has a page) and the `toggle_page` AJAX action; `ensure_pages()` skips pages that are off.
+
 Version 3.40.1 brings back the "Page details" expand/collapse under each page (instead of a Details button), gives the row columns fixed widths so names, addresses and dropdowns line up without wrapping, and makes the shortcode reference an expand/collapse.
 
 Version 3.40.0 adds to the page list: a shortcode reference above it (`shortcode_reference`, rows with optional heading, note and current value; `SiteStructureRenderer::shortcode_items_html()` is public so plugin screens can reuse it) and, per page, the details its content uses with a "N details missing" tag (`facts_used` callback, `facts_edit_url`).

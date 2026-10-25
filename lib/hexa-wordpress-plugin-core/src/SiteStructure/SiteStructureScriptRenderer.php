@@ -31,8 +31,27 @@ final class SiteStructureScriptRenderer {
                 setTimeout(function() { $toast.fadeOut(function() { $(this).remove(); }); }, 3000);
             }
 
-            function statusBadge(success) {
-                return '<span class="hpc-sp-status hpc-sp-status--' + (success ? 'on' : 'off') + '">' + (success ? 'Linked' : 'Not created') + '</span>';
+            function statusBadge(success, enabled) {
+                if (enabled === false) return '<span class="hpc-sp-status hpc-sp-status--muted">Off</span>';
+                return '<span class="hpc-sp-status hpc-sp-status--' + (success ? 'on' : 'off') + '">' + (success ? 'Published' : 'Not created') + '</span>';
+            }
+
+            function primaryEdit(editUrl) {
+                return '<a href="' + editUrl + '" target="_blank" rel="noopener" class="button">Edit page</a>';
+            }
+
+            function setLinked($row, linked, editUrl, viewUrl, pageKey, pageId) {
+                $row.attr("data-linked", linked ? "1" : "0");
+                $row.find(".hpc-site-page-status").html(statusBadge(linked));
+                $row.find(".hpc-sp-primary").html(linked ? primaryEdit(editUrl) : createButton($row));
+                $row.find(".hpc-site-page-actions").html(linked ? actionButtons(pageKey, pageId, editUrl, viewUrl) : "");
+                var $path = $row.find(".hpc-sp-path");
+                var $under = $path.find(".hpc-sp-under").detach();
+                if (linked && viewUrl && viewUrl !== "#") {
+                    var rel = viewUrl.replace(/^https?:\/\/[^\/]+/, "");
+                    $path.empty().append($("<a/>", {href: viewUrl, target: "_blank", rel: "noopener", text: rel}));
+                }
+                $path.append($under);
             }
 
             function post(actionName, data, done, fail) {
@@ -50,15 +69,14 @@ final class SiteStructureScriptRenderer {
             }
 
             function actionButtons(pageKey, pageId, editUrl, viewUrl) {
-                var html = '<a href="' + viewUrl + '" target="_blank" rel="noopener" class="button button-small">View</a> ';
-                html += '<a href="' + editUrl + '" target="_blank" rel="noopener" class="button button-small">Edit</a> ';
+                var html = '<a href="' + viewUrl + '" target="_blank" rel="noopener" class="button">View</a> ';
                 if (!cfg.lazyPageWorkspace && cfg.enableTemplates && (cfg.actions.apply_template || cfg.applyTemplateAction)) {
-                    html += '<button type="button" class="button button-small hpc-apply-page-template" data-page-id="' + pageId + '" data-page-key="' + pageKey + '">Apply template</button> ';
+                    html += '<button type="button" class="button hpc-apply-page-template" data-page-id="' + pageId + '" data-page-key="' + pageKey + '">Apply template</button> ';
                 }
                 if (cfg.lazyPageWorkspace) {
-                    html += '<button type="button" class="button button-small hpc-open-page-workspace" data-page-id="' + pageId + '" data-page-key="' + pageKey + '">Manage</button> ';
+                    html += '<button type="button" class="button hpc-open-page-workspace" data-page-id="' + pageId + '" data-page-key="' + pageKey + '">Manage</button> ';
                 }
-                html += '<button type="button" class="button button-small hpc-delete-page" data-page="' + pageKey + '" data-page-id="' + pageId + '">Delete</button>';
+                html += '<button type="button" class="button hpc-delete-page" data-page="' + pageKey + '" data-page-id="' + pageId + '">Delete</button>';
                 return html;
             }
 
@@ -67,7 +85,7 @@ final class SiteStructureScriptRenderer {
                 var title = $row.data("page-title");
                 var slug = $row.data("page-slug");
                 var parentKey = $row.data("parent-key") || "";
-                var html = '<button type="button" class="button button-small button-primary hpc-create-page" data-page="' + pageKey + '" data-title="' + title + '" data-slug="' + slug + '"';
+                var html = '<button type="button" class="button button-primary hpc-create-page" data-page="' + pageKey + '" data-title="' + title + '" data-slug="' + slug + '"';
                 if (parentKey) html += ' data-parent="' + parentKey + '"';
                 html += '>Create page</button>';
                 if (cfg.lazyPageWorkspace) html += ' <button type="button" class="button button-small hpc-open-page-workspace" data-page-id="0" data-page-key="' + pageKey + '">Manage</button>';
@@ -300,6 +318,27 @@ final class SiteStructureScriptRenderer {
                 $("#" + $btn.attr("aria-controls")).prop("hidden", !open);
             });
 
+            $root.on("change", ".hpc-sp-enable", function() {
+                var $box = $(this);
+                var $row = $box.closest(".hpc-site-page-row");
+                var on = $box.is(":checked");
+                $box.prop("disabled", true);
+                post("toggle_page", {page_key: $box.data("page"), enabled: on ? 1 : 0}, function(response) {
+                    $box.prop("disabled", false);
+                    if (response.success) {
+                        $row.toggleClass("is-off", !on);
+                        $row.find(".hpc-site-page-status").html(on ? statusBadge($row.attr("data-linked") === "1") : statusBadge(false, false));
+                        toast(message(response, on ? "Page turned on." : "Page turned off."), "success");
+                    } else {
+                        $box.prop("checked", !on);
+                        toast(message(response, "Could not change the page."), "error");
+                    }
+                }, function() {
+                    $box.prop("disabled", false).prop("checked", !on);
+                    toast("Request failed.", "error");
+                });
+            });
+
             $root.on("change", ".hpc-site-page-select", function() {
                 var $select = $(this);
                 var $row = $select.closest(".hpc-site-page-row");
@@ -316,12 +355,10 @@ final class SiteStructureScriptRenderer {
                             var data = response.data || {};
                             var editUrl = data.edit_url || (cfg.adminPostBase + pageId + "&action=edit");
                             var viewUrl = data.permalink || "#";
-                            $row.find(".hpc-site-page-status").html(statusBadge(true));
-                            $row.find(".hpc-site-page-actions").html(actionButtons($select.data("page"), pageId, editUrl, viewUrl));
+                            setLinked($row, true, editUrl, viewUrl, $select.data("page"), pageId);
                             setPageDetail($row, data.detail_html || "");
                         } else {
-                            $row.find(".hpc-site-page-status").html(statusBadge(false));
-                            $row.find(".hpc-site-page-actions").html(createButton($row));
+                            setLinked($row, false);
                             setPageDetail($row, "");
                         }
                         toast("Page assignment saved.", "success");
@@ -356,8 +393,7 @@ final class SiteStructureScriptRenderer {
                             $select.append($("<option/>").val(pageId).text(data.title || title));
                         }
                         $select.val(pageId);
-                        $row.find(".hpc-site-page-status").html(statusBadge(true));
-                        $row.find(".hpc-site-page-actions").html(actionButtons(pageKey, pageId, editUrl, viewUrl));
+                        setLinked($row, true, editUrl, viewUrl, pageKey, pageId);
                         setPageDetail($row, data.detail_html || "");
                         toast("Page created: " + (data.title || title), "success");
                     } else {
@@ -381,8 +417,7 @@ final class SiteStructureScriptRenderer {
                 }, function(response) {
                     if (response.success) {
                         $row.find(".hpc-site-page-select").val("");
-                        $row.find(".hpc-site-page-status").html(statusBadge(false));
-                        $row.find(".hpc-site-page-actions").html(createButton($row));
+                        setLinked($row, false);
                         setPageDetail($row, "");
                         toast(message(response, "Page deleted or unassigned."), "success");
                     } else {
