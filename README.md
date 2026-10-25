@@ -225,7 +225,7 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `2.7.6`
+- Version: `2.8.0`
 
 ## Ownership
 
@@ -327,6 +327,12 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.8.0
+
+- Executive Leadership Team, Staff, Contributors and Masthead are custom-design pages: created as empty drafts and never overwritten by their template; the site redesign builds them.
+- Latest Press Releases is off by default, like Advertise: an existing page stays linked, but the page setup no longer creates one.
+- Bundles Hexa WP Core 3.44.0.
 
 ### 2.7.6
 

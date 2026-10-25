@@ -180,6 +180,7 @@ final class SiteStructureRenderer {
         $is_set  = $this->manager->is_assigned_page_set( $page_key );
         $enabled = $this->manager->is_enabled( $page_key );
         $reason  = $this->manager->unavailable_reason( $page_key );
+        $custom  = $this->manager->is_custom_design( $page_key );
         $title   = (string) ( $page_data['title'] ?? $page_key );
         $slug    = (string) ( $page_data['slug'] ?? $page_key );
         $url     = $page_id > 0 && function_exists( 'get_permalink' ) ? (string) get_permalink( $page_id ) : '';
@@ -191,13 +192,13 @@ final class SiteStructureRenderer {
 
         ob_start();
         ?>
-        <div class="hpc-sp hpc-site-page-row<?php echo $enabled ? '' : ' is-off'; ?><?php echo '' !== $reason ? ' is-unavailable' : ''; ?>" data-page-key="<?php echo esc_attr( $page_key ); ?>" data-page-title="<?php echo esc_attr( $title ); ?>" data-page-slug="<?php echo esc_attr( $slug ); ?>" data-parent-key="<?php echo esc_attr( (string) $parent_key ); ?>" data-linked="<?php echo $is_set ? '1' : '0'; ?>">
+        <div class="hpc-sp hpc-site-page-row<?php echo $enabled ? '' : ' is-off'; ?><?php echo '' !== $reason ? ' is-unavailable' : ''; ?>" data-page-key="<?php echo esc_attr( $page_key ); ?>" data-page-title="<?php echo esc_attr( $title ); ?>" data-page-slug="<?php echo esc_attr( $slug ); ?>" data-parent-key="<?php echo esc_attr( (string) $parent_key ); ?>" data-linked="<?php echo $is_set ? '1' : '0'; ?>" data-custom="<?php echo $custom ? '1' : '0'; ?>">
             <div class="hpc-sp-head">
                 <?php if ( $toggle ) : ?>
                     <label class="hpc-sp-switch" title="<?php echo esc_attr( $enabled ? 'On: part of this site' : 'Off: not part of this site' ); ?>"><input type="checkbox" class="hpc-sp-enable" data-page="<?php echo esc_attr( $page_key ); ?>" <?php checked( $enabled ); ?> <?php disabled( '' !== $reason ); ?> aria-label="<?php echo esc_attr( 'Use the ' . $title . ' page on this site' ); ?>"><span aria-hidden="true"></span></label>
                 <?php endif; ?>
                 <div class="hpc-sp-name">
-                    <strong><?php echo esc_html( $title ); ?></strong>
+                    <strong><?php echo esc_html( $title ); ?></strong><?php echo $custom ? ' <span class="hpc-sp-status hpc-sp-status--design" title="Gets its own design in the site redesign; the default text is not used.">Custom design</span>' : ''; ?>
                     <div class="hpc-sp-path"><?php echo '' !== $url ? '<a href="' . esc_url( $url ) . '" target="_blank" rel="noopener">' . esc_html( $address ) . '</a>' : esc_html( $address ); ?><?php echo '' !== $parent_title ? '<span class="hpc-sp-under">Under ' . esc_html( $parent_title ) . '</span>' : ''; ?></div>
                     <button type="button" class="hpc-sp-toggle" aria-expanded="false" aria-controls="<?php echo esc_attr( $body_id ); ?>">Page details</button>
                 </div>
@@ -229,7 +230,11 @@ final class SiteStructureRenderer {
                     </div>
                     <?php echo $this->page_detail_block( $page_key, $page_id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
                 </div>
-                <?php echo $this->render_page_more( $page_key, $page_id, $page_data, $facts ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                <?php if ( $custom ) : ?>
+                    <div class="hpc-sp-part"><h5>Custom design</h5><p class="hpc-sp-note">This page gets its own design in the site redesign. The plugin finds the page, links it and keeps it under its parent page; Create page makes it empty, and the default text is never put into it.</p></div>
+                <?php else : ?>
+                    <?php echo $this->render_page_more( $page_key, $page_id, $page_data, $facts ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                <?php endif; ?>
             </div>
         </div>
         <?php foreach ( (array) ( $page_data['children'] ?? [] ) as $child_key => $child_data ) : ?>
@@ -464,6 +469,7 @@ final class SiteStructureRenderer {
             .hpc-sp-status--on{background:#e7f6ec;color:#16632d}
             .hpc-sp-status--off{background:#fcf0e3;color:#8a4b0f}
             .hpc-sp-status--muted{background:#f0f0f1;color:#50575e}
+            .hpc-sp-status--design{background:#eef2ff;color:#3730a3;margin-left:6px;vertical-align:1px}
             .hpc-sp-body[hidden]{display:none}
             .hpc-sp-body{display:grid;gap:0;margin:14px 0 0;border:1px solid #dcdcde;border-radius:6px;overflow:hidden}
             .hpc-sp-linkrow{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
@@ -540,7 +546,7 @@ final class SiteStructureRenderer {
             $html = '<a href="' . esc_url( get_permalink( $page_id ) ) . '" target="_blank" rel="noopener" class="button hpc-sp-newtab" title="Opens in a new tab">View <span aria-hidden="true">&rarr;</span></a> ';
 
             $actions = is_array( $this->config['actions'] ) ? $this->config['actions'] : [];
-            if ( empty( $this->config['lazy_page_workspace'] ) && ! empty( $this->config['enable_templates'] ) && ( ! empty( $this->config['apply_template_action'] ) || ! empty( $actions['apply_template'] ) ) ) {
+            if ( ! $this->manager->is_custom_design( $page_key ) && empty( $this->config['lazy_page_workspace'] ) && ! empty( $this->config['enable_templates'] ) && ( ! empty( $this->config['apply_template_action'] ) || ! empty( $actions['apply_template'] ) ) ) {
                 $html .= '<button type="button" class="button hpc-apply-page-template" data-page-id="' . esc_attr( (string) $page_id ) . '" data-page-key="' . esc_attr( $page_key ) . '">Apply template</button> ';
             }
 

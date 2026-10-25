@@ -294,6 +294,15 @@ final class PageStructureManager {
         return 'This page does not apply to a website that represents ' . (string) ( $labels[ $type ] ?? $type ) . '.';
     }
 
+    /**
+     * A page with its own custom design (page definition 'design' => 'custom'): it is still found,
+     * linked and placed under its parent, but created empty and never filled with the default text;
+     * the site's custom design (for example an Elementor build) provides its content.
+     */
+    public function is_custom_design( string $page_key ): bool {
+        return 'custom' === (string) ( $this->flat_pages()[ $page_key ]['design'] ?? '' );
+    }
+
     /** Where the site type is changed (for the "not available" note). */
     public function site_type_edit_url(): string {
         return (string) $this->config['site_type_edit_url'];
@@ -519,12 +528,16 @@ final class PageStructureManager {
         if ( '' === $status ) {
             $status = 'publish';
         }
+        // A custom-design page waits as a draft until its design is built, so no empty page goes live.
+        if ( $this->is_custom_design( $page_key ) ) {
+            $status = 'draft';
+        }
 
         $page_id = wp_insert_post(
             [
                 'post_title'   => $title,
                 'post_name'    => $slug,
-                'post_content' => $this->template_content( $page_key ),
+                'post_content' => $this->is_custom_design( $page_key ) ? '' : $this->template_content( $page_key ),
                 'post_status'  => $status,
                 'post_type'    => 'page',
                 'post_parent'  => $parent_id,
@@ -688,6 +701,9 @@ final class PageStructureManager {
      * @return array<string,mixed>|\WP_Error
      */
     public function apply_template( string $page_key, int $page_id = 0, bool $force = false ): array|\WP_Error {
+        if ( $this->is_custom_design( $page_key ) ) {
+            return new \WP_Error( 'hpc_custom_design', 'This page has its own custom design; the default text is not put into it.' );
+        }
         return $this->template_service->apply_template( $page_key, $page_id, $force );
     }
 

@@ -101,11 +101,16 @@ final class PageLinker {
         if ( ! $type ) {
             return new \WP_Error( 'smpi_page_type', 'Unknown page type.' );
         }
-        $content = PageTemplates::get( $key );
+        // A custom-design page (PageTypes 'design' => 'custom') is created empty and never filled with the template.
+        $custom  = 'custom' === (string) ( $type['design'] ?? '' );
+        $content = $custom ? '' : PageTemplates::get( $key );
         $page_id = self::linked_id( $key );
+        if ( $page_id && $custom ) {
+            return new \WP_Error( 'smpi_custom_design', 'This page has its own custom design; the template is not put into it.' );
+        }
 
         if ( ! $page_id ) {
-            $page_id = wp_insert_post( [ 'post_type' => 'page', 'post_status' => 'publish', 'post_title' => (string) $type['label'], 'post_name' => PageTypes::slug( $key ), 'post_parent' => PageParents::parent_id( $key ), 'post_content' => $content ], true );
+            $page_id = wp_insert_post( [ 'post_type' => 'page', 'post_status' => $custom ? 'draft' : 'publish', 'post_title' => (string) $type['label'], 'post_name' => PageTypes::slug( $key ), 'post_parent' => PageParents::parent_id( $key ), 'post_content' => $content ], true );
             if ( is_wp_error( $page_id ) ) {
                 return $page_id;
             }

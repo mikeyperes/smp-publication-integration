@@ -40,10 +40,10 @@ final class PageTypes {
             'powered_by_smp' => [ 'parent' => 'parent_organization', 'group' => 'about', 'label' => 'Powered by Scale My Publication', 'slugs' => [ 'powered-by-scale-my-publication', 'powered-by' ], 'description' => 'The platform the publication runs on.' ],
             'ownership_funding' => [ 'parent' => 'about', 'group' => 'about', 'label' => 'Ownership and Funding', 'slugs' => [ 'ownership-and-funding', 'ownership' ], 'description' => 'Who owns and funds the publication.', 'google_news' => true, 'optional' => true ],
             // People
-            'executive_team' => [ 'parent' => 'about', 'group' => 'people', 'label' => 'Executive Leadership Team', 'slugs' => [ 'executive-leadership-team', 'executive-team', 'leadership' ], 'description' => 'The people who lead the publication.' ],
-            'staff' => [ 'parent' => 'about', 'group' => 'people', 'label' => 'Staff', 'slugs' => [ 'staff', 'meet-the-staff' ], 'description' => 'The newsroom staff.' ],
-            'contributors' => [ 'parent' => 'about', 'group' => 'people', 'label' => 'Contributors', 'slugs' => [ 'contributors', 'meet-our-contributors', 'writers' ], 'description' => 'The writers and experts who contribute.' ],
-            'masthead' => [ 'parent' => 'about', 'group' => 'people', 'label' => 'Masthead', 'slugs' => [ 'masthead' ], 'description' => 'Named editors accountable for the publication.', 'google_news' => true ],
+            'executive_team' => [ 'design' => 'custom', 'parent' => 'about', 'group' => 'people', 'label' => 'Executive Leadership Team', 'slugs' => [ 'executive-leadership-team', 'executive-team', 'leadership' ], 'description' => 'The people who lead the publication.' ],
+            'staff' => [ 'design' => 'custom', 'parent' => 'about', 'group' => 'people', 'label' => 'Staff', 'slugs' => [ 'staff', 'meet-the-staff' ], 'description' => 'The newsroom staff.' ],
+            'contributors' => [ 'design' => 'custom', 'parent' => 'about', 'group' => 'people', 'label' => 'Contributors', 'slugs' => [ 'contributors', 'meet-our-contributors', 'writers' ], 'description' => 'The writers and experts who contribute.' ],
+            'masthead' => [ 'design' => 'custom', 'parent' => 'about', 'group' => 'people', 'label' => 'Masthead', 'slugs' => [ 'masthead' ], 'description' => 'Named editors accountable for the publication.', 'google_news' => true ],
             // Policies
             'policies' => [ 'group' => 'policies', 'label' => 'Policies', 'slugs' => [ 'policies', 'our-policies' ], 'description' => 'Every policy in one list, with links to each one.' ],
             'editorial_guidelines' => [ 'group' => 'policies', 'label' => 'Editorial Guidelines', 'slugs' => [ 'editorial-guidelines' ], 'description' => 'How stories are reported, edited and labeled.' ],
@@ -60,7 +60,7 @@ final class PageTypes {
             'unnamed_sources_policy' => [ 'group' => 'policies', 'label' => 'Unnamed Sources Policy', 'slugs' => [ 'unnamed-sources-policy' ], 'description' => 'When anonymous sources are used.', 'google_news' => true ],
             'actionable_feedback_policy' => [ 'group' => 'policies', 'label' => 'Actionable Feedback Policy', 'slugs' => [ 'actionable-feedback-policy', 'feedback-policy' ], 'description' => 'How reader feedback is handled.', 'google_news' => true ],
             // Reader
-            'press_releases' => [ 'group' => 'reader', 'label' => 'Latest Press Releases', 'slugs' => [ 'latest-press-releases', 'press-releases' ], 'description' => 'The newest press releases.' ],
+            'press_releases' => [ 'optional' => true, 'group' => 'reader', 'label' => 'Latest Press Releases', 'slugs' => [ 'latest-press-releases', 'press-releases' ], 'description' => 'The newest press releases.' ],
             'submit_press_release' => [ 'group' => 'reader', 'label' => 'Submit Your Press Release', 'slugs' => [ 'submit-your-press-release', 'submit-a-press-release' ], 'description' => 'How to send a press release.' ],
             'advertise' => [ 'optional' => true, 'group' => 'reader', 'label' => 'Advertise', 'slugs' => [ 'advertise', 'advertise-with-us' ], 'description' => 'Advertising and partnership options.' ],
         ];

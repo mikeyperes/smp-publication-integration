@@ -3,6 +3,8 @@
 Release notes moved from the README (3.31.1). Newest first; each Core release adds its line here.
 
 
+Version 3.44.0 adds custom-design pages: a page definition with `'design' => 'custom'` is still found, linked and placed under its parent, but `create_page()` makes it an empty draft and `apply_template()` refuses it, so the site's own design (an Elementor build) provides its content. `PageStructureManager::is_custom_design()`; the page list shows a Custom design tag and, in Page details, a note instead of the default text and template.
+
 Version 3.43.0 shows the shortcode reference (`SiteStructureRenderer::shortcode_items_html()`) as one table per group: Detail, Current value and Shortcode for detail rows; Shortcode and What it does for the rest; each shortcode with a Copy button. It carries its own styles, so plugin screens that reuse it look the same.
 
 Version 3.42.1 adds a short side arrow to the page list's Edit page and View buttons, which open in a new tab.

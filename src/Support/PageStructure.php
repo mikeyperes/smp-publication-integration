@@ -89,6 +89,7 @@ final class PageStructure {
                 'template'    => ! empty( $config['template'] ),
                 'parent'      => (string) ( \smp_publication_integration\Pages\PageTypes::get( (string) $key )['parent'] ?? '' ),
                 'slugs'       => (array) ( \smp_publication_integration\Pages\PageTypes::get( (string) $key )['slugs'] ?? [] ),
+                'design'      => (string) ( \smp_publication_integration\Pages\PageTypes::get( (string) $key )['design'] ?? '' ),
             ];
         }
 

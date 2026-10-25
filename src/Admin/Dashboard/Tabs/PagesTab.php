@@ -60,6 +60,10 @@ final class PagesTab {
         if ( ! empty( $type['base_tools'] ) ) {
             $badge .= ' <span class="smpi-pages-badge smpi-pages-badge--flag" title="' . esc_attr( (string) $type['base_tools'] ) . '">Belongs in Base Tools</span>';
         }
+        $custom = 'custom' === (string) ( $type['design'] ?? '' );
+        if ( $custom ) {
+            $badge .= ' <span class="smpi-pages-badge" title="Gets its own design in the site redesign; the template is not put into it.">Custom design</span>';
+        }
         if ( ! empty( $type['optional'] ) ) {
             $badge .= ' <span class="smpi-pages-badge" title="Not in the default page set; created only when you ask for it.">Optional, off by default</span>';
         }
@@ -98,7 +102,7 @@ final class PagesTab {
             $edit   = '';
         }
 
-        if ( ! $applies ) {
+        if ( ! $applies || ( $custom && $id ) ) {
             $button = '';
         }
         $template_state = PageTemplates::is_customized( $key ) ? 'Edited for this site' : 'Default';

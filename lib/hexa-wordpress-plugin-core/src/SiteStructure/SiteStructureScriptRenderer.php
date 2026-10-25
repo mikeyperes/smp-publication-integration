@@ -45,6 +45,7 @@ final class SiteStructureScriptRenderer {
                 $row.find(".hpc-site-page-status").html(statusBadge(linked));
                 $row.find(".hpc-sp-primary").html(linked ? primaryEdit(editUrl) : createButton($row));
                 $row.find(".hpc-site-page-actions").html(linked ? actionButtons(pageKey, pageId, editUrl, viewUrl) : "");
+                if ($row.attr("data-custom") === "1") $row.find(".hpc-apply-page-template").remove();
                 var $path = $row.find(".hpc-sp-path");
                 var $under = $path.find(".hpc-sp-under").detach();
                 if (linked && viewUrl && viewUrl !== "#") {
