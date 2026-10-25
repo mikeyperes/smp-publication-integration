@@ -246,12 +246,6 @@ final class PagesTab {
             .smpi-pages-shortcodes{margin:12px 0 20px;padding:14px 16px;background:#fff;border:1px solid #dcdcde;border-radius:8px}
             .smpi-pages-shortcodes > summary{cursor:pointer;font-size:14px;font-weight:600}
             .smpi-pages-shortcodes[open] > summary{margin-bottom:12px}
-            .smpi-pages-shortcodes ul{display:grid;gap:8px;margin:0}
-            .smpi-pages-shortcodes li{display:grid;grid-template-columns:minmax(220px,340px) 1fr;gap:16px;margin:0;align-items:baseline}
-            .smpi-pages-shortcodes li.hpc-sp-sc--value{grid-template-columns:minmax(220px,340px) 170px 1fr}
-            .smpi-pages-shortcodes h5{margin:14px 0 4px;font-size:13px}
-            .smpi-pages-shortcodes .hpc-sp-note{margin:0 0 8px;color:#646970;font-size:12px}
-            .smpi-pages-shortcodes code{font-size:12px;word-break:break-word}
         </style>
         <script>
         (function($){

@@ -3,6 +3,8 @@
 Release notes moved from the README (3.31.1). Newest first; each Core release adds its line here.
 
 
+Version 3.43.0 shows the shortcode reference (`SiteStructureRenderer::shortcode_items_html()`) as one table per group: Detail, Current value and Shortcode for detail rows; Shortcode and What it does for the rest; each shortcode with a Copy button. It carries its own styles, so plugin screens that reuse it look the same.
+
 Version 3.42.1 adds a short side arrow to the page list's Edit page and View buttons, which open in a new tab.
 
 Version 3.42.0 lets a page definition list the site types it does not apply to (`not_for`, for example `[ 'person' ]`). With the manager's `site_type` callback, `site_type_labels` and `site_type_edit_url`, `unavailable_reason()` explains why; such a page is greyed out in the page list with that note and a link to change the site type, cannot be switched on, and is skipped by `ensure_pages()`. A page switched off shows a note that it is not part of the site.

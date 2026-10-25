@@ -334,22 +334,87 @@ final class SiteStructureRenderer {
      * @param array<int,array<string,string>> $items
      */
     public static function shortcode_items_html( array $items ): string {
-        $html = '';
-        $open = false;
+        // Group rows under their headings; a group whose rows carry a 'value' is shown as
+        // Detail | Current value | Shortcode, any other group as Shortcode | What it does.
+        $groups = [];
+        $index  = -1;
         foreach ( $items as $item ) {
-            if ( isset( $item['heading'] ) ) {
-                $html .= ( $open ? '</ul>' : '' ) . '<h5>' . esc_html( (string) $item['heading'] ) . '</h5>' . ( ! empty( $item['note'] ) ? '<p class="hpc-sp-note">' . esc_html( (string) $item['note'] ) . '</p>' : '' ) . '<ul>';
-                $open  = true;
+            if ( isset( $item['heading'] ) || $index < 0 ) {
+                $groups[] = [ 'heading' => (string) ( $item['heading'] ?? '' ), 'note' => (string) ( $item['note'] ?? '' ), 'rows' => [] ];
+                $index++;
+                if ( isset( $item['heading'] ) ) {
+                    continue;
+                }
+            }
+            $groups[ $index ]['rows'][] = $item;
+        }
+
+        $html = self::shortcode_reference_styles() . '<div class="hpc-scref">';
+        foreach ( $groups as $group ) {
+            if ( empty( $group['rows'] ) ) {
                 continue;
             }
-            if ( ! $open ) {
-                $html .= '<ul>';
-                $open  = true;
+            $values = array_key_exists( 'value', $group['rows'][0] );
+            $html  .= '<section class="hpc-scref-group">';
+            $html  .= '' !== $group['heading'] ? '<h5>' . esc_html( $group['heading'] ) . '</h5>' : '';
+            $html  .= '' !== $group['note'] ? '<p class="hpc-scref-note">' . esc_html( $group['note'] ) . '</p>' : '';
+            $html  .= '<div class="hpc-scref-table' . ( $values ? ' hpc-scref-table--values' : '' ) . '">';
+            $html  .= $values
+                ? '<div class="hpc-scref-row hpc-scref-head"><span>Detail</span><span>Current value</span><span>Shortcode</span></div>'
+                : '<div class="hpc-scref-row hpc-scref-head"><span>Shortcode</span><span>What it does</span></div>';
+            foreach ( $group['rows'] as $row ) {
+                $code = (string) ( $row['code'] ?? '' );
+                $chip = '<span class="hpc-scref-code"><code>' . esc_html( $code ) . '</code><button type="button" class="button-link hpc-scref-copy" data-code="' . esc_attr( $code ) . '">Copy</button></span>';
+                if ( $values ) {
+                    $value = (string) ( $row['value'] ?? '' );
+                    $html .= '<div class="hpc-scref-row"><span class="hpc-scref-label">' . esc_html( (string) ( $row['description'] ?? '' ) ) . '</span>'
+                        . ( '' === $value ? '<span class="hpc-scref-value is-empty">Not set</span>' : '<span class="hpc-scref-value" title="' . esc_attr( $value ) . '">' . esc_html( $value ) . '</span>' )
+                        . $chip . '</div>';
+                } else {
+                    $html .= '<div class="hpc-scref-row">' . $chip . '<span class="hpc-scref-desc">' . esc_html( (string) ( $row['description'] ?? '' ) ) . '</span></div>';
+                }
             }
-            $value = array_key_exists( 'value', $item ) ? ( '' === (string) $item['value'] ? '<em class="hpc-sp-missing">Not set</em>' : '<strong>' . esc_html( (string) $item['value'] ) . '</strong>' ) : '';
-            $html .= '<li class="' . ( array_key_exists( 'value', $item ) ? 'hpc-sp-sc--value' : '' ) . '"><code>' . esc_html( (string) ( $item['code'] ?? '' ) ) . '</code><span>' . esc_html( (string) ( $item['description'] ?? '' ) ) . '</span>' . $value . '</li>';
+            $html .= '</div></section>';
         }
-        return $html . ( $open ? '</ul>' : '' );
+
+        return $html . '</div>';
+    }
+
+    /** Styles and the Copy button for shortcode_items_html(), printed once per page. */
+    private static function shortcode_reference_styles(): string {
+        static $printed = false;
+        if ( $printed ) {
+            return '';
+        }
+        $printed = true;
+
+        return '<style>
+            .hpc-scref{display:grid;gap:22px}
+            .hpc-scref-group h5{margin:0 0 4px;font-size:13px;color:#1d2327}
+            .hpc-scref-note{margin:0 0 10px;color:#646970;font-size:12px;max-width:760px}
+            .hpc-scref-table{border:1px solid #dcdcde;border-radius:6px;overflow:hidden}
+            .hpc-scref-row{display:grid;grid-template-columns:minmax(260px,380px) minmax(0,1fr);gap:16px;align-items:center;padding:8px 14px;border-top:1px solid #f0f0f1;font-size:13px}
+            .hpc-scref-table--values .hpc-scref-row{grid-template-columns:180px minmax(0,1fr) minmax(280px,360px)}
+            .hpc-scref-row:first-child{border-top:0}
+            .hpc-scref-head{background:#f6f7f7;color:#50575e;font-size:11px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;padding-top:6px;padding-bottom:6px}
+            .hpc-scref-label{color:#1d2327;font-weight:600}
+            .hpc-scref-value{color:#1d2327;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+            .hpc-scref-value.is-empty{color:#8a4b0f;font-style:italic}
+            .hpc-scref-desc{color:#50575e}
+            .hpc-scref-code{display:flex;align-items:center;gap:8px;min-width:0}
+            .hpc-scref-code code{flex:0 1 auto;min-width:0;padding:2px 6px;background:#f0f0f1;border-radius:4px;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+            .hpc-scref-copy{flex:0 0 auto;font-size:12px}
+            @media (max-width:960px){.hpc-scref-row,.hpc-scref-table--values .hpc-scref-row{grid-template-columns:1fr;gap:4px}.hpc-scref-head{display:none}}
+        </style>
+        <script>
+        document.addEventListener("click", function (event) {
+            var button = event.target.closest ? event.target.closest(".hpc-scref-copy") : null;
+            if (!button) { return; }
+            var done = function () { var text = button.textContent; button.textContent = "Copied"; setTimeout(function () { button.textContent = text; }, 1200); };
+            if (navigator.clipboard) { navigator.clipboard.writeText(button.getAttribute("data-code")).then(done); return; }
+            var area = document.createElement("textarea"); area.value = button.getAttribute("data-code"); document.body.appendChild(area); area.select(); document.execCommand("copy"); area.remove(); done();
+        });
+        </script>';
     }
 
     private static function page_list_styles(): string {
@@ -414,13 +479,6 @@ final class SiteStructureRenderer {
             .hpc-sp-shortcodes{margin:0 0 24px;padding:12px 16px;background:#fff;border:1px solid #dcdcde;border-radius:8px}
             .hpc-sp-shortcodes > summary{cursor:pointer;font-size:14px;font-weight:600}
             .hpc-sp-shortcodes[open] > summary{margin-bottom:12px}
-            .hpc-sp-shortcodes ul{display:grid;gap:8px;margin:0}
-            .hpc-sp-shortcodes li{display:grid;grid-template-columns:minmax(220px,340px) 1fr;gap:16px;margin:0;font-size:13px;align-items:baseline}
-            .hpc-sp-shortcodes li.hpc-sp-sc--value{grid-template-columns:minmax(220px,340px) 170px 1fr}
-            .hpc-sp-shortcodes code{font-size:12px;word-break:break-word}
-            .hpc-sp-shortcodes h5{margin:14px 0 4px;font-size:13px}
-            .hpc-sp-shortcodes h5:first-of-type{margin-top:0}
-            .hpc-sp-shortcodes li strong,.hpc-sp-shortcodes li em{word-break:break-word}
             .hpc-sp-part{padding:14px 16px;background:#f6f7f7;border-top:1px solid #dcdcde}
             .hpc-sp-part:first-child{border-top:0}
             .hpc-sp-part h5{margin:0 0 4px;font-size:13px;color:#1d2327}
