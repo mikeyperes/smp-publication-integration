@@ -6,6 +6,7 @@ use smp_publication_integration\Admin\Ajax;
 use smp_publication_integration\Admin\CodeViews;
 use smp_publication_integration\Pages\LatestPressReleases;
 use smp_publication_integration\Pages\PageLinker;
+use smp_publication_integration\Pages\PageParents;
 use smp_publication_integration\Pages\SourceNotice;
 use smp_publication_integration\Pages\PageTemplates;
 use smp_publication_integration\Pages\PageTypes;
@@ -27,7 +28,7 @@ final class PagesTab {
 
     public function render(): void {
         echo '<div class="smpi-panel smpi-pages"><h2>Publication Pages</h2>';
-        echo '<p>Every standard publication page. Each one is linked to the WordPress page at its usual address automatically; use Change to pick another. The template is the starting content; Create or Apply puts it into the page and keeps the old content as a revision.</p>';
+        echo '<p>Every standard publication page. Each one is linked to the WordPress page at its usual address automatically and placed under its parent page; use Change to pick another. Company pages (About, Contact, Privacy, Terms and the rest) belong to HWS Base Tools and are shown read-only. The template is the starting content; Create or Apply puts it into the page and keeps the old content as a revision.</p>';
         foreach ( PageTypes::grouped() as $group => $types ) {
             echo '<h3 class="smpi-pages-group">' . esc_html( PageTypes::GROUPS[ $group ] ) . '</h3>';
             echo '<table class="widefat striped smpi-pages-table"><thead><tr><th>Page</th><th>Linked WordPress page</th><th>Status</th><th>Template</th><th></th></tr></thead><tbody>';
@@ -73,6 +74,8 @@ final class PagesTab {
             $post    = get_post( $id );
             $url     = (string) get_permalink( $id );
             $page    = '<a href="' . esc_url( $url ) . '" target="_blank" rel="noopener">' . esc_html( get_the_title( $id ) ?: '(no title)' ) . '</a><br><code>' . esc_html( (string) wp_make_link_relative( $url ) ) . '</code>';
+            $parent  = (int) wp_get_post_parent_id( $id );
+            $page   .= $parent ? '<br><span class="smpi-muted">Under: ' . esc_html( get_the_title( $parent ) ) . '</span>' : '';
             $page   .= 'found' === $link['source'] ? ' <span class="smpi-muted">found automatically</span>' : '';
             $status_obj = get_post_status_object( (string) $post->post_status );
             $status  = '<span class="' . ( 'publish' === $post->post_status ? 'smpi-ok' : 'smpi-warn' ) . '">' . esc_html( $status_obj ? $status_obj->label : $post->post_status ) . '</span>';
@@ -82,7 +85,8 @@ final class PagesTab {
             $button = 'Apply template';
             $edit   = ' <a href="' . esc_url( (string) get_edit_post_link( $id, 'raw' ) ) . '" target="_blank" rel="noopener">Edit</a>';
         } else {
-            $page   = '<span class="smpi-muted">No page found at /' . esc_html( PageTypes::slug( $key ) ) . '/</span>';
+            $parent = PageParents::parent_id( $key );
+            $page   = '<span class="smpi-muted">No page found at /' . esc_html( PageTypes::slug( $key ) ) . '/' . ( $parent ? '<br>Will go under: ' . esc_html( get_the_title( $parent ) ) : '' ) . '</span>';
             $status = '<span class="smpi-bad">Missing</span>';
             $button = 'Create page';
             $edit   = '';
@@ -116,7 +120,7 @@ final class PagesTab {
         $this->done( $key, 'Form saved.' );
     }
 
-    /** A page HWS Base Tools owns (Contact, Headquarters, Logo): read-only, under the source banner, linked to Base Tools' Pages tab. */
+    /** A company page HWS Base Tools owns (About, Contact, Privacy and the rest): read-only, under the source banner, linked to Base Tools' Pages tab. */
     private static function base_tools_row_html( string $key, array $owned ): string {
         $id   = PageTypes::base_tools_linked_id( $key );
         $page = $id ? '<a href="' . esc_url( (string) get_permalink( $id ) ) . '" target="_blank" rel="noopener">' . esc_html( get_the_title( $id ) ?: '(no title)' ) . '</a>' : '<span class="smpi-muted">Not linked in HWS Base Tools</span>';
