@@ -49,6 +49,194 @@ final class PageStructureManager {
 
         $this->menu_service     = new PageStructureMenuService( $this, $this->config );
         $this->template_service = new PageStructureTemplateService( $this, $this->config );
+
+        self::$managers[ (string) $this->config['option_prefix'] ] = $this;
+        PageRedirects::register();
+    }
+
+    /** Every page manager built on this request, so a page can have a parent another plugin owns. */
+    private static array $managers = [];
+
+    public function owns( string $page_key ): bool {
+        return isset( $this->flat_pages()[ $page_key ] );
+    }
+
+    /**
+     * The page linked to a page key from any plugin: this manager's own
+     * assignment, another loaded manager's, then the
+     * `hexa_site_structure_page_id` filter for plugins with their own page
+     * linking (filter( int $page_id, string $page_key )).
+     */
+    public function resolve_page_id( string $page_key ): int {
+        if ( '' === $page_key ) {
+            return 0;
+        }
+        $id = $this->owns( $page_key ) ? $this->assigned_page_id( $page_key ) : 0;
+        if ( $id <= 0 ) {
+            foreach ( self::$managers as $manager ) {
+                if ( $manager !== $this && $manager->owns( $page_key ) ) {
+                    $id = $manager->assigned_page_id( $page_key );
+                    break;
+                }
+            }
+        }
+        if ( function_exists( 'apply_filters' ) ) {
+            $id = (int) apply_filters( 'hexa_site_structure_page_id', $id, $page_key );
+        }
+
+        return $id > 0 && function_exists( 'get_post' ) && get_post( $id ) && 'trash' !== get_post_status( $id ) ? $id : 0;
+    }
+
+    /**
+     * Moves a page under its parent (0 = top level) and keeps its old address
+     * redirecting. Returns whether the page moved.
+     */
+    public static function place_under_parent( int $page_id, int $parent_id ): bool {
+        if ( $page_id <= 0 || $page_id === $parent_id || ! function_exists( 'get_post' ) ) {
+            return false;
+        }
+        $page = get_post( $page_id );
+        if ( ! $page instanceof \WP_Post || (int) $page->post_parent === $parent_id ) {
+            return false;
+        }
+        $old_path = PageRedirects::path( $page_id );
+        $result   = wp_update_post( [ 'ID' => $page_id, 'post_parent' => max( 0, $parent_id ) ], true );
+        if ( is_wp_error( $result ) ) {
+            return false;
+        }
+        if ( function_exists( 'clean_post_cache' ) ) {
+            clean_post_cache( $page_id );
+        }
+        PageRedirects::remember( $page_id, $old_path );
+
+        return true;
+    }
+
+    /** A page at the slug at any level, published first (0 when none). */
+    public function find_page_by_slug( string $slug ): int {
+        if ( '' === $slug || ! function_exists( 'get_posts' ) ) {
+            return 0;
+        }
+        foreach ( [ [ 'publish' ], [ 'draft', 'private', 'pending' ] ] as $statuses ) {
+            $ids = get_posts( [ 'name' => $slug, 'post_type' => 'page', 'post_status' => $statuses, 'posts_per_page' => 1, 'fields' => 'ids', 'orderby' => 'ID', 'order' => 'ASC' ] );
+            if ( ! empty( $ids ) ) {
+                return (int) $ids[0];
+            }
+        }
+
+        return 0;
+    }
+
+    /** A page whose slug matches a pattern with * wildcards ("*mission-statement"), published first (0 when none). */
+    public function find_page_by_pattern( string $pattern ): int {
+        global $wpdb;
+        if ( '' === $pattern || ! isset( $wpdb ) ) {
+            return 0;
+        }
+        $like = str_replace( "\0", '%', $wpdb->esc_like( str_replace( '*', "\0", $pattern ) ) );
+        $sql  = $wpdb->prepare( "SELECT ID FROM {$wpdb->posts} WHERE post_type = 'page' AND post_name LIKE %s AND post_status IN ('publish','draft','private','pending') ORDER BY post_status = 'publish' DESC, ID ASC LIMIT 1", $like ); // phpcs:ignore WordPress.DB.PreparedSQL
+
+        return (int) $wpdb->get_var( $sql ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+    }
+
+    /**
+     * Facts a page needs that are empty: the page definition's
+     * `required_facts` (list of alternatives, any one is enough, keyed by
+     * label) read through the `facts_getter` config callable.
+     *
+     * @return string[] labels of the missing facts
+     */
+    public function missing_facts( string $page_key ): array {
+        $def    = $this->flat_pages()[ $page_key ] ?? [];
+        $groups = is_array( $def['required_facts'] ?? null ) ? $def['required_facts'] : [];
+        $getter = $this->config['facts_getter'] ?? null;
+        if ( empty( $groups ) || ! is_callable( $getter ) ) {
+            return [];
+        }
+        $missing = [];
+        foreach ( $groups as $label => $alternatives ) {
+            $found = false;
+            foreach ( (array) $alternatives as $fact ) {
+                $value = call_user_func( $getter, (string) $fact );
+                if ( null !== $value && '' !== $value && [] !== $value && false !== $value ) {
+                    $found = true;
+                    break;
+                }
+            }
+            if ( ! $found ) {
+                $missing[] = is_string( $label ) ? $label : implode( ' or ', (array) $alternatives );
+            }
+        }
+
+        return $missing;
+    }
+
+    /**
+     * Makes one page exist and sit under its parent: the assigned page, else
+     * a page already at its slug or one of its `slugs` alternatives (`*` is a
+     * wildcard) at any level (linked, content untouched),
+     * else a new page from its template. Then it is moved under its parent
+     * (`parent` page key, from any plugin), with the old address redirecting.
+     *
+     * @return array{page_key:string,page_id:int,created:bool,moved:bool,parent_id:int}|\WP_Error
+     */
+    public function ensure_page( string $page_key ): array|\WP_Error {
+        $def = $this->flat_pages()[ $page_key ] ?? null;
+        if ( null === $def ) {
+            return new \WP_Error( 'unknown_page_key', 'Unknown page key.' );
+        }
+        $parent_key = (string) ( $def['parent'] ?? '' );
+        $parent_id  = '' !== $parent_key ? $this->resolve_page_id( $parent_key ) : 0;
+        $created    = false;
+        $page_id    = $this->resolve_page_id( $page_key );
+        if ( $page_id <= 0 ) {
+            foreach ( array_merge( [ (string) ( $def['slug'] ?? $page_key ) ], array_map( 'strval', (array) ( $def['slugs'] ?? [] ) ) ) as $slug ) {
+                $page_id = false !== strpos( $slug, '*' ) ? $this->find_page_by_pattern( $slug ) : $this->find_page_by_slug( $slug );
+                if ( $page_id > 0 ) {
+                    break;
+                }
+            }
+            if ( $page_id > 0 ) {
+                $this->save_assignment( $page_key, $page_id );
+            }
+        }
+        if ( $page_id <= 0 ) {
+            $result = $this->create_page( $page_key );
+            if ( is_wp_error( $result ) ) {
+                return $result;
+            }
+            $page_id = (int) ( $result['page_id'] ?? 0 );
+            $created = true;
+        }
+        $moved = '' !== $parent_key && $parent_id > 0 ? self::place_under_parent( $page_id, $parent_id ) : false;
+        if ( $moved ) {
+            $this->log( 'Page moved under parent: ' . $page_key . ' (ID: ' . $page_id . ') -> ' . $parent_key . ' (ID: ' . $parent_id . ')' );
+        }
+
+        return [ 'page_key' => $page_key, 'page_id' => $page_id, 'created' => $created, 'moved' => $moved, 'parent_id' => $parent_id ];
+    }
+
+    /**
+     * The one setup call: every page in the blueprint (or the listed keys),
+     * parents before children.
+     *
+     * @param string[] $keys
+     * @return array<string,array<string,mixed>|\WP_Error>
+     */
+    public function ensure_pages( array $keys = [] ): array {
+        $flat    = $this->flat_pages();
+        $keys    = empty( $keys ) ? array_keys( $flat ) : array_values( array_intersect( array_map( 'strval', $keys ), array_keys( $flat ) ) );
+        $depth   = static function ( string $key ) use ( $flat, &$depth ): int {
+            $parent = (string) ( $flat[ $key ]['parent'] ?? '' );
+            return '' !== $parent && isset( $flat[ $parent ] ) && $parent !== $key ? 1 + $depth( $parent ) : 0;
+        };
+        usort( $keys, static fn( string $a, string $b ): int => $depth( $a ) <=> $depth( $b ) );
+        $results = [];
+        foreach ( $keys as $key ) {
+            $results[ $key ] = $this->ensure_page( $key );
+        }
+
+        return $results;
     }
 
     /**
@@ -158,14 +346,9 @@ final class PageStructureManager {
         $this->save_assignment( $page_key, $page_id );
 
         if ( $page_id > 0 && '' !== $parent_key ) {
-            $parent_page_id = $this->assigned_page_id( $parent_key );
-            if ( $parent_page_id > 0 && function_exists( 'wp_update_post' ) ) {
-                wp_update_post(
-                    [
-                        'ID'          => $page_id,
-                        'post_parent' => $parent_page_id,
-                    ]
-                );
+            $parent_page_id = $this->resolve_page_id( $parent_key );
+            if ( $parent_page_id > 0 ) {
+                self::place_under_parent( $page_id, $parent_page_id );
             }
         }
 
@@ -206,7 +389,7 @@ final class PageStructureManager {
             return $this->page_payload( $existing_assigned, true, 'Page already assigned.' );
         }
 
-        $parent_id = '' !== $parent_key ? $this->assigned_page_id( $parent_key ) : 0;
+        $parent_id = '' !== $parent_key ? $this->resolve_page_id( $parent_key ) : 0;
 
         $existing_pages = function_exists( 'get_posts' )
             ? get_posts(

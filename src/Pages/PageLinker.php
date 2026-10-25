@@ -105,7 +105,7 @@ final class PageLinker {
         $page_id = self::linked_id( $key );
 
         if ( ! $page_id ) {
-            $page_id = wp_insert_post( [ 'post_type' => 'page', 'post_status' => 'publish', 'post_title' => (string) $type['label'], 'post_name' => PageTypes::slug( $key ), 'post_content' => $content ], true );
+            $page_id = wp_insert_post( [ 'post_type' => 'page', 'post_status' => 'publish', 'post_title' => (string) $type['label'], 'post_name' => PageTypes::slug( $key ), 'post_parent' => PageParents::parent_id( $key ), 'post_content' => $content ], true );
             if ( is_wp_error( $page_id ) ) {
                 return $page_id;
             }
@@ -121,6 +121,7 @@ final class PageLinker {
             return $result;
         }
         self::assign( $key, $page_id );
+        PageParents::place( $key, $page_id );
         return [ 'page_id' => $page_id, 'created' => false, 'revision_id' => (int) $revision ];
     }
 }

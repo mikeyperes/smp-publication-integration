@@ -7,8 +7,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * The one list of SMP publication page types: group, label, the usual
- * addresses used to find the page automatically. Contact, Headquarters and
- * Logo belong to HWS Base Tools (BASE_TOOLS_OWNED) and are only read here.
+ * addresses used to find the page automatically, and the parent page it sits
+ * under. The company pages any website has (About and its company pages,
+ * Contact, Privacy Policy, Terms of Use, Accessibility, FAQs, RSS Feed) belong
+ * to HWS Base Tools (BASE_TOOLS_OWNED) and are only read here; SMP pages may
+ * name one as their parent.
  *
  * Verified-profile and leadership/culture council pages belong to their own
  * plugins and are not listed here.
@@ -34,26 +37,18 @@ final class PageTypes {
     public static function all(): array {
         return [
             // About
-            'about_publication' => [ 'group' => 'about', 'label' => 'About', 'slugs' => [ 'about', 'about-us' ], 'description' => 'Who the publication is, what it covers and who it serves.' ],
-            'mission_statement' => [ 'group' => 'about', 'label' => 'Mission Statement', 'slugs' => [ 'mission-statement', 'mission', '*mission-statement' ], 'description' => 'The publication mission and its promise to readers.' ],
-            'founders' => [ 'group' => 'about', 'label' => 'Founders', 'slugs' => [ 'founders', 'founder', 'founding-team', '*-founder-*', 'founder-*' ], 'description' => 'The founders, from HWS Base Tools (the primary entity when it is a person marked as a founder, plus founders added by hand). No founding date.' ],
-            'founding_date' => [ 'group' => 'about', 'label' => 'Founding Date', 'slugs' => [ 'founding-date', 'founded' ], 'description' => 'When and where the publication was founded.', 'requires' => 'company' ],
-            'parent_organization' => [ 'group' => 'about', 'label' => 'Parent Network', 'slugs' => [ 'parent-network', 'parent-organization', 'parent-company' ], 'description' => 'The parent company that owns the publication.', 'optional' => true ],
-            'powered_by_smp' => [ 'group' => 'about', 'label' => 'Powered by Scale My Publication', 'slugs' => [ 'powered-by-scale-my-publication', 'powered-by' ], 'description' => 'The platform the publication runs on.' ],
-            'ownership_funding' => [ 'group' => 'about', 'label' => 'Ownership and Funding', 'slugs' => [ 'ownership-and-funding', 'ownership' ], 'description' => 'Who owns and funds the publication.', 'google_news' => true, 'optional' => true ],
+            'powered_by_smp' => [ 'parent' => 'parent_organization', 'group' => 'about', 'label' => 'Powered by Scale My Publication', 'slugs' => [ 'powered-by-scale-my-publication', 'powered-by' ], 'description' => 'The platform the publication runs on.' ],
+            'ownership_funding' => [ 'parent' => 'about', 'group' => 'about', 'label' => 'Ownership and Funding', 'slugs' => [ 'ownership-and-funding', 'ownership' ], 'description' => 'Who owns and funds the publication.', 'google_news' => true, 'optional' => true ],
             // People
-            'executive_team' => [ 'group' => 'people', 'label' => 'Executive Leadership Team', 'slugs' => [ 'executive-leadership-team', 'executive-team', 'leadership' ], 'description' => 'The people who lead the publication.' ],
-            'team' => [ 'group' => 'people', 'label' => 'Team', 'slugs' => [ 'team', 'our-team' ], 'description' => 'Everyone behind the publication, from HWS Base Tools\' Team (read-only here).', 'source' => 'team' ],
-            'staff' => [ 'group' => 'people', 'label' => 'Staff', 'slugs' => [ 'staff', 'meet-the-staff' ], 'description' => 'The newsroom staff.' ],
-            'contributors' => [ 'group' => 'people', 'label' => 'Contributors', 'slugs' => [ 'contributors', 'meet-our-contributors', 'writers' ], 'description' => 'The writers and experts who contribute.' ],
-            'masthead' => [ 'group' => 'people', 'label' => 'Masthead', 'slugs' => [ 'masthead' ], 'description' => 'Named editors accountable for the publication.', 'google_news' => true ],
+            'executive_team' => [ 'parent' => 'about', 'group' => 'people', 'label' => 'Executive Leadership Team', 'slugs' => [ 'executive-leadership-team', 'executive-team', 'leadership' ], 'description' => 'The people who lead the publication.' ],
+            'staff' => [ 'parent' => 'about', 'group' => 'people', 'label' => 'Staff', 'slugs' => [ 'staff', 'meet-the-staff' ], 'description' => 'The newsroom staff.' ],
+            'contributors' => [ 'parent' => 'about', 'group' => 'people', 'label' => 'Contributors', 'slugs' => [ 'contributors', 'meet-our-contributors', 'writers' ], 'description' => 'The writers and experts who contribute.' ],
+            'masthead' => [ 'parent' => 'about', 'group' => 'people', 'label' => 'Masthead', 'slugs' => [ 'masthead' ], 'description' => 'Named editors accountable for the publication.', 'google_news' => true ],
             // Policies
+            'policies' => [ 'group' => 'policies', 'label' => 'Policies', 'slugs' => [ 'policies', 'our-policies' ], 'description' => 'Every policy in one list, with links to each one.' ],
             'editorial_guidelines' => [ 'group' => 'policies', 'label' => 'Editorial Guidelines', 'slugs' => [ 'editorial-guidelines' ], 'description' => 'How stories are reported, edited and labeled.' ],
             'editorial_policy' => [ 'group' => 'policies', 'label' => 'Editorial Policy', 'slugs' => [ 'editorial-policy' ], 'description' => 'Editorial independence and review.' ],
             'dmca' => [ 'group' => 'policies', 'label' => 'DMCA Policy', 'slugs' => [ 'dmca-policy', 'dmca', 'dmca-takedown-request' ], 'description' => 'How copyright owners ask for material to be removed.' ],
-            'privacy' => [ 'group' => 'policies', 'label' => 'Privacy Policy', 'slugs' => [ 'privacy-policy', 'privacy' ], 'description' => 'What reader data is collected and how it is used.' ],
-            'terms' => [ 'group' => 'policies', 'label' => 'Terms of Use', 'slugs' => [ 'terms-of-use', 'terms', 'terms-and-conditions' ], 'description' => 'The rules for using the website.' ],
-            'accessibility' => [ 'group' => 'policies', 'label' => 'Accessibility', 'slugs' => [ 'accessibility' ], 'description' => 'The accessibility commitment and how to report a barrier.' ],
             'publishing_principles' => [ 'group' => 'policies', 'label' => 'Publishing Principles', 'slugs' => [ 'publishing-principles' ], 'description' => 'The principles behind what is published.', 'google_news' => true ],
             'verification_fact_checking_policy' => [ 'group' => 'policies', 'label' => 'Verification and Fact Checking Policy', 'slugs' => [ 'verification-and-fact-checking-policy', 'fact-checking-policy' ], 'description' => 'How facts are checked before publication.', 'google_news' => true ],
             'corrections_policy' => [ 'group' => 'policies', 'label' => 'Corrections Policy', 'slugs' => [ 'corrections-policy', 'corrections' ], 'description' => 'How errors are corrected.', 'google_news' => true ],
@@ -65,11 +60,9 @@ final class PageTypes {
             'unnamed_sources_policy' => [ 'group' => 'policies', 'label' => 'Unnamed Sources Policy', 'slugs' => [ 'unnamed-sources-policy' ], 'description' => 'When anonymous sources are used.', 'google_news' => true ],
             'actionable_feedback_policy' => [ 'group' => 'policies', 'label' => 'Actionable Feedback Policy', 'slugs' => [ 'actionable-feedback-policy', 'feedback-policy' ], 'description' => 'How reader feedback is handled.', 'google_news' => true ],
             // Reader
-            'faqs' => [ 'group' => 'reader', 'label' => 'FAQs', 'slugs' => [ 'faqs', 'faq' ], 'description' => 'Common reader questions.' ],
-            'rss_feed' => [ 'group' => 'reader', 'label' => 'RSS Feed', 'slugs' => [ 'rss-feed', 'rss', 'feeds' ], 'description' => 'Every RSS feed readers can follow.' ],
             'press_releases' => [ 'group' => 'reader', 'label' => 'Latest Press Releases', 'slugs' => [ 'latest-press-releases', 'press-releases' ], 'description' => 'The newest press releases.' ],
             'submit_press_release' => [ 'group' => 'reader', 'label' => 'Submit Your Press Release', 'slugs' => [ 'submit-your-press-release', 'submit-a-press-release' ], 'description' => 'How to send a press release.' ],
-            'advertise' => [ 'group' => 'reader', 'label' => 'Advertise', 'slugs' => [ 'advertise', 'advertise-with-us' ], 'description' => 'Advertising and partnership options.' ],
+            'advertise' => [ 'optional' => true, 'group' => 'reader', 'label' => 'Advertise', 'slugs' => [ 'advertise', 'advertise-with-us' ], 'description' => 'Advertising and partnership options.' ],
         ];
     }
 
@@ -78,10 +71,21 @@ final class PageTypes {
         'headquarters' => [ 'label' => 'Headquarters', 'tab' => 'pages', 'description' => 'Where the company is based. HWS Base Tools owns this page and its facts.' ],
         'logo'         => [ 'label' => 'Logo', 'tab' => 'pages', 'description' => 'The official logo and brand files. HWS Base Tools owns this page.' ],
         'contact'      => [ 'label' => 'Contact', 'tab' => 'pages', 'description' => 'How readers reach the publication. HWS Base Tools owns this page.' ],
+        'about'               => [ 'label' => 'About', 'tab' => 'pages', 'description' => 'Who the publication is. Parent of the About pages. HWS Base Tools owns this page.' ],
+        'mission_statement'   => [ 'label' => 'Mission Statement', 'tab' => 'pages', 'description' => 'The mission, from Website Identity. HWS Base Tools owns this page.' ],
+        'founders'            => [ 'label' => 'Founders', 'tab' => 'pages', 'description' => 'The founders and their profile pages. HWS Base Tools owns these pages.' ],
+        'founding_date'       => [ 'label' => 'Founding Date', 'tab' => 'pages', 'description' => 'When and where the publication was founded. HWS Base Tools owns this page.' ],
+        'parent_organization' => [ 'label' => 'Parent Network', 'tab' => 'pages', 'description' => 'The parent company. HWS Base Tools owns this page.' ],
+        'team'                => [ 'label' => 'Team', 'tab' => 'pages', 'description' => 'Everyone on HWS Base Tools\' Team list. HWS Base Tools owns this page.' ],
+        'privacy'             => [ 'label' => 'Privacy Policy', 'tab' => 'pages', 'description' => 'HWS Base Tools owns this page.' ],
+        'terms'               => [ 'label' => 'Terms of Use', 'tab' => 'pages', 'description' => 'HWS Base Tools owns this page.' ],
+        'accessibility'       => [ 'label' => 'Accessibility', 'tab' => 'pages', 'description' => 'HWS Base Tools owns this page.' ],
+        'faqs'                => [ 'label' => 'FAQs', 'tab' => 'pages', 'description' => 'HWS Base Tools owns this page.' ],
+        'rss_feed'            => [ 'label' => 'RSS Feed', 'tab' => 'pages', 'description' => 'HWS Base Tools owns this page.' ],
     ];
 
     /** Older SMP keys for pages HWS Base Tools now owns. */
-    public const BASE_TOOLS_ALIASES = [ 'brand_assets' => 'logo' ];
+    public const BASE_TOOLS_ALIASES = [ 'brand_assets' => 'logo', 'about_publication' => 'about' ];
 
     public static function base_tools_owned( string $key ): bool {
         $key = sanitize_key( $key );

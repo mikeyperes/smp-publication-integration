@@ -749,7 +749,7 @@ class SettingsRepository {
 
     /** Generic pages HWS Base Tools owns (any website). Every publication standard page is SMP's. */
     public static function hws_owned_page_keys(): array {
-        return [ "contact" ];
+        return array_keys( \smp_publication_integration\Pages\PageTypes::BASE_TOOLS_OWNED );
     }
 
     /** Pages HWS Base Tools owned before HWS 13.19.0; their old assignments are still read until reassigned here. */

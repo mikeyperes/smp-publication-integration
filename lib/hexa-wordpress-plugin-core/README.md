@@ -226,8 +226,8 @@
 - **Code:** `src/Users/`
 
 ### Site structure
-- **Does:** the plugin's list of key pages, which page fills each, creating pages from templates, and building WordPress menus from them.
-- **Use:** `PageStructureManager` with the host's page blueprint, `SiteStructureRenderer::render( [ show_pages, show_menus ] )`, `SiteStructureAjaxController::register()`; `PageStructureMenuService`, `PageStructureTemplateService`.
+- **Does:** the plugin's list of key pages, which page fills each, creating pages from templates, placing each page under its parent (also a parent another plugin owns) with its old address redirecting, the facts each page needs, and building WordPress menus from them.
+- **Use:** `PageStructureManager` with the host's page blueprint (`parent`, `slugs` alternatives with `*`, `required_facts`, config `facts_getter`); `ensure_pages()` sets every page up in one call, `ensure_page( $key )` one, `resolve_page_id( $key )` finds a page from any plugin (filter `hexa_site_structure_page_id`), `missing_facts( $key )`, `PageStructureManager::place_under_parent()`, `PageRedirects`; `SiteStructureRenderer::render( [ show_pages, show_menus ] )`, `SiteStructureAjaxController::register()`; `PageStructureMenuService`, `PageStructureTemplateService`.
 - **Code:** `src/SiteStructure/` (docs: `docs/site-structure.md`)
 
 ### Schema tools

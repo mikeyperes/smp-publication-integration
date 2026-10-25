@@ -87,6 +87,8 @@ final class PageStructure {
                 'slug'        => Settings::page_slug( (string) $key ),
                 'description' => (string) ( $config['description'] ?? '' ),
                 'template'    => ! empty( $config['template'] ),
+                'parent'      => (string) ( \smp_publication_integration\Pages\PageTypes::get( (string) $key )['parent'] ?? '' ),
+                'slugs'       => (array) ( \smp_publication_integration\Pages\PageTypes::get( (string) $key )['slugs'] ?? [] ),
             ];
         }
 

@@ -99,6 +99,7 @@ final class Plugin {
             new Content\Shortcodes(),
             new Pages\CompanyFacts(),
             new Pages\LatestPressReleases(),
+            new Pages\PageParents(),
             new Content\MultiAuthors(),
             new Content\AuthorShortcodes(),
             new Content\AuthorSocialIcons(),

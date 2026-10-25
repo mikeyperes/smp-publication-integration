@@ -57,11 +57,7 @@ final class CompanyFacts {
      */
     public static function pages_in_use( $pages ): array {
         $pages = is_array( $pages ) ? $pages : [];
-        foreach ( [ 'founding_date' ] as $key ) {
-            if ( PageTypes::applies( $key ) && PageLinker::linked_id( $key ) > 0 ) {
-                $pages[ $key ] = (string) PageTypes::get( $key )['label'];
-            }
-        }
+        // Founding Date and the other company pages moved to HWS Base Tools, which checks their facts itself.
         return $pages;
     }
 
