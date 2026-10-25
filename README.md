@@ -225,7 +225,7 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `2.8.0`
+- Version: `2.8.1`
 
 ## Ownership
 
@@ -327,6 +327,10 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.8.1
+
+- Apply template on a page built with Elementor now shows the template: the page leaves Elementor's builder mode, and its Elementor design stays saved. Bundles Hexa WP Core 3.44.1.
 
 ### 2.8.0
 

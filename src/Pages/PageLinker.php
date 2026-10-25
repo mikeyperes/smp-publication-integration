@@ -125,6 +125,11 @@ final class PageLinker {
         if ( is_wp_error( $result ) ) {
             return $result;
         }
+        // An Elementor-built page shows its Elementor design over the page text: take it out of builder
+        // mode so the template shows. The Elementor design stays saved on the page.
+        if ( 'builder' === get_post_meta( $page_id, '_elementor_edit_mode', true ) ) {
+            delete_post_meta( $page_id, '_elementor_edit_mode' );
+        }
         self::assign( $key, $page_id );
         PageParents::place( $key, $page_id );
         return [ 'page_id' => $page_id, 'created' => false, 'revision_id' => (int) $revision ];
