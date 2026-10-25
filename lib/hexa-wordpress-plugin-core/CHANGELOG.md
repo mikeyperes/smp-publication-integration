@@ -3,6 +3,8 @@
 Release notes moved from the README (3.31.1). Newest first; each Core release adds its line here.
 
 
+Version 3.42.1 adds a short side arrow to the page list's Edit page and View buttons, which open in a new tab.
+
 Version 3.42.0 lets a page definition list the site types it does not apply to (`not_for`, for example `[ 'person' ]`). With the manager's `site_type` callback, `site_type_labels` and `site_type_edit_url`, `unavailable_reason()` explains why; such a page is greyed out in the page list with that note and a link to change the site type, cannot be switched on, and is skipped by `ensure_pages()`. A page switched off shows a note that it is not part of the site.
 
 Version 3.41.1 names the section of top-level pages from the `main_pages_title` and `main_pages_note` labels (default "Main pages") instead of a fixed "Other pages".

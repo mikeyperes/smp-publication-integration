@@ -243,7 +243,7 @@ final class SiteStructureRenderer {
     /** The row's one main button: Edit page when the page exists, else Create page. */
     private function primary_action( int $page_id, string $page_key, bool $is_set, array $page_data, ?string $parent_key ): string {
         if ( $is_set ) {
-            return '<a href="' . esc_url( (string) get_edit_post_link( $page_id ) ) . '" target="_blank" rel="noopener" class="button">Edit page</a>';
+            return '<a href="' . esc_url( (string) get_edit_post_link( $page_id ) ) . '" target="_blank" rel="noopener" class="button hpc-sp-newtab" title="Opens in a new tab">Edit page <span aria-hidden="true">&rarr;</span></a>';
         }
 
         return $this->page_actions( $page_id, $page_key, $is_set, $page_data, $parent_key );
@@ -381,6 +381,7 @@ final class SiteStructureRenderer {
             .hpc-sp-missing-line{max-width:100%;color:#8a4b0f;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
             .hpc-sp-primary{text-align:right}
             .hpc-sp-primary .button{min-width:110px;text-align:center}
+            .hpc-sp-newtab span{margin-left:4px}
             .hpc-sp.is-off .hpc-sp-name,.hpc-sp.is-off .hpc-sp-status,.hpc-sp.is-off .hpc-sp-missing-line{opacity:.55}
             .hpc-sp.is-off{background:#fafafa}
             .hpc-sp-disclaimer{max-width:100%;color:#50575e;font-size:12px;line-height:1.4;white-space:normal}
@@ -478,7 +479,7 @@ final class SiteStructureRenderer {
      */
     private function page_actions( int $page_id, string $page_key, bool $is_set, array $page_data, ?string $parent_key ): string {
         if ( $is_set ) {
-            $html = '<a href="' . esc_url( get_permalink( $page_id ) ) . '" target="_blank" rel="noopener" class="button">View</a> ';
+            $html = '<a href="' . esc_url( get_permalink( $page_id ) ) . '" target="_blank" rel="noopener" class="button hpc-sp-newtab" title="Opens in a new tab">View <span aria-hidden="true">&rarr;</span></a> ';
 
             $actions = is_array( $this->config['actions'] ) ? $this->config['actions'] : [];
             if ( empty( $this->config['lazy_page_workspace'] ) && ! empty( $this->config['enable_templates'] ) && ( ! empty( $this->config['apply_template_action'] ) || ! empty( $actions['apply_template'] ) ) ) {

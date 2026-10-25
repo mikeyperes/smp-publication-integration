@@ -37,7 +37,7 @@ final class SiteStructureScriptRenderer {
             }
 
             function primaryEdit(editUrl) {
-                return '<a href="' + editUrl + '" target="_blank" rel="noopener" class="button">Edit page</a>';
+                return '<a href="' + editUrl + '" target="_blank" rel="noopener" class="button hpc-sp-newtab" title="Opens in a new tab">Edit page <span aria-hidden="true">&rarr;</span></a>';
             }
 
             function setLinked($row, linked, editUrl, viewUrl, pageKey, pageId) {
@@ -69,7 +69,7 @@ final class SiteStructureScriptRenderer {
             }
 
             function actionButtons(pageKey, pageId, editUrl, viewUrl) {
-                var html = '<a href="' + viewUrl + '" target="_blank" rel="noopener" class="button">View</a> ';
+                var html = '<a href="' + viewUrl + '" target="_blank" rel="noopener" class="button hpc-sp-newtab" title="Opens in a new tab">View <span aria-hidden="true">&rarr;</span></a> ';
                 if (!cfg.lazyPageWorkspace && cfg.enableTemplates && (cfg.actions.apply_template || cfg.applyTemplateAction)) {
                     html += '<button type="button" class="button hpc-apply-page-template" data-page-id="' + pageId + '" data-page-key="' + pageKey + '">Apply template</button> ';
                 }
