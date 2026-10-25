@@ -38,6 +38,9 @@ final class PageStructureManager {
                 'template_saver'       => null,
                 'template_kses'        => true,
                 'page_detail_renderer' => null,
+                'site_type'            => null,
+                'site_type_labels'     => [],
+                'site_type_edit_url'   => '',
                 'menu_guess_terms'     => [
                     'header'     => [ 'header', 'main', 'primary', 'top' ],
                     'footer'     => [ 'footer', 'bottom' ],
@@ -270,6 +273,32 @@ final class PageStructureManager {
         return is_array( $this->config['menu_structures'] ) ? $this->config['menu_structures'] : [];
     }
 
+    /**
+     * Why a page does not apply to this site ('' when it does). A page definition's 'not_for'
+     * lists the site types it does not apply to; the 'site_type' callback says what the site
+     * represents and 'site_type_labels' names each type ('person' => 'a person').
+     */
+    public function unavailable_reason( string $page_key ): string {
+        $def     = $this->flat_pages()[ $page_key ] ?? [];
+        $not_for = array_map( 'strval', (array) ( $def['not_for'] ?? [] ) );
+        $getter  = $this->config['site_type'] ?? null;
+        if ( empty( $not_for ) || ! is_callable( $getter ) ) {
+            return '';
+        }
+        $type = (string) call_user_func( $getter );
+        if ( ! in_array( $type, $not_for, true ) ) {
+            return '';
+        }
+        $labels = is_array( $this->config['site_type_labels'] ) ? $this->config['site_type_labels'] : [];
+
+        return 'This page does not apply to a website that represents ' . (string) ( $labels[ $type ] ?? $type ) . '.';
+    }
+
+    /** Where the site type is changed (for the "not available" note). */
+    public function site_type_edit_url(): string {
+        return (string) $this->config['site_type_edit_url'];
+    }
+
     /** Option holding each page's on/off choice (page key => bool). */
     public function enabled_option(): string {
         return (string) $this->config['option_prefix'] . 'enabled_pages';
@@ -280,6 +309,9 @@ final class PageStructureManager {
      * except an 'optional' page, which is on only once it has a page.
      */
     public function is_enabled( string $page_key ): bool {
+        if ( '' !== $this->unavailable_reason( $page_key ) ) {
+            return false;
+        }
         $saved = function_exists( 'get_option' ) ? (array) get_option( $this->enabled_option(), [] ) : [];
         if ( array_key_exists( $page_key, $saved ) ) {
             return (bool) $saved[ $page_key ];
@@ -298,6 +330,10 @@ final class PageStructureManager {
     public function set_enabled( string $page_key, bool $enabled ): array|\WP_Error {
         if ( ! isset( $this->flat_pages()[ $page_key ] ) ) {
             return new \WP_Error( 'hpc_unknown_page', 'Unknown page.' );
+        }
+        $reason = $this->unavailable_reason( $page_key );
+        if ( $enabled && '' !== $reason ) {
+            return new \WP_Error( 'hpc_page_unavailable', $reason );
         }
         $saved              = (array) get_option( $this->enabled_option(), [] );
         $saved[ $page_key ] = $enabled;

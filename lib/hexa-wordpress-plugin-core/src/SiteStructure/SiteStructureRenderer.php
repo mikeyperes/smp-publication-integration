@@ -179,6 +179,7 @@ final class SiteStructureRenderer {
         $page_id = $this->manager->assigned_page_id( $page_key );
         $is_set  = $this->manager->is_assigned_page_set( $page_key );
         $enabled = $this->manager->is_enabled( $page_key );
+        $reason  = $this->manager->unavailable_reason( $page_key );
         $title   = (string) ( $page_data['title'] ?? $page_key );
         $slug    = (string) ( $page_data['slug'] ?? $page_key );
         $url     = $page_id > 0 && function_exists( 'get_permalink' ) ? (string) get_permalink( $page_id ) : '';
@@ -190,10 +191,10 @@ final class SiteStructureRenderer {
 
         ob_start();
         ?>
-        <div class="hpc-sp hpc-site-page-row<?php echo $enabled ? '' : ' is-off'; ?>" data-page-key="<?php echo esc_attr( $page_key ); ?>" data-page-title="<?php echo esc_attr( $title ); ?>" data-page-slug="<?php echo esc_attr( $slug ); ?>" data-parent-key="<?php echo esc_attr( (string) $parent_key ); ?>" data-linked="<?php echo $is_set ? '1' : '0'; ?>">
+        <div class="hpc-sp hpc-site-page-row<?php echo $enabled ? '' : ' is-off'; ?><?php echo '' !== $reason ? ' is-unavailable' : ''; ?>" data-page-key="<?php echo esc_attr( $page_key ); ?>" data-page-title="<?php echo esc_attr( $title ); ?>" data-page-slug="<?php echo esc_attr( $slug ); ?>" data-parent-key="<?php echo esc_attr( (string) $parent_key ); ?>" data-linked="<?php echo $is_set ? '1' : '0'; ?>">
             <div class="hpc-sp-head">
                 <?php if ( $toggle ) : ?>
-                    <label class="hpc-sp-switch" title="<?php echo esc_attr( $enabled ? 'On: part of this site' : 'Off: not part of this site' ); ?>"><input type="checkbox" class="hpc-sp-enable" data-page="<?php echo esc_attr( $page_key ); ?>" <?php checked( $enabled ); ?> aria-label="<?php echo esc_attr( 'Use the ' . $title . ' page on this site' ); ?>"><span aria-hidden="true"></span></label>
+                    <label class="hpc-sp-switch" title="<?php echo esc_attr( $enabled ? 'On: part of this site' : 'Off: not part of this site' ); ?>"><input type="checkbox" class="hpc-sp-enable" data-page="<?php echo esc_attr( $page_key ); ?>" <?php checked( $enabled ); ?> <?php disabled( '' !== $reason ); ?> aria-label="<?php echo esc_attr( 'Use the ' . $title . ' page on this site' ); ?>"><span aria-hidden="true"></span></label>
                 <?php endif; ?>
                 <div class="hpc-sp-name">
                     <strong><?php echo esc_html( $title ); ?></strong>
@@ -201,8 +202,13 @@ final class SiteStructureRenderer {
                     <button type="button" class="hpc-sp-toggle" aria-expanded="false" aria-controls="<?php echo esc_attr( $body_id ); ?>">Page details</button>
                 </div>
                 <div class="hpc-sp-state">
-                    <span class="hpc-site-page-status"><?php echo self::page_pill( $is_set, $enabled ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
-                    <?php if ( ! empty( $missing ) ) : ?>
+                    <span class="hpc-site-page-status"><?php echo '' !== $reason ? '<span class="hpc-sp-status hpc-sp-status--muted">Not available</span>' : self::page_pill( $is_set, $enabled ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
+                    <?php if ( '' !== $reason ) : ?>
+                        <span class="hpc-sp-disclaimer"><?php echo esc_html( $reason ); ?><?php echo '' !== $this->manager->site_type_edit_url() ? ' <a href="' . esc_url( $this->manager->site_type_edit_url() ) . '">Change what this website represents</a>' : ''; ?></span>
+                    <?php else : ?>
+                        <span class="hpc-sp-disclaimer hpc-sp-off-note"<?php echo $enabled ? ' hidden' : ''; ?>>Off: this page is not part of the site and will not be created. Switch it on to use it.</span>
+                    <?php endif; ?>
+                    <?php if ( ! empty( $missing ) && '' === $reason ) : ?>
                         <span class="hpc-sp-missing-line" title="<?php echo esc_attr( implode( ', ', $missing ) ); ?>"><?php echo esc_html( 'Missing: ' . implode( ', ', $missing ) ); ?></span>
                     <?php endif; ?>
                 </div>
@@ -362,7 +368,7 @@ final class SiteStructureRenderer {
             .hpc-sp-list{border:1px solid #dcdcde;border-radius:8px;background:#fff;overflow:hidden}
             .hpc-sp{border-top:1px solid #f0f0f1;padding:14px 18px}
             .hpc-sp:first-child{border-top:0}
-            .hpc-sp-head{display:grid;grid-template-columns:auto minmax(0,1fr) 220px 130px;gap:18px;align-items:center}
+            .hpc-sp-head{display:grid;grid-template-columns:auto minmax(0,1fr) 260px 130px;gap:18px;align-items:center}
             .hpc-sp-name strong{font-size:14px;color:#1d2327}
             .hpc-sp-path{margin-top:2px;color:#646970;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
             .hpc-sp-path a{color:#646970;text-decoration:none}
@@ -375,10 +381,14 @@ final class SiteStructureRenderer {
             .hpc-sp-missing-line{max-width:100%;color:#8a4b0f;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
             .hpc-sp-primary{text-align:right}
             .hpc-sp-primary .button{min-width:110px;text-align:center}
-            .hpc-sp.is-off .hpc-sp-name,.hpc-sp.is-off .hpc-sp-state{opacity:.55}
+            .hpc-sp.is-off .hpc-sp-name,.hpc-sp.is-off .hpc-sp-status,.hpc-sp.is-off .hpc-sp-missing-line{opacity:.55}
+            .hpc-sp.is-off{background:#fafafa}
+            .hpc-sp-disclaimer{max-width:100%;color:#50575e;font-size:12px;line-height:1.4;white-space:normal}
+            .hpc-sp-disclaimer[hidden]{display:none}
+            .hpc-sp.is-unavailable .hpc-sp-switch{cursor:not-allowed;opacity:.5}
             .hpc-sp.is-off .hpc-sp-primary{visibility:hidden}
             .hpc-sp-switch{position:relative;display:inline-block;width:36px;height:20px;cursor:pointer}
-            .hpc-sp-switch input{position:absolute;opacity:0;width:0;height:0}
+            .hpc-sp-switch input{position:absolute;opacity:0;width:0;height:0;margin:0;border:0;padding:0;-webkit-appearance:none;appearance:none;pointer-events:none}
             .hpc-sp-switch span{position:absolute;inset:0;border-radius:20px;background:#c3c4c7;transition:background .15s}
             .hpc-sp-switch span::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .15s}
             .hpc-sp-switch input:checked + span{background:#2271b1}

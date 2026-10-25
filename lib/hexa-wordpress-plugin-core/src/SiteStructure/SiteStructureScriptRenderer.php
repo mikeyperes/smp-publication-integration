@@ -327,6 +327,7 @@ final class SiteStructureScriptRenderer {
                     $box.prop("disabled", false);
                     if (response.success) {
                         $row.toggleClass("is-off", !on);
+                        $row.find(".hpc-sp-off-note").prop("hidden", on);
                         $row.find(".hpc-site-page-status").html(on ? statusBadge($row.attr("data-linked") === "1") : statusBadge(false, false));
                         toast(message(response, on ? "Page turned on." : "Page turned off."), "success");
                     } else {

@@ -3,6 +3,8 @@
 Release notes moved from the README (3.31.1). Newest first; each Core release adds its line here.
 
 
+Version 3.42.0 lets a page definition list the site types it does not apply to (`not_for`, for example `[ 'person' ]`). With the manager's `site_type` callback, `site_type_labels` and `site_type_edit_url`, `unavailable_reason()` explains why; such a page is greyed out in the page list with that note and a link to change the site type, cannot be switched on, and is skipped by `ensure_pages()`. A page switched off shows a note that it is not part of the site.
+
 Version 3.41.1 names the section of top-level pages from the `main_pages_title` and `main_pages_note` labels (default "Main pages") instead of a fixed "Other pages".
 
 Version 3.41.0 redoes each page row in the page list: an on/off switch, the page name with its address (a link once the page exists), one status (Published, Not created or Off) with the missing details named under it, and one main button (Edit page or Create page). "Page details" opens the linked-page choice with View, Apply template and Delete, then the details used, the default content and what goes into the page. New `PageStructureManager::is_enabled()` / `set_enabled()` (option `<option_prefix>enabled_pages`; an `optional` page is off until it has a page) and the `toggle_page` AJAX action; `ensure_pages()` skips pages that are off.
