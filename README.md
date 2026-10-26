@@ -329,6 +329,10 @@ The suite covers navigation, article defaults, article/FAQ output, authorship, t
 
 ## Changelog
 
+### 2.9.7
+
+- People cards: "writing since" and the compact latest-story date use the stored date, so a site's date filters no longer change their format.
+
 ### 2.9.6
 
 - People cards: a person without their own photo shows initials in the latest-story byline too, never a placeholder image.

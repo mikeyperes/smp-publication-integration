@@ -130,7 +130,7 @@ final class PeopleCards {
                 $line  = $on( 'count' ) ? '<b class="' . esc_attr( $item ) . '__count-number">' . esc_html( number_format_i18n( $n ) ) . '</b> ' . esc_html( _n( 'story', 'stories', $n, 'smp-publication-integration' ) ) : '';
                 $first = $on( 'since' ) ? get_posts( [ 'author' => $id, 'post_type' => $types, 'post_status' => 'publish', 'posts_per_page' => 1, 'order' => 'ASC', 'orderby' => 'date', 'no_found_rows' => true ] ) : [];
                 if ( $first ) {
-                    $line .= ( '' !== $line ? ' &middot; ' : '' ) . esc_html( sprintf( __( 'writing since %s', 'smp-publication-integration' ), get_the_date( 'F Y', $first[0] ) ) );
+                    $line .= ( '' !== $line ? ' &middot; ' : '' ) . esc_html( sprintf( __( 'writing since %s', 'smp-publication-integration' ), mysql2date( 'F Y', $first[0]->post_date ) /* the stored date: date filters on the page (relative or custom formats) never change it */ ) );
                 }
                 if ( '' !== $line ) {
                     $parts['count'] = '<p class="' . esc_attr( $item ) . '__count">' . $line . '</p>';
@@ -225,7 +225,7 @@ final class PeopleCards {
         $post = $posts[0];
         return '<p class="' . esc_attr( $item ) . '__latest ' . esc_attr( $item ) . '__latest--compact"><span class="' . esc_attr( $item ) . '__latest-label">Latest story</span>'
             . '<a class="' . esc_attr( $item ) . '__latest-title" href="' . esc_url( get_permalink( $post ) ) . '">' . esc_html( get_the_title( $post ) ) . '</a>'
-            . '<time class="' . esc_attr( $item ) . '__latest-date" datetime="' . esc_attr( get_the_date( 'c', $post ) ) . '">' . esc_html( get_the_date( 'M j, Y', $post ) ) . '</time></p>';
+            . '<time class="' . esc_attr( $item ) . '__latest-date" datetime="' . esc_attr( get_the_date( 'c', $post ) ) . '">' . esc_html( mysql2date( 'M j, Y', $post->post_date ) ) . '</time></p>';
     }
 
     /** The built-in look for one list. Every rule is one class, so site CSS overrides it. */
