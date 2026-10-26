@@ -45,7 +45,7 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 - **Code:** `src/Content/ArchiveListing.php`
 
 ### Archive search
-- **Does:** category, tag, author and search pages get a search box with Category, Tag and Author filters right above the stories; the stories, counts and address refresh as readers type or tick. The archive's story list (a Loop Grid, Posts or Archive Posts widget showing the page's own stories or pinned to the page's own category or tag, or the lead and rest listings) is found by itself, so existing templates need no edit. An archive the theme draws itself gets the box above its first story. Category, tag and author feeds never get the box, so they stay valid RSS. Author pages and the Author filter include co-authored stories; archive visibility rules apply to every count.
+- **Does:** category, tag, author and search pages get a search box with Category, Tag and Author filters right above the stories; the stories, counts and address refresh as readers type or tick. The archive's story list (a Loop Grid, Posts or Archive Posts widget showing the page's own stories or pinned to the page's own category or tag, or the lead and rest listings) is found by itself, so existing templates need no edit. On a page with a lead story above the story grid, the box sits under the lead, directly on top of the grid it narrows. An archive the theme draws itself gets the box above its first story. Category, tag and author feeds never get the box, so they stay valid RSS. Author pages and the Author filter include co-authored stories; archive visibility rules apply to every count.
 - **Use:** on by default (Settings: "Show the search box on archive pages"). A template that places `[hws_search]` itself keeps its own box. Needs HWS Base Tools 13.17.1 (Hexa WP Core 3.30.2).
 - **Code:** `src/Content/ArchiveSearch.php`
 
@@ -327,6 +327,10 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.9.1
+
+- Archive search: the box now sits on the story grid, under the lead story, instead of above the lead.
 
 ### 2.9.0
 

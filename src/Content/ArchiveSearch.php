@@ -92,13 +92,30 @@ final class ArchiveSearch {
         return false;
     }
 
-    /** Adds the search box above the archive's first story list. @param object $widget */
+    /**
+     * The lead listing (the archive's top story) is never searched from above: the box sits on
+     * the story grid under it, the list it actually narrows.
+     *
+     * @param object $widget
+     */
+    private static function is_lead( $widget ): bool {
+        $settings = method_exists( $widget, "get_settings_for_display" ) ? (array) $widget->get_settings_for_display() : [];
+        foreach ( $settings as $key => $value ) {
+            if ( is_string( $key ) && "query_id" === substr( $key, -8 ) && is_string( $value ) && ArchiveListing::LEAD_QUERY_ID === sanitize_key( $value ) ) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Adds the search box above the archive's story grid (below any lead story). @param object $widget */
     public function print_search_box( $widget ): void {
         if ( $this->box_printed
             || ! self::enabled()
             || "" === self::shortcode()
             || ! $this->is_listing( false, $widget )
             || ( class_exists( SearchBox::class ) && SearchBox::rendered( "listing" ) )
+            || self::is_lead( $widget )
         ) {
             return;
         }
