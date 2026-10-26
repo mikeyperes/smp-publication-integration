@@ -329,6 +329,10 @@ The suite covers navigation, article defaults, article/FAQ output, authorship, t
 
 ## Changelog
 
+### 2.9.8
+
+- `[author_categories last=" and "]` and people cards' `topics_last` join the final two sections differently ("A, B and C").
+
 ### 2.9.7
 
 - People cards: "writing since" and the compact latest-story date use the stored date, so a site's date filters no longer change their format.

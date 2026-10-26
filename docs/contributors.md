@@ -40,7 +40,7 @@ All of Executive Leadership's (`style`, `columns`, `ids`, `limit`, `hide`, `link
 - `orderby="posts"` orders the list by published stories, most first.
 - `show="since"` adds "writing since <Month Year>" (the first published story) to the count line; the count is `<b class="__count-number">N</b> stories`.
 - `latest="compact"` shows the latest story as one line (label, headline, date) instead of the full block.
-- `topics_label=""` drops the label; `topics_separator=" · "` sets the separator between sections.
+- `topics_label=""` drops the label; `topics_separator=" · "` sets the separator between sections, and `topics_last=" and "` the one before the last.
 - `order="topics,name,count,latest"` sets the page order of the text parts (name, title, topics, count, bio, latest, link, all); anything left out follows in that default order, and the photo always comes first.
 
 ## Built-in CSS

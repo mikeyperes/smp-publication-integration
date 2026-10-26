@@ -163,7 +163,7 @@ final class AuthorShortcodes {
 
     /** The sections an author writes in most, as links, most stories first; "" when none. */
     public function render_categories( array $atts = [] ): string {
-        $atts = shortcode_atts( [ "user_id" => 0, "post_id" => 0, "author_index" => 0, "limit" => 4, "separator" => ", " ], $atts, "author_categories" );
+        $atts = shortcode_atts( [ "user_id" => 0, "post_id" => 0, "author_index" => 0, "limit" => 4, "separator" => ", ", "last" => "" ], $atts, "author_categories" );
         $author_id = $this->resolve_author_id( (int) $atts["user_id"], (int) $atts["post_id"], (int) $atts["author_index"] );
         if ( ! $author_id ) {
             return "";
@@ -194,7 +194,14 @@ final class AuthorShortcodes {
                 $links[] = '<a class="smpi-author-category" href="' . esc_url( $url ) . '">' . esc_html( $term->name ) . "</a>";
             }
         }
-        return empty( $links ) ? "" : '<span class="smpi-author-categories">' . implode( esc_html( (string) $atts["separator"] ), $links ) . "</span>";
+        if ( empty( $links ) ) {
+            return "";
+        }
+        // last=" and " joins the final two sections differently ("A, B and C").
+        $tail = array_pop( $links );
+        $head = implode( esc_html( (string) $atts["separator"] ), $links );
+        $join = "" !== (string) $atts["last"] ? (string) $atts["last"] : (string) $atts["separator"];
+        return '<span class="smpi-author-categories">' . ( "" !== $head ? $head . esc_html( $join ) : "" ) . $tail . "</span>";
     }
 
     public function render_image( array $atts = [] ): string {

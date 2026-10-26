@@ -45,6 +45,7 @@ final class PeopleCards {
         'topics'     => 3,
         'topics_label' => 'Writes about',
         'topics_separator' => ', ',
+        'topics_last' => '',
         'latest'     => 'full',
         'order'      => '',
     ];
@@ -119,7 +120,7 @@ final class PeopleCards {
                 $parts['title'] = '<p class="' . esc_attr( $item ) . '__title">' . esc_html( $title ) . '</p>';
             }
             if ( $on( 'topics' ) ) {
-                $topics = do_shortcode( '[author_categories user_id="' . $id . '" limit="' . max( 1, (int) $atts['topics'] ) . '" separator="' . esc_attr( (string) $atts['topics_separator'] ) . '"]' );
+                $topics = do_shortcode( '[author_categories user_id="' . $id . '" limit="' . max( 1, (int) $atts['topics'] ) . '" separator="' . esc_attr( (string) $atts['topics_separator'] ) . '" last="' . esc_attr( (string) $atts['topics_last'] ) . '"]' );
                 if ( '' !== $topics ) {
                     $label = (string) $atts['topics_label'];
                     $parts['topics'] = '<p class="' . esc_attr( $item ) . '__topics">' . ( '' !== $label ? '<span class="' . esc_attr( $item ) . '__topics-label">' . esc_html( $label ) . '</span> ' : '' ) . $topics . '</p>';
