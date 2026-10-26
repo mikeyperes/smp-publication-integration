@@ -142,7 +142,7 @@ final class PeopleCards {
             if ( $on( 'latest' ) ) {
                 $parts['latest'] = 'compact' === (string) $atts['latest']
                     ? self::latest_compact( $id, $types, $item )
-                    : self::latest( $id, $types, $item, $name, $fields->image_url( $id, 'thumbnail' ), $on( 'badge' ) );
+                    : self::latest( $id, $types, $item, $name, '' !== $photo ? $fields->image_url( $id, 'thumbnail' ) : '', $on( 'badge' ) );
             }
             if ( $show( 'link' ) && $link ) {
                 $parts['link'] = '<a class="' . esc_attr( $item ) . '__link" href="' . esc_url( $url ) . '">View profile</a>';
@@ -202,6 +202,9 @@ final class PeopleCards {
         $html .= '<div class="' . esc_attr( $item ) . '__latest-byline">';
         if ( '' !== $avatar ) {
             $html .= '<img class="' . esc_attr( $item ) . '__latest-avatar" src="' . esc_url( $avatar ) . '" alt="" width="48" height="48" loading="lazy" decoding="async">';
+        } elseif ( '' !== $name ) {
+            // No photo of their own: the same initials the card shows, never a placeholder image.
+            $html .= '<span class="' . esc_attr( $item ) . '__latest-avatar ' . esc_attr( $item ) . '__initials" aria-hidden="true">' . esc_html( self::initials( $name ) ) . '</span>';
         }
         if ( '' !== $name ) {
             $html .= '<a class="' . esc_attr( $item ) . '__latest-author" href="' . esc_url( get_author_posts_url( $user_id ) ) . '">' . esc_html( $name ) . '</a>';

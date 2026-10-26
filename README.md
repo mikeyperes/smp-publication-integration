@@ -329,6 +329,10 @@ The suite covers navigation, article defaults, article/FAQ output, authorship, t
 
 ## Changelog
 
+### 2.9.6
+
+- People cards: a person without their own photo shows initials in the latest-story byline too, never a placeholder image.
+
 ### 2.9.5
 
 - People cards: `show="since"` (writing since), `latest="compact"`, `topics_label`/`topics_separator`, and `order` to set the parts' page order.
