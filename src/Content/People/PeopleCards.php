@@ -27,7 +27,9 @@ final class PeopleCards {
     ];
     public const PARTS = [ 'photo', 'title', 'bio', 'link' ];
     /** Extra parts a list may switch on with show="...": all off by default, so existing pages never change. */
-    public const EXTRAS = [ 'badge', 'topics', 'count', 'latest', 'initials', 'all' ];
+    public const EXTRAS = [ 'badge', 'topics', 'count', 'since', 'latest', 'initials', 'all' ];
+    /** The default page order of a card's text parts (the photo always comes first). */
+    public const ORDER = [ 'name', 'title', 'topics', 'count', 'bio', 'latest', 'link', 'all' ];
     public const ATTRIBUTES = [
         'style'      => '',
         'columns'    => 3,
@@ -42,6 +44,9 @@ final class PeopleCards {
         'orderby'    => '',
         'topics'     => 3,
         'topics_label' => 'Writes about',
+        'topics_separator' => ', ',
+        'latest'     => 'full',
+        'order'      => '',
     ];
 
     /** @var array<string,bool> */
@@ -108,36 +113,52 @@ final class PeopleCards {
                     ? '<a class="' . esc_attr( $item ) . '__photo" href="' . esc_url( $url ) . '" tabindex="-1" aria-hidden="true">' . $img . '</a>'
                     : '<span class="' . esc_attr( $item ) . '__photo">' . $img . '</span>';
             }
-            $people .= '<div class="' . esc_attr( $item ) . '__body">';
-            $people .= '<' . $heading . ' class="' . esc_attr( $item ) . '__name">' . ( $link ? '<a href="' . esc_url( $url ) . '">' . esc_html( $name ) . '</a>' : esc_html( $name ) ) . ( $on( 'badge' ) && class_exists( MuckRackVerification::class ) ? MuckRackVerification::verification_icon( $id, 'tooltip', 'loop_cards' ) : '' ) . '</' . $heading . '>';
+            $parts = [];
+            $parts['name'] = '<' . $heading . ' class="' . esc_attr( $item ) . '__name">' . ( $link ? '<a href="' . esc_url( $url ) . '">' . esc_html( $name ) . '</a>' : esc_html( $name ) ) . ( $on( 'badge' ) && class_exists( MuckRackVerification::class ) ? MuckRackVerification::verification_icon( $id, 'tooltip', 'loop_cards' ) : '' ) . '</' . $heading . '>';
             if ( $show( 'title' ) && '' !== $title ) {
-                $people .= '<p class="' . esc_attr( $item ) . '__title">' . esc_html( $title ) . '</p>';
+                $parts['title'] = '<p class="' . esc_attr( $item ) . '__title">' . esc_html( $title ) . '</p>';
             }
             if ( $on( 'topics' ) ) {
-                $topics = do_shortcode( '[author_categories user_id="' . $id . '" limit="' . max( 1, (int) $atts['topics'] ) . '"]' );
+                $topics = do_shortcode( '[author_categories user_id="' . $id . '" limit="' . max( 1, (int) $atts['topics'] ) . '" separator="' . esc_attr( (string) $atts['topics_separator'] ) . '"]' );
                 if ( '' !== $topics ) {
-                    $people .= '<p class="' . esc_attr( $item ) . '__topics"><span class="' . esc_attr( $item ) . '__topics-label">' . esc_html( (string) $atts['topics_label'] ) . '</span> ' . $topics . '</p>';
+                    $label = (string) $atts['topics_label'];
+                    $parts['topics'] = '<p class="' . esc_attr( $item ) . '__topics">' . ( '' !== $label ? '<span class="' . esc_attr( $item ) . '__topics-label">' . esc_html( $label ) . '</span> ' : '' ) . $topics . '</p>';
                 }
             }
-            if ( $on( 'count' ) ) {
-                $n = (int) count_user_posts( $id, $types, true );
-                $people .= '<p class="' . esc_attr( $item ) . '__count">' . esc_html( sprintf( _n( '%s story', '%s stories', $n, 'smp-publication-integration' ), number_format_i18n( $n ) ) ) . '</p>';
+            if ( $on( 'count' ) || $on( 'since' ) ) {
+                $n     = (int) count_user_posts( $id, $types, true );
+                $line  = $on( 'count' ) ? '<b class="' . esc_attr( $item ) . '__count-number">' . esc_html( number_format_i18n( $n ) ) . '</b> ' . esc_html( _n( 'story', 'stories', $n, 'smp-publication-integration' ) ) : '';
+                $first = $on( 'since' ) ? get_posts( [ 'author' => $id, 'post_type' => $types, 'post_status' => 'publish', 'posts_per_page' => 1, 'order' => 'ASC', 'orderby' => 'date', 'no_found_rows' => true ] ) : [];
+                if ( $first ) {
+                    $line .= ( '' !== $line ? ' &middot; ' : '' ) . esc_html( sprintf( __( 'writing since %s', 'smp-publication-integration' ), get_the_date( 'F Y', $first[0] ) ) );
+                }
+                if ( '' !== $line ) {
+                    $parts['count'] = '<p class="' . esc_attr( $item ) . '__count">' . $line . '</p>';
+                }
             }
             if ( $show( 'bio' ) && '' !== $bio ) {
-                $people .= '<p class="' . esc_attr( $item ) . '__bio">' . esc_html( $bio ) . '</p>';
+                $parts['bio'] = '<p class="' . esc_attr( $item ) . '__bio">' . esc_html( $bio ) . '</p>';
             }
             if ( $on( 'latest' ) ) {
-                $people .= self::latest( $id, $types, $item, $name, $fields->image_url( $id, 'thumbnail' ), $on( 'badge' ) );
+                $parts['latest'] = 'compact' === (string) $atts['latest']
+                    ? self::latest_compact( $id, $types, $item )
+                    : self::latest( $id, $types, $item, $name, $fields->image_url( $id, 'thumbnail' ), $on( 'badge' ) );
             }
             if ( $show( 'link' ) && $link ) {
-                $people .= '<a class="' . esc_attr( $item ) . '__link" href="' . esc_url( $url ) . '">View profile</a>';
+                $parts['link'] = '<a class="' . esc_attr( $item ) . '__link" href="' . esc_url( $url ) . '">View profile</a>';
             }
             if ( $on( 'all' ) ) {
                 $n     = (int) count_user_posts( $id, $types, true );
-                $first = (string) ( preg_split( '/\s+/', trim( $name ) )[0] ?? $name );
+                $firstname = (string) ( preg_split( '/\s+/', trim( $name ) )[0] ?? $name );
                 if ( $n > 0 ) {
-                    $people .= '<p class="' . esc_attr( $item ) . '__all"><a href="' . esc_url( $url ) . '">' . esc_html( sprintf( _n( 'All %1$s story by %2$s', 'All %1$s stories by %2$s', $n, 'smp-publication-integration' ), number_format_i18n( $n ), $first ) ) . '</a></p>';
+                    $parts['all'] = '<p class="' . esc_attr( $item ) . '__all"><a href="' . esc_url( $url ) . '">' . esc_html( sprintf( _n( 'All %1$s story by %2$s', 'All %1$s stories by %2$s', $n, 'smp-publication-integration' ), number_format_i18n( $n ), $firstname ) ) . '</a></p>';
                 }
+            }
+            // order="topics,name,..." sets the page order of the parts; anything left out follows in the default order.
+            $order = array_values( array_unique( array_merge( array_map( 'trim', explode( ',', strtolower( (string) $atts['order'] ) ) ), self::ORDER ) ) );
+            $people .= '<div class="' . esc_attr( $item ) . '__body">';
+            foreach ( $order as $key ) {
+                $people .= $parts[ $key ] ?? '';
             }
             $people .= '</div></article>';
         }
@@ -190,6 +211,18 @@ final class PeopleCards {
         }
         $html .= '<time class="' . esc_attr( $item ) . '__latest-date" datetime="' . esc_attr( get_the_date( 'c', $post ) ) . '">' . esc_html( get_the_date( '', $post ) ) . '</time>';
         return $html . '</div></div></div>';
+    }
+
+    /** The newest story as one line: label, headline and date; "" when there is none. */
+    private static function latest_compact( int $user_id, array $types, string $item ): string {
+        $posts = get_posts( [ 'author' => $user_id, 'post_type' => $types, 'post_status' => 'publish', 'posts_per_page' => 1, 'no_found_rows' => true ] );
+        if ( ! $posts ) {
+            return '';
+        }
+        $post = $posts[0];
+        return '<p class="' . esc_attr( $item ) . '__latest ' . esc_attr( $item ) . '__latest--compact"><span class="' . esc_attr( $item ) . '__latest-label">Latest story</span>'
+            . '<a class="' . esc_attr( $item ) . '__latest-title" href="' . esc_url( get_permalink( $post ) ) . '">' . esc_html( get_the_title( $post ) ) . '</a>'
+            . '<time class="' . esc_attr( $item ) . '__latest-date" datetime="' . esc_attr( get_the_date( 'c', $post ) ) . '">' . esc_html( get_the_date( 'M j, Y', $post ) ) . '</time></p>';
     }
 
     /** The built-in look for one list. Every rule is one class, so site CSS overrides it. */

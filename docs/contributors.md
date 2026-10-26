@@ -38,6 +38,10 @@ All of Executive Leadership's (`style`, `columns`, `ids`, `limit`, `hide`, `link
 
 - `show="badge,topics,count,latest,initials"` switches on extra parts (all off by default, on Staff and Executive Leadership too): `badge` the MuckRack verified mark after the name, `topics` a "Writes about" line with the sections the person writes in most (`topics="3"` how many, `topics_label` its label), `count` the number of published stories, `latest` the newest story (photo, section, headline, date), `initials` the person's initials in place of a missing photo (a placeholder image never counts as a photo), `all` an "All 61 stories by Julie" link to the author page. The latest story carries a byline (avatar, name, the verified mark when `badge` is on, date). New markup: `__topics`, `__topics-label`, `__count`, `__latest`, `__latest-label`, `__latest-photo`, `__latest-body`, `__latest-section`, `__latest-title`, `__latest-date`, `__latest-byline`, `__latest-avatar`, `__latest-author`, `__all`, `__initials`.
 - `orderby="posts"` orders the list by published stories, most first.
+- `show="since"` adds "writing since <Month Year>" (the first published story) to the count line; the count is `<b class="__count-number">N</b> stories`.
+- `latest="compact"` shows the latest story as one line (label, headline, date) instead of the full block.
+- `topics_label=""` drops the label; `topics_separator=" · "` sets the separator between sections.
+- `order="topics,name,count,latest"` sets the page order of the text parts (name, title, topics, count, bio, latest, link, all); anything left out follows in that default order, and the photo always comes first.
 
 ## Built-in CSS
 

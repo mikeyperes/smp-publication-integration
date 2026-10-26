@@ -329,6 +329,10 @@ The suite covers navigation, article defaults, article/FAQ output, authorship, t
 
 ## Changelog
 
+### 2.9.5
+
+- People cards: `show="since"` (writing since), `latest="compact"`, `topics_label`/`topics_separator`, and `order` to set the parts' page order.
+
 ### 2.9.4
 
 - People cards show the verified mark at the card size (MuckRack card settings) instead of the author-page size.
