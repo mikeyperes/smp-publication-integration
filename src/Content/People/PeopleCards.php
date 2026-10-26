@@ -109,7 +109,7 @@ final class PeopleCards {
                     : '<span class="' . esc_attr( $item ) . '__photo">' . $img . '</span>';
             }
             $people .= '<div class="' . esc_attr( $item ) . '__body">';
-            $people .= '<' . $heading . ' class="' . esc_attr( $item ) . '__name">' . ( $link ? '<a href="' . esc_url( $url ) . '">' . esc_html( $name ) . '</a>' : esc_html( $name ) ) . ( $on( 'badge' ) && class_exists( MuckRackVerification::class ) ? MuckRackVerification::verification_icon( $id, 'tooltip', 'author' ) : '' ) . '</' . $heading . '>';
+            $people .= '<' . $heading . ' class="' . esc_attr( $item ) . '__name">' . ( $link ? '<a href="' . esc_url( $url ) . '">' . esc_html( $name ) . '</a>' : esc_html( $name ) ) . ( $on( 'badge' ) && class_exists( MuckRackVerification::class ) ? MuckRackVerification::verification_icon( $id, 'tooltip', 'loop_cards' ) : '' ) . '</' . $heading . '>';
             if ( $show( 'title' ) && '' !== $title ) {
                 $people .= '<p class="' . esc_attr( $item ) . '__title">' . esc_html( $title ) . '</p>';
             }
@@ -186,7 +186,7 @@ final class PeopleCards {
             $html .= '<a class="' . esc_attr( $item ) . '__latest-author" href="' . esc_url( get_author_posts_url( $user_id ) ) . '">' . esc_html( $name ) . '</a>';
         }
         if ( $badge && class_exists( MuckRackVerification::class ) ) {
-            $html .= MuckRackVerification::verification_icon( $user_id, 'tooltip', 'loop' );
+            $html .= MuckRackVerification::verification_icon( $user_id, 'tooltip', 'loop_cards' );
         }
         $html .= '<time class="' . esc_attr( $item ) . '__latest-date" datetime="' . esc_attr( get_the_date( 'c', $post ) ) . '">' . esc_html( get_the_date( '', $post ) ) . '</time>';
         return $html . '</div></div></div>';

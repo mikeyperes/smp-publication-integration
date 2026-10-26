@@ -433,7 +433,7 @@ SMPI_JS;
             : "";
         $icon = "<span class=" . $quote . "smpi-muckrack-icon " . esc_attr( $icon_class . $context_class ) . $quote . " data-smpi-muckrack-context=" . $quote . esc_attr( sanitize_key( $context ) ) . $quote . " title=" . $quote . $label . $quote . " aria-label=" . $quote . $label . $quote . " style=" . $quote . $color_style . "--smpi-muckrack-margin-left:" . esc_attr( (string) $margin_left ) . "px;--smpi-muckrack-margin-top:" . esc_attr( (string) $margin_top ) . "px;font-size:" . esc_attr( (string) $size ) . "px;margin-left:" . esc_attr( (string) $margin_left ) . "px;margin-top:" . esc_attr( (string) $margin_top ) . "px" . $quote . ">" . self::icon_svg_html( $style_key ) . "</span>";
         $link_label = esc_attr( "View verification details on MuckRack" );
-        return $url ? "<a class=smpi-muckrack-link href=" . $quote . $url . $quote . " target=_blank rel=" . $quote . "noopener noreferrer" . $quote . " aria-label=" . $quote . $link_label . $quote . " title=" . $quote . $link_label . $quote . ">" . $icon . "</a>" : $icon;
+        return $url ? "<a class=" . $quote . "smpi-muckrack-link" . $quote . " href=" . $quote . $url . $quote . " target=" . $quote . "_blank" . $quote . " rel=" . $quote . "noopener noreferrer" . $quote . " aria-label=" . $quote . $link_label . $quote . " title=" . $quote . $link_label . $quote . ">" . $icon . "</a>" : $icon;
     }
 
     private static function icon_svg_html( string $style ): string {
@@ -451,6 +451,7 @@ SMPI_JS;
             return "";
         }
         $url = (string) self::author_field( $author_id, self::FIELD_URL );
+        $target = "" !== $url ? $url : "https://muckrack.com/";
         $description = trim( (string) self::author_field( $author_id, self::FIELD_DESCRIPTION ) );
         $description = "" !== $description ? $description : "Author";
         return "<span class=\"smpi-muckrack-author-text\">" . esc_html( $description ) . " verified by <span class=\"smpi-muckrack-brand\">MuckRack</span> editorial team <a href=\"" . esc_url( $target ) . "\" target=\"_blank\" rel=\"noopener noreferrer\">(learn more)</a></span>";

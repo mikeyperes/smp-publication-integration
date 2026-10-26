@@ -329,6 +329,11 @@ The suite covers navigation, article defaults, article/FAQ output, authorship, t
 
 ## Changelog
 
+### 2.9.4
+
+- People cards show the verified mark at the card size (MuckRack card settings) instead of the author-page size.
+- The verified mark's MuckRack link has properly quoted attributes, and the verification sentence's "learn more" link no longer breaks.
+
 ### 2.9.3
 
 - People lists: initials replace a placeholder photo, the latest story has a byline, and `show="all"` adds an "All N stories by <first name>" link.
