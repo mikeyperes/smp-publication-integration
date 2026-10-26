@@ -329,6 +329,10 @@ The suite covers navigation, article defaults, article/FAQ output, authorship, t
 
 ## Changelog
 
+### 2.9.3
+
+- People lists: initials replace a placeholder photo, the latest story has a byline, and `show="all"` adds an "All N stories by <first name>" link.
+
 ### 2.9.2
 
 - People lists (Contributors, Staff, Executive Leadership): optional verified mark, "Writes about" sections, story count, latest story and initials fallback (`show="..."`, off by default), and `orderby="posts"`.

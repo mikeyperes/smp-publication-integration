@@ -27,7 +27,7 @@ final class PeopleCards {
     ];
     public const PARTS = [ 'photo', 'title', 'bio', 'link' ];
     /** Extra parts a list may switch on with show="...": all off by default, so existing pages never change. */
-    public const EXTRAS = [ 'badge', 'topics', 'count', 'latest', 'initials' ];
+    public const EXTRAS = [ 'badge', 'topics', 'count', 'latest', 'initials', 'all' ];
     public const ATTRIBUTES = [
         'style'      => '',
         'columns'    => 3,
@@ -94,6 +94,9 @@ final class PeopleCards {
             $title = isset( $list['title'] ) && is_callable( $list['title'] ) ? trim( (string) call_user_func( $list['title'], $id ) ) : '';
             $bio   = $words > 0 ? wp_trim_words( wp_strip_all_tags( (string) get_the_author_meta( 'description', $id ) ), $words, '…' ) : '';
             $photo = $fields->image_url( $id, (string) $atts['photo_size'] );
+            if ( $on( 'initials' ) && $fields->explicit_image_attachment_id( $id ) <= 0 && '' === $fields->explicit_image_url( $id, (string) $atts['photo_size'] ) ) {
+                $photo = ''; // No photo of their own: initials instead of a placeholder image.
+            }
 
             $people .= '<article class="' . esc_attr( $item . ' ' . $item . '--' . $user->user_nicename ) . '">';
             if ( $show( 'photo' ) && '' === $photo && $on( 'initials' ) ) {
@@ -124,10 +127,17 @@ final class PeopleCards {
                 $people .= '<p class="' . esc_attr( $item ) . '__bio">' . esc_html( $bio ) . '</p>';
             }
             if ( $on( 'latest' ) ) {
-                $people .= self::latest( $id, $types, $item );
+                $people .= self::latest( $id, $types, $item, $name, $fields->image_url( $id, 'thumbnail' ), $on( 'badge' ) );
             }
             if ( $show( 'link' ) && $link ) {
                 $people .= '<a class="' . esc_attr( $item ) . '__link" href="' . esc_url( $url ) . '">View profile</a>';
+            }
+            if ( $on( 'all' ) ) {
+                $n     = (int) count_user_posts( $id, $types, true );
+                $first = (string) ( preg_split( '/\s+/', trim( $name ) )[0] ?? $name );
+                if ( $n > 0 ) {
+                    $people .= '<p class="' . esc_attr( $item ) . '__all"><a href="' . esc_url( $url ) . '">' . esc_html( sprintf( _n( 'All %1$s story by %2$s', 'All %1$s stories by %2$s', $n, 'smp-publication-integration' ), number_format_i18n( $n ), $first ) ) . '</a></p>';
+                }
             }
             $people .= '</div></article>';
         }
@@ -150,7 +160,7 @@ final class PeopleCards {
     }
 
     /** The person's newest story: photo, section, headline and date; "" when there is none. */
-    private static function latest( int $user_id, array $types, string $item ): string {
+    private static function latest( int $user_id, array $types, string $item, string $name = '', string $avatar = '', bool $badge = false ): string {
         $posts = get_posts( [ 'author' => $user_id, 'post_type' => $types, 'post_status' => 'publish', 'posts_per_page' => 1, 'no_found_rows' => true ] );
         if ( ! $posts ) {
             return '';
@@ -168,8 +178,18 @@ final class PeopleCards {
             $html .= '<a class="' . esc_attr( $item ) . '__latest-section" href="' . esc_url( get_category_link( $cats[0] ) ) . '">' . esc_html( $cats[0]->name ) . '</a>';
         }
         $html .= '<a class="' . esc_attr( $item ) . '__latest-title" href="' . esc_url( $url ) . '">' . esc_html( get_the_title( $post ) ) . '</a>';
+        $html .= '<div class="' . esc_attr( $item ) . '__latest-byline">';
+        if ( '' !== $avatar ) {
+            $html .= '<img class="' . esc_attr( $item ) . '__latest-avatar" src="' . esc_url( $avatar ) . '" alt="" width="48" height="48" loading="lazy" decoding="async">';
+        }
+        if ( '' !== $name ) {
+            $html .= '<a class="' . esc_attr( $item ) . '__latest-author" href="' . esc_url( get_author_posts_url( $user_id ) ) . '">' . esc_html( $name ) . '</a>';
+        }
+        if ( $badge && class_exists( MuckRackVerification::class ) ) {
+            $html .= MuckRackVerification::verification_icon( $user_id, 'tooltip', 'loop' );
+        }
         $html .= '<time class="' . esc_attr( $item ) . '__latest-date" datetime="' . esc_attr( get_the_date( 'c', $post ) ) . '">' . esc_html( get_the_date( '', $post ) ) . '</time>';
-        return $html . '</div></div>';
+        return $html . '</div></div></div>';
     }
 
     /** The built-in look for one list. Every rule is one class, so site CSS overrides it. */
