@@ -3,6 +3,8 @@
 namespace smp_publication_integration\Content\People;
 
 use smp_publication_integration\Authorship\AuthorFieldResolver;
+use smp_publication_integration\Content\MuckRackVerification;
+use smp_publication_integration\Content\PublicationContentTypes;
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
@@ -24,6 +26,8 @@ final class PeopleCards {
         'none'  => 'No styling: plain markup for the theme or Elementor to style',
     ];
     public const PARTS = [ 'photo', 'title', 'bio', 'link' ];
+    /** Extra parts a list may switch on with show="...": all off by default, so existing pages never change. */
+    public const EXTRAS = [ 'badge', 'topics', 'count', 'latest', 'initials' ];
     public const ATTRIBUTES = [
         'style'      => '',
         'columns'    => 3,
@@ -34,6 +38,10 @@ final class PeopleCards {
         'bio_words'  => 30,
         'photo_size' => 'medium',
         'heading'    => 'h3',
+        'show'       => '',
+        'orderby'    => '',
+        'topics'     => 3,
+        'topics_label' => 'Writes about',
     ];
 
     /** @var array<string,bool> */
@@ -51,6 +59,15 @@ final class PeopleCards {
         if ( (int) $atts['limit'] > 0 ) {
             $ids = array_slice( $ids, 0, (int) $atts['limit'] );
         }
+        $types = PublicationContentTypes::article_post_types();
+        if ( 'posts' === (string) $atts['orderby'] ) {
+            // Most stories first; equal counts keep the list's own order.
+            $counts = [];
+            foreach ( $ids as $n => $uid ) {
+                $counts[ $uid ] = [ (int) count_user_posts( $uid, $types, true ), $n ];
+            }
+            usort( $ids, static fn( $a, $b ) => $counts[ $b ][0] <=> $counts[ $a ][0] ?: $counts[ $a ][1] <=> $counts[ $b ][1] );
+        }
         $users = array_values( array_filter( array_map( 'get_userdata', $ids ) ) );
         if ( ! $users ) {
             return '';
@@ -66,6 +83,8 @@ final class PeopleCards {
         $words   = max( 0, (int) $atts['bio_words'] );
         $columns = max( 1, min( 6, (int) $atts['columns'] ) );
         $fields  = new AuthorFieldResolver();
+        $extra   = array_intersect( array_map( 'trim', explode( ',', strtolower( (string) $atts['show'] ) ) ), self::EXTRAS );
+        $on      = static fn( string $part ): bool => in_array( $part, $extra, true );
 
         $people = '';
         foreach ( $users as $user ) {
@@ -77,6 +96,9 @@ final class PeopleCards {
             $photo = $fields->image_url( $id, (string) $atts['photo_size'] );
 
             $people .= '<article class="' . esc_attr( $item . ' ' . $item . '--' . $user->user_nicename ) . '">';
+            if ( $show( 'photo' ) && '' === $photo && $on( 'initials' ) ) {
+                $people .= '<span class="' . esc_attr( $item ) . '__photo ' . esc_attr( $item ) . '__initials" aria-hidden="true">' . esc_html( self::initials( $name ) ) . '</span>';
+            }
             if ( $show( 'photo' ) && '' !== $photo ) {
                 $img     = '<img class="' . esc_attr( $item ) . '__image" src="' . esc_url( $photo ) . '" alt="' . esc_attr( $name ) . '" loading="lazy" decoding="async">';
                 $people .= $link
@@ -84,12 +106,25 @@ final class PeopleCards {
                     : '<span class="' . esc_attr( $item ) . '__photo">' . $img . '</span>';
             }
             $people .= '<div class="' . esc_attr( $item ) . '__body">';
-            $people .= '<' . $heading . ' class="' . esc_attr( $item ) . '__name">' . ( $link ? '<a href="' . esc_url( $url ) . '">' . esc_html( $name ) . '</a>' : esc_html( $name ) ) . '</' . $heading . '>';
+            $people .= '<' . $heading . ' class="' . esc_attr( $item ) . '__name">' . ( $link ? '<a href="' . esc_url( $url ) . '">' . esc_html( $name ) . '</a>' : esc_html( $name ) ) . ( $on( 'badge' ) && class_exists( MuckRackVerification::class ) ? MuckRackVerification::verification_icon( $id, 'tooltip', 'author' ) : '' ) . '</' . $heading . '>';
             if ( $show( 'title' ) && '' !== $title ) {
                 $people .= '<p class="' . esc_attr( $item ) . '__title">' . esc_html( $title ) . '</p>';
             }
+            if ( $on( 'topics' ) ) {
+                $topics = do_shortcode( '[author_categories user_id="' . $id . '" limit="' . max( 1, (int) $atts['topics'] ) . '"]' );
+                if ( '' !== $topics ) {
+                    $people .= '<p class="' . esc_attr( $item ) . '__topics"><span class="' . esc_attr( $item ) . '__topics-label">' . esc_html( (string) $atts['topics_label'] ) . '</span> ' . $topics . '</p>';
+                }
+            }
+            if ( $on( 'count' ) ) {
+                $n = (int) count_user_posts( $id, $types, true );
+                $people .= '<p class="' . esc_attr( $item ) . '__count">' . esc_html( sprintf( _n( '%s story', '%s stories', $n, 'smp-publication-integration' ), number_format_i18n( $n ) ) ) . '</p>';
+            }
             if ( $show( 'bio' ) && '' !== $bio ) {
                 $people .= '<p class="' . esc_attr( $item ) . '__bio">' . esc_html( $bio ) . '</p>';
+            }
+            if ( $on( 'latest' ) ) {
+                $people .= self::latest( $id, $types, $item );
             }
             if ( $show( 'link' ) && $link ) {
                 $people .= '<a class="' . esc_attr( $item ) . '__link" href="' . esc_url( $url ) . '">View profile</a>';
@@ -104,6 +139,37 @@ final class PeopleCards {
         }
 
         return $css . '<div class="' . esc_attr( $block . ' ' . $block . '--' . $style ) . '" style="--' . esc_attr( $block ) . '-columns:' . $columns . '">' . $people . '</div>';
+    }
+
+    /** First letters of the first and last name, for a person without a photo. */
+    private static function initials( string $name ): string {
+        $parts = preg_split( '/\s+/', trim( $name ) ) ?: [];
+        $first = $parts ? mb_substr( (string) $parts[0], 0, 1 ) : '';
+        $last  = count( $parts ) > 1 ? mb_substr( (string) end( $parts ), 0, 1 ) : '';
+        return mb_strtoupper( $first . $last );
+    }
+
+    /** The person's newest story: photo, section, headline and date; "" when there is none. */
+    private static function latest( int $user_id, array $types, string $item ): string {
+        $posts = get_posts( [ 'author' => $user_id, 'post_type' => $types, 'post_status' => 'publish', 'posts_per_page' => 1, 'no_found_rows' => true ] );
+        if ( ! $posts ) {
+            return '';
+        }
+        $post  = $posts[0];
+        $url   = get_permalink( $post );
+        $cats  = get_the_category( $post->ID );
+        $html  = '<div class="' . esc_attr( $item ) . '__latest"><p class="' . esc_attr( $item ) . '__latest-label">Latest story</p>';
+        $thumb = get_the_post_thumbnail( $post, 'medium', [ 'class' => $item . '__latest-image', 'loading' => 'lazy' ] );
+        if ( '' !== $thumb ) {
+            $html .= '<a class="' . esc_attr( $item ) . '__latest-photo" href="' . esc_url( $url ) . '" tabindex="-1" aria-hidden="true">' . $thumb . '</a>';
+        }
+        $html .= '<div class="' . esc_attr( $item ) . '__latest-body">';
+        if ( $cats ) {
+            $html .= '<a class="' . esc_attr( $item ) . '__latest-section" href="' . esc_url( get_category_link( $cats[0] ) ) . '">' . esc_html( $cats[0]->name ) . '</a>';
+        }
+        $html .= '<a class="' . esc_attr( $item ) . '__latest-title" href="' . esc_url( $url ) . '">' . esc_html( get_the_title( $post ) ) . '</a>';
+        $html .= '<time class="' . esc_attr( $item ) . '__latest-date" datetime="' . esc_attr( get_the_date( 'c', $post ) ) . '">' . esc_html( get_the_date( '', $post ) ) . '</time>';
+        return $html . '</div></div>';
     }
 
     /** The built-in look for one list. Every rule is one class, so site CSS overrides it. */

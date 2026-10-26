@@ -36,6 +36,9 @@ All of Executive Leadership's (`style`, `columns`, `ids`, `limit`, `hide`, `link
 - `with_photo="1|0"` leaves out people without their own profile photo, or shows everyone. Default: the Publication setting "hide authors without a featured image" (`author_listing_hide_without_featured_image`).
 - `with_articles="1|0"` leaves out people with no published articles, or shows everyone. Default: the Publication setting "hide authors without articles" (`author_listing_hide_without_articles`).
 
+- `show="badge,topics,count,latest,initials"` switches on extra parts (all off by default, on Staff and Executive Leadership too): `badge` the MuckRack verified mark after the name, `topics` a "Writes about" line with the sections the person writes in most (`topics="3"` how many, `topics_label` its label), `count` the number of published stories, `latest` the newest story (photo, section, headline, date), `initials` the person's initials in place of a missing photo. New markup: `__topics`, `__topics-label`, `__count`, `__latest`, `__latest-label`, `__latest-photo`, `__latest-body`, `__latest-section`, `__latest-title`, `__latest-date`, `__initials`.
+- `orderby="posts"` orders the list by published stories, most first.
+
 ## Built-in CSS
 
 Printed once per page as `<style id="smpi-contributors-css">`; columns come from `--smpi-contributors-columns`. Same rules as Executive Leadership with `smpi-contributors` / `smpi-contributor` class names.
