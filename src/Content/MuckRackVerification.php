@@ -282,7 +282,8 @@ if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded"
 setTimeout(run,500);setTimeout(run,1300);setTimeout(run,2600);if("MutationObserver" in window){var smpiMt=null;new MutationObserver(function(ms){for(var i=0;i<ms.length;i++){var ns=ms[i].addedNodes;for(var j=0;j<ns.length;j++){var n=ns[j];if(n.nodeType===1&&n.matches&&(n.matches(loopSelector)||n.querySelector(loopSelector))){clearTimeout(smpiMt);smpiMt=setTimeout(injectLoops,150);return;}}}}).observe(document.body||document.documentElement,{childList:true,subtree:true});}
 })(
 SMPI_JS;
-        echo "<script id=\"smpi-muckrack-elementor-placement\">" . $script . $payload . ");</script>";
+        // Never delayed or combined by a cache plugin: the badges must be on the page as it loads, not after the first click.
+        echo "<script id=\"smpi-muckrack-elementor-placement\" data-no-optimize=\"1\" data-no-defer=\"1\" data-cfasync=\"false\">" . $script . $payload . ");</script>";
     }
 
     private static function author_badge_map( string $style, string $context = "loop_cards" ): array {
