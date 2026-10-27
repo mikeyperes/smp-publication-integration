@@ -241,7 +241,7 @@ var loopSelector=".e-loop-item,.elementor-loop-item,.elementor-post,.elementor-g
 function isLoop(el){return !!(el&&el.closest(loopSelector));}
 function containsLoop(el){return !!(el&&el.querySelector(loopSelector));}
 function isAdminOrHidden(el){return !!(el&&el.closest("#wpadminbar,.elementor-editor-active,.elementor-location-popup,.smpi-multi-author-item,script,style,noscript"));}
-function isInvalidPlacement(el){return !!(el&&el.closest(".elementor-pagination,.pagination,.nav-links,[class*='pagination']"));}
+function isInvalidPlacement(el){return !!(el&&el.closest(".elementor-pagination,.pagination,.nav-links,.page-numbers,.e-loop__load-more"));}
 var bySlug={},byName={};
 (data.authors||[]).forEach(function(a){if(!a||!a.badge)return;if(a.slug)bySlug[String(a.slug).toLowerCase()]=a;if(a.name)byName[norm(a.name)]=a;});
 function slugFromHref(href){var m=String(href||"").match(/\/author\/([^\/?#]+)/i);return m?decodeURIComponent(m[1]).toLowerCase():"";}
