@@ -61,7 +61,7 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 - **Code:** `src/Content/AuthorShortcodes.php`
 
 ### Author social icons
-- **Does:** the author's social links as styled icons, added automatically to author boxes and archives. Networks: Website, LinkedIn, X, Instagram, Facebook, YouTube, Crunchbase and Muck Rack (on by default), plus TikTok, Medium, GitHub, SoundCloud, Flickr, Behance, IMDb, Wikipedia, NFX Signal, Everipedia and Wikitia (off until picked in `author_social_networks`; shown as letter marks).
+- **Does:** the author's social links as styled icons, added automatically to author boxes and archives. Networks: Website, LinkedIn, X, Instagram, Facebook, YouTube, Crunchbase and Muck Rack (on by default), plus TikTok, Medium, GitHub, SoundCloud, Flickr, Behance, IMDb, Wikipedia, NFX Signal, Everipedia and Wikitia (off until picked in `author_social_networks`; NFX Signal, Everipedia and Wikitia show as short text marks, class `smpi-author-social-mono`).
 - **Switch:** `author_social_icons_enabled`, `author_social_style`, `author_social_size`, `author_social_color`, `author_social_networks`, `author_social_auto_contexts`, `author_social_archive_position`; empty-link cleanup `author_social_cleanup`.
 - **Use:** `[smp_author_social_icons style="" size="" color="" networks="" class="" label=""]`.
 - **Style:** `.smpi-author-social-icon`, `.smpi-author-social-label`.
