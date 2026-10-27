@@ -671,9 +671,7 @@ class SettingsRepository {
             }
 
             if ( 'author_social_networks' === $key ) {
-                $allowed = [ 'website', 'linkedin', 'x', 'instagram', 'facebook', 'youtube', 'crunchbase', 'muckrack' ];
-                $items = is_array( $value ) ? array_map( 'sanitize_key', $value ) : [];
-                $settings[ $key ] = array_values( array_intersect( $allowed, array_unique( $items ) ) );
+                $settings[ $key ] = \smp_publication_integration\Content\AuthorSocialIcons::normalize_networks( is_array( $value ) ? $value : [] );
                 continue;
             }
 
