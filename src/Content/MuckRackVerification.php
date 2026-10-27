@@ -279,7 +279,7 @@ function injectPublicationBottom(){if(!data.publicationBottom)return;insertBlock
 function injectPublicationBelowAuthor(){if(!data.publicationBelow)return;insertBlockAfter(footerAuthorPlacementRoot(),data.publicationBelow,"smpi-muckrack-js-below-author");}
 function run(){cleanupInvalidBadges();injectTop();injectFooter();injectLoops();normalizeTopBadges();cleanupInvalidBadges();injectPublicationBottom();injectPublicationBelowAuthor();}
 if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",run);}else{run();}
-setTimeout(run,500);setTimeout(run,1300);setTimeout(run,2600);if("MutationObserver" in window){var smpiMt=null;new MutationObserver(function(ms){for(var i=0;i<ms.length;i++){var ns=ms[i].addedNodes;for(var j=0;j<ns.length;j++){var n=ns[j];if(n.nodeType===1&&n.matches&&(n.matches(loopSelector)||n.querySelector(loopSelector))){clearTimeout(smpiMt);smpiMt=setTimeout(injectLoops,150);return;}}}}).observe(document.body||document.documentElement,{childList:true,subtree:true});}
+setTimeout(run,500);setTimeout(run,1300);setTimeout(run,2600);if("MutationObserver" in window){var smpiMt=null;new MutationObserver(function(ms){for(var i=0;i<ms.length;i++){var ns=ms[i].addedNodes;for(var j=0;j<ns.length;j++){var n=ns[j];if(n.nodeType===1&&n.matches&&(n.matches(loopSelector)||n.querySelector(loopSelector))){clearTimeout(smpiMt);smpiMt=setTimeout(function(){injectLoops();setTimeout(injectLoops,900);},150);return;}}}}).observe(document.body||document.documentElement,{childList:true,subtree:true});}
 })(
 SMPI_JS;
         // Never delayed or combined by a cache plugin: the badges must be on the page as it loads, not after the first click.
