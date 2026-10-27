@@ -33,6 +33,23 @@ final class AuthorSocialIcons {
         "youtube"    => "YouTube",
         "crunchbase" => "Crunchbase",
         "muckrack"   => "Muck Rack",
+        "tiktok"     => "TikTok",
+        "medium"     => "Medium",
+        "github"     => "GitHub",
+        "soundcloud" => "SoundCloud",
+        "flickr"     => "Flickr",
+        "behance"    => "Behance",
+        "imdb"       => "IMDb",
+        "wikipedia"  => "Wikipedia",
+        "signal"     => "NFX Signal",
+        "everipedia" => "Everipedia",
+        "wikitia"    => "Wikitia",
+    ];
+
+    /** Short marks for networks drawn as letters rather than a logo path. */
+    private const MONOGRAMS = [
+        "tiktok" => "Tk", "medium" => "M", "github" => "GH", "soundcloud" => "SC", "flickr" => "F", "behance" => "Bē",
+        "imdb" => "IMDb", "wikipedia" => "W", "signal" => "S", "everipedia" => "E", "wikitia" => "Wt",
     ];
 
     private const ARCHIVE_POSITIONS = [
@@ -537,6 +554,11 @@ final class AuthorSocialIcons {
             "crunchbase" => '<path d="M4.7 8.2a3.8 3.8 0 1 0 3.2 5.8H5.8a1.9 1.9 0 1 1 0-2.1h2.1a3.8 3.8 0 0 0-3.2-3.7Zm9.6 0c-.8 0-1.6.3-2.2.8V4h-2v11.9h2v-.6a3.8 3.8 0 1 0 2.2-7.1Zm0 5.7a1.9 1.9 0 1 1 0-3.8 1.9 1.9 0 0 1 0 3.8Z"/>',
             "muckrack"   => '<path d="M3 5h4.2l4.8 7 4.8-7H21v14h-4V11l-5 7-5-7v8H3V5Z"/>',
         ];
+        if ( ! isset( $paths[ $network ] ) && isset( self::MONOGRAMS[ $network ] ) ) {
+            $mark = self::MONOGRAMS[ $network ];
+            $font = strlen( $mark ) > 2 ? 7 : ( strlen( $mark ) > 1 ? 10 : 15 );
+            $paths[ $network ] = '<text x="12" y="12" dominant-baseline="central" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-weight="700" font-size="' . $font . '">' . esc_html( $mark ) . '</text>';
+        }
         $path = $paths[ $network ] ?? $paths["website"];
         return '<svg viewBox="0 0 24 24" fill="currentColor" focusable="false" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">' . $path . '</svg>';
     }
