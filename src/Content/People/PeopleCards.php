@@ -48,6 +48,8 @@ final class PeopleCards {
         'topics_last' => '',
         'latest'     => 'full',
         'order'      => '',
+        // layout="head": photo and identity lines grouped in a head row, the latest story and "all stories" link below it.
+        'layout'     => '',
     ];
 
     /** @var array<string,bool> */
@@ -91,6 +93,8 @@ final class PeopleCards {
         $fields  = new AuthorFieldResolver();
         $extra   = array_intersect( array_map( 'trim', explode( ',', strtolower( (string) $atts['show'] ) ) ), self::EXTRAS );
         $on      = static fn( string $part ): bool => in_array( $part, $extra, true );
+        $headed  = 'head' === (string) $atts['layout'];
+        $sub     = [ 'h2' => 'h3', 'h3' => 'h4', 'h4' => 'h5', 'p' => 'p' ][ $heading ];
 
         $people = '';
         foreach ( $users as $user ) {
@@ -105,6 +109,7 @@ final class PeopleCards {
             }
 
             $people .= '<article class="' . esc_attr( $item . ' ' . $item . '--' . $user->user_nicename ) . '">';
+            $people .= $headed ? '<div class="' . esc_attr( $item ) . '__head">' : '';
             if ( $show( 'photo' ) && '' === $photo && $on( 'initials' ) ) {
                 $people .= '<span class="' . esc_attr( $item ) . '__photo ' . esc_attr( $item ) . '__initials" aria-hidden="true">' . esc_html( self::initials( $name ) ) . '</span>';
             }
@@ -142,7 +147,7 @@ final class PeopleCards {
             }
             if ( $on( 'latest' ) ) {
                 $parts['latest'] = 'compact' === (string) $atts['latest']
-                    ? self::latest_compact( $id, $types, $item )
+                    ? self::latest_compact( $id, $types, $item, $headed ? $sub : '' )
                     : self::latest( $id, $types, $item, $name, '' !== $photo ? $fields->image_url( $id, 'thumbnail' ) : '', $on( 'badge' ) );
             }
             if ( $show( 'link' ) && $link ) {
@@ -157,6 +162,19 @@ final class PeopleCards {
             }
             // order="topics,name,..." sets the page order of the parts; anything left out follows in the default order.
             $order = array_values( array_unique( array_merge( array_map( 'trim', explode( ',', strtolower( (string) $atts['order'] ) ) ), self::ORDER ) ) );
+            if ( $headed ) {
+                // Identity lines sit beside the photo; the latest story and the link run below the head.
+                $people .= '<div class="' . esc_attr( $item ) . '__id">';
+                foreach ( array_intersect( $order, [ 'name', 'title', 'topics', 'count', 'bio' ] ) as $key ) {
+                    $people .= $parts[ $key ] ?? '';
+                }
+                $people .= '</div></div>';
+                foreach ( array_diff( $order, [ 'name', 'title', 'topics', 'count', 'bio' ] ) as $key ) {
+                    $people .= $parts[ $key ] ?? '';
+                }
+                $people .= '</article>';
+                continue;
+            }
             $people .= '<div class="' . esc_attr( $item ) . '__body">';
             foreach ( $order as $key ) {
                 $people .= $parts[ $key ] ?? '';
@@ -218,12 +236,20 @@ final class PeopleCards {
     }
 
     /** The newest story as one line: label, headline and date; "" when there is none. */
-    private static function latest_compact( int $user_id, array $types, string $item ): string {
+    private static function latest_compact( int $user_id, array $types, string $item, string $tag = '' ): string {
         $posts = get_posts( [ 'author' => $user_id, 'post_type' => $types, 'post_status' => 'publish', 'posts_per_page' => 1, 'no_found_rows' => true ] );
         if ( ! $posts ) {
             return '';
         }
         $post = $posts[0];
+        if ( '' !== $tag ) {
+            // Head layout: the title is a heading, with the story's section and date on a line under it.
+            $cats = get_the_category( $post->ID );
+            $meta = $cats ? '<a class="' . esc_attr( $item ) . '__latest-section" href="' . esc_url( get_category_link( $cats[0] ) ) . '">' . esc_html( $cats[0]->name ) . '</a><span class="' . esc_attr( $item ) . '__latest-sep" aria-hidden="true"></span>' : '';
+            return '<div class="' . esc_attr( $item ) . '__latest ' . esc_attr( $item ) . '__latest--compact"><span class="' . esc_attr( $item ) . '__latest-label">Latest story</span>'
+                . '<' . $tag . ' class="' . esc_attr( $item ) . '__latest-title"><a href="' . esc_url( get_permalink( $post ) ) . '">' . esc_html( get_the_title( $post ) ) . '</a></' . $tag . '>'
+                . '<span class="' . esc_attr( $item ) . '__latest-meta">' . $meta . '<time class="' . esc_attr( $item ) . '__latest-date" datetime="' . esc_attr( get_the_date( 'c', $post ) ) . '">' . esc_html( mysql2date( 'M j, Y', $post->post_date ) ) . '</time></span></div>';
+        }
         return '<p class="' . esc_attr( $item ) . '__latest ' . esc_attr( $item ) . '__latest--compact"><span class="' . esc_attr( $item ) . '__latest-label">Latest story</span>'
             . '<a class="' . esc_attr( $item ) . '__latest-title" href="' . esc_url( get_permalink( $post ) ) . '">' . esc_html( get_the_title( $post ) ) . '</a>'
             . '<time class="' . esc_attr( $item ) . '__latest-date" datetime="' . esc_attr( get_the_date( 'c', $post ) ) . '">' . esc_html( mysql2date( 'M j, Y', $post->post_date ) ) . '</time></p>';

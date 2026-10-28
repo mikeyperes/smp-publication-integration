@@ -112,7 +112,7 @@ final class Contributors {
         if ( in_array( (string) $atts['with_articles'], [ '1', 'yes', 'true' ], true ) ) {
             $ids = array_values( array_filter( $ids, static fn( int $id ): bool => count_user_posts( $id, PublicationContentTypes::article_post_types(), true ) > 0 ) );
         }
-        return PeopleCards::render( $ids, $atts, [ 'block' => 'smpi-contributors', 'item' => 'smpi-contributor', 'style' => self::settings()['style'] ] );
+        return PeopleCards::render( $ids, $atts, [ 'block' => 'smpi-contributors', 'item' => 'smpi-contributor', 'style' => self::settings()['style'], 'title' => 'head' === (string) $atts['layout'] ? static fn( int $id ): string => ( new AuthorFieldResolver() )->value( $id, 'title' ) : null ] );
     }
 
     public static function css(): string {

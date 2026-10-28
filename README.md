@@ -103,6 +103,7 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 - **Does:** the publication's contributors: everyone with the chosen roles (Contributor by default), plus people added from other roles, minus people removed, in a chosen order. The tab has role checkboxes, a type-to-search people list (Hexa WP Core user search) with drag ordering, "Added" badges and a "removed from the list" section to put people back, the Contributors page (create it or apply the default template), styles with a live example, CSS structure and the shortcode.
 - **Use:** `[smpi_contributors]`; `show="badge,topics,count,latest,initials"` adds the verified mark, "Writes about" sections, story count, latest story and an initials fallback (all off by default), and `orderby="posts"` puts the most-published first ([docs/contributors.md](docs/contributors.md)).
 - **Switch:** Settings → SMP Publication Integration → Contributors (`options-general.php?page=smp-publication-integration&tab=contributors`); option `smpi_contributors`.
+- **Head layout:** `layout="head"` groups the photo with the name, role, topics and count in a head row (`__head`, `__id`), shows each person's role, and turns the compact latest story into a heading with its section and date under it (`__latest-meta`); off by default, so existing pages are unchanged ([docs/contributors.md](docs/contributors.md)).
 - **Use:** `[smpi_contributors]` with the Executive Leadership attributes plus `roles="contributor,author"`, `with_photo="1|0"` and `with_articles="1|0"` (both default to the site's author-listing settings, like `[contributors_grid]`). The older `[contributors_grid]` is unchanged.
 - **HTML structure and styling:** [docs/contributors.md](docs/contributors.md) (`.smpi-contributors--<style>`, `.smpi-contributor--<user>`, `__photo`, `__image`, `__name`, `__bio`, `__link`).
 - **Code:** `src/Content/Contributors.php`, `src/Admin/ContributorsTab.php`; shared with Executive Leadership: `src/Content/People/PeopleCards.php`, `src/Admin/People/PeopleEditor.php`.
@@ -329,6 +330,10 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.9.16
+
+- Contributors: `layout="head"` for the head-row card with role, section and date on the latest story.
 
 ### 2.9.15
 

@@ -48,3 +48,25 @@ All of Executive Leadership's (`style`, `columns`, `ids`, `limit`, `hide`, `link
 Printed once per page as `<style id="smpi-contributors-css">`; columns come from `--smpi-contributors-columns`. Same rules as Executive Leadership with `smpi-contributors` / `smpi-contributor` class names.
 
 Code: `src/Content/Contributors.php`, `src/Admin/ContributorsTab.php`; shared pieces `src/Content/People/PeopleCards.php` (markup, CSS, page helpers) and `src/Admin/People/PeopleEditor.php` (tab layout and behavior).
+
+## Head layout (`layout="head"`)
+
+```html
+<article class="smpi-contributor smpi-contributor--{nicename}">
+  <div class="smpi-contributor__head">
+    <a class="smpi-contributor__photo" href="{author page}"><img class="smpi-contributor__image" src="…" alt="{Name}"></a>
+    <div class="smpi-contributor__id">
+      <h2 class="smpi-contributor__name"><a href="{author page}">{Name}</a>{verified mark}</h2>
+      <p class="smpi-contributor__title">{role}</p>
+      <p class="smpi-contributor__topics">…</p>
+      <p class="smpi-contributor__count">…</p>
+    </div>
+  </div>
+  <div class="smpi-contributor__latest smpi-contributor__latest--compact">
+    <span class="smpi-contributor__latest-label">Latest story</span>
+    <h3 class="smpi-contributor__latest-title"><a href="{story}">{Title}</a></h3>
+    <span class="smpi-contributor__latest-meta"><a class="smpi-contributor__latest-section" href="{section}">{Section}</a><span class="smpi-contributor__latest-sep" aria-hidden="true"></span><time class="smpi-contributor__latest-date">{date}</time></span>
+  </div>
+  <p class="smpi-contributor__all"><a href="{author page}">All {n} stories by {First}</a></p>
+</article>
+```
