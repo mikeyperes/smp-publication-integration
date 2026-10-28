@@ -3,6 +3,8 @@
 Release notes moved from the README (3.31.1). Newest first; each Core release adds its line here.
 
 
+Version 3.44.2: the live search box shows its result count as `<b class="hls-count">` inside the status line (so a design can style the number), keeps that markup when results update, and after each update also refreshes every element marked `data-hls-sync` (for example a heading that names the search term) from the new page.
+
 Version 3.44.1: `apply_template()` takes a page built with Elementor out of builder mode (removes `_elementor_edit_mode`), so the default text shows instead of the old Elementor design; the Elementor design stays saved on the page.
 
 Version 3.44.0 adds custom-design pages: a page definition with `'design' => 'custom'` is still found, linked and placed under its parent, but `create_page()` makes it an empty draft and `apply_template()` refuses it, so the site's own design (an Elementor build) provides its content. `PageStructureManager::is_custom_design()`; the page list shows a Custom design tag and, in Page details, a note instead of the default text and template.
