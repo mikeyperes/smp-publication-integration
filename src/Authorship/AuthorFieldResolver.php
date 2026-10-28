@@ -129,6 +129,22 @@ final class AuthorFieldResolver {
         return isset( $bases[ $key ] ) ? $bases[ $key ] . rawurlencode( $handle ) : "";
     }
 
+    /**
+     * The profile fields that can hold a person's photo: the known names, then any field of theirs ending in _avatar
+     * (a ProfilePress photo-upload field is saved under a name of the site's own, such as "sitename_avatar").
+     *
+     * @return string[]
+     */
+    private function image_fields( int $user_id ): array {
+        $fields = self::ALIASES["image"];
+        foreach ( array_keys( (array) get_user_meta( $user_id ) ) as $key ) {
+            if ( "_avatar" === substr( (string) $key, -7 ) && ! in_array( $key, $fields, true ) ) {
+                $fields[] = (string) $key;
+            }
+        }
+        return $fields;
+    }
+
     public function image_url( int $user_id, string $size = "thumbnail" ): string {
         $explicit_url = $this->explicit_image_url( $user_id, $size );
         if ( "" !== $explicit_url ) {
@@ -140,7 +156,7 @@ final class AuthorFieldResolver {
     }
 
     public function explicit_image_url( int $user_id, string $size = "thumbnail" ): string {
-        foreach ( self::ALIASES["image"] as $field ) {
+        foreach ( $this->image_fields( $user_id ) as $field ) {
             $value = $this->raw_value( $user_id, $field );
             $url = $this->image_value_to_url( $value, $size );
             if ( "" !== $url ) {
@@ -151,7 +167,7 @@ final class AuthorFieldResolver {
     }
 
     public function explicit_image_attachment_id( int $user_id ): int {
-        foreach ( self::ALIASES["image"] as $field ) {
+        foreach ( $this->image_fields( $user_id ) as $field ) {
             $attachment_id = $this->image_value_to_attachment_id( $this->raw_value( $user_id, $field ) );
             if ( 0 < $attachment_id ) {
                 return $attachment_id;
