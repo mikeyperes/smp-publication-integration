@@ -205,7 +205,7 @@ final class AuthorShortcodes {
     }
 
     public function render_image( array $atts = [] ): string {
-        $atts = shortcode_atts( [ "user_id" => 0, "post_id" => 0, "author_index" => 0, "size" => "thumbnail", "output" => "html", "class" => "smpi-author-image", "loading" => "lazy" ], $atts, "author_image" );
+        $atts = shortcode_atts( [ "user_id" => 0, "post_id" => 0, "author_index" => 0, "size" => "thumbnail", "output" => "html", "class" => "smpi-author-image", "loading" => "lazy", "sizes" => "" ], $atts, "author_image" );
         $author_id = $this->resolve_author_id( (int) $atts["user_id"], (int) $atts["post_id"], (int) $atts["author_index"] );
         if ( ! $author_id ) {
             return "";
@@ -214,7 +214,8 @@ final class AuthorShortcodes {
         if ( ! in_array( $size, [ "thumbnail", "medium", "medium_large", "large", "full" ], true ) ) {
             $size = "thumbnail";
         }
-        $url = ( new AuthorFieldResolver() )->image_url( $author_id, $size );
+        $resolver = new AuthorFieldResolver();
+        $url = $resolver->image_url( $author_id, $size );
         if ( "" === $url ) {
             return "";
         }
@@ -224,7 +225,23 @@ final class AuthorShortcodes {
         $name = get_the_author_meta( "display_name", $author_id );
         // A photo on the first screen (an author page header) loads at once: loading="eager".
         $loading = "eager" === sanitize_key( (string) $atts["loading"] ) ? "loading=\"eager\" fetchpriority=\"high\"" : "loading=\"lazy\"";
-        return sprintf( "<img class=\"%s\" src=\"%s\" alt=\"%s\" %s decoding=\"async\">", esc_attr( (string) $atts["class"] ), esc_url( $url ), esc_attr( $name ), $loading );
+        // Opt in so existing templates retain their exact markup and loading behavior.
+        $responsive = "";
+        $sizes = trim( (string) $atts["sizes"] );
+        if ( "" !== $sizes ) {
+            $responsive = ' sizes="' . esc_attr( $sizes ) . '"';
+            $attachment_id = $resolver->explicit_image_attachment_id( $author_id );
+            $image = $attachment_id ? wp_get_attachment_image_src( $attachment_id, $size ) : false;
+            // Never attach dimensions or candidates from a different resolved photo.
+            if ( is_array( $image ) && $image[0] === $url && 0 < (int) $image[1] && 0 < (int) $image[2] ) {
+                $responsive .= sprintf( ' width="%d" height="%d"', (int) $image[1], (int) $image[2] );
+                $srcset = wp_get_attachment_image_srcset( $attachment_id, $size );
+                if ( is_string( $srcset ) && "" !== $srcset ) {
+                    $responsive .= ' srcset="' . esc_attr( $srcset ) . '"';
+                }
+            }
+        }
+        return sprintf( "<img class=\"%s\" src=\"%s\" alt=\"%s\" %s decoding=\"async\"%s>", esc_attr( (string) $atts["class"] ), esc_url( $url ), esc_attr( $name ), $loading, $responsive );
     }
 
     private function render_author_text( string $key, array $atts = [] ): string {
