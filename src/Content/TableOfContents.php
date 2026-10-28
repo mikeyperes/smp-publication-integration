@@ -99,8 +99,21 @@ final class TableOfContents {
         return self::build_toc_from_items( self::items( $content ), $title, $style );
     }
 
+    /** The page's content as visitors read it: shortcodes that print headings (a generated policy) are expanded, the contents shortcode itself is not. */
+    private static function expanded_content( \WP_Post $post ): string {
+        static $busy = false;
+        $content = (string) $post->post_content;
+        if ( $busy || false === strpos( $content, "[" ) ) {
+            return $content;
+        }
+        $busy = true;
+        $content = do_shortcode( (string) preg_replace( "/\\[" . self::SHORTCODE . "[^\\]]*\\]/", "", $content ) );
+        $busy = false;
+        return $content;
+    }
+
     private static function items_for_post( \WP_Post $post ): array {
-        $items = self::items( (string) $post->post_content );
+        $items = self::items( self::expanded_content( $post ) );
         $summary = self::summary_item( (int) $post->ID );
         if ( $summary ) {
             array_unshift( $items, $summary );

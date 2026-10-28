@@ -331,6 +331,10 @@ The suite covers navigation, article defaults, article/FAQ output, authorship, t
 
 ## Changelog
 
+### 2.9.19
+
+- The table of contents of a page whose headings come from a shortcode (a generated policy page) lists those headings, instead of staying empty because only the stored text was read.
+
 ### 2.9.18
 
 - A writer's photo uploaded through a ProfilePress photo field (saved under a name ending in `_avatar`) now shows on the Contributors, Staff and other people lists instead of their initials.
