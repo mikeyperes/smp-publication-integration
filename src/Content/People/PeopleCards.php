@@ -251,7 +251,7 @@ final class PeopleCards {
                 . '<span class="' . esc_attr( $item ) . '__latest-meta">' . $meta . '<time class="' . esc_attr( $item ) . '__latest-date" datetime="' . esc_attr( get_the_date( 'c', $post ) ) . '">' . esc_html( mysql2date( 'M j, Y', $post->post_date ) ) . '</time></span></div>';
         }
         return '<p class="' . esc_attr( $item ) . '__latest ' . esc_attr( $item ) . '__latest--compact"><span class="' . esc_attr( $item ) . '__latest-label">Latest story</span>'
-            . '<a class="' . esc_attr( $item ) . '__latest-title" href="' . esc_url( get_permalink( $post ) ) . '">' . esc_html( get_the_title( $post ) ) . '</a>'
+            . '<a class="' . esc_attr( $item ) . '__latest-title" href="' . esc_url( get_permalink( $post ) ) . '"><span>' . esc_html( get_the_title( $post ) ) . '</span></a>'
             . '<time class="' . esc_attr( $item ) . '__latest-date" datetime="' . esc_attr( get_the_date( 'c', $post ) ) . '">' . esc_html( mysql2date( 'M j, Y', $post->post_date ) ) . '</time></p>';
     }
 

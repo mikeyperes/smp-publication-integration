@@ -331,6 +331,10 @@ The suite covers navigation, article defaults, article/FAQ output, authorship, t
 
 ## Changelog
 
+### 2.9.20
+
+- The newest-story headline in a compact people list is wrapped in an inline span, so a page can fill the hover highlight along each line of the text instead of a block.
+
 ### 2.9.19
 
 - The table of contents of a page whose headings come from a shortcode (a generated policy page) lists those headings, instead of staying empty because only the stored text was read.
