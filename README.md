@@ -32,7 +32,7 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 - **Carry-over:** the old `breadcrumbs_*` keys stay in `smpi_settings` only so Base Tools can copy a site's look the first time it is switched on there. `[smp_breadcrumbs]` keeps working through Base Tools.
 - **Schema:** the `BreadcrumbList` schema stays in SMP (`src/StructuredData/SchemaManager.php`).
 ### MuckRack verified badge
-- **Does:** a "Verified by MuckRack" icon or label next to verified authors and the publication, in loop cards, bylines and author boxes.
+- **Does:** a "Verified by MuckRack" icon or label next to verified authors and the publication, in loop cards (on listing pages, the homepage, posts, ordinary pages and the 404 page), bylines and author boxes.
 - **Switch:** `muckrack_verified_enabled`, where it shows `muckrack_verified_contexts`, `muckrack_author_always_show`; look `muckrack_verified_style`, `muckrack_icon_style`, `muckrack_icon_color`, `muckrack_verified_font_*`, `muckrack_verified_text_color`. Publication badge: `publication_muckrack_verified_enabled`, `publication_muckrack_placements`, `publication_muckrack_*`.
 - **Use:** automatic in its contexts; `[muckrack_verified type="icon|text" user_id="" post_id="" author_index="" style="" context=""]`, `[author_muckrack_verified]`, `[smp_publication_muckrack_verified class="" style="" color=""]`.
 - **Style:** `.smpi-muckrack-inline-pair`, `.smpi-muckrack-icon`, `.smpi-muckrack-link`.
@@ -330,6 +330,10 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.9.17
+
+- Verified badges on story cards now also show on ordinary pages and the 404 page that list stories.
 
 ### 2.9.16
 

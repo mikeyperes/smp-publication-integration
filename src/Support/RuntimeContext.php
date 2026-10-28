@@ -74,6 +74,7 @@ final class RuntimeContext {
         if ( ! self::is_public_dom_context() ) {
             return false;
         }
-        return is_home() || is_front_page() || is_archive() || is_search() || is_author() || is_singular( "post" );
+        // Pages and the 404 page can show story lists too (a latest-stories grid, a Contributors list).
+        return is_home() || is_front_page() || is_archive() || is_search() || is_author() || is_singular( "post" ) || is_page() || is_404();
     }
 }
