@@ -18,6 +18,11 @@
 
 ## Features
 
+- Search filter chips: opt-in `filter_layout="chips"` renders accessible single-choice radio chips, including All, with the same markup under `style="none"`. Dropdowns remain the default. [Markup](docs/search-filter-chips.md).
+
+- Automatic and direct plugin updates resolve a published stable release tag, verify its version, and never fall back to a branch archive.
+
+
 ### Plugin bootstrap and context
 - **Does:** loads one Core copy per site (the newest bundled one among all plugins), builds the plugin's context and boots its modules.
 - **Use:** `hexa_plugin_core_register_package( '<slug>', <core root> )`, then `new PluginContext( [ slug, basename, version, path, url, github_repo, admin_page, capability ] )` and `( new CoreBootstrap( $context ) )->add_module( $m )->boot()`. Modules implement `ModuleInterface` (or extend `RegisterMethodModule`). `CorePackageRuntime::report()` shows which Core copy was selected and any integrity issues. See [Setup protocol](#setup-protocol).

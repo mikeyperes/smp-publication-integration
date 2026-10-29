@@ -53,6 +53,8 @@ final class PeopleCards {
         'per_page'   => 0,
         'pagination' => 'load_more',
         'search'     => 'auto',
+        'filter_layout' => 'dropdown',
+        'search_style' => '',
     ];
 
     /** @var array<string,bool> */
@@ -240,12 +242,16 @@ final class PeopleCards {
         $single['ids'] = '';
         return [ 'key' => $list['block'] . md5( wp_json_encode( $atts ) ), 'ids' => $ids, 'groups' => self::groups(),
             'per_page' => $atts['per_page'], 'pagination' => $atts['pagination'],
+            'filter_layout' => $atts['filter_layout'], 'search_style' => $atts['search_style'],
             'search' => ! in_array( (string) $atts['search'], [ '0', 'no', 'false', 'none' ], true ),
             'render_item' => static fn( int $id ): string => self::render( [ $id ], $single, $list + [ 'single' => true ] ),
         ];
     }
 
     public static function search_directory( $directory, string $key ): array {
+        if ( ! in_array( $key, [ 'people', 'byline', 'contributor', 'staff' ], true ) ) {
+            return [];
+        }
         $groups = self::groups();
         $ids = $groups[ $key ] ?? array_values( array_unique( array_merge( ...array_values( $groups ) ) ) );
         $atts = array_merge( self::ATTRIBUTES, [ 'layout' => 'rows', 'orderby' => 'newest_story', 'per_page' => 10, 'hide' => 'bio,link' ] );

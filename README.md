@@ -27,6 +27,8 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 
 ## Features
 
+- **People filter chips:** people lists accept `filter_layout="chips"` and `search_style="none"`; dropdown defaults stay unchanged. Unknown directory keys return no users. [Markup and binding](docs/people-filter-chips.md).
+
 ### People row stacks and search
 - **Does:** Full-width person rows with photo, name, verified mark when verified, role, newest story category/title and date; newest-story ordering and paginated search.
 - **Switch:** Opt in with `layout="rows"`; existing layouts stay unchanged.
@@ -1007,3 +1009,5 @@ Report issues at <https://github.com/mikeyperes/smp-publication-integration/issu
 ## License
 
 Proprietary Scale My Publication software unless a source file states otherwise.
+
+Asset loading: [scope](docs/asset-loading.md).
