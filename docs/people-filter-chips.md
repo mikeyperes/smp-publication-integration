@@ -8,3 +8,7 @@ Publication people-list shortcodes also accept `filter_layout="chips" search_sty
 
 Markup: `.hls-filters > fieldset.hls-chips > legend` names the group; each `label.hls-chip` contains a native `input[type=radio][name="hf[group][]"]` and a `span` label. Values are empty (All), `byline`, `contributor`, `staff`. Checked state and `.is-active` identify the selection. Native keyboard and focus behavior are retained. `style="none"` emits the same HTML without chip decoration. Site CSS can use `.hls-chip:has(input:checked)`; never hide the input without preserving focus indication.
 
+
+## Search text and small lists
+
+`placeholder="Search people by name"` sets the visible hint; `search_label="Search people by name"` sets the accessible input label. Empty values retain the old text. `search="always"` keeps the form visible even for ten or fewer people; omitted/auto keeps the old size rule, and `search="0"` hides it. Both publication people-list shortcodes and `[hws_search profile="people" ...]` accept these attributes.

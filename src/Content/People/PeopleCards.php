@@ -55,6 +55,8 @@ final class PeopleCards {
         'search'     => 'auto',
         'filter_layout' => 'dropdown',
         'search_style' => '',
+        'placeholder' => '',
+        'search_label' => '',
     ];
 
     /** @var array<string,bool> */
@@ -243,7 +245,8 @@ final class PeopleCards {
         return [ 'key' => $list['block'] . md5( wp_json_encode( $atts ) ), 'ids' => $ids, 'groups' => self::groups(),
             'per_page' => $atts['per_page'], 'pagination' => $atts['pagination'],
             'filter_layout' => $atts['filter_layout'], 'search_style' => $atts['search_style'],
-            'search' => ! in_array( (string) $atts['search'], [ '0', 'no', 'false', 'none' ], true ),
+            'placeholder' => $atts['placeholder'], 'search_label' => $atts['search_label'],
+            'search' => 'always' === (string) $atts['search'] ? 'always' : ! in_array( (string) $atts['search'], [ '0', 'no', 'false', 'none' ], true ),
             'render_item' => static fn( int $id ): string => self::render( [ $id ], $single, $list + [ 'single' => true ] ),
         ];
     }
