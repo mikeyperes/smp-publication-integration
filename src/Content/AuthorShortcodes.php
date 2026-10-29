@@ -158,7 +158,7 @@ final class AuthorShortcodes {
                 $context = "home";
             }
         }
-        return "text" === sanitize_key( (string) $atts["type"] ) ? MuckRackVerification::verification_text( $author_id ) : MuckRackVerification::verification_icon( $author_id, sanitize_key( (string) $atts["style"] ), $context );
+        return "text" === sanitize_key( (string) $atts["type"] ) ? MuckRackVerification::verification_text( $author_id ) : MuckRackVerification::verification_icon( $author_id, sanitize_key( (string) $atts["style"] ), $context, true );
     }
 
     /** The sections an author writes in most, as links, most stories first; "" when none. */

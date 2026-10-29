@@ -149,7 +149,7 @@ final class MuckRackVerification {
         if ( "" === $context ) {
             $context = $this->author_context();
         }
-        return "text" === sanitize_key( (string) $atts["type"] ) ? self::verification_text( $author_id ) : self::verification_icon( $author_id, sanitize_key( (string) $atts["style"] ), $context );
+        return "text" === sanitize_key( (string) $atts["type"] ) ? self::verification_text( $author_id ) : self::verification_icon( $author_id, sanitize_key( (string) $atts["style"] ), $context, true );
     }
 
     public function render_publication_shortcode( array $atts = [] ): string {
@@ -269,8 +269,8 @@ function injectTop(){if(!data.authorHeaderBadge)return;topAuthorTargets().forEac
 function injectFooter(){if(!data.authorFooterBadge)return;footerAuthorTargets().forEach(function(pair){insertAfter(pair.el,data.authorFooterBadge,pair.root);});}
 function injectLoops(){if((data.contexts||[]).indexOf("loop_cards")<0)return;var ct=contentTop();loopCards().forEach(function(card){var targets=structuralAuthorLinks(card).filter(function(el){return ct===null||y(el)>ct;});if(!targets.length){Object.keys(byName).forEach(function(key){exactTextTargets(card,byName[key].name).forEach(function(el){if(ct===null||y(el)>ct)targets.push(el);});});targets=unique(targets);}targets.forEach(function(el){var badge=badgeFor(el,"",clean(el.textContent));if(badge)insertAfter(el,badge,authorRoot(el));});});}
 function removeBadge(icon){if(!icon)return;var link=icon.closest(".smpi-muckrack-link");var node=link&&link.contains(icon)?link:icon;var pair=node.closest(".smpi-muckrack-inline-pair");node.remove();if(pair&&!hasBadge(pair)&&pair.parentNode){var label=pair.querySelector(":scope > .smpi-muckrack-author-label");if(label){while(label.firstChild)pair.parentNode.insertBefore(label.firstChild,pair);label.remove();}while(pair.firstChild)pair.parentNode.insertBefore(pair.firstChild,pair);pair.remove();}}
-function cleanupInvalidBadges(){q(".smpi-muckrack-icon").forEach(function(icon){var footerInLoop=icon.classList.contains("smpi-muckrack-context-single_footer")&&isLoop(icon);if(isInvalidPlacement(icon)||footerInLoop||isProseNameTarget(icon))removeBadge(icon);});}
-function normalizeTopBadges(){if(!data.authorHeaderBadge)return;var ct=contentTop();topAuthorTargets().forEach(function(el){if(ct!==null&&y(el)>ct)return;var root=authorRoot(el);q(".smpi-muckrack-link,.smpi-muckrack-icon,.smpi-muckrack-author-note",root).forEach(function(b){b.remove();});insertAfter(el,data.authorHeaderBadge,root);});}
+function cleanupInvalidBadges(){q(".smpi-muckrack-icon").forEach(function(icon){var footerInLoop=icon.classList.contains("smpi-muckrack-context-single_footer")&&isLoop(icon);var intentional=!!icon.closest(".smpi-muckrack-explicit,.smpi-muckrack-publication-text");if(isInvalidPlacement(icon)||footerInLoop||(!intentional&&isProseNameTarget(icon)))removeBadge(icon);});}
+function normalizeTopBadges(){if(!data.authorHeaderBadge)return;var ct=contentTop();topAuthorTargets().forEach(function(el){if(ct!==null&&y(el)>ct)return;var root=authorRoot(el);q(".smpi-muckrack-link,.smpi-muckrack-icon,.smpi-muckrack-author-note",root).forEach(function(b){if(!b.matches(".smpi-muckrack-explicit")&&!b.closest(".smpi-muckrack-publication-text")&&!b.querySelector(".smpi-muckrack-explicit"))b.remove();});insertAfter(el,data.authorHeaderBadge,root);});}
 function contentPlacementRoot(){var faqs=q(".smpi-post-faqs").filter(visible).sort(function(a,b){return y(a)-y(b);});if(faqs.length)return faqs[faqs.length-1];var cw=contentWidget();return cw||document.querySelector("article")||null;}
 function footerAuthorPlacementRoot(){var cards=authorCardContainers();return cards.length?cards[0]:null;}
 function markerExists(cls){return !!document.querySelector("."+cls);}
@@ -406,7 +406,7 @@ SMPI_JS;
     }
 
 
-    public static function verification_icon( int $author_id, string $style = "tooltip", string $context = "" ): string {
+    public static function verification_icon( int $author_id, string $style = "tooltip", string $context = "", bool $explicit = false ): string {
         if ( ! self::author_verified( $author_id ) ) {
             return "";
         }
@@ -432,7 +432,7 @@ SMPI_JS;
         $color_style = "" !== $color_override
             ? "--smpi-muckrack-author-accent:" . esc_attr( $color_override ) . ";color:" . esc_attr( $color_override ) . ";"
             : "";
-        $icon = "<span class=" . $quote . "smpi-muckrack-icon " . esc_attr( $icon_class . $context_class ) . $quote . " data-smpi-muckrack-context=" . $quote . esc_attr( sanitize_key( $context ) ) . $quote . " title=" . $quote . $label . $quote . " aria-label=" . $quote . $label . $quote . " style=" . $quote . $color_style . "--smpi-muckrack-margin-left:" . esc_attr( (string) $margin_left ) . "px;--smpi-muckrack-margin-top:" . esc_attr( (string) $margin_top ) . "px;font-size:" . esc_attr( (string) $size ) . "px;margin-left:" . esc_attr( (string) $margin_left ) . "px;margin-top:" . esc_attr( (string) $margin_top ) . "px" . $quote . ">" . self::icon_svg_html( $style_key ) . "</span>";
+        $icon = "<span class=" . $quote . "smpi-muckrack-icon " . esc_attr( $icon_class . $context_class . ( $explicit ? " smpi-muckrack-explicit" : "" ) ) . $quote . " data-smpi-muckrack-context=" . $quote . esc_attr( sanitize_key( $context ) ) . $quote . " title=" . $quote . $label . $quote . " aria-label=" . $quote . $label . $quote . " style=" . $quote . $color_style . "--smpi-muckrack-margin-left:" . esc_attr( (string) $margin_left ) . "px;--smpi-muckrack-margin-top:" . esc_attr( (string) $margin_top ) . "px;font-size:" . esc_attr( (string) $size ) . "px;margin-left:" . esc_attr( (string) $margin_left ) . "px;margin-top:" . esc_attr( (string) $margin_top ) . "px" . $quote . ">" . self::icon_svg_html( $style_key ) . "</span>";
         $link_label = esc_attr( "View verification details on MuckRack" );
         return $url ? "<a class=" . $quote . "smpi-muckrack-link" . $quote . " href=" . $quote . $url . $quote . " target=" . $quote . "_blank" . $quote . " rel=" . $quote . "noopener noreferrer" . $quote . " aria-label=" . $quote . $link_label . $quote . " title=" . $quote . $link_label . $quote . ">" . $icon . "</a>" : $icon;
     }
