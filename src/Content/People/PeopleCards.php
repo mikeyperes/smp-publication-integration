@@ -50,6 +50,9 @@ final class PeopleCards {
         'order'      => '',
         // layout="head": photo and identity lines grouped in a head row, the latest story and "all stories" link below it.
         'layout'     => '',
+        'per_page'   => 0,
+        'pagination' => 'load_more',
+        'search'     => 'auto',
     ];
 
     /** @var array<string,bool> */
@@ -64,9 +67,6 @@ final class PeopleCards {
         if ( '' !== trim( (string) $atts['ids'] ) ) {
             $ids = array_values( array_filter( array_map( 'absint', explode( ',', (string) $atts['ids'] ) ) ) );
         }
-        if ( (int) $atts['limit'] > 0 ) {
-            $ids = array_slice( $ids, 0, (int) $atts['limit'] );
-        }
         $types = PublicationContentTypes::article_post_types();
         if ( 'posts' === (string) $atts['orderby'] ) {
             // Most stories first; equal counts keep the list's own order.
@@ -75,6 +75,22 @@ final class PeopleCards {
                 $counts[ $uid ] = [ (int) count_user_posts( $uid, $types, true ), $n ];
             }
             usort( $ids, static fn( $a, $b ) => $counts[ $b ][0] <=> $counts[ $a ][0] ?: $counts[ $a ][1] <=> $counts[ $b ][1] );
+        }
+        if ( in_array( (string) $atts['orderby'], [ 'newest_story', 'latest' ], true ) ) {
+            $ids = self::newest_order( $ids );
+        }
+        if ( (int) $atts['limit'] > 0 ) {
+            $ids = array_slice( $ids, 0, (int) $atts['limit'] );
+        }
+        if ( empty( $list['single'] ) && 'rows' === (string) $atts['layout'] && (int) $atts['per_page'] <= 0 ) {
+            $atts['per_page'] = 10;
+        }
+        if ( empty( $list['single'] ) && (int) $atts['per_page'] > 0 ) {
+            $directory = self::directory( $ids, $atts, $list );
+            $output = (string) apply_filters( 'hws_base_tools_render_people_search', '', $directory );
+            if ( '' !== $output ) {
+                return $output;
+            }
         }
         $users = array_values( array_filter( array_map( 'get_userdata', $ids ) ) );
         if ( ! $users ) {
@@ -92,8 +108,13 @@ final class PeopleCards {
         $columns = max( 1, min( 6, (int) $atts['columns'] ) );
         $fields  = new AuthorFieldResolver();
         $extra   = array_intersect( array_map( 'trim', explode( ',', strtolower( (string) $atts['show'] ) ) ), self::EXTRAS );
+        $rows    = 'rows' === (string) $atts['layout'];
+        if ( $rows ) {
+            $style = 'none' === $style ? 'none' : 'rows';
+            $extra = array_unique( array_merge( $extra, [ 'badge', 'latest' ] ) );
+        }
         $on      = static fn( string $part ): bool => in_array( $part, $extra, true );
-        $headed  = 'head' === (string) $atts['layout'];
+        $headed  = $rows || 'head' === (string) $atts['layout'];
         $sub     = [ 'h2' => 'h3', 'h3' => 'h4', 'h4' => 'h5', 'p' => 'p' ][ $heading ];
 
         $people = '';
@@ -146,7 +167,7 @@ final class PeopleCards {
                 $parts['bio'] = '<p class="' . esc_attr( $item ) . '__bio">' . esc_html( $bio ) . '</p>';
             }
             if ( $on( 'latest' ) ) {
-                $parts['latest'] = 'compact' === (string) $atts['latest']
+                $parts['latest'] = $rows || 'compact' === (string) $atts['latest']
                     ? self::latest_compact( $id, $types, $item, $headed ? $sub : '' )
                     : self::latest( $id, $types, $item, $name, '' !== $photo ? $fields->image_url( $id, 'thumbnail' ) : '', $on( 'badge' ) );
             }
@@ -188,7 +209,47 @@ final class PeopleCards {
             $css = '<style id="' . esc_attr( $block ) . '-css">' . self::css( $block, $item ) . '</style>';
         }
 
-        return $css . '<div class="' . esc_attr( $block . ' ' . $block . '--' . $style ) . '" style="--' . esc_attr( $block ) . '-columns:' . $columns . '">' . $people . '</div>';
+        return $css . '<div class="' . esc_attr( $block . ' ' . $block . '--' . $style . ( $rows ? ' ' . $block . '--row-layout' : '' ) ) . '" style="--' . esc_attr( $block ) . '-columns:' . $columns . '">' . $people . '</div>';
+    }
+
+    /** One bulk query; equal dates preserve the editor's list order; people without stories follow. */
+    public static function newest_order( array $ids ): array {
+        global $wpdb;
+        if ( ! $ids ) { return []; }
+        $types = PublicationContentTypes::article_post_types();
+        $sql = $wpdb->prepare( "SELECT post_author, MAX(post_date) AS newest FROM {$wpdb->posts} WHERE post_status='publish' AND post_type IN (" . implode( ',', array_fill( 0, count( $types ), '%s' ) ) . ") AND post_author IN (" . implode( ',', array_map( 'absint', $ids ) ) . ") GROUP BY post_author", ...$types );
+        $dates = [];
+        foreach ( $wpdb->get_results( $sql ) as $row ) { $dates[(int) $row->post_author] = $row->newest; }
+        $positions = array_flip( $ids );
+        usort( $ids, static fn( $a, $b ) => strcmp( $dates[$b] ?? '', $dates[$a] ?? '' ) ?: $positions[$a] <=> $positions[$b] );
+        return $ids;
+    }
+
+    public static function groups(): array {
+        return [
+            'byline' => array_map( 'intval', get_users( [ 'has_published_posts' => PublicationContentTypes::article_post_types(), 'fields' => 'ID' ] ) ),
+            'contributor' => \smp_publication_integration\Content\Contributors::member_ids(),
+            'staff' => \smp_publication_integration\Content\Staff::member_ids(),
+        ];
+    }
+
+    private static function directory( array $ids, array $atts, array $list ): array {
+        $single = $atts;
+        $single['per_page'] = 0;
+        $single['limit'] = 0;
+        $single['ids'] = '';
+        return [ 'key' => $list['block'] . md5( wp_json_encode( $atts ) ), 'ids' => $ids, 'groups' => self::groups(),
+            'per_page' => $atts['per_page'], 'pagination' => $atts['pagination'],
+            'search' => ! in_array( (string) $atts['search'], [ '0', 'no', 'false', 'none' ], true ),
+            'render_item' => static fn( int $id ): string => self::render( [ $id ], $single, $list + [ 'single' => true ] ),
+        ];
+    }
+
+    public static function search_directory( $directory, string $key ): array {
+        $groups = self::groups();
+        $ids = $groups[ $key ] ?? array_values( array_unique( array_merge( ...array_values( $groups ) ) ) );
+        $atts = array_merge( self::ATTRIBUTES, [ 'layout' => 'rows', 'orderby' => 'newest_story', 'per_page' => 10, 'hide' => 'bio,link' ] );
+        return self::directory( self::newest_order( $ids ), $atts, [ 'block' => 'smpi-people', 'item' => 'smpi-person', 'style' => 'cards', 'title' => static fn( int $id ): string => ( new AuthorFieldResolver() )->value( $id, 'title' ) ] );
     }
 
     /** First letters of the first and last name, for a person without a photo. */
@@ -257,7 +318,16 @@ final class PeopleCards {
 
     /** The built-in look for one list. Every rule is one class, so site CSS overrides it. */
     public static function css( string $b, string $i ): string {
-        return ".$b{display:grid;gap:28px}"
+        return ".$b--rows{display:grid;grid-template-columns:1fr;gap:0}"
+            . ".$b--rows .$i{display:grid;grid-template-columns:minmax(220px,1fr) minmax(0,2fr);gap:28px;align-items:center;padding:24px 0;border-bottom:1px solid rgba(127,127,127,.2)}"
+            . ".$b--rows .{$i}__head{display:flex;align-items:center;gap:18px;min-width:0}"
+            . ".$b--rows .{$i}__photo{display:block;flex:0 0 80px;width:80px;height:80px;overflow:hidden;border-radius:50%}"
+            . ".$b--rows .{$i}__latest{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 24px;align-items:center}"
+            . ".$b--rows .{$i}__latest-label{grid-column:1/-1;font-size:.75em;text-transform:uppercase}"
+            . ".$b--rows .{$i}__latest-title{margin:0;font-size:1.1em;line-height:1.4}"
+            . ".$b--rows .{$i}__latest-meta{display:flex;flex-direction:column;gap:6px;font-size:.8em}"
+            . "@media(max-width:767px){.$b--rows .$i{grid-template-columns:1fr;gap:16px}.$b--rows .{$i}__latest{grid-template-columns:1fr}}"
+            . ".$b{display:grid;gap:28px}"
             . ".$b--cards{grid-template-columns:repeat(var(--$b-columns,3),minmax(0,1fr))}"
             . ".$b--cards .$i{display:flex;flex-direction:column;gap:14px}"
             . ".$b--cards .{$i}__photo{display:block;aspect-ratio:1/1;overflow:hidden;border-radius:6px;background:rgba(127,127,127,.12)}"

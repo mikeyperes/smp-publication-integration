@@ -23,6 +23,7 @@ final class Contributors {
     public const PATHS     = [ 'about/executive-leadership-team/meet-our-contributors', 'about/meet-our-contributors', 'meet-our-contributors', 'contributors', 'about/contributors' ];
 
     public function register(): void {
+        add_filter( 'hws_base_tools_people_directory', [ PeopleCards::class, 'search_directory' ], 10, 2 );
         add_action( 'init', [ $this, 'register_shortcode' ] );
     }
 
@@ -112,7 +113,7 @@ final class Contributors {
         if ( in_array( (string) $atts['with_articles'], [ '1', 'yes', 'true' ], true ) ) {
             $ids = array_values( array_filter( $ids, static fn( int $id ): bool => count_user_posts( $id, PublicationContentTypes::article_post_types(), true ) > 0 ) );
         }
-        return PeopleCards::render( $ids, $atts, [ 'block' => 'smpi-contributors', 'item' => 'smpi-contributor', 'style' => self::settings()['style'], 'title' => 'head' === (string) $atts['layout'] ? static fn( int $id ): string => ( new AuthorFieldResolver() )->value( $id, 'title' ) : null ] );
+        return PeopleCards::render( $ids, $atts, [ 'block' => 'smpi-contributors', 'item' => 'smpi-contributor', 'style' => self::settings()['style'], 'title' => in_array( (string) $atts['layout'], [ 'head', 'rows' ], true ) ? static fn( int $id ): string => ( new AuthorFieldResolver() )->value( $id, 'title' ) : null ] );
     }
 
     public static function css(): string {

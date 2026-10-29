@@ -27,6 +27,15 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 
 ## Features
 
+### People row stacks and search
+- **Does:** Full-width person rows with photo, name, verified mark when verified, role, newest story category/title and date; newest-story ordering and paginated search.
+- **Switch:** Opt in with `layout="rows"`; existing layouts stay unchanged.
+- **Use:** `[smpi_contributors layout="rows" orderby="newest_story" per_page="10" pagination="load_more" hide="bio,link"]`; the same attributes work on staff and executive leadership lists. `pagination` supports `load_more`, `numbered`, `infinite`; `search="auto"` shows only above ten people, `search="no"` hides it. Default `per_page="0"` preserves legacy lists; rows use ten automatically.
+- **Style:** `smpi-contributors--rows`, `smpi-staff--rows`, `smpi-leadership--rows`; `style="none"` preserves row HTML without plugin styles.
+- **Example:** [Contributors](docs/contributors.md#row-stacks-and-search), [Staff](docs/staff.md#row-stacks-and-search).
+- **Code:** `src/Content/People/PeopleCards.php`.
+
+
 ### Breadcrumbs (moved)
 - **Does:** nothing here any more. The breadcrumb bar under the site header moved to HWS Base Tools (WP Admin → Settings → HWS Base Tools → Breadcrumbs, `options-general.php?page=hws-core-tools&tab=breadcrumbs`), where it is switched off by default.
 - **Carry-over:** the old `breadcrumbs_*` keys stay in `smpi_settings` only so Base Tools can copy a site's look the first time it is switched on there. `[smp_breadcrumbs]` keeps working through Base Tools.

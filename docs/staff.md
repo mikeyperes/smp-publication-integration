@@ -56,3 +56,13 @@ Default template: a short introduction using the publication name, then `[smpi_s
 Printed once per page as `<style id="smpi-staff-css">`. The tab shows the exact CSS and a live example for Cards, List and No styling. Cards use `--smpi-staff-columns`; List shows one person per row with a circular photo. No styling prints the same markup without CSS. Fonts and colours inherit the site; name links inherit heading colour. Classes are isolated from Contributors and Executive Leadership. For Elementor overrides, use the Shortcode widget's Custom CSS, for example `selector .smpi-staff-member__title { opacity: .8; }`.
 
 Code: `src/Content/Staff.php`, `src/Admin/StaffTab.php`, shared `src/Content/People/PeopleCards.php` and `src/Admin/People/PeopleEditor.php`.
+
+## Row stacks and search
+
+Use `layout="rows" orderby="newest_story" per_page="10" pagination="load_more" hide="bio,link"` on the list shortcode. Rows show photo, name with an existing verified mark, role, latest published story category and title, and its date. People without stories follow those with stories; equal dates preserve the saved list order. Ordering happens before `limit`.
+
+`per_page` enables HWS Base Tools' people search and pagination. Rows default to ten per page; `pagination` accepts `load_more`, `numbered` or `infinite`. `search="auto"` shows the search form only when the complete eligible list exceeds ten people; `search="no"` hides the form while retaining paging. Filtering or paging never changes that threshold. Without Base Tools the full list remains available.
+
+SMP supplies the exact list after its photo/article filters, plus Byline writers (published article authors), Contributors (saved list including additions/exclusions) and Staff (saved list). Filters intersect this list, never expose unrelated accounts, and match display names or public slugs only. Multiple selected groups use OR. `[hws_search profile="people" directory="people"]` renders the union; directory may also be `byline`, `contributor`, or `staff`.
+
+HTML: `.smpi-contributors--row-layout / .smpi-staff--row-layout / .smpi-leadership--row-layout` identifies row markup (use the actual block prefix); each article has `__head` (photo and `__id` with name/role) and `__latest` (label, title and `__latest-meta` with category/date). `style="none"` emits the same markup without built-in CSS. The search owns `.hls-wrap`, `.hls-results`, `.hls-list`, `.hls-more` and `.hls-pages`; render scoped custom CSS against those wrappers. Assets appear only in shortcode output.
