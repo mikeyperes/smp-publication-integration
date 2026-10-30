@@ -45,7 +45,7 @@ final class MuckRackVerification {
         }
         $settings = Settings::all();
         $icon_size = self::setting_int( "muckrack_icon_size", 16, 8, 64 );
-        echo "<style id=smpi-muckrack-styles>" . self::design_variables_css( $settings ) . ".smpi-muckrack-icon{display:inline-flex;align-items:center;justify-content:center;width:1em;height:1em;min-width:1em;margin-left:.28em;vertical-align:middle;line-height:1;color:var(--smpi-muckrack-author-accent,#2d5277);background:transparent;font-size:" . esc_attr( (string) $icon_size ) . "px}.smpi-muckrack-icon svg{display:block;width:1em;height:1em}.smpi-muckrack-icon-check svg{width:1em;height:1em}.smpi-muckrack-link{text-decoration:none;display:inline-flex;align-items:center}.smpi-muckrack-inline-pair{display:inline-flex;align-items:center;max-width:100%;vertical-align:middle}.smpi-muckrack-inline-pair>.smpi-muckrack-author-label{min-width:min-content;word-break:normal;overflow-wrap:normal}.smpi-muckrack-inline-pair>.smpi-muckrack-author-label{display:inline-flex;align-items:center;align-self:center;line-height:inherit;vertical-align:middle}.smpi-muckrack-inline-pair>.smpi-muckrack-link,.smpi-muckrack-inline-pair>.smpi-muckrack-icon,.smpi-muckrack-inline-pair>.smpi-muckrack-author-note{align-self:center;flex:0 0 auto}.smpi-muckrack-inline-pair>.smpi-muckrack-link{width:auto!important;max-width:none}.smpi-muckrack-inline-pair>.smpi-muckrack-link{display:inline-flex!important;align-items:center!important;justify-content:center;line-height:1!important;vertical-align:middle}.smpi-muckrack-inline-pair .smpi-muckrack-icon{display:inline-flex!important;align-items:center!important;justify-content:center!important;align-self:center;line-height:1!important;vertical-align:middle}.smpi-muckrack-inline-pair .smpi-muckrack-icon svg{display:block;align-self:center}.smpi-muckrack-brand{color:var(--smpi-muckrack-author-accent,#2d5277);font-weight:700}.smpi-muckrack-footer-note,.smpi-muckrack-js-below-author,.smpi-muckrack-js-bottom-article{margin:24px 0 0}.smpi-muckrack-author-note{display:inline-flex;align-items:center;gap:.28em;margin:.18em 0 .18em .38em;padding:.34em .55em;border-left:2px solid var(--smpi-muckrack-author-accent,#2d5277);background:#f5f8fb;line-height:1.28;vertical-align:middle}.smpi-muckrack-author-note .smpi-muckrack-brand{color:var(--smpi-muckrack-author-accent,#2d5277)}.smpi-muckrack-author-note a{color:inherit}.smpi-muckrack-footer-note{padding:12px 14px;border-left:3px solid var(--smpi-muckrack-author-accent,#2d5277);background:#f5f8fb}.smpi-muckrack-publication-text .smpi-muckrack-brand{color:var(--smpi-muckrack-publication-accent,#2d5277)}.smpi-muckrack-publication-note{display:block;clear:both;margin:12px 0 0;line-height:1.35}.smpi-muckrack-publication-block{display:block;padding:10px 12px;border-left:3px solid var(--smpi-muckrack-publication-accent,#2d5277);background:#f5f8fb}.smpi-muckrack-publication-mini_block{display:block;padding:7px 10px;border-left:2px solid var(--smpi-muckrack-publication-accent,#2d5277);background:#f6f8fb;line-height:1.3;letter-spacing:.005em}.smpi-muckrack-publication-compact{display:inline-flex;align-items:center;gap:.35em;padding:.28em .7em;border:1px solid var(--smpi-muckrack-publication-accent,#2d5277);border-radius:999px;background:#fff}.smpi-muckrack-publication-minimalist{display:inline;line-height:1.5}.smpi-muckrack-publication-text .smpi-muckrack-publication-icon{font-size:1em;width:1em;height:1em;min-width:1em;margin:0 .45em 0 0;vertical-align:-.12em;color:var(--smpi-muckrack-publication-accent,currentColor)}.smpi-muckrack-publication-sentence .smpi-muckrack-brand{font-weight:inherit;color:inherit}.smpi-muckrack-publication-compact a,.smpi-muckrack-publication-minimalist a,.smpi-muckrack-publication-block a,.smpi-muckrack-publication-mini_block a{color:inherit}</style>";
+        echo "<style id=smpi-muckrack-styles>" . self::design_variables_css( $settings ) . ".smpi-muckrack-icon{display:inline-flex;align-items:center;justify-content:center;width:1em;height:1em;min-width:1em;margin-left:.28em;vertical-align:middle;line-height:1;color:var(--smpi-muckrack-author-accent,#2d5277);background:transparent;font-size:" . esc_attr( (string) $icon_size ) . "px}.smpi-muckrack-icon svg{display:block;width:1em;height:1em}.smpi-muckrack-icon-check svg{width:1em;height:1em}.smpi-muckrack-link{text-decoration:none;display:inline-flex;align-items:center}.smpi-muckrack-inline-pair{display:inline-flex;align-items:center;max-width:100%;vertical-align:middle}.smpi-muckrack-inline-pair>.smpi-muckrack-author-label{min-width:min-content;word-break:normal;overflow-wrap:normal}.smpi-muckrack-inline-pair>.smpi-muckrack-author-label{display:inline-flex;align-items:center;align-self:center;line-height:inherit;vertical-align:middle}.smpi-muckrack-inline-pair>.smpi-muckrack-link,.smpi-muckrack-inline-pair>.smpi-muckrack-icon,.smpi-muckrack-inline-pair>.smpi-muckrack-author-note{align-self:center;flex:0 0 auto}.smpi-muckrack-inline-pair>.smpi-muckrack-link{width:auto!important;max-width:none}.smpi-muckrack-inline-pair>.smpi-muckrack-link{display:inline-flex!important;align-items:center!important;justify-content:center;line-height:1!important;vertical-align:middle}.smpi-muckrack-inline-pair .smpi-muckrack-icon{display:inline-flex!important;align-items:center!important;justify-content:center!important;align-self:center;line-height:1!important;vertical-align:middle}.smpi-muckrack-inline-pair .smpi-muckrack-icon svg{display:block;align-self:center}.smpi-muckrack-brand{color:var(--smpi-muckrack-author-accent,#2d5277);font-weight:700}.smpi-muckrack-author-text .smpi-muckrack-author-icon{font-size:1em;width:1em;height:1em;min-width:1em;margin:0 .45em 0 0;vertical-align:-.12em}.smpi-muckrack-footer-note,.smpi-muckrack-js-below-author,.smpi-muckrack-js-bottom-article{margin:24px 0 0}.smpi-muckrack-author-note{display:inline-flex;align-items:center;gap:.28em;margin:.18em 0 .18em .38em;padding:.34em .55em;border-left:2px solid var(--smpi-muckrack-author-accent,#2d5277);background:#f5f8fb;line-height:1.28;vertical-align:middle}.smpi-muckrack-author-note .smpi-muckrack-brand{color:var(--smpi-muckrack-author-accent,#2d5277)}.smpi-muckrack-author-note a{color:inherit}.smpi-muckrack-footer-note{padding:12px 14px;border-left:3px solid var(--smpi-muckrack-author-accent,#2d5277);background:#f5f8fb}.smpi-muckrack-publication-text .smpi-muckrack-brand{color:var(--smpi-muckrack-publication-accent,#2d5277)}.smpi-muckrack-publication-note{display:block;clear:both;margin:12px 0 0;line-height:1.35}.smpi-muckrack-publication-block{display:block;padding:10px 12px;border-left:3px solid var(--smpi-muckrack-publication-accent,#2d5277);background:#f5f8fb}.smpi-muckrack-publication-mini_block{display:block;padding:7px 10px;border-left:2px solid var(--smpi-muckrack-publication-accent,#2d5277);background:#f6f8fb;line-height:1.3;letter-spacing:.005em}.smpi-muckrack-publication-compact{display:inline-flex;align-items:center;gap:.35em;padding:.28em .7em;border:1px solid var(--smpi-muckrack-publication-accent,#2d5277);border-radius:999px;background:#fff}.smpi-muckrack-publication-minimalist{display:inline;line-height:1.5}.smpi-muckrack-publication-text .smpi-muckrack-publication-icon{font-size:1em;width:1em;height:1em;min-width:1em;margin:0 .45em 0 0;vertical-align:-.12em;color:var(--smpi-muckrack-publication-accent,currentColor)}.smpi-muckrack-publication-sentence .smpi-muckrack-brand{font-weight:inherit;color:inherit}.smpi-muckrack-publication-compact a,.smpi-muckrack-publication-minimalist a,.smpi-muckrack-publication-block a,.smpi-muckrack-publication-mini_block a{color:inherit}</style>";
         $font_css = self::font_overrides_css();
         if ( "" !== $font_css ) {
             echo "<style id=smpi-muckrack-font-controls>" . $font_css . "</style>";
@@ -140,7 +140,7 @@ final class MuckRackVerification {
     }
 
     public function render_muckrack_shortcode( array $atts = [] ): string {
-        $atts = shortcode_atts( [ "type" => "icon", "user_id" => 0, "post_id" => 0, "author_index" => 0, "style" => "", "context" => "" ], $atts, "muckrack_verified" );
+        $atts = shortcode_atts( [ "type" => "icon", "user_id" => 0, "post_id" => 0, "author_index" => 0, "style" => "", "context" => "", "size" => "", "icon" => "" ], $atts, "muckrack_verified" );
         $author_id = $this->resolve_author_id( (int) $atts["user_id"], (int) $atts["post_id"], (int) $atts["author_index"] );
         if ( ! $author_id || ! self::author_verified( $author_id ) ) {
             return "";
@@ -149,7 +149,7 @@ final class MuckRackVerification {
         if ( "" === $context ) {
             $context = $this->author_context();
         }
-        return "text" === sanitize_key( (string) $atts["type"] ) ? self::verification_text( $author_id ) : self::verification_icon( $author_id, sanitize_key( (string) $atts["style"] ), $context, true );
+        return "text" === sanitize_key( (string) $atts["type"] ) ? self::verification_text( $author_id, (string) $atts["icon"] ) : self::verification_icon( $author_id, sanitize_key( (string) $atts["style"] ), $context, true, (string) $atts["size"] );
     }
 
     public function render_publication_shortcode( array $atts = [] ): string {
@@ -406,7 +406,7 @@ SMPI_JS;
     }
 
 
-    public static function verification_icon( int $author_id, string $style = "tooltip", string $context = "", bool $explicit = false ): string {
+    public static function verification_icon( int $author_id, string $style = "tooltip", string $context = "", bool $explicit = false, string $size = "" ): string {
         if ( ! self::author_verified( $author_id ) ) {
             return "";
         }
@@ -425,14 +425,15 @@ SMPI_JS;
         }
         $icon_class = "check" === $style_key ? "smpi-muckrack-icon-check" : ( "circle_outline_check" === $style_key ? "smpi-muckrack-icon-outline" : "smpi-muckrack-icon-circle" );
         $quote = chr( 34 );
-        $size = self::author_context_icon_size( $context );
+        $size = self::css_size( $size );
+        $size = "" !== $size ? $size : self::author_context_icon_size( $context ) . "px";
         $margin_left = self::author_context_margin( "left", $context );
         $margin_top = self::author_context_margin( "top", $context );
         $context_class = "" !== self::author_context_key( "smpi", $context ) ? " smpi-muckrack-context-" . sanitize_html_class( sanitize_key( $context ) ) : "";
         $color_style = "" !== $color_override
             ? "--smpi-muckrack-author-accent:" . esc_attr( $color_override ) . ";color:" . esc_attr( $color_override ) . ";"
             : "";
-        $icon = "<span class=" . $quote . "smpi-muckrack-icon " . esc_attr( $icon_class . $context_class . ( $explicit ? " smpi-muckrack-explicit" : "" ) ) . $quote . " data-smpi-muckrack-context=" . $quote . esc_attr( sanitize_key( $context ) ) . $quote . " title=" . $quote . $label . $quote . " aria-label=" . $quote . $label . $quote . " style=" . $quote . $color_style . "--smpi-muckrack-margin-left:" . esc_attr( (string) $margin_left ) . "px;--smpi-muckrack-margin-top:" . esc_attr( (string) $margin_top ) . "px;font-size:" . esc_attr( (string) $size ) . "px;margin-left:" . esc_attr( (string) $margin_left ) . "px;margin-top:" . esc_attr( (string) $margin_top ) . "px" . $quote . ">" . self::icon_svg_html( $style_key ) . "</span>";
+        $icon = "<span class=" . $quote . "smpi-muckrack-icon " . esc_attr( $icon_class . $context_class . ( $explicit ? " smpi-muckrack-explicit" : "" ) ) . $quote . " data-smpi-muckrack-context=" . $quote . esc_attr( sanitize_key( $context ) ) . $quote . " title=" . $quote . $label . $quote . " aria-label=" . $quote . $label . $quote . " style=" . $quote . $color_style . "--smpi-muckrack-margin-left:" . esc_attr( (string) $margin_left ) . "px;--smpi-muckrack-margin-top:" . esc_attr( (string) $margin_top ) . "px;font-size:" . esc_attr( $size ) . ";margin-left:" . esc_attr( (string) $margin_left ) . "px;margin-top:" . esc_attr( (string) $margin_top ) . "px" . $quote . ">" . self::icon_svg_html( $style_key ) . "</span>";
         $link_label = esc_attr( "View verification details on MuckRack" );
         return $url ? "<a class=" . $quote . "smpi-muckrack-link" . $quote . " href=" . $quote . $url . $quote . " target=" . $quote . "_blank" . $quote . " rel=" . $quote . "noopener noreferrer" . $quote . " aria-label=" . $quote . $link_label . $quote . " title=" . $quote . $link_label . $quote . ">" . $icon . "</a>" : $icon;
     }
@@ -447,15 +448,20 @@ SMPI_JS;
         return "<svg class=\"smpi-muckrack-svg\" xmlns=\"http://www.w3.org/2000/svg\" width=\"1em\" height=\"1em\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\" focusable=\"false\"><path fill-rule=\"evenodd\" clip-rule=\"evenodd\" d=\"M2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12ZM15.7071 9.29289C16.0976 9.68342 16.0976 10.3166 15.7071 10.7071L12.0243 14.3899C11.4586 14.9556 10.5414 14.9556 9.97568 14.3899L8.29289 12.7071C7.90237 12.3166 7.90237 11.6834 8.29289 11.2929C8.68342 10.9024 9.31658 10.9024 9.70711 11.2929L11 12.5858L14.2929 9.29289C14.6834 8.90237 15.3166 8.90237 15.7071 9.29289Z\" fill=\"currentColor\"></path></svg>";
     }
 
-    public static function verification_text( int $author_id ): string {
+    /** The author's verified line; $icon ("1", "circle_check", "circle_outline_check" or "check") puts that check icon before it. */
+    public static function verification_text( int $author_id, string $icon = "" ): string {
         if ( ! self::author_verified( $author_id ) ) {
             return "";
         }
+        $icon_style = self::text_icon_style( $icon );
+        $icon_html = "" !== $icon_style
+            ? "<span class=\"smpi-muckrack-icon smpi-muckrack-author-icon " . ( "check" === $icon_style ? "smpi-muckrack-icon-check" : ( "circle_outline_check" === $icon_style ? "smpi-muckrack-icon-outline" : "smpi-muckrack-icon-circle" ) ) . "\" aria-hidden=\"true\">" . self::icon_svg_html( $icon_style ) . "</span>"
+            : "";
         $url = (string) self::author_field( $author_id, self::FIELD_URL );
         $target = "" !== $url ? $url : "https://muckrack.com/";
         $description = trim( (string) self::author_field( $author_id, self::FIELD_DESCRIPTION ) );
         $description = "" !== $description ? $description : "Author";
-        return "<span class=\"smpi-muckrack-author-text\">" . esc_html( $description ) . " verified by <span class=\"smpi-muckrack-brand\">MuckRack</span> editorial team <a href=\"" . esc_url( $target ) . "\" target=\"_blank\" rel=\"noopener noreferrer\">(learn more)</a></span>";
+        return "<span class=\"smpi-muckrack-author-text\">" . $icon_html . esc_html( $description ) . " verified by <span class=\"smpi-muckrack-brand\">MuckRack</span> editorial team <a href=\"" . esc_url( $target ) . "\" target=\"_blank\" rel=\"noopener noreferrer\">(learn more)</a></span>";
     }
 
     public static function verification_author_note( int $author_id, string $context = "" ): string {
@@ -602,6 +608,25 @@ SMPI_JS;
             ];
         }
         return $out;
+    }
+
+    /** A size a template sets on the badge: a number with px or em (0.6em follows the heading at every width); "" otherwise. */
+    private static function css_size( string $value ): string {
+        $value = strtolower( trim( $value ) );
+        return 1 === preg_match( '/^(?:\d+(?:\.\d+)?|\.\d+)(?:px|em)$/', $value ) ? $value : "";
+    }
+
+    /** The check icon style for the verified line: a named style, the site's style for a yes value, "" for none. */
+    private static function text_icon_style( string $icon ): string {
+        $icon = sanitize_key( $icon );
+        if ( in_array( $icon, [ "circle_check", "circle_outline_check", "check" ], true ) ) {
+            return $icon;
+        }
+        if ( "" === $icon || ! self::truthy( $icon ) ) {
+            return "";
+        }
+        $style = (string) Settings::get( "muckrack_icon_style", "circle_check" );
+        return in_array( $style, [ "circle_check", "circle_outline_check", "check" ], true ) ? $style : "circle_check";
     }
 
     private static function setting_int( string $key, int $default, int $min, int $max ): int {

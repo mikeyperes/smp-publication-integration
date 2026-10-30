@@ -48,7 +48,8 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 - **Placement cleanup:** explicit `[muckrack_verified]`, `[author_muckrack_verified]` and publication verification lines retain their icons inside prose. Explicit author icons carry `.smpi-muckrack-explicit`; automatically misplaced prose badges, pagination badges and single-footer badges inside loop cards are still removed.
 - **Does:** a "Verified by MuckRack" icon or label next to verified authors and the publication, in loop cards (on listing pages, the homepage, posts, ordinary pages and the 404 page), bylines and author boxes.
 - **Switch:** `muckrack_verified_enabled`, where it shows `muckrack_verified_contexts`, `muckrack_author_always_show`; look `muckrack_verified_style`, `muckrack_icon_style`, `muckrack_icon_color`, `muckrack_verified_font_*`, `muckrack_verified_text_color`. Publication badge: `publication_muckrack_verified_enabled`, `publication_muckrack_placements`, `publication_muckrack_*`.
-- **Use:** automatic in its contexts; `[muckrack_verified type="icon|text" user_id="" post_id="" author_index="" style="" context=""]`, `[author_muckrack_verified]`, `[smp_publication_muckrack_verified class="" style="" color=""]`.
+- **Use:** automatic in its contexts; `[muckrack_verified type="icon|text" user_id="" post_id="" author_index="" style="" context="" size="" icon=""]`, `[author_muckrack_verified]`, `[smp_publication_muckrack_verified class="" style="" color=""]`.
+- **Template sizing and icon:** `size="0.6em"` (or a px value) on the icon replaces the saved context size, so a badge beside a heading follows that heading at every screen width; `icon="1"` (or `circle_check`, `circle_outline_check`, `check`) on `type="text"` puts the check icon before the verified line, styled by `.smpi-muckrack-author-icon`.
 - **Style:** `.smpi-muckrack-inline-pair`, `.smpi-muckrack-icon`, `.smpi-muckrack-link`.
 - **Code:** `src/Content/MuckRackVerification.php`
 
@@ -344,6 +345,11 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.9.27
+
+- `[author_muckrack_verified]` and `[muckrack_verified]` take `size` (px or em) for the checkmark, so an author page heading badge can follow the heading's size at every width instead of one fixed pixel size.
+- `type="text"` takes `icon` to show the check icon before the "verified by MuckRack" line.
 
 ### 2.9.26
 

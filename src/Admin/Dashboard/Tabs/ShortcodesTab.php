@@ -284,7 +284,7 @@ trait ShortcodesTab {
               "blurb" => "The Muck Rack verified badge for the author, plus a legacy generic field reader. The badge only renders when the author is marked verified.",
               "register_file" => $MR, "access" => "Byline and author box.",
               "items" => [
-                [ "tag" => "author_muckrack_verified", "desc" => "The Muck Rack verified badge for the author. Shows a checkmark with type=icon or a label with type=text. Renders only when the author is verified.", "type" => "Badge", "params" => "type (icon|text), context, user_id",
+                [ "tag" => "author_muckrack_verified", "desc" => "The Muck Rack verified badge for the author. Shows a checkmark with type=icon or a label with type=text. Renders only when the author is verified. size=\"0.6em\" sizes the checkmark to the text around it; icon=\"1\" puts the check icon before the label.", "type" => "Badge", "params" => "type (icon|text), size (px|em), icon (1|circle_check|circle_outline_check|check), context, user_id",
                   "variations" => [ [ "code" => "[author_muckrack_verified type=\"icon\"]", "label" => "Checkmark icon" ], [ "code" => "[author_muckrack_verified type=\"text\"]", "label" => "Text label" ] ],
                   "detail" => $authDetail( "ACF / user meta: muckrack_verified, muckrack_url, what_best_describe_you", $A, "Badge" ) ],
                 [ "tag" => "muckrack_verified", "deprecated" => true, "use_instead" => "[author_muckrack_verified]", "desc" => "Legacy Muck Rack verified badge for the author. Same data as [author_muckrack_verified]; kept for older templates.", "type" => "Badge", "params" => "type (icon|text), user_id", "detail" => $authDetail( "ACF / user meta verified flag", $MR, "Badge" ) ],
