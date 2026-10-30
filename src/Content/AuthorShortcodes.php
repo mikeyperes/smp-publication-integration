@@ -32,6 +32,7 @@ final class AuthorShortcodes {
             "author_linkedin" => "render_linkedin",
             "author_youtube" => "render_youtube",
             "author_website" => "render_website",
+            "author_url" => "render_url",
             "author_crunchbase" => "render_crunchbase",
             "author_muckrack" => "render_muckrack",
             "author_muck_rack" => "render_muckrack",
@@ -124,6 +125,13 @@ final class AuthorShortcodes {
 
     public function render_youtube( array $atts = [] ): string {
         return $this->render_social_url( "youtube", $atts );
+    }
+
+    /** The byline author's archive page (the same author [author_name] shows), for links such as "View more articles". */
+    public function render_url( array $atts = [] ): string {
+        $atts = shortcode_atts( [ "user_id" => 0, "post_id" => 0, "author_index" => 0 ], $atts, "author_url" );
+        $author_id = $this->resolve_author_id( (int) $atts["user_id"], (int) $atts["post_id"], (int) $atts["author_index"] );
+        return $author_id ? esc_url( get_author_posts_url( $author_id ) ) : "";
     }
 
     public function render_website( array $atts = [] ): string {

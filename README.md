@@ -71,7 +71,7 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 
 ### Author fields
 - **Does:** any author's name, bio, title, socials, image or ACF field for the current post's author (or a given user / co-author).
-- **Use:** `[author_name]`, `[author_bio format="html"]`, `[author_bio_short words="35"]`, `[author_title]`, `[author_subtitle]`, `[author_image size="thumbnail" output="html" class="smpi-author-image" loading="lazy" sizes=""]` (`loading="eager"` for a photo on the first screen), `[author_categories limit="4" separator=", "]` (the "Writes about" list: the author's published-post categories, most posts first, ties by oldest category, Uncategorized skipped, empty when none; [HTML and CSS](docs/article-design-examples.md#writes-about); `.smpi-author-categories`, `.smpi-author-category`), `[author_facebook]` `[author_instagram]` `[author_x]` `[author_linkedin]` `[author_youtube]` `[author_website]` `[author_crunchbase]` `[author_muckrack]` `[author_email]`, `[acf_author_field field=""]`. All accept `user_id`, `post_id`, `author_index`.
+- **Use:** `[author_name]`, `[author_bio format="html"]`, `[author_bio_short words="35"]`, `[author_title]`, `[author_subtitle]`, `[author_image size="thumbnail" output="html" class="smpi-author-image" loading="lazy" sizes=""]` (`loading="eager"` for a photo on the first screen), `[author_categories limit="4" separator=", "]` (the "Writes about" list: the author's published-post categories, most posts first, ties by oldest category, Uncategorized skipped, empty when none; [HTML and CSS](docs/article-design-examples.md#writes-about); `.smpi-author-categories`, `.smpi-author-category`), `[author_facebook]` `[author_instagram]` `[author_x]` `[author_linkedin]` `[author_youtube]` `[author_website]` `[author_url]` (the byline author's archive page, for a "View more articles" link through Elementor's Shortcode dynamic tag) `[author_crunchbase]` `[author_muckrack]` `[author_email]`, `[acf_author_field field=""]`. All accept `user_id`, `post_id`, `author_index`.
 - **Responsive photos:** optional `sizes` supplies the real display widths. A nonempty value adds escaped `sizes`, and, for a matching media-library image, its own `width`, `height` and available `srcset`. Omitted or empty `sizes` preserves the previous HTML exactly; `output="url"` is unchanged. Remote photos without matching attachment metadata receive only `sizes`. [Markup and build example](docs/author-image.md).
 - **Code:** `src/Content/AuthorShortcodes.php`
 
@@ -344,6 +344,11 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.9.26
+
+- `[author_bio_short]` no longer reads the "What best describes you" answer (such as "Journalist") as a short bio; with no short bio it uses the start of the real biography.
+- New `[author_url]`: the byline author's archive page, so an author box links to the same author it names.
 
 ### 2.9.25
 

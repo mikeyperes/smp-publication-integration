@@ -7,7 +7,7 @@ if ( ! defined( "ABSPATH" ) ) {
 
 final class AuthorFieldResolver {
     private const ALIASES = [
-        "bio_short" => [ "author_bio_short", "bio_short", "short_bio", "user_short_bio", "description_short", "what_best_describe_you" ],
+        "bio_short" => [ "author_bio_short", "bio_short", "short_bio", "user_short_bio", "description_short" ],
         "bio" => [ "author_bio", "bio", "biography", "description", "user_description" ],
         "title" => [ "author_title", "title", "role", "job_title", "position", "profession", "what_best_describe_you" ],
         "job_title" => [ "job_title", "author_job_title", "author_title", "title", "role", "position", "profession", "what_best_describe_you" ],
