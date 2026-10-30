@@ -46,6 +46,11 @@ final class AuthorSocialIcons {
         "wikitia"    => "Wikitia",
     ];
 
+    /** Shorter visible names for labels="short"; the link's accessible name keeps the full name. */
+    private const SHORT_NAMES = [
+        "x" => "X",
+    ];
+
     /** Logos drawn on their own canvas (view box, shapes), as the approved author drafts show them. */
     private const LOGOS = [
         "tiktok" => [ '0 0 448 512', '<path fill="currentColor" d="M448,209.91a210.06,210.06,0,0,1-122.77-39.25V349.38A162.55,162.55,0,1,1,185,188.31V278.2a74.62,74.62,0,1,0,52.23,71.18V0l88,0a121.18,121.18,0,0,0,1.86,22.17h0A122.18,122.18,0,0,0,381,102.39a121.43,121.43,0,0,0,67,20.14Z"/>' ],
@@ -156,6 +161,7 @@ final class AuthorSocialIcons {
                 "networks"     => "",
                 "class"        => "",
                 "label"        => "Author social links",
+                "labels"       => "",
             ],
             $atts,
             self::SHORTCODE
@@ -238,13 +244,15 @@ final class AuthorSocialIcons {
             $label = "Author social links";
         }
         $author_name = trim( (string) get_the_author_meta( "display_name", $author_id ) );
+        $short = "short" === sanitize_key( (string) ( $args["labels"] ?? "" ) );
         $items = "";
         foreach ( $links as $network => $url ) {
             $network_label = self::NETWORKS[ $network ];
+            $visible_label = $short && isset( self::SHORT_NAMES[ $network ] ) ? self::SHORT_NAMES[ $network ] : $network_label;
             $aria_label = "" !== $author_name
                 ? sprintf( "%s on %s", $author_name, $network_label )
                 : $network_label;
-            $items .= "<li class=\"smpi-template-item smpi-author-social-item smpi-author-socials__item smpi-author-social-item--" . esc_attr( $network ) . "\" data-network=\"" . esc_attr( $network ) . "\"><a class=\"smpi-template-link smpi-author-social-link smpi-author-socials__link\" href=\"" . esc_url( $url ) . "\" target=\"_blank\" rel=\"me noopener noreferrer\" aria-label=\"" . esc_attr( $aria_label ) . "\"><span class=\"smpi-author-social-icon smpi-author-socials__icon\" aria-hidden=\"true\">" . self::icon_svg( $network ) . "</span><span class=\"smpi-author-social-label smpi-author-socials__label\">" . esc_html( $network_label ) . "</span></a></li>";
+            $items .= "<li class=\"smpi-template-item smpi-author-social-item smpi-author-socials__item smpi-author-social-item--" . esc_attr( $network ) . "\" data-network=\"" . esc_attr( $network ) . "\"><a class=\"smpi-template-link smpi-author-social-link smpi-author-socials__link\" href=\"" . esc_url( $url ) . "\" target=\"_blank\" rel=\"me noopener noreferrer\" aria-label=\"" . esc_attr( $aria_label ) . "\"><span class=\"smpi-author-social-icon smpi-author-socials__icon\" aria-hidden=\"true\">" . self::icon_svg( $network ) . "</span><span class=\"smpi-author-social-label smpi-author-socials__label\">" . esc_html( $visible_label ) . "</span></a></li>";
         }
 
         return "<nav class=\"" . esc_attr( implode( " ", array_unique( $classes ) ) ) . "\" data-smpi-skin=\"" . ( "unstyled" === $style ? "unstyled" : "styled" ) . "\" aria-label=\"" . esc_attr( $label ) . "\"" . $style_attribute . "><ul class=\"smpi-template-list smpi-author-social-list smpi-author-socials__list\" role=\"list\">" . $items . "</ul></nav>";

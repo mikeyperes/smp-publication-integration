@@ -258,7 +258,7 @@ trait ShortcodesTab {
               "blurb" => "The author social profile URLs. Canonical form is [author url=\"network\"]; the per-network tags like [author_x] are working aliases of it. Output is a plain URL.",
               "register_file" => $A, "access" => "Single-post author box and author archive social row.",
               "items" => [
-                [ "tag" => "smp_author_social_icons", "desc" => "A complete accessible author-social icon group. Uses the enabled networks and selected template by default, and omits every network whose author profile value is empty.", "type" => "HTML block", "params" => "user_id, post_id, author_index, style, size, color, networks, class, label",
+                [ "tag" => "smp_author_social_icons", "desc" => "A complete accessible author-social icon group. Uses the enabled networks and selected template by default, and omits every network whose author profile value is empty.", "type" => "HTML block", "params" => "user_id, post_id, author_index, style, size, color, networks, class, label, labels (short shows X instead of X (Twitter))",
                   "variations" => [
                     [ "code" => "[smp_author_social_icons]", "label" => "Saved backend design" ],
                     [ "code" => "[smp_author_social_icons style=\"unstyled\"]", "label" => "No Style for Elementor CSS" ],

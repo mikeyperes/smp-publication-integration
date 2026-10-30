@@ -79,7 +79,7 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 ### Author social icons
 - **Does:** the author's social links as styled icons, added automatically to author boxes and archives. Networks: Website, LinkedIn, X, Instagram, Facebook, YouTube, Crunchbase and Muck Rack (on by default), plus TikTok, Medium, GitHub, SoundCloud, Flickr, Behance, IMDb, Wikipedia, NFX Signal, Everipedia and Wikitia (off until picked in `author_social_networks`; NFX Signal, Everipedia and Wikitia show as short text marks, class `smpi-author-social-mono`).
 - **Switch:** `author_social_icons_enabled`, `author_social_style`, `author_social_size`, `author_social_color`, `author_social_networks`, `author_social_auto_contexts`, `author_social_archive_position`; empty-link cleanup `author_social_cleanup`.
-- **Use:** `[smp_author_social_icons style="" size="" color="" networks="" class="" label=""]`.
+- **Use:** `[smp_author_social_icons style="" size="" color="" networks="" class="" label="" labels=""]`; `labels="short"` shows the short visible name (X instead of X (Twitter)) while the link's accessible name keeps the full one.
 - **Style:** `.smpi-author-social-icon`, `.smpi-author-social-label`.
 - **Code:** `src/Content/AuthorSocialIcons.php`
 
@@ -345,6 +345,10 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.9.28
+
+- `[smp_author_social_icons]` takes `labels="short"` to show X instead of X (Twitter); the link's accessible name is unchanged and the default label stays as before.
 
 ### 2.9.27
 
