@@ -345,6 +345,10 @@ The suite covers navigation, article defaults, article/FAQ output, authorship, t
 
 ## Changelog
 
+### 2.9.25
+
+- The public email never falls back to the WordPress admin email: with none saved, pages show info@ and the site's own domain.
+
 ### 2.9.20
 
 - The newest-story headline in a compact people list is wrapped in an inline span, so a page can fill the hover highlight along each line of the text instead of a block.
