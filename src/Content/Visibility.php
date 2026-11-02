@@ -201,6 +201,14 @@ final class Visibility {
         }
 
         $query->set( self::MANAGED_CONTEXT_QUERY_VAR, "single_recent" );
+
+        // A recent-articles module on an article never lists the article being read.
+        $current_id = function_exists( "get_queried_object_id" ) ? (int) get_queried_object_id() : 0;
+        if ( $current_id > 0 ) {
+            $excluded = array_map( "intval", (array) $query->get( "post__not_in" ) );
+            $excluded[] = $current_id;
+            $query->set( "post__not_in", array_values( array_unique( $excluded ) ) );
+        }
     }
 
     public function filter_press_release_where( string $where, \WP_Query $query ): string {

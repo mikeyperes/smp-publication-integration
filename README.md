@@ -346,6 +346,10 @@ The suite covers navigation, article defaults, article/FAQ output, authorship, t
 
 ## Changelog
 
+### 2.9.29
+
+- Recent-article modules on a single article (query ID `smpi_single_recent`) leave out the article being read.
+
 ### 2.9.28
 
 - `[smp_author_social_icons]` takes `labels="short"` to show X instead of X (Twitter); the link's accessible name is unchanged and the default label stays as before.
