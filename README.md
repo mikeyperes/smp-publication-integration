@@ -350,6 +350,10 @@ The suite covers navigation, article defaults, article/FAQ output, authorship, t
 
 ## Changelog
 
+### 2.9.31
+
+- Keeps publication-specific layouts and delegates native category and tag ownership to Base Tools.
+
 ### 2.9.29
 
 - Recent-article modules on a single article (query ID `smpi_single_recent`) leave out the article being read.
