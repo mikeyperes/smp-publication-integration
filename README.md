@@ -35,6 +35,10 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 
 - **People filter chips:** people lists accept `filter_layout="chips"` and `search_style="none"`; dropdown defaults stay unchanged. Unknown directory keys return no users. [Markup and binding](docs/people-filter-chips.md).
 
+### Sitemaps
+- **Does:** declares the Google News sitemap (on once Google News approves the outlet), the article type sitemap (usual rule) and the internal author assignments (off). The Sitemaps tab shows each one's Rank Math state, address and a turn on/off button; HWS Base Tools shows them read-only and links here.
+- **Code:** `src/Sitemaps/SitemapTypes.php` (Hexa WP Core `SitemapProviders`, `SitemapsPanel`).
+
 ### People row stacks and search
 - **Does:** Full-width person rows with photo, name, verified mark when verified, role, newest story category/title and date; newest-story ordering and paginated search.
 - **Switch:** Opt in with `layout="rows"`; existing layouts stay unchanged.
@@ -349,6 +353,10 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.10.0
+
+- Sitemaps tab and plugin-owned sitemap declarations (Hexa WP Core 3.51.0).
 
 ### 2.9.31
 

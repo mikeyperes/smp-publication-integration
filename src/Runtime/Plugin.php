@@ -39,7 +39,8 @@ final class Plugin {
         $bootstrap
             ->add_module( Content\PublicationContentTypes::content_types() )
             ->add_module( Content\PublicationContentTypes::acf_groups() )
-            ->add_module( Content\PublicationTaxonomies::registry() );
+            ->add_module( Content\PublicationTaxonomies::registry() )
+            ->add_module( new \smp_publication_integration\Sitemaps\SitemapTypes() );
 
         foreach ( $this->content_modules() as $module ) {
             $bootstrap->add_module( new RegisterMethodModule( $module ) );
