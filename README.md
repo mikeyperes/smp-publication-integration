@@ -27,6 +27,8 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 
 ## Features
 
+- Canonical page catalog: [src/Pages/PageTypes.php](src/Pages/PageTypes.php) defines titles, addresses, parents, designs, default states, conditions and content sources. Ordinary-page adapters preserve existing assignments; query layouts and repeated profiles stay outside page creation.
+
 - **People search text and visibility:** `placeholder` and `search_label` customize field text; `search="always"` keeps search visible on small lists. All defaults remain unchanged.
 
 - **People filter chips:** people lists accept `filter_layout="chips"` and `search_style="none"`; dropdown defaults stay unchanged. Unknown directory keys return no users. [Markup and binding](docs/people-filter-chips.md).

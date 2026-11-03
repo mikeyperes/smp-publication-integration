@@ -34,7 +34,7 @@ final class PageTypes {
     /**
      * @return array<string,array{label:string,group:string,slugs:array<int,string>,description:string,google_news?:bool,base_tools?:string,optional?:bool,requires?:string,source?:string}>
      */
-    public static function all(): array {
+    private static function page_definitions(): array {
         return [
             // About
             'powered_by_smp' => [ 'parent' => 'parent_organization', 'group' => 'about', 'label' => 'Powered by Scale My Publication', 'slugs' => [ 'powered-by-scale-my-publication', 'powered-by' ], 'description' => 'The platform the publication runs on.' ],
@@ -64,6 +64,28 @@ final class PageTypes {
             'submit_press_release' => [ 'group' => 'reader', 'label' => 'Submit Your Press Release', 'slugs' => [ 'submit-your-press-release', 'submit-a-press-release' ], 'description' => 'How to send a press release.' ],
             'advertise' => [ 'optional' => true, 'group' => 'reader', 'label' => 'Advertise', 'slugs' => [ 'advertise', 'advertise-with-us' ], 'description' => 'Advertising and partnership options.' ],
         ];
+    }
+
+    /** Complete catalog; WordPress query layouts are never created as ordinary pages. */
+    public static function definitions(): array {
+        $pages = self::page_definitions();
+        foreach ( $pages as $key => &$page ) {
+            $page += [ 'title' => $page['label'], 'slug' => $page['slugs'][0], 'parent' => '', 'design' => 'text', 'enabled_by_default' => empty( $page['optional'] ), 'conditions' => [], 'content_source' => 'PageTemplates::default_template(' . $key . ')', 'kind' => 'page' ];
+        }
+        unset( $page );
+        foreach ( [
+            'single_article' => [ 'Single article', '<article>', 'WordPress post query' ],
+            'author' => [ 'Author', 'author/<name>', 'WordPress author query' ],
+            'category' => [ 'Category', 'category/<name>', 'WordPress category query' ],
+            'tag' => [ 'Tag', 'tag/<name>', 'WordPress tag query' ],
+        ] as $key => $layout ) {
+            $pages[$key] = [ 'title' => $layout[0], 'label' => $layout[0], 'slug' => $layout[1], 'slugs' => [], 'parent' => '', 'design' => 'custom', 'enabled_by_default' => true, 'conditions' => [], 'content_source' => $layout[2], 'kind' => 'layout', 'group' => 'reader' ];
+        }
+        return $pages;
+    }
+
+    public static function all(): array {
+        return array_filter( self::definitions(), static fn( array $page ): bool => 'page' === $page['kind'] );
     }
 
     /** Pages HWS Base Tools owns: shown read-only on the Pages tab with a link to edit them there. */
