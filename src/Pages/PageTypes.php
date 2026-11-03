@@ -76,8 +76,6 @@ final class PageTypes {
         foreach ( [
             'single_article' => [ 'Single article', '<article>', 'WordPress post query' ],
             'author' => [ 'Author', 'author/<name>', 'WordPress author query' ],
-            'category' => [ 'Category', 'category/<name>', 'WordPress category query' ],
-            'tag' => [ 'Tag', 'tag/<name>', 'WordPress tag query' ],
         ] as $key => $layout ) {
             $pages[$key] = [ 'title' => $layout[0], 'label' => $layout[0], 'slug' => $layout[1], 'slugs' => [], 'parent' => '', 'design' => 'custom', 'enabled_by_default' => true, 'conditions' => [], 'content_source' => $layout[2], 'kind' => 'layout', 'group' => 'reader' ];
         }
