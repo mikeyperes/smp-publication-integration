@@ -27,6 +27,7 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 
 ## Features
 
+- Archive item summaries also preserve the article eligibility boundary, using WebPage for other content.
 - Article schema eligibility uses shared content-owner declarations and HWS site identity, preserving explicit editorial and press-release content across mixed-content sites.
 
 

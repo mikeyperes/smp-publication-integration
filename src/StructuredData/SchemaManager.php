@@ -555,7 +555,10 @@ class SchemaManager {
     /** A short Article entry for item lists. */
     private function article_summary( \WP_Post $post ): array {
         $url = (string) get_permalink( $post );
-        $type = \smp_publication_integration\Content\ArticleEligibility::allows( $post ) ? ArticleTypes::schema_type_for_post( (int) $post->ID ) : "WebPage";
+        if (!\smp_publication_integration\Content\ArticleEligibility::allows($post)) {
+            return SchemaSources::post_page($post);
+        }
+        $type = ArticleTypes::schema_type_for_post((int)$post->ID);
         return SchemaNodes::article(
             [
                 "@id" => SchemaIds::article( $url ),
