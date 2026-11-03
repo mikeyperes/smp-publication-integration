@@ -99,7 +99,7 @@ class SchemaManager {
             if ( ! $post instanceof \WP_Post || in_array( $post->post_type, self::NO_SCHEMA_POST_TYPES, true ) ) {
                 return [];
             }
-            return in_array( $post->post_type, PublicationContentTypes::active_article_post_types(), true )
+            return \smp_publication_integration\Content\ArticleEligibility::allows( $post )
                 ? $this->article_nodes( $post )
                 : $this->page_nodes( $post );
         }
@@ -183,7 +183,7 @@ class SchemaManager {
         if ( ! $post ) {
             return $this->generate_home_schema_array();
         }
-        $nodes = in_array( $post->post_type, PublicationContentTypes::active_article_post_types(), true )
+        $nodes = \smp_publication_integration\Content\ArticleEligibility::allows( $post )
             ? $this->article_nodes( $post )
             : $this->page_nodes( $post );
         return self::document( $nodes );
@@ -288,7 +288,7 @@ class SchemaManager {
         $home = SchemaIds::home();
         $list_id = $home . "#homepage-itemlist";
         $posts = get_posts( [ "post_type" => PublicationContentTypes::active_article_post_types(), "post_status" => "publish", "posts_per_page" => 20, "ignore_sticky_posts" => true, "suppress_filters" => false ] );
-        $list = SchemaNodes::item_list( array_map( [ $this, "article_summary" ], $posts ), $list_id, "descending" );
+        $list = SchemaNodes::item_list( array_map( [ $this, "article_summary" ], array_values(array_filter($posts, [\smp_publication_integration\Content\ArticleEligibility::class, "allows"])) ), $list_id, "descending" );
 
         $page = SchemaNodes::web_page(
             [
@@ -555,7 +555,7 @@ class SchemaManager {
     /** A short Article entry for item lists. */
     private function article_summary( \WP_Post $post ): array {
         $url = (string) get_permalink( $post );
-        $type = in_array( $post->post_type, PublicationContentTypes::active_article_post_types(), true ) ? ArticleTypes::schema_type_for_post( (int) $post->ID ) : "WebPage";
+        $type = \smp_publication_integration\Content\ArticleEligibility::allows( $post ) ? ArticleTypes::schema_type_for_post( (int) $post->ID ) : "WebPage";
         return SchemaNodes::article(
             [
                 "@id" => SchemaIds::article( $url ),

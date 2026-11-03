@@ -1,0 +1,1 @@
+SchemaSources::content_type is authoritative. Content owners return their schema.org type via hexa_plugin_core_content_schema_type. Non-article declarations exclude article schema. News outlet/blog posts retain article defaults; other sites require an explicit editorial classification. Press releases retain article schema.\n
