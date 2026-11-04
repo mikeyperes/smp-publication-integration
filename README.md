@@ -27,6 +27,9 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 
 ## Features
 
+- **Row latest stories:** row layouts include a linked story thumbnail, body wrapper and title span; compact mode is unchanged. [Markup](docs/contributors.md#row-latest-story-markup).
+- **Leadership masthead year:** opt in with `masthead_since="1"` to show the saved company founding year beside each leader, using the draft-compatible `tm-since`, `tm-lbl` and `tm-val` classes. Off by default; omitted if the founding date is missing. [Usage](docs/executive-leadership.md#masthead-since).
+
 - Archive item summaries also preserve the article eligibility boundary, using WebPage for other content.
 - Article schema eligibility uses shared content-owner declarations and HWS site identity, preserving explicit editorial and press-release content across mixed-content sites.
 

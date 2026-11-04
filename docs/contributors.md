@@ -80,3 +80,12 @@ Use `layout="rows" orderby="newest_story" per_page="10" pagination="load_more" h
 SMP supplies the exact list after its photo/article filters, plus Byline writers (published article authors), Contributors (saved list including additions/exclusions) and Staff (saved list). Filters intersect this list, never expose unrelated accounts, and match display names or public slugs only. Multiple selected groups use OR. `[hws_search profile="people" directory="people"]` renders the union; directory may also be `byline`, `contributor`, or `staff`.
 
 HTML: `.smpi-contributors--row-layout / .smpi-staff--row-layout / .smpi-leadership--row-layout` identifies row markup (use the actual block prefix); each article has `__head` (photo and `__id` with name/role) and `__latest` (label, title and `__latest-meta` with category/date). `style="none"` emits the same markup without built-in CSS. The search owns `.hls-wrap`, `.hls-results`, `.hls-list`, `.hls-more` and `.hls-pages`; render scoped custom CSS against those wrappers. Assets appear only in shortcode output.
+
+## Row latest-story markup
+
+`layout="rows"` uses `PeopleCards::latest_row()`, independently of `latest="compact"`.
+Each `__latest` contains a linked `__latest-photo` (when the story has a featured image)
+and `__latest-body`. The body contains `__latest-label`, a heading
+`__latest-title > a > span`, and `__latest-meta` with category and date.
+No latest-story block is emitted for a person without published stories.
+No placeholder photo is inserted. Other layouts' compact markup is unchanged.

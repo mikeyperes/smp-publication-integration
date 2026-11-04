@@ -171,9 +171,11 @@ final class PeopleCards {
                 $parts['bio'] = '<p class="' . esc_attr( $item ) . '__bio">' . esc_html( $bio ) . '</p>';
             }
             if ( $on( 'latest' ) ) {
-                $parts['latest'] = $rows || 'compact' === (string) $atts['latest']
-                    ? self::latest_compact( $id, $types, $item, $headed ? $sub : '' )
-                    : self::latest( $id, $types, $item, $name, '' !== $photo ? $fields->image_url( $id, 'thumbnail' ) : '', $on( 'badge' ) );
+                $parts['latest'] = $rows
+                    ? self::latest_row( $id, $types, $item, $sub )
+                    : ( 'compact' === (string) $atts['latest']
+                        ? self::latest_compact( $id, $types, $item, $headed ? $sub : '' )
+                        : self::latest( $id, $types, $item, $name, '' !== $photo ? $fields->image_url( $id, 'thumbnail' ) : '', $on( 'badge' ) ) );
             }
             if ( $show( 'link' ) && $link ) {
                 $parts['link'] = '<a class="' . esc_attr( $item ) . '__link" href="' . esc_url( $url ) . '">View profile</a>';
@@ -197,14 +199,14 @@ final class PeopleCards {
                 foreach ( array_diff( $order, [ 'name', 'title', 'topics', 'count', 'bio' ] ) as $key ) {
                     $people .= $parts[ $key ] ?? '';
                 }
-                $people .= '</article>';
+                $people .= ( $list['footer'] ?? '' ) . '</article>';
                 continue;
             }
             $people .= '<div class="' . esc_attr( $item ) . '__body">';
             foreach ( $order as $key ) {
                 $people .= $parts[ $key ] ?? '';
             }
-            $people .= '</div></article>';
+            $people .= '</div>' . ( $list['footer'] ?? '' ) . '</article>';
         }
 
         $css = '';
@@ -303,6 +305,29 @@ final class PeopleCards {
         }
         $html .= '<time class="' . esc_attr( $item ) . '__latest-date" datetime="' . esc_attr( get_the_date( 'c', $post ) ) . '">' . esc_html( get_the_date( '', $post ) ) . '</time>';
         return $html . '</div></div></div>';
+    }
+
+    /** Row-only latest story: thumbnail and body; compact output stays unchanged. */
+    private static function latest_row( int $user_id, array $types, string $item, string $tag ): string {
+        $posts = get_posts( [ 'author' => $user_id, 'post_type' => $types, 'post_status' => 'publish', 'posts_per_page' => 1, 'no_found_rows' => true ] );
+        if ( ! $posts ) {
+            return '';
+        }
+        $post = $posts[0];
+        $url  = get_permalink( $post );
+        $cats = get_the_category( $post->ID );
+        $html = '<div class="' . esc_attr( $item ) . '__latest">';
+        $thumb = get_the_post_thumbnail( $post, 'medium', [ 'class' => $item . '__latest-image', 'loading' => 'lazy', 'decoding' => 'async' ] );
+        if ( '' !== $thumb ) {
+            $html .= '<a class="' . esc_attr( $item ) . '__latest-photo" href="' . esc_url( $url ) . '" tabindex="-1" aria-hidden="true">' . $thumb . '</a>';
+        }
+        $html .= '<div class="' . esc_attr( $item ) . '__latest-body"><span class="' . esc_attr( $item ) . '__latest-label">Latest story</span>';
+        $html .= '<' . $tag . ' class="' . esc_attr( $item ) . '__latest-title"><a href="' . esc_url( $url ) . '"><span>' . esc_html( get_the_title( $post ) ) . '</span></a></' . $tag . '>';
+        $html .= '<span class="' . esc_attr( $item ) . '__latest-meta">';
+        if ( $cats ) {
+            $html .= '<a class="' . esc_attr( $item ) . '__latest-section" href="' . esc_url( get_category_link( $cats[0] ) ) . '">' . esc_html( $cats[0]->name ) . '</a><span class="' . esc_attr( $item ) . '__latest-sep" aria-hidden="true"></span>';
+        }
+        return $html . '<time class="' . esc_attr( $item ) . '__latest-date" datetime="' . esc_attr( get_the_date( 'c', $post ) ) . '">' . esc_html( mysql2date( 'M j, Y', $post->post_date ) ) . '</time></span></div></div>';
     }
 
     /** The newest story as one line: label, headline and date; "" when there is none. */

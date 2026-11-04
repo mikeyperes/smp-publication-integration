@@ -50,3 +50,17 @@
 Printed once per page as `<style id="smpi-leadership-css">` (the tab shows the current copy under **Built-in CSS**). It inherits the site's fonts and colours; columns come from `--smpi-leadership-columns`. Every rule is one class, so site CSS or an Elementor widget's Custom CSS (`selector .smpi-leader__title{…}`) overrides it.
 
 Code: `src/Content/ExecutiveLeadership.php` (data, fields, shortcode, page) and `src/Admin/ExecutiveLeadershipTab.php` (tab).
+
+## Masthead since
+
+Enable with `[smpi_executive_leadership masthead_since="1"]`; the default is off.
+Each leader receives this sibling after the identity body:
+
+```html
+<p class="smpi-leader__masthead-since tm-since"><span class="tm-lbl">On the masthead since</span><span class="tm-val">{founding year}</span></p>
+```
+
+The year comes from `CompanyFacts::value('founding_date')`, the existing company
+facts reader backed by HWS Base Tools site identity. It is the publication's founding
+year, not a separately maintained personal join date. A missing or unsupported date
+omits the line. No page content or saved settings are changed by the update.

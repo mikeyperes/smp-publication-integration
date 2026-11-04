@@ -3,6 +3,7 @@
 namespace smp_publication_integration\Content;
 
 use smp_publication_integration\Content\People\PeopleCards;
+use smp_publication_integration\Pages\CompanyFacts;
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
@@ -137,8 +138,15 @@ final class ExecutiveLeadership {
         if ( ! self::enabled() ) {
             return '';
         }
-        $atts = shortcode_atts( PeopleCards::ATTRIBUTES, (array) $atts, self::SHORTCODE );
-        return PeopleCards::render( self::member_ids(), $atts, [ 'block' => 'smpi-leadership', 'item' => 'smpi-leader', 'style' => self::settings()['style'], 'title' => [ self::class, 'title' ] ] );
+        $atts = shortcode_atts( array_merge( PeopleCards::ATTRIBUTES, [ 'masthead_since' => '0' ] ), (array) $atts, self::SHORTCODE );
+        $footer = '';
+        if ( '1' === (string) $atts['masthead_since'] ) {
+            $date = trim( (string) CompanyFacts::value( 'founding_date' ) );
+            if ( preg_match( '/^([1-9][0-9]{3})(?:$|[-\/])/', $date, $match ) ) {
+                $footer = '<p class="smpi-leader__masthead-since tm-since"><span class="tm-lbl">' . esc_html__( 'On the masthead since', 'smp-publication-integration' ) . '</span><span class="tm-val">' . esc_html( $match[1] ) . '</span></p>';
+            }
+        }
+        return PeopleCards::render( self::member_ids(), $atts, [ 'block' => 'smpi-leadership', 'item' => 'smpi-leader', 'style' => self::settings()['style'], 'title' => [ self::class, 'title' ], 'footer' => $footer ] );
     }
 
     public static function css(): string {
