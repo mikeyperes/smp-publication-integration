@@ -66,3 +66,18 @@ Use `layout="rows" orderby="newest_story" per_page="10" pagination="load_more" h
 SMP supplies the exact list after its photo/article filters, plus Byline writers (published article authors), Contributors (saved list including additions/exclusions) and Staff (saved list). Filters intersect this list, never expose unrelated accounts, and match display names or public slugs only. Multiple selected groups use OR. `[hws_search profile="people" directory="people"]` renders the union; directory may also be `byline`, `contributor`, or `staff`.
 
 HTML: `.smpi-contributors--row-layout / .smpi-staff--row-layout / .smpi-leadership--row-layout` identifies row markup (use the actual block prefix); each article has `__head` (photo and `__id` with name/role) and `__latest` (label, title and `__latest-meta` with category/date). `style="none"` emits the same markup without built-in CSS. The search owns `.hls-wrap`, `.hls-results`, `.hls-list`, `.hls-more` and `.hls-pages`; render scoped custom CSS against those wrappers. Assets appear only in shortcode output.
+
+## Numeric photo sizes
+
+Use `[smpi_staff photo_size="96"]` (or any positive integer pixel size).
+The shared people renderer also accepts this on Contributors and Executive Leadership.
+
+Numeric sizes are passed to WordPress for real and default avatars alike.
+Explicit attachment photos request `[96, 96]` through WordPress image selection,
+and explicit avatar metadata prefers an available matching numeric URL variant.
+Existing named sizes, including `thumbnail` (150px for avatars), retain their behavior.
+
+WordPress selects existing attachment derivatives; this option does not create
+new image files. A direct external photo URL without size variants is returned
+unchanged because the plugin cannot resize an arbitrary remote URL.
+No page, saved setting or cache is changed when installing this update.

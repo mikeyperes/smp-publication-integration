@@ -27,6 +27,8 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 
 ## Features
 
+- **Numeric people-photo sizes:** `photo_size="96"` requests 96px real or fallback avatars and square WordPress attachment sizes. Existing named sizes are unchanged. [Usage and image-source limits](docs/staff.md#numeric-photo-sizes).
+
 - **Row latest stories:** row layouts include a linked story thumbnail, body wrapper and title span; compact mode is unchanged. [Markup](docs/contributors.md#row-latest-story-markup).
 - **Leadership masthead year:** opt in with `masthead_since="1"` to show the saved company founding year beside each leader, using the draft-compatible `tm-since`, `tm-lbl` and `tm-val` classes. Off by default; omitted if the founding date is missing. [Usage](docs/executive-leadership.md#masthead-since).
 

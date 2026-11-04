@@ -151,7 +151,8 @@ final class AuthorFieldResolver {
             return $explicit_url;
         }
         $pixels = [ "thumbnail" => 150, "medium" => 300, "medium_large" => 768, "large" => 1024, "full" => 1024 ];
-        $url = get_avatar_url( $user_id, [ "size" => $pixels[ $size ] ?? 150 ] );
+        $numeric_size = ctype_digit( $size ) && (int) $size > 0 ? (int) $size : 0;
+        $url = get_avatar_url( $user_id, [ "size" => $numeric_size ?: ( $pixels[ $size ] ?? 150 ) ] );
         return is_string( $url ) ? $url : "";
     }
 
@@ -224,13 +225,23 @@ final class AuthorFieldResolver {
 
         $attachment_id = $this->image_value_to_attachment_id( $value );
         if ( 0 < $attachment_id ) {
-            $url = wp_get_attachment_image_url( $attachment_id, $size );
+            $numeric_size = ctype_digit( $size ) && (int) $size > 0 ? (int) $size : 0;
+            $url = wp_get_attachment_image_url( $attachment_id, $numeric_size ? [ $numeric_size, $numeric_size ] : $size );
             if ( is_string( $url ) && "" !== $url ) {
                 return $url;
             }
         }
 
         if ( is_array( $value ) ) {
+            // Numeric requests prefer the matching avatar variant before legacy array fallbacks.
+            // Named sizes keep their existing precedence and URL selection.
+            if ( ctype_digit( $size ) && (int) $size > 0 ) {
+                foreach ( [ $value["sizes"] ?? [], $value ] as $variants ) {
+                    if ( is_array( $variants ) && isset( $variants[ $size ] ) && is_string( $variants[ $size ] ) && filter_var( $variants[ $size ], FILTER_VALIDATE_URL ) ) {
+                        return $variants[ $size ];
+                    }
+                }
+            }
             if ( isset( $value["sizes"][ $size ] ) && is_string( $value["sizes"][ $size ] ) ) {
                 return $value["sizes"][ $size ];
             }
