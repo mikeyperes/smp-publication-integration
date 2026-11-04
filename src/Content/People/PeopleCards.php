@@ -172,7 +172,7 @@ final class PeopleCards {
                 $parts['bio'] = '<p class="' . esc_attr( $item ) . '__bio">' . esc_html( $bio ) . '</p>';
             }
             if ( $on( 'latest' ) ) {
-                $parts['latest'] = $rows
+                $parts['latest'] = $rows && 'compact' !== (string) $atts['latest']
                     ? self::latest_row( $id, $types, $item, $sub )
                     : ( 'compact' === (string) $atts['latest']
                         ? self::latest_compact( $id, $types, $item, $headed ? $sub : '' )

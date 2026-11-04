@@ -102,3 +102,7 @@ No additional styling or assets are loaded. The host design styles `mh-go`.
 The Staff draft itself has no trailing arrow; the option is available wherever
 its people rows need the Masthead design. Installing this update changes no page
 or saved setting and requires no cache clearing.
+
+## Compact row stories
+
+Use `[smpi_staff layout="rows" latest="compact" profile_arrow="1"]`. Explicit compact takes precedence over the row photo/body variant. Directory render callbacks retain these attributes for paged items. The profile arrow remains optional and requires profile links to be enabled. No page or cache changes are made by this release.
