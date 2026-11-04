@@ -81,3 +81,24 @@ WordPress selects existing attachment derivatives; this option does not create
 new image files. A direct external photo URL without size variants is returned
 unchanged because the plugin cannot resize an arbitrary remote URL.
 No page, saved setting or cache is changed when installing this update.
+
+## Row profile arrow
+
+Enable with `[smpi_staff layout="rows" profile_arrow="1"]`, preserving the page's
+other attributes. Contributors and Executive Leadership share this option.
+The default is `profile_arrow="0"`, preserving existing output byte for byte.
+The option is ignored outside row layouts and suppressed by `link="none"`.
+`hide="link"` hides the ordinary View profile text but does not hide an explicitly
+enabled profile arrow. It remains after all row content, including optional footers.
+
+The trailing markup is the Masthead draft's decorative duplicate of the person's
+existing name/photo link (therefore outside the tab order and accessibility tree):
+
+```html
+<a class="mh-go" href="{author-profile-url}" tabindex="-1" aria-hidden="true"><svg data-arrow aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 12h11M12.5 7.5 17 12l-4.5 4.5"/></svg></a>
+```
+
+No additional styling or assets are loaded. The host design styles `mh-go`.
+The Staff draft itself has no trailing arrow; the option is available wherever
+its people rows need the Masthead design. Installing this update changes no page
+or saved setting and requires no cache clearing.

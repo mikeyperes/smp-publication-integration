@@ -27,6 +27,8 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 
 ## Features
 
+- **Optional row profile arrow:** `layout="rows" profile_arrow="1"` appends the draft-compatible `mh-go` link and 16px SVG after each person's row content. Off by default; `link="none"` suppresses it. [Markup and usage](docs/staff.md#row-profile-arrow).
+
 - **Numeric people-photo sizes:** `photo_size="96"` requests 96px real or fallback avatars and square WordPress attachment sizes. Existing named sizes are unchanged. [Usage and image-source limits](docs/staff.md#numeric-photo-sizes).
 
 - **Row latest stories:** row layouts include a linked story thumbnail, body wrapper and title span; compact mode is unchanged. [Markup](docs/contributors.md#row-latest-story-markup).

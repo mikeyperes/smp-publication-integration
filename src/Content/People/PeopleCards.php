@@ -37,6 +37,7 @@ final class PeopleCards {
         'limit'      => 0,
         'hide'       => '',
         'link'       => 'profile',
+        'profile_arrow' => '0',
         'bio_words'  => 30,
         'photo_size' => 'medium',
         'heading'    => 'h3',
@@ -199,7 +200,12 @@ final class PeopleCards {
                 foreach ( array_diff( $order, [ 'name', 'title', 'topics', 'count', 'bio' ] ) as $key ) {
                     $people .= $parts[ $key ] ?? '';
                 }
-                $people .= ( $list['footer'] ?? '' ) . '</article>';
+                $people .= $list['footer'] ?? '';
+                if ( $rows && $link && '1' === (string) ( $atts['profile_arrow'] ?? '0' ) ) {
+                    // Optional trailing profile link, matching the masthead row's decorative arrow.
+                    $people .= '<a class="mh-go" href="' . esc_url( $url ) . '" tabindex="-1" aria-hidden="true"><svg data-arrow aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 12h11M12.5 7.5 17 12l-4.5 4.5"/></svg></a>';
+                }
+                $people .= '</article>';
                 continue;
             }
             $people .= '<div class="' . esc_attr( $item ) . '__body">';
