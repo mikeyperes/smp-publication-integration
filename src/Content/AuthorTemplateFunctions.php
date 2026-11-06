@@ -6,6 +6,13 @@ if ( ! defined( "ABSPATH" ) ) {
 use smp_publication_integration\Authorship\AuthorListFormatter;
 use smp_publication_integration\Content\MultiAuthors;
 
+if ( ! function_exists( "smp_author_has_photo" ) ) {
+    /** True only for a personal photo, independently of the visibility setting. */
+    function smp_author_has_photo( $user_id ): bool {
+        return \smp_publication_integration\Authorship\AuthorPhoto::has_photo( (int) $user_id );
+    }
+}
+
 if ( ! function_exists( "smpi_resolve_journalist_post_id" ) ) {
     function smpi_resolve_journalist_post_id( $post_id = 0 ): int {
         $post_id = absint( $post_id );

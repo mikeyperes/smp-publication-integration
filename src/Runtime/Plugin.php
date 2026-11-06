@@ -102,6 +102,7 @@ final class Plugin {
             new Pages\LatestPressReleases(),
             new Pages\PageParents(),
             new Content\MultiAuthors(),
+            new Content\AuthorPhotoVisibility(),
             new Content\AuthorShortcodes(),
             new Content\AuthorSocialIcons(),
             new Content\AuthorListings(),

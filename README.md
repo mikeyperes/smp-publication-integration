@@ -27,6 +27,8 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 
 ## Features
 
+- **Hide missing author photos:** Features > Authors and verification includes "Hide author photo when the author has none", on by default. Removes default portraits and empty image wrappers in post bylines, author boxes, Elementor loops and homepage listings. `smp_author_has_photo($user_id)` reports real-photo presence independently of the setting. [Behavior and markup](docs/author-photo-visibility.md).
+
 - **Compact people rows:** explicit `layout="rows" latest="compact"` retains compact story markup, including paged items. Add `profile_arrow="1"` for the trailing profile arrow (off by default).
 
 - **Optional row profile arrow:** `layout="rows" profile_arrow="1"` appends the draft-compatible `mh-go` link and 16px SVG after each person's row content. Off by default; `link="none"` suppresses it. [Markup and usage](docs/staff.md#row-profile-arrow).
@@ -264,7 +266,7 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `2.8.1`
+- Version: `2.12.4`
 
 ## Ownership
 

@@ -224,6 +224,9 @@ final class ElementorAuthorRenderer {
             if ( ! $image instanceof \DOMElement ) {
                 continue;
             }
+            if ( $image->hasAttribute( "data-smpi-author-id" ) ) {
+                $image->setAttribute( "data-smpi-author-id", (string) $author["id"] );
+            }
             foreach ( [ "src", "srcset", "data-src", "data-srcset" ] as $attribute ) {
                 $value = $image->getAttribute( $attribute );
                 if ( "" !== $value && ! empty( $replacements ) ) {

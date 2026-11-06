@@ -258,6 +258,7 @@ trait ArticleDesignTab {
 
     private function render_author_feature_group( array $settings ): void {
         $this->feature_group_open( "authors-verification", "Authors and verification", "Author assignment and MuckRack verification output." );
+        echo $this->inline_toggle_setting_html( "hide_author_photo_when_missing", "Hide author photo when the author has none" );
 
         $author_social_contexts = isset( $settings["author_social_auto_contexts"] ) && is_array( $settings["author_social_auto_contexts"] )
             ? $settings["author_social_auto_contexts"]

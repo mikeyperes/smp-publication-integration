@@ -249,7 +249,7 @@ final class AuthorShortcodes {
                 }
             }
         }
-        return sprintf( "<img class=\"%s\" src=\"%s\" alt=\"%s\" %s decoding=\"async\"%s>", esc_attr( (string) $atts["class"] ), esc_url( $url ), esc_attr( $name ), $loading, $responsive );
+        return sprintf( "<img data-smpi-author-id=\"%d\" class=\"%s\" src=\"%s\" alt=\"%s\" %s decoding=\"async\"%s>", $author_id, esc_attr( (string) $atts["class"] ), esc_url( $url ), esc_attr( $name ), $loading, $responsive );
     }
 
     private function render_author_text( string $key, array $atts = [] ): string {
