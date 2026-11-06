@@ -233,7 +233,7 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 - **Switch:** `post_featured_image_required`, `hide_home_posts_without_featured_image`, post time display `post_time_mode`, Elementor CSS cache busting `elementor_css_cache_busting`.
 
 ### Elementor CSS and the page cache
-- **Does:** adds each Elementor CSS file's change time to its link (with `elementor_css_cache_busting` on), and whenever Elementor clears its CSS cache also clears the LiteSpeed page cache, so no cached page links a deleted CSS file and shows unstyled.
+- **Does:** adds each Elementor CSS file's change time to its link (with `elementor_css_cache_busting` on), and whenever Elementor clears its CSS cache (every Site Settings save) rebuilds the Elementor CSS files (pages, templates, the site kit and loop items) in the same request, so cached pages keep linking working CSS. It never clears the whole page cache: it removes LiteSpeed Cache's built-in Elementor listener that would purge everything on that event.
 - **Code:** `src/Content/ElementorCssCacheBusting.php`
 
 ### Admin code and shortcode displays
@@ -266,7 +266,7 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 - Plugin slug: `smp-publication-integration`
 - Namespace: `smp_publication_integration`
 - GitHub branch: `main`
-- Version: `2.12.4`
+- Version: `2.12.5`
 
 ## Ownership
 

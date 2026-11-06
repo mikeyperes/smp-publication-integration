@@ -9,18 +9,46 @@ if ( ! defined( "ABSPATH" ) ) {
 }
 
 final class ElementorCssCacheBusting {
+    private const LITESPEED_ELEMENTOR_PURGE_ALL = "LiteSpeed\\Thirdparty\\Elementor::regenerate_litespeed_cache";
+    private const LOOP_CSS_CLASS = "ElementorPro\\Modules\\LoopBuilder\\Files\\Css\\Loop";
+
     public function register(): void {
         add_filter( "style_loader_src", [ $this, "bust_elementor_upload_css" ], 9999, 1 );
-        add_action( "elementor/core/files/clear_cache", [ $this, "purge_page_cache" ] );
+        add_action( "elementor/core/files/clear_cache", [ $this, "rebuild_css_files" ], 1 );
     }
 
     /**
-     * Elementor deletes every generated CSS file when its cache is cleared, while cached pages
-     * still link the deleted files and show unstyled until each page is rebuilt. Clearing the
-     * page cache at the same moment makes every page rebuild with fresh CSS.
+     * Elementor deletes every generated CSS file when its cache is cleared (each Site Settings
+     * save does this), while cached pages still link the deleted files. Rebuilding the files in
+     * the same request keeps cached pages styled, so LiteSpeed's built-in listener that purges
+     * the whole page cache on this event is removed instead of emptying every cached page.
      */
-    public function purge_page_cache(): void {
-        do_action( "litespeed_purge_all" );
+    public function rebuild_css_files(): void {
+        $files_manager = class_exists( "\\Elementor\\Plugin" ) && isset( \Elementor\Plugin::$instance->files_manager ) ? \Elementor\Plugin::$instance->files_manager : null;
+        if ( ! is_object( $files_manager ) || ! method_exists( $files_manager, "generate_css" ) ) {
+            return;
+        }
+        remove_action( "elementor/core/files/clear_cache", self::LITESPEED_ELEMENTOR_PURGE_ALL );
+        $files_manager->generate_css();
+        $this->rebuild_loop_css_files();
+    }
+
+    private function rebuild_loop_css_files(): void {
+        $loop_css_class = self::LOOP_CSS_CLASS;
+        if ( ! class_exists( $loop_css_class ) ) {
+            return;
+        }
+        $template_ids = get_posts( [
+            "post_type" => "elementor_library",
+            "post_status" => "publish",
+            "numberposts" => -1,
+            "fields" => "ids",
+            "meta_key" => "_elementor_template_type",
+            "meta_value" => "loop-item",
+        ] );
+        foreach ( $template_ids as $template_id ) {
+            $loop_css_class::create( (int) $template_id )->update();
+        }
     }
 
     public function bust_elementor_upload_css( string $src ): string {
