@@ -1,6 +1,12 @@
+# 3.56.1
+
+- Term choice limits skip anonymous, CLI and cron saves, preserve excluded mandatory terms, and accept a host ownership predicate.
+
 # Hexa WordPress Plugin Core changelog
 
 Release notes moved from the README (3.31.1). Newest first; each Core release adds its line here.
+
+Version 3.56.0: name-to-slug conversion: `DataNormalization\SlugConverter` (PHP, with an identical browser twin) and `WpAdminComponents\SlugField`, a name box whose slug box fills in live as you type.
 
 Version 3.55.0: every plugin dashboard with the sidebar layout gets a search box at the top of its sidebar that filters the sections as you type (by section name, ID or group name); Enter opens the first match, Escape clears it.
 
