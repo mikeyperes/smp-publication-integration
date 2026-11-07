@@ -51,7 +51,7 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 - **People filter chips:** people lists accept `filter_layout="chips"` and `search_style="none"`; dropdown defaults stay unchanged. Unknown directory keys return no users. [Markup and binding](docs/people-filter-chips.md).
 
 ### Sitemaps
-- **Does:** declares the Google News sitemap (on once Google News approves the outlet), the article type sitemap (usual rule) and the internal author assignments (off). The Sitemaps tab shows each one's Rank Math state, address and a turn on/off button; HWS Base Tools shows them read-only and links here.
+- **Does:** declares the Google News sitemap (always recommended on a news site), the article type sitemap (usual rule) and the internal author assignments (off). The Sitemaps tab shows each one's Rank Math state, address and a turn on/off button; HWS Base Tools shows them read-only and links here.
 - **Code:** `src/Sitemaps/SitemapTypes.php` (Hexa WP Core `SitemapProviders`, `SitemapsPanel`).
 
 ### People row stacks and search

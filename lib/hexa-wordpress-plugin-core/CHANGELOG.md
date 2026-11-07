@@ -1,3 +1,7 @@
+# 3.57.0
+
+- Sitemap recommendations ignore Rank Math's noindex. Each row reports `hidden_from_google` with a warning when a recommended sitemap's pages are hidden, and turning a content-type, taxonomy or author sitemap on also makes its pages visible to Google (Titles & Meta robots set to index), so the sitemap actually appears.
+
 # 3.56.1
 
 - Term choice limits skip anonymous, CLI and cron saves, preserve excluded mandatory terms, and accept a host ownership predicate.

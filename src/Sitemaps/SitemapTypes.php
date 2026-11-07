@@ -20,7 +20,7 @@ final class SitemapTypes implements ModuleInterface {
 
     public static function definitions(): array {
         return [
-            [ "id" => "news", "recommended" => static fn() => (bool) get_option( "hws_base_tools_google_news_approved", false ), "why" => "On once Google News has approved the outlet (marked in HWS Base Tools)." ],
+            [ "id" => "news", "recommended" => true, "why" => "On for every news site; Google reads it whether or not Google News has approved the outlet." ],
             [ "id" => "taxonomy_" . ArticleTypes::TAXONOMY, "recommended" => static fn( array $row ) => ! empty( $row["recommended"] ), "why" => "Article type archives follow the usual rule: on when there are more than a few." ],
             [ "id" => "taxonomy_" . AuthorAssignmentRepository::TAXONOMY, "recommended" => false, "why" => "Internal author assignments; the Authors sitemap covers author pages." ],
         ];
