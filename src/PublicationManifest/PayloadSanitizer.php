@@ -17,7 +17,7 @@ final class PayloadSanitizer {
         $allowed_roots = [
             'api_version', 'plugin', 'publication', 'homepage', 'taxonomies', 'recent_content',
             'authors', 'post_types', 'publishing_requirements', 'media', 'seo', 'schema',
-            'delivery_capabilities', 'meta',
+            'delivery_capabilities', 'article_configuration', 'meta',
         ];
 
         $clean = [];

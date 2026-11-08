@@ -28,6 +28,7 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 ## Features
 
 ### Dynamic article types and feature policy
+- **Manifest:** the public publication manifest includes selected article types and enabled types per feature; nested values pass through the standard recursive sanitizer.
 - **Does:** lets administrators choose any registered public post type as an article, with independent feature switches per type. Disabling retains saved article content, metadata, and field values.
 - **Switch:** Settings > SMP Publication Integration > Custom Post Types > Article content types and features (`smpi_article_configuration`). The plain grid is a placeholder for later interface design.
 - **Use:** automatic. Both `PublicationContentTypes::article_post_types()` and `active_article_post_types()` return the same selected, registered public types. Consumers use `ArticleFeatures::types()`, `enabled()` or `setting()` for feature policy, with explicit post IDs for batch/shortcode/REST use.
