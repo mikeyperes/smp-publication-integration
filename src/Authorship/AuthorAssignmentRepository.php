@@ -51,11 +51,11 @@ final class AuthorAssignmentRepository {
     }
 
     public static function supported_post_types(): array {
-        $types = apply_filters( "smpi_multi_author_post_types", PublicationContentTypes::active_article_post_types() );
+        $types = apply_filters( "smpi_multi_author_post_types", \smp_publication_integration\Content\ArticleFeatures::types( "multiple_authors" ) );
         if ( ! is_array( $types ) ) {
             return [ "post" ];
         }
-        return array_values( array_unique( array_filter( array_map( "sanitize_key", $types ) ) ) );
+        return array_values( array_intersect( \smp_publication_integration\Content\ArticleFeatures::types( "multiple_authors" ), array_unique( array_filter( array_map( "sanitize_key", $types ) ) ) ) );
     }
 
     public function supports( $post ): bool {

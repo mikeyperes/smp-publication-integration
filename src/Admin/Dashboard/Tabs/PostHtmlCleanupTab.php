@@ -55,20 +55,7 @@ final class PostHtmlCleanupTab {
                 <?php echo $this->rule_card( "post_hygiene_clean_heading_children", "Clean heading children", "Flatten spans, font tags, and basic wrappers inside headings." ); ?>
             </div>
 
-            <div class="smpi-feature-card">
-                <h3>Allowed Post Types</h3>
-                <p>Cleanup is intentionally limited. It skips Elementor library items, revisions, nav menu items, ACF field records, and posts with Elementor builder data.</p>
-                <div class="smpi-choice-grid smpi-choice-grid--one">
-                    <?php foreach ( $post_types as $type => $object ) : ?>
-                        <?php if ( ! $object ) { continue; } ?>
-                        <label class="smpi-choice-card <?php echo in_array( $type, $allowed_post_types, true ) ? "is-selected" : ""; ?>">
-                            <input class="smpi-setting-array" type="checkbox" data-key="post_hygiene_allowed_post_types" value="<?php echo esc_attr( $type ); ?>" <?php checked( in_array( $type, $allowed_post_types, true ) ); ?>>
-                            <span class="smpi-choice-body"><strong><?php echo esc_html( $object->labels->singular_name ?? $type ); ?></strong><small><?php echo esc_html( $type ); ?></small></span>
-                            <?php if ( in_array( $type, $allowed_post_types, true ) ) : ?><span class="smpi-selected-pill">Selected</span><?php endif; ?>
-                        </label>
-                    <?php endforeach; ?>
-                </div>
-            </div>
+            <p>Choose cleanup content types in <a href="<?php echo esc_url( admin_url( 'options-general.php?page=smp-publication-integration&tab=custom_post_types' ) ); ?>">Article content types and features</a>.</p>
 
             <div class="smpi-feature-card">
                 <h3>Dry-run Preview</h3>

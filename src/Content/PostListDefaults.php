@@ -35,7 +35,7 @@ final class PostListDefaults {
     }
 
     public function default_per_page( int $per_page, string $post_type = "post" ): int {
-        if ( ! $this->enabled() || "post" !== $post_type ) {
+        if ( ! $this->enabled() || ! in_array( $post_type, ArticleFeatures::types( "editor_list" ), true ) ) {
             return $per_page;
         }
 
@@ -52,13 +52,13 @@ final class PostListDefaults {
             return;
         }
 
-        $hidden = get_user_option( "manageedit-postcolumnshidden", $user_id );
+        $hidden = get_user_option( "manageedit-" . $screen->post_type . "columnshidden", $user_id );
         if ( ! is_array( $hidden ) || self::is_defaultish_hidden_columns( $hidden ) ) {
-            update_user_option( $user_id, "manageedit-postcolumnshidden", self::hidden_columns(), true );
+            update_user_option( $user_id, "manageedit-" . $screen->post_type . "columnshidden", self::hidden_columns(), true );
         }
 
-        if ( false === get_user_option( "edit_post_per_page", $user_id ) ) {
-            update_user_option( $user_id, "edit_post_per_page", self::PER_PAGE, true );
+        if ( false === get_user_option( "edit_" . $screen->post_type . "_per_page", $user_id ) ) {
+            update_user_option( $user_id, "edit_" . $screen->post_type . "_per_page", self::PER_PAGE, true );
         }
 
         if ( "" === get_user_setting( "posts_list_mode", "" ) ) {
@@ -90,6 +90,6 @@ final class PostListDefaults {
     }
 
     private function is_post_list_screen( \WP_Screen $screen ): bool {
-        return "edit-post" === (string) $screen->id;
+        return "edit" === $screen->base && in_array( (string) $screen->post_type, ArticleFeatures::types( "editor_list" ), true );
     }
 }

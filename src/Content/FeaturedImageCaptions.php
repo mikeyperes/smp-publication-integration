@@ -63,14 +63,14 @@ final class FeaturedImageCaptions {
     }
 
     private function should_apply( int $post_id ): bool {
-        if ( ! RuntimeContext::is_public_dom_context() || ! Settings::bool( "featured_image_caption_templates_enabled" ) || $post_id <= 0 ) {
+        if ( ! RuntimeContext::is_public_dom_context() || ! ArticleFeatures::enabled( "image_captions", $post_id ) || $post_id <= 0 ) {
             return false;
         }
         $post_type = get_post_type( $post_id );
-        if ( ! in_array( $post_type, self::POST_TYPES, true ) ) {
+        if ( ! in_array( $post_type, PublicationContentTypes::article_post_types(), true ) ) {
             return false;
         }
-        return is_singular( self::POST_TYPES );
+        return is_singular( PublicationContentTypes::article_post_types() );
     }
 
     private function caption_for_attachment( int $attachment_id ): string {

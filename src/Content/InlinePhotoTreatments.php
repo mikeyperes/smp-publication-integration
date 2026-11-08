@@ -64,9 +64,9 @@ final class InlinePhotoTreatments {
     }
 
     private function should_apply(): bool {
-        if ( ! RuntimeContext::is_public_dom_context() || ! Settings::bool( "inline_photo_treatments_enabled" ) ) {
+        if ( ! RuntimeContext::is_public_dom_context() || ! ArticleFeatures::enabled( "inline_photos" ) ) {
             return false;
         }
-        return is_singular( self::POST_TYPES );
+        return is_singular( PublicationContentTypes::article_post_types() );
     }
 }

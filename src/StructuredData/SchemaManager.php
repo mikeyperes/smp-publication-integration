@@ -236,6 +236,7 @@ class SchemaManager {
     }
 
     public static function faq_rows_for_post( int $post_id, bool $schema_only = true ): array {
+        if ( ! \smp_publication_integration\Content\ArticleFeatures::enabled( "faqs", $post_id ) ) return [];
         // The FAQs feature switch removes FAQ output everywhere: shortcode,
         // automatic placement and FAQPage schema.
         if ( ! Settings::bool( "post_faqs_acf_enabled" ) ) {
@@ -312,6 +313,7 @@ class SchemaManager {
 
     /** An article or press release with its page, authors, image, breadcrumb and FAQ. */
     private function article_nodes( \WP_Post $post ): array {
+        if ( ! \smp_publication_integration\Content\ArticleFeatures::enabled( "schema", (int) $post->ID ) ) return $this->page_nodes( $post );
         $post_id = (int) $post->ID;
         $url = (string) get_permalink( $post );
         $webpage_id = SchemaIds::webpage( $url );
@@ -321,7 +323,7 @@ class SchemaManager {
         $image = SchemaSources::post_image( $post_id, SchemaIds::primary_image( $url ) );
         $authors = $press_release ? array_filter( [ $this->press_release_issuer( $post ) ] ) : $this->author_entities_for_post( $post_id );
         $author_refs = $authors ? SchemaNodes::refs_to( $authors ) : [ SchemaNodes::ref( $this->publisher_id() ) ];
-        $breadcrumb = SchemaSources::post_breadcrumb( $post_id, SchemaIds::breadcrumb( $url ) );
+        $breadcrumb = \smp_publication_integration\Content\ArticleFeatures::enabled( "breadcrumbs", $post_id ) ? SchemaSources::post_breadcrumb( $post_id, SchemaIds::breadcrumb( $url ) ) : [];
         $faq_rows = self::faq_rows_for_post( $post_id, true );
         $faq = $faq_rows ? $this->faq_entity( $post_id, $url . "#faq", $faq_rows, $webpage_id ) : [];
         $faq_ref = $faq ? [ SchemaNodes::ref( (string) $faq["@id"] ) ] : null;

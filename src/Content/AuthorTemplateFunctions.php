@@ -65,6 +65,7 @@ if ( ! function_exists( "smpi_render_post_journalists" ) ) {
             ],
             $args
         );
+        if ( ! \smp_publication_integration\Content\ArticleFeatures::enabled( "bylines", smpi_resolve_journalist_post_id( $post_id ) ) ) return "";
         $authors = smpi_get_post_journalists( $post_id, [ "mode" => $args["mode"] ] );
         $html = AuthorListFormatter::render( $authors, $args + [ "link_class" => "smpi-post-journalist-link" ] );
         if ( "" === $html || in_array( sanitize_key( (string) $args["format"] ), [ "list", "ul", "plain" ], true ) ) {

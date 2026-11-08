@@ -24,6 +24,7 @@ final class LoopBylineRenderer {
         if (
             "" === trim( $html )
             || false !== strpos( $html, "smpi-multi-author-item" )
+            || ! \smp_publication_integration\Content\ArticleFeatures::enabled( "bylines" )
             || ! AuthorAssignmentRepository::site_enabled()
             || "primary" === $this->loop_format()
             || ! RuntimeContext::has_article_loop_context()

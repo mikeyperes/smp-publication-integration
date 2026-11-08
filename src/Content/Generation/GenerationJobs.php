@@ -73,6 +73,10 @@ final class GenerationJobs {
         if ( ! $post instanceof \WP_Post ) {
             return $this->state_only( self::FAILED, "Post not found." );
         }
+        if ( ! \smp_publication_integration\Content\ArticleFeatures::enabled( 'content_generation', $post_id )
+            || ( in_array( $target, ['summary', 'faqs'], true ) && ! \smp_publication_integration\Content\ArticleFeatures::enabled( $target, $post_id ) ) ) {
+            return $this->state_only( self::FAILED, 'This feature is disabled for this article type.' );
+        }
         $current = $this->record( $post_id, $target );
         if ( self::WORKING === $current["status"] && ! $this->overdue( $current ) ) {
             return $current;

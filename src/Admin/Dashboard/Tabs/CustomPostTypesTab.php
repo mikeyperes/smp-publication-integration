@@ -65,6 +65,7 @@ trait CustomPostTypesTab {
 
 
     private function custom_post_types(): void {
+        \smp_publication_integration\Content\ArticleFeatures::render_grid();
         echo ( new ContentTypeRenderer() )->render(
             PublicationContentTypes::content_types(),
             [

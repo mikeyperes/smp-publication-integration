@@ -40,7 +40,7 @@ final class MuckRackVerification {
         if ( ! RuntimeContext::is_public_dom_context() ) {
             return;
         }
-        if ( ! Settings::bool( "muckrack_verified_enabled" ) && ! Settings::bool( "publication_muckrack_verified_enabled" ) ) {
+        if ( ! ( ! is_singular() ? Settings::bool( "muckrack_verified_enabled" ) : ArticleFeatures::enabled( "muckrack" ) ) && ! Settings::bool( "publication_muckrack_verified_enabled" ) ) {
             return;
         }
         $settings = Settings::all();
@@ -181,14 +181,14 @@ final class MuckRackVerification {
         $author_footer_badge = "";
         $author_map = [];
 
-        if ( Settings::bool( "muckrack_verified_enabled" ) ) {
+        if ( ( ! is_singular() ? Settings::bool( "muckrack_verified_enabled" ) : ArticleFeatures::enabled( "muckrack" ) ) ) {
             if ( $author_id && self::author_verified( $author_id ) ) {
                 $user = get_user_by( "id", $author_id );
                 $author_name = $user ? (string) $user->display_name : "";
                 if ( in_array( $this->author_context(), [ "single_author", "author", "home" ], true ) && in_array( $this->author_context(), $contexts, true ) ) {
                     $author_header_badge = self::verification_icon( $author_id, $style, $this->author_context() );
                 }
-                if ( is_singular( "post" ) && in_array( "single_footer", $contexts, true ) ) {
+                if ( is_singular( PublicationContentTypes::article_post_types() ) && in_array( "single_footer", $contexts, true ) ) {
                     $author_footer_badge = self::verification_icon( $author_id, $style, "single_footer" );
                 }
             }
@@ -200,7 +200,7 @@ final class MuckRackVerification {
 
         $publication_below = "";
         $publication_bottom = "";
-        if ( is_singular( "post" ) && self::publication_enabled() ) {
+        if ( is_singular( PublicationContentTypes::article_post_types() ) && self::publication_enabled() ) {
             if ( in_array( "below_author", Settings::array( "publication_muckrack_placements" ), true ) ) {
                 $publication_below = self::publication_verification_text( "smpi-muckrack-publication-note" );
             }
@@ -317,7 +317,7 @@ SMPI_JS;
     }
 
     private function author_context(): string {
-        if ( is_singular( "post" ) ) {
+        if ( is_singular( PublicationContentTypes::article_post_types() ) ) {
             return "single_author";
         }
         if ( is_author() ) {

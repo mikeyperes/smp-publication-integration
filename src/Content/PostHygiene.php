@@ -30,7 +30,7 @@ final class PostHygiene {
 
 
     public function sanitize_post_data( array $data, array $postarr ): array {
-        if ( empty( $data["post_content"] ) || ! Settings::bool( "post_hygiene_enabled" ) ) {
+        if ( empty( $data["post_content"] ) || ! ArticleFeatures::types( "post_cleanup" ) ) {
             return $data;
         }
 
@@ -113,7 +113,7 @@ final class PostHygiene {
         if ( in_array( $post_type, [ "elementor_library", "revision", "nav_menu_item", "acf-field", "acf-field-group" ], true ) ) {
             return false;
         }
-        return in_array( $post_type, Settings::array( "post_hygiene_allowed_post_types" ), true );
+        return in_array( $post_type, ArticleFeatures::types( "post_cleanup" ), true );
     }
 
     private function has_elementor_data( int $post_id, array $postarr ): bool {

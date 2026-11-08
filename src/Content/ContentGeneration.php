@@ -65,7 +65,7 @@ final class ContentGeneration {
             return;
         }
         $post = get_post();
-        if ( ! $post instanceof \WP_Post || ! current_user_can( "edit_post", $post->ID ) ) {
+        if ( ! $post instanceof \WP_Post || ! ArticleFeatures::enabled( "content_generation", (int) $post->ID ) || ! current_user_can( "edit_post", $post->ID ) ) {
             return;
         }
         $plugin_file = dirname( __DIR__, 2 ) . "/smp-publication-integration.php";
@@ -131,7 +131,7 @@ final class ContentGeneration {
 
     private function editable_post_id( AjaxRequest $request ): int {
         $post_id = $request->int( 'post_id', 0, 'post' );
-        if ( ! $post_id || ! get_post( $post_id ) || ! current_user_can( 'edit_post', $post_id ) ) {
+        if ( ! $post_id || ! get_post( $post_id ) || ! ArticleFeatures::enabled( "content_generation", $post_id ) || ! current_user_can( 'edit_post', $post_id ) ) {
             throw new AjaxFailure( 'Not allowed or invalid request.', 403, 'forbidden' );
         }
         return $post_id;

@@ -65,6 +65,7 @@ final class ElementorAuthorRenderer {
             }
             $replacement = $this->render_for_current_post( $doc->saveHTML( $node ) ?: "" );
             if ( "" === $replacement ) {
+                if ( ! \smp_publication_integration\Content\ArticleFeatures::enabled( "bylines" ) ) $node->parentNode->removeChild( $node );
                 continue;
             }
             $fragment = $this->fragment( $doc, $replacement );
@@ -80,6 +81,7 @@ final class ElementorAuthorRenderer {
         if ( ! $post instanceof \WP_Post ) {
             return $template_html;
         }
+        if ( ! \smp_publication_integration\Content\ArticleFeatures::enabled( "bylines", (int) $post->ID ) ) return "";
         if ( ! $this->repository->is_multi_author( (int) $post->ID ) ) {
             return $template_html;
         }

@@ -121,7 +121,7 @@ final class AcfFields {
      * so neither copy appears in the editor.
      */
     public static function post_summary_group(): array {
-        if ( ! Settings::bool( "post_summary_acf_enabled" ) ) {
+        if ( ! ArticleFeatures::types( "summary" ) ) {
             return [ "active" => false ] + self::article_group( self::POST_SUMMARY_GROUP_KEY, "What to Know", [], 0 );
         }
 
@@ -145,7 +145,7 @@ final class AcfFields {
      * switching it off removes the editor fields entirely.
      */
     public static function post_faqs_group(): array {
-        if ( ! Settings::bool( "post_faqs_acf_enabled" ) ) {
+        if ( ! ArticleFeatures::types( "faqs" ) ) {
             return [];
         }
 
@@ -166,7 +166,7 @@ final class AcfFields {
             "fields" => $fields,
             "location" => array_map(
                 static fn( string $post_type ): array => [ [ "param" => "post_type", "operator" => "==", "value" => $post_type ] ],
-                PublicationContentTypes::article_post_types()
+                ArticleFeatures::types( self::POST_SUMMARY_GROUP_KEY === $key ? "summary" : "faqs" )
             ),
             "menu_order" => $menu_order,
             "position" => "normal",
@@ -174,7 +174,7 @@ final class AcfFields {
             "label_placement" => "top",
             "instruction_placement" => "label",
             "hide_on_screen" => "",
-            "active" => true,
+            "active" => [] !== ArticleFeatures::types( self::POST_SUMMARY_GROUP_KEY === $key ? "summary" : "faqs" ),
             "description" => "",
             "show_in_rest" => 0,
         ];
@@ -192,7 +192,7 @@ final class AcfFields {
         if ( ! $screen || "post" !== $screen->base ) {
             return false;
         }
-        return in_array( (string) $screen->post_type, PublicationContentTypes::article_post_types(), true );
+        return in_array( (string) $screen->post_type, ArticleFeatures::types( "faqs" ), true );
     }
 
     public function admin_faq_styles(): void {

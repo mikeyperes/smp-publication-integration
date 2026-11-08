@@ -162,11 +162,11 @@ final class ArticleTypes {
     }
 
     public static function is_enabled(): bool {
-        return Settings::bool( "article_types_enabled" );
+        return [] !== ArticleFeatures::types( "article_types" );
     }
 
     public static function supported_post_types(): array {
-        return PublicationContentTypes::active_article_post_types();
+        return ArticleFeatures::types( "article_types" );
     }
 
     public static function is_supported_post_type( string $post_type ): bool {

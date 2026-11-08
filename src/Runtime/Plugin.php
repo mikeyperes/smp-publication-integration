@@ -96,6 +96,7 @@ final class Plugin {
     private function content_modules(): array {
         return [
             new SettingsMigrations(),
+            new \smp_publication_integration\Content\ArticleFeatures(),
             new Content\AcfFields(),
             new Content\Shortcodes(),
             new Pages\CompanyFacts(),

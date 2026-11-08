@@ -28,6 +28,7 @@ final class ManifestBuilder {
     public function build(): array {
         $payload = [
             'api_version'             => 1,
+            'article_configuration' => \smp_publication_integration\Content\ArticleFeatures::manifest(),
             'plugin'                  => [
                 'name'      => Config::$plugin_name,
                 'slug'      => Config::$plugin_slug,

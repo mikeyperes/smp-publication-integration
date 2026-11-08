@@ -31,7 +31,7 @@ final class ArticleStyles {
         if ( ! RuntimeContext::is_public_dom_context() ) {
             return;
         }
-        $needs = Settings::bool( "article_heading_styles_enabled" ) || Settings::bool( "article_numbered_lists_enabled" ) || Settings::bool( "article_drop_cap_enabled" ) || Settings::bool( "inline_photo_treatments_enabled" ) || Settings::bool( "featured_image_caption_templates_enabled" ) || Settings::bool( "post_summary_acf_enabled" ) || Settings::bool( "post_faqs_acf_enabled" ) || Settings::bool( "table_of_contents_enabled" );
+        $needs = ArticleFeatures::enabled( "heading_styles" ) || ArticleFeatures::enabled( "numbered_lists" ) || ArticleFeatures::enabled( "drop_cap" ) || ArticleFeatures::enabled( "inline_photos" ) || ArticleFeatures::enabled( "image_captions" ) || ArticleFeatures::enabled( "summary" ) || ArticleFeatures::enabled( "faqs" ) || ArticleFeatures::enabled( "table_of_contents" );
         if ( ! $needs ) {
             return;
         }
@@ -40,7 +40,7 @@ final class ArticleStyles {
         $photo = self::normalize_inline_photo_style( (string) Settings::get( "inline_photo_treatment", "none" ) );
         $featured = self::normalize_featured_image_caption_style( (string) Settings::get( "featured_image_caption_template", "fig2" ) );
         $drop_cap_style = self::normalize_article_drop_cap_style( (string) Settings::get( "article_drop_cap_style", "dropcap-classic" ) );
-        if ( is_singular() && ! is_front_page() && Settings::bool( "article_drop_cap_enabled" ) && self::article_drop_cap_uses_template_script_font( $drop_cap_style ) ) {
+        if ( is_singular() && ! is_front_page() && ArticleFeatures::enabled( "drop_cap" ) && self::article_drop_cap_uses_template_script_font( $drop_cap_style ) ) {
             echo self::script_font_link_html_for_style( $drop_cap_style );
         }
         if ( ! is_singular() || is_front_page() ) {
@@ -51,7 +51,7 @@ final class ArticleStyles {
     }
 
     public function decorate_article_content( string $content ): string {
-        if ( ! RuntimeContext::is_public_dom_context() || ! is_singular( [ "post", "press-release" ] ) ) {
+        if ( ! RuntimeContext::is_public_dom_context() || ! is_singular( PublicationContentTypes::article_post_types() ) ) {
             return $content;
         }
         if ( ! self::article_markup_enabled() ) {
@@ -60,10 +60,10 @@ final class ArticleStyles {
         $content = TemplateMarkup::decorate_article_content(
             $content,
             [],
-            Settings::bool( "article_heading_styles_enabled" ),
-            Settings::bool( "article_drop_cap_enabled" )
+            ArticleFeatures::enabled( "heading_styles" ),
+            ArticleFeatures::enabled( "drop_cap" )
         );
-        if ( Settings::bool( "article_numbered_lists_enabled" ) ) {
+        if ( ArticleFeatures::enabled( "numbered_lists" ) ) {
             $style = self::normalize_article_numbered_list_style( (string) Settings::get( "article_numbered_list_style", "nlist01" ) );
             if ( "none" !== $style ) {
                 $content = TemplateMarkup::decorate_article_numbered_lists( $content, $style );
@@ -73,11 +73,11 @@ final class ArticleStyles {
     }
 
     public static function article_markup_enabled(): bool {
-        $enabled = Settings::bool( "article_heading_styles_enabled" )
-            || Settings::bool( "article_drop_cap_enabled" )
-            || Settings::bool( "article_numbered_lists_enabled" )
-            || Settings::bool( "inline_photo_treatments_enabled" )
-            || Settings::bool( "table_of_contents_enabled" );
+        $enabled = ArticleFeatures::enabled( "heading_styles" )
+            || ArticleFeatures::enabled( "drop_cap" )
+            || ArticleFeatures::enabled( "numbered_lists" )
+            || ArticleFeatures::enabled( "inline_photos" )
+            || ArticleFeatures::enabled( "table_of_contents" );
 
         /**
          * Allow a publication to opt a specific singular surface out of the
@@ -714,7 +714,7 @@ final class ArticleStyles {
     }
 
     public static function article_heading_css( string $style ): string {
-        if ( "none" === $style || ! Settings::bool( "article_heading_styles_enabled" ) ) {
+        if ( "none" === $style || ! ArticleFeatures::enabled( "heading_styles" ) ) {
             return "";
         }
         $scope = "body.single-post";
@@ -772,7 +772,7 @@ final class ArticleStyles {
     }
 
     public static function article_numbered_list_css( string $style = "" ): string {
-        if ( ! Settings::bool( "article_numbered_lists_enabled" ) ) {
+        if ( ! ArticleFeatures::enabled( "numbered_lists" ) ) {
             return "";
         }
         $style = self::normalize_article_numbered_list_style( $style );
@@ -836,7 +836,7 @@ final class ArticleStyles {
     }
 
     public static function article_drop_cap_css(): string {
-        if ( ! Settings::bool( "article_drop_cap_enabled" ) ) {
+        if ( ! ArticleFeatures::enabled( "drop_cap" ) ) {
             return "";
         }
         $scope = "body.single-post";
@@ -869,7 +869,7 @@ final class ArticleStyles {
     }
 
     public static function inline_photo_css( string $style ): string {
-        if ( "none" === $style || ! Settings::bool( "inline_photo_treatments_enabled" ) ) {
+        if ( "none" === $style || ! ArticleFeatures::enabled( "inline_photos" ) ) {
             return "";
         }
         $fig = "body.single-post .smpi-inline-photo,body.single-press-release .smpi-inline-photo";
@@ -905,7 +905,7 @@ final class ArticleStyles {
     }
 
     public static function featured_image_caption_css( string $style ): string {
-        if ( "none" === $style || ! Settings::bool( "featured_image_caption_templates_enabled" ) ) {
+        if ( "none" === $style || ! ArticleFeatures::enabled( "image_captions" ) ) {
             return "";
         }
         $host = "body.single-post .smpi-featured-image-caption,body.single-press-release .smpi-featured-image-caption";

@@ -285,6 +285,9 @@ class SettingsRepository {
     }
 
     public static function bool( string $key ): bool {
+        foreach ( \smp_publication_integration\Content\ArticleFeatures::definitions() as $feature => $definition ) {
+            if ( $key === $definition[1] ) return [] !== \smp_publication_integration\Content\ArticleFeatures::types( $feature );
+        }
         return (bool) self::get( $key, false );
     }
 
@@ -723,6 +726,7 @@ class SettingsRepository {
         }
 
         update_option( self::OPTION, $settings, false );
+        \smp_publication_integration\Content\ArticleFeatures::sync_legacy( $changes );
         self::invalidate_cache();
         self::log( 'Settings updated: ' . implode( ', ', array_keys( $changes ) ) );
         return $settings;

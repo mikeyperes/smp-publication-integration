@@ -27,6 +27,15 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 
 ## Features
 
+### Dynamic article types and feature policy
+- **Does:** lets administrators choose any registered public post type as an article, with independent feature switches per type. Disabling retains saved article content, metadata, and field values.
+- **Switch:** Settings > SMP Publication Integration > Custom Post Types > Article content types and features (`smpi_article_configuration`). The plain grid is a placeholder for later interface design.
+- **Use:** automatic. Both `PublicationContentTypes::article_post_types()` and `active_article_post_types()` return the same selected, registered public types. Consumers use `ArticleFeatures::types()`, `enabled()` or `setting()` for feature policy, with explicit post IDs for batch/shortcode/REST use.
+- **Extend:** `smpi_article_post_types` extends selected public types; `smpi_article_feature_post_types($types, $feature)` extends feature assignments, bounded by the selected public types.
+- **Code:** `src/Content/ArticleFeatures.php`.
+- **Documentation:** [Configuration, migration, feature catalog and manifest](docs/article-configuration.md).
+
+
 - **Hide missing author photos:** Features > Authors and verification includes "Hide author photo when the author has none", on by default. Removes default portraits and empty image wrappers in post bylines, author boxes, Elementor loops and homepage listings. `smp_author_has_photo($user_id)` reports real-photo presence independently of the setting. [Behavior and markup](docs/author-photo-visibility.md).
 
 - **Compact people rows:** explicit `layout="rows" latest="compact"` retains compact story markup, including paged items. Add `profile_arrow="1"` for the trailing profile arrow (off by default).

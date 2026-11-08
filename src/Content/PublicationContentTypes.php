@@ -96,20 +96,9 @@ final class PublicationContentTypes {
         return self::$acf_groups;
     }
 
-    /** @return array<int,string> */
-    public static function article_post_types(): array {
-        return [ 'post', 'press-release', 'knowledge-base', 'resources' ];
-    }
-
-    /** @return array<int,string> */
-    public static function active_article_post_types(): array {
-        return array_values(
-            array_filter(
-                self::article_post_types(),
-                static fn( string $post_type ): bool => 'post' === $post_type || post_type_exists( $post_type )
-            )
-        );
-    }
+    /** Both APIs intentionally return identical selected, registered public types. */
+    public static function article_post_types(): array { return ArticleFeatures::article_types(); }
+    public static function active_article_post_types(): array { return self::article_post_types(); }
 
     /** @return array<string,mixed> */
     private static function blog_type( string $key, string $singular, string $plural, string $slug, string $description, string $icon, int $position ): array {

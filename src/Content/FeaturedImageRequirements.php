@@ -71,7 +71,7 @@ final class FeaturedImageRequirements {
     }
 
     public function validate_rest_featured_image( $prepared_post, \WP_REST_Request $request ) {
-        if ( ! Settings::bool( "post_featured_image_required" ) || ! is_object( $prepared_post ) || "post" !== (string) ( $prepared_post->post_type ?? "post" ) ) {
+        if ( ! is_object( $prepared_post ) || ! in_array( (string) ( $prepared_post->post_type ?? "post" ), ArticleFeatures::types( "featured_image_required" ), true ) ) {
             return $prepared_post;
         }
 
@@ -89,7 +89,7 @@ final class FeaturedImageRequirements {
     }
 
     public function prevent_classic_publish_without_featured_image( array $data, array $postarr ): array {
-        if ( ! Settings::bool( "post_featured_image_required" ) || "post" !== (string) ( $data["post_type"] ?? "" ) || ! in_array( (string) ( $data["post_status"] ?? "" ), [ "publish", "future", "pending" ], true ) ) {
+        if ( ! in_array( (string) ( $data["post_type"] ?? "" ), ArticleFeatures::types( "featured_image_required" ), true ) || ! in_array( (string) ( $data["post_status"] ?? "" ), [ "publish", "future", "pending" ], true ) ) {
             return $data;
         }
 
@@ -280,7 +280,7 @@ final class FeaturedImageRequirements {
 
     private function is_post_editor_screen(): bool {
         $screen = function_exists( "get_current_screen" ) ? get_current_screen() : null;
-        return $screen instanceof \WP_Screen && "post" === (string) $screen->post_type && in_array( (string) $screen->base, [ "post", "post-new" ], true );
+        return $screen instanceof \WP_Screen && in_array( (string) $screen->post_type, ArticleFeatures::types( "featured_image_required" ), true ) && in_array( (string) $screen->base, [ "post", "post-new" ], true );
     }
 
     private function current_post_id(): int {

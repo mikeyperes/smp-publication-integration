@@ -122,7 +122,8 @@ abstract class PostContentBlockPlacement {
 
     private function is_supported_article(): bool {
         return RuntimeContext::is_public_dom_context()
-            && Settings::bool( $this->enabled_key() )
+            && ArticleFeatures::setting( $this->enabled_key(), $this->queried_post_id() )
+            && ArticleFeatures::enabled( "content_blocks", $this->queried_post_id() )
             && is_singular( PublicationContentTypes::active_article_post_types() );
     }
 

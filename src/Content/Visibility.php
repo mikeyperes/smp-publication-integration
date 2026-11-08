@@ -39,12 +39,12 @@ final class Visibility {
     }
 
     public function add_meta_boxes(): void {
-        add_meta_box( "smpi_visibility", "Post visibility", [ $this, "render_meta_box" ], [ "post", "press-release" ], "side", "high" );
+        add_meta_box( "smpi_visibility", "Post visibility", [ $this, "render_meta_box" ], ArticleFeatures::types( "visibility" ), "side", "high" );
     }
 
     public function render_meta_box( \WP_Post $post ): void {
         wp_nonce_field( "smpi_visibility_save", "smpi_visibility_nonce" );
-        $shadow_enabled = Settings::bool( "shadow_posts_enabled" );
+        $shadow_enabled = ArticleFeatures::enabled( "visibility", (int) $post->ID );
         $hide_home = (bool) get_post_meta( $post->ID, self::HOME_META, true );
         $hide_complete = (bool) get_post_meta( $post->ID, self::COMPLETE_META, true );
         $pr_override = (string) get_post_meta( $post->ID, self::PR_OVERRIDE_META, true );
@@ -99,12 +99,12 @@ final class Visibility {
             }
         </style>
         <div class="hpc-ui smpi-visibility-metabox">
-        <?php if ( $shadow_enabled && "post" === $post->post_type ) : ?>
+        <?php if ( $shadow_enabled && "press-release" !== $post->post_type ) : ?>
             <div class="hpc-toggle-list">
                 <div class="hpc-toggle-row"><?php echo CoreUi::toggle( "smpi_shadow_complete", $hide_complete, "Hide from home and archives", [ "id" => "smpi_shadow_complete", "tooltip" => "Direct URL still works. The post is removed from the home page, category archives, and tag archives." ] ); ?></div>
                 <div class="hpc-toggle-row"><?php echo CoreUi::toggle( "smpi_shadow_home", $hide_home, "Hide from home only", [ "id" => "smpi_shadow_home", "tooltip" => "The post is removed from the home page query only. Category and tag archives can still show it." ] ); ?></div>
             </div>
-        <?php elseif ( "post" === $post->post_type ) : ?>
+        <?php elseif ( "press-release" !== $post->post_type ) : ?>
             <p class="hpc-small">Shadow Posts is disabled in SMP Publication Integration > Features.</p>
         <?php endif; ?>
         <?php if ( "press-release" === $post->post_type ) : ?>
@@ -120,13 +120,13 @@ final class Visibility {
     }
 
     public function save_meta( int $post_id, \WP_Post $post ): void {
-        if ( wp_is_post_autosave( $post_id ) || wp_is_post_revision( $post_id ) || ! in_array( $post->post_type, [ "post", "press-release" ], true ) ) {
+        if ( wp_is_post_autosave( $post_id ) || wp_is_post_revision( $post_id ) || ! ArticleFeatures::enabled( "visibility", $post_id ) ) {
             return;
         }
         if ( ! isset( $_POST["smpi_visibility_nonce"] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST["smpi_visibility_nonce"] ) ), "smpi_visibility_save" ) || ! current_user_can( "edit_post", $post_id ) ) {
             return;
         }
-        if ( Settings::bool( "shadow_posts_enabled" ) && "post" === $post->post_type ) {
+        if ( ArticleFeatures::enabled( "visibility", $post_id ) && "press-release" !== $post->post_type ) {
             update_post_meta( $post_id, self::COMPLETE_META, isset( $_POST["smpi_shadow_complete"] ) ? "1" : "" );
             update_post_meta( $post_id, self::HOME_META, isset( $_POST["smpi_shadow_home"] ) ? "1" : "" );
             update_post_meta( $post_id, self::ARCHIVE_META, isset( $_POST["smpi_shadow_complete"] ) ? "1" : "" );
@@ -195,7 +195,7 @@ final class Visibility {
         if ( ! in_array( $widget_name, [ "posts", "loop-grid" ], true )
             || ! $this->query_can_include_posts( $query )
             || ! function_exists( "is_singular" )
-            || ! is_singular( "post" )
+            || ! is_singular( PublicationContentTypes::article_post_types() )
         ) {
             return;
         }
@@ -225,11 +225,13 @@ final class Visibility {
         }
 
         global $wpdb;
-        if ( $query->get( "smpi_shadow_posts_home" ) ) {
-            $where .= $wpdb->prepare( " AND ( {$wpdb->posts}.post_type <> %s OR NOT EXISTS ( SELECT 1 FROM {$wpdb->postmeta} smpi_shadow_home WHERE smpi_shadow_home.post_id = {$wpdb->posts}.ID AND smpi_shadow_home.meta_key IN (%s, %s) AND smpi_shadow_home.meta_value = %s ) )", "post", self::COMPLETE_META, self::HOME_META, "1" );
-        }
-        if ( $query->get( "smpi_shadow_posts_archive" ) ) {
-            $where .= $wpdb->prepare( " AND ( {$wpdb->posts}.post_type <> %s OR NOT EXISTS ( SELECT 1 FROM {$wpdb->postmeta} smpi_shadow_archive WHERE smpi_shadow_archive.post_id = {$wpdb->posts}.ID AND smpi_shadow_archive.meta_key IN (%s, %s) AND smpi_shadow_archive.meta_value = %s ) )", "post", self::COMPLETE_META, self::ARCHIVE_META, "1" );
+        foreach ( array_diff( ArticleFeatures::types( 'visibility' ), ['press-release'] ) as $article_type ) {
+            if ( $query->get( 'smpi_shadow_posts_home' ) ) {
+                $where .= $wpdb->prepare( " AND ( {$wpdb->posts}.post_type <> %s OR NOT EXISTS ( SELECT 1 FROM {$wpdb->postmeta} smpi_shadow_home WHERE smpi_shadow_home.post_id = {$wpdb->posts}.ID AND smpi_shadow_home.meta_key IN (%s, %s) AND smpi_shadow_home.meta_value = %s ) )", $article_type, self::COMPLETE_META, self::HOME_META, '1' );
+            }
+            if ( $query->get( 'smpi_shadow_posts_archive' ) ) {
+                $where .= $wpdb->prepare( " AND ( {$wpdb->posts}.post_type <> %s OR NOT EXISTS ( SELECT 1 FROM {$wpdb->postmeta} smpi_shadow_archive WHERE smpi_shadow_archive.post_id = {$wpdb->posts}.ID AND smpi_shadow_archive.meta_key IN (%s, %s) AND smpi_shadow_archive.meta_value = %s ) )", $article_type, self::COMPLETE_META, self::ARCHIVE_META, '1' );
+            }
         }
         if ( $query->get( "smpi_press_release_shadow" ) ) {
             $where .= $wpdb->prepare( " AND ( {$wpdb->posts}.post_type <> %s OR EXISTS ( SELECT 1 FROM {$wpdb->postmeta} smpi_pr_show WHERE smpi_pr_show.post_id = {$wpdb->posts}.ID AND smpi_pr_show.meta_key = %s AND smpi_pr_show.meta_value = %s ) )", "press-release", self::PR_OVERRIDE_META, "show" );
@@ -284,7 +286,7 @@ final class Visibility {
         if ( empty( $post_type ) || "post" === $post_type || "any" === $post_type ) {
             return true;
         }
-        return is_array( $post_type ) && ( in_array( "post", $post_type, true ) || in_array( "any", $post_type, true ) );
+        return (bool) array_intersect( (array) $post_type, PublicationContentTypes::article_post_types() ) || in_array( "any", (array) $post_type, true );
     }
 
     private function should_include_press_releases( string $context, \WP_Query $query ): bool {

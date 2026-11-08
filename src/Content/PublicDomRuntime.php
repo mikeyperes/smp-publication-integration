@@ -45,15 +45,15 @@ final class PublicDomRuntime {
             return $classes;
         }
 
-        if ( is_singular( [ 'post', 'press-release' ] ) && ArticleStyles::article_markup_enabled() ) {
+        if ( is_singular( PublicationContentTypes::article_post_types() ) && ArticleStyles::article_markup_enabled() ) {
             $classes[] = 'smpi-runtime-article-markup';
-            if ( Settings::bool( 'article_heading_styles_enabled' ) ) {
+            if ( ArticleFeatures::enabled( "heading_styles" ) ) {
                 $classes[] = 'smpi-runtime-article-headings';
             }
-            if ( Settings::bool( 'article_drop_cap_enabled' ) ) {
+            if ( ArticleFeatures::enabled( "drop_cap" ) ) {
                 $classes[] = 'smpi-runtime-article-dropcap';
             }
-            if ( Settings::bool( 'article_numbered_lists_enabled' ) ) {
+            if ( ArticleFeatures::enabled( "numbered_lists" ) ) {
                 $style = ArticleStyles::normalize_article_numbered_list_style(
                     (string) Settings::get( 'article_numbered_list_style', 'nlist01' )
                 );
@@ -68,10 +68,10 @@ final class PublicDomRuntime {
     }
 
     public static function needs_runtime(): bool {
-        return Settings::bool( 'article_heading_styles_enabled' )
-            || Settings::bool( 'article_drop_cap_enabled' )
-            || Settings::bool( 'article_numbered_lists_enabled' )
-            || Settings::bool( 'inline_photo_treatments_enabled' )
-            || Settings::bool( 'table_of_contents_enabled' );
+        return ArticleFeatures::enabled( "heading_styles" )
+            || ArticleFeatures::enabled( "drop_cap" )
+            || ArticleFeatures::enabled( "numbered_lists" )
+            || ArticleFeatures::enabled( "inline_photos" )
+            || ArticleFeatures::enabled( "table_of_contents" );
     }
 }

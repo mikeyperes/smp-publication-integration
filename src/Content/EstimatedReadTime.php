@@ -20,7 +20,7 @@ final class EstimatedReadTime {
     }
 
     public function render_shortcode( array $atts = [] ): string {
-        if ( ! Settings::bool( "estimated_read_time_enabled" ) ) {
+        if ( ! ArticleFeatures::enabled( "read_time", absint( $atts["post_id"] ?? 0 ) ) ) {
             return "";
         }
 
@@ -68,7 +68,7 @@ final class EstimatedReadTime {
 
     public static function content_for_post( int $post_id ): string {
         $post = get_post( $post_id );
-        if ( ! $post || ! in_array( $post->post_type, [ "post", "page", "press-release" ], true ) ) {
+        if ( ! $post || ! in_array( $post->post_type, ArticleFeatures::types( "read_time" ), true ) ) {
             return "";
         }
 

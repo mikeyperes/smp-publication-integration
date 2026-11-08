@@ -92,7 +92,7 @@ final class AuthorSocialIcons {
 
     /** Loads the icon styles on articles and author pages, where the icons are placed automatically. */
     public function enqueue_styles(): void {
-        if ( ! Settings::bool( "author_social_icons_enabled" ) || ! ( is_singular( "post" ) || is_author() ) ) {
+        if ( ! ( ! is_singular() ? Settings::bool( "author_social_icons_enabled" ) : ArticleFeatures::enabled( "author_social_icons" ) ) || ! ( is_singular( PublicationContentTypes::article_post_types() ) || is_author() ) ) {
             return;
         }
         self::enqueue_stylesheet();
@@ -145,7 +145,7 @@ final class AuthorSocialIcons {
     }
 
     public function render_shortcode( array $atts = [] ): string {
-        if ( ! Settings::bool( "author_social_icons_enabled" ) ) {
+        if ( ! ( ! is_singular() ? Settings::bool( "author_social_icons_enabled" ) : ArticleFeatures::enabled( "author_social_icons" ) ) ) {
             return "";
         }
         self::enqueue_stylesheet();
@@ -260,10 +260,10 @@ final class AuthorSocialIcons {
 
     public function inject_single_post( string $content ): string {
         if (
-            ! Settings::bool( "author_social_icons_enabled" )
+            ! ( ! is_singular() ? Settings::bool( "author_social_icons_enabled" ) : ArticleFeatures::enabled( "author_social_icons" ) )
             || ! $this->automatic_context_enabled( "single_post" )
             || is_admin()
-            || ! is_singular( "post" )
+            || ! is_singular( PublicationContentTypes::article_post_types() )
             || ! in_the_loop()
             || ! is_main_query()
             || false !== strpos( $content, "smpi-author-socials" )
@@ -288,10 +288,10 @@ final class AuthorSocialIcons {
     public function inject_elementor_single_post( string $content, $widget ): string {
         if (
             $this->single_injected
-            || ! Settings::bool( "author_social_icons_enabled" )
+            || ! ( ! is_singular() ? Settings::bool( "author_social_icons_enabled" ) : ArticleFeatures::enabled( "author_social_icons" ) )
             || ! $this->automatic_context_enabled( "single_post" )
             || is_admin()
-            || ! is_singular( "post" )
+            || ! is_singular( PublicationContentTypes::article_post_types() )
             || false !== strpos( $content, "smpi-author-socials" )
         ) {
             return $content;
@@ -402,7 +402,7 @@ final class AuthorSocialIcons {
     public function inject_author_archive( string $description ): string {
         if (
             $this->archive_injected
-            || ! Settings::bool( "author_social_icons_enabled" )
+            || ! ( ! is_singular() ? Settings::bool( "author_social_icons_enabled" ) : ArticleFeatures::enabled( "author_social_icons" ) )
             || ! $this->automatic_context_enabled( "author_archive" )
             || "below_bio" !== $this->archive_position()
             || is_admin()
@@ -426,7 +426,7 @@ final class AuthorSocialIcons {
     public function inject_elementor_author_archive( string $content, $widget ): string {
         if (
             $this->archive_injected
-            || ! Settings::bool( "author_social_icons_enabled" )
+            || ! ( ! is_singular() ? Settings::bool( "author_social_icons_enabled" ) : ArticleFeatures::enabled( "author_social_icons" ) )
             || ! $this->automatic_context_enabled( "author_archive" )
             || is_admin()
             || ! is_author()

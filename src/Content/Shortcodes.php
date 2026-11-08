@@ -87,7 +87,7 @@ final class Shortcodes {
         if ( ! in_array( $field, self::POST_ACF_FIELDS, true ) ) {
             return "";
         }
-        if ( ! Settings::bool( "post_summary" === $field ? "post_summary_acf_enabled" : "post_faqs_acf_enabled" ) ) {
+        if ( ! ArticleFeatures::enabled( "post_summary" === $field ? "summary" : "faqs", $this->resolve_post_id( (int) $atts["post_id"] ) ) ) {
             return "";
         }
         $post_id = $this->resolve_post_id( (int) $atts["post_id"] );
@@ -110,7 +110,7 @@ final class Shortcodes {
 
     public function render_post_summary( array $atts = [] ): string {
         $atts = shortcode_atts( [ "post_id" => 0, "format" => "html", "style" => "" ], $atts, "smp_post_summary" );
-        if ( ! Settings::bool( "post_summary_acf_enabled" ) ) {
+        if ( ! ArticleFeatures::enabled( "summary", $this->resolve_post_id( (int) $atts["post_id"] ) ) ) {
             return "";
         }
         $post_id = $this->resolve_post_id( (int) $atts["post_id"] );
@@ -124,7 +124,7 @@ final class Shortcodes {
 
     public function render_post_faqs( array $atts = [] ): string {
         $atts = shortcode_atts( [ "post_id" => 0, "format" => "html", "style" => "" ], $atts, "smp_post_faqs" );
-        if ( ! Settings::bool( "post_faqs_acf_enabled" ) ) {
+        if ( ! ArticleFeatures::enabled( "faqs", $this->resolve_post_id( (int) $atts["post_id"] ) ) ) {
             return "";
         }
         $post_id = $this->resolve_post_id( (int) $atts["post_id"] );

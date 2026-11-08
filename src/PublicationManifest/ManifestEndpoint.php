@@ -36,6 +36,8 @@ final class ManifestEndpoint {
             'update_option_show_on_front',
             'update_option_site_icon',
             'update_option_smpi_settings',
+            'add_option_smpi_article_configuration',
+            'update_option_smpi_article_configuration',
             'update_option_theme_mods_' . get_option( 'stylesheet', '' ),
         ] as $hook ) {
             add_action( $hook, [ $this, 'invalidate' ], 10, 4 );

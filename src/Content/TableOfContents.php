@@ -21,7 +21,7 @@ final class TableOfContents {
     }
 
     public function render_shortcode( array $atts = [] ): string {
-        if ( ! Settings::bool( "table_of_contents_enabled" ) ) {
+        if ( ! ArticleFeatures::enabled( "table_of_contents", absint( $atts["post_id"] ?? 0 ) ) ) {
             return "";
         }
         $title_supplied = array_key_exists( "title", $atts );
@@ -58,11 +58,11 @@ final class TableOfContents {
     }
 
     public function filter_content( string $content ): string {
-        if ( ! RuntimeContext::is_public_dom_context() || ! Settings::bool( "table_of_contents_enabled" ) || ! Settings::bool( "table_of_contents_auto_single" ) ) {
+        if ( ! RuntimeContext::is_public_dom_context() || ! ArticleFeatures::enabled( "table_of_contents" ) || ! Settings::bool( "table_of_contents_auto_single" ) ) {
             return $content;
         }
         static $inserted = false;
-        if ( $inserted || ! is_singular( "post" ) ) {
+        if ( $inserted || ! is_singular( PublicationContentTypes::article_post_types() ) ) {
             return $content;
         }
         if ( has_shortcode( $content, self::SHORTCODE ) ) {
@@ -80,7 +80,7 @@ final class TableOfContents {
         if ( ! RuntimeContext::is_public_dom_context() ) {
             return;
         }
-        if ( ! Settings::bool( "table_of_contents_enabled" ) || ! is_singular() || is_front_page() ) {
+        if ( ! ArticleFeatures::enabled( "table_of_contents" ) || ! is_singular() || is_front_page() ) {
             return;
         }
         echo "<style id=smpi-table-of-contents-styles>" . ArticleStyles::toc_css() . "</style>";
@@ -122,7 +122,7 @@ final class TableOfContents {
     }
 
     private static function summary_item( int $post_id ): array {
-        if ( $post_id <= 0 || ! Settings::bool( "table_of_contents_include_summary" ) || ! Settings::bool( "post_summary_acf_enabled" ) ) {
+        if ( $post_id <= 0 || ! Settings::bool( "table_of_contents_include_summary" ) || ! ArticleFeatures::enabled( "summary", $post_id ) ) {
             return [];
         }
         $summary = Fields::get( $post_id, "post_summary", "" );
@@ -225,8 +225,8 @@ final class TableOfContents {
         return TemplateMarkup::decorate_article_content(
             $content,
             $ids,
-            Settings::bool( "article_heading_styles_enabled" ),
-            Settings::bool( "article_drop_cap_enabled" )
+            ArticleFeatures::enabled( "heading_styles" ),
+            ArticleFeatures::enabled( "drop_cap" )
         );
     }
 
@@ -248,7 +248,7 @@ final class TableOfContents {
     }
 
     public function print_auto_inject_script(): void {
-        if ( ! RuntimeContext::is_public_dom_context() || ! Settings::bool( "table_of_contents_enabled" ) || ! Settings::bool( "table_of_contents_auto_single" ) || ! is_singular( "post" ) ) {
+        if ( ! RuntimeContext::is_public_dom_context() || ! ArticleFeatures::enabled( "table_of_contents" ) || ! Settings::bool( "table_of_contents_auto_single" ) || ! is_singular( PublicationContentTypes::article_post_types() ) ) {
             return;
         }
         $style = ArticleStyles::normalize_toc_style( (string) Settings::get( "table_of_contents_style", "toc02" ) );
@@ -268,7 +268,7 @@ SMPI_JS;
      * smpi-toc-has-active. Works for the shortcode and the automatic list.
      */
     public function print_scroll_tracking_script(): void {
-        if ( ! RuntimeContext::is_public_dom_context() || ! Settings::bool( "table_of_contents_enabled" ) || ! is_singular() || is_front_page() ) {
+        if ( ! RuntimeContext::is_public_dom_context() || ! ArticleFeatures::enabled( "table_of_contents" ) || ! is_singular() || is_front_page() ) {
             return;
         }
         $script = <<<SMPI_JS
@@ -280,6 +280,6 @@ SMPI_JS;
         $post = get_posts( [ "post_type" => "post", "post_status" => "publish", "posts_per_page" => 1 ] );
         $post = $post[0] ?? null;
         $items = $post instanceof \WP_Post ? self::items( (string) $post->post_content ) : [];
-        return [ "enabled" => Settings::bool( "table_of_contents_enabled" ), "auto_single" => Settings::bool( "table_of_contents_auto_single" ), "style" => (string) Settings::get( "table_of_contents_style", "toc02" ), "shortcode" => "[smp_table_of_contents]", "sample_post_id" => $post instanceof \WP_Post ? (int) $post->ID : 0, "heading_count" => count( $items ) ];
+        return [ "enabled" => ArticleFeatures::enabled( "table_of_contents" ), "auto_single" => Settings::bool( "table_of_contents_auto_single" ), "style" => (string) Settings::get( "table_of_contents_style", "toc02" ), "shortcode" => "[smp_table_of_contents]", "sample_post_id" => $post instanceof \WP_Post ? (int) $post->ID : 0, "heading_count" => count( $items ) ];
     }
 }

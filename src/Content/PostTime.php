@@ -27,7 +27,7 @@ final class PostTime {
             self::SHORTCODE
         );
         $post = get_post( (int) $atts['post_id'] ?: null );
-        if ( ! $post instanceof \WP_Post ) {
+        if ( ! $post instanceof \WP_Post || ! ArticleFeatures::enabled( "post_date", (int) $post->ID ) ) {
             return '';
         }
 
@@ -74,7 +74,7 @@ final class PostTime {
             return $fallback;
         }
         $post = get_post( $post );
-        if ( ! $post ) {
+        if ( ! $post || ! ArticleFeatures::enabled( "post_date", (int) $post->ID ) ) {
             return $fallback;
         }
         $timestamp = get_post_time( 'U', true, $post );
