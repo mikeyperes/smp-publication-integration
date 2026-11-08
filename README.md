@@ -1067,3 +1067,7 @@ Report issues at <https://github.com/mikeyperes/smp-publication-integration/issu
 Proprietary Scale My Publication software unless a source file states otherwise.
 
 Asset loading: [scope](docs/asset-loading.md).
+
+### Author photo provider ownership
+
+Bundled Hexa WP Core 3.59.1 recognizes Simple User Avatar and enforces Simple Local Avatars for author photo writes.
