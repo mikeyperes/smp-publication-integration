@@ -28,7 +28,7 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 ## Features
 
 ### Native Elementor author verification
-- **Does:** renders the existing verified-author badge beside each native Post Info author link, including loop cards with dynamically bound featured images. Uses the link's author identity, existing verification settings and context styling on every site type; leaves post content, media and templates untouched.
+- **Does:** renders the existing verified-author badge beside each native Post Info author link, including loop cards with dynamically bound featured images. Uses Elementor's current document manager and the link's author identity, existing verification settings and context styling on every site type; leaves post content, media and templates untouched.
 - **Use:** enable the existing MuckRack verification context. Native badges arrive in widget HTML and are excluded from the legacy browser placement pass to prevent duplicates.
 
 
@@ -391,6 +391,11 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.13.4
+- Resolve the active Elementor document through its supported documents manager instead of calling an unsupported widget method.
+- Add an integration regression that renders native Post Info after both featured-image bindings, verifies one badge, and consumes the category URL in a native Heading link.
+
 
 ### 2.13.3
 - Render verified badges beside every native Elementor Post Info author link on the server, independent of featured-image bindings and card layout. Existing verification and placement switches still apply.

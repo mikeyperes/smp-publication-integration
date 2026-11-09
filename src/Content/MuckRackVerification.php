@@ -166,7 +166,8 @@ final class MuckRackVerification {
         if ( 'post-info' !== $widget->get_name() || '' === $content || is_feed() || ! class_exists( '\DOMDocument' ) ) {
             return $content;
         }
-        $document = $widget->get_document();
+        // Widgets do not expose get_document(); the manager owns the render-context stack.
+        $document = \Elementor\Plugin::$instance->documents->get_current();
         $is_loop = $document && 'loop-item' === $document->get_name();
         $context = $is_loop ? 'loop_cards' : ( $this->author_context() ?: 'loop_cards' );
         $enabled = 'loop_cards' === $context || ! is_singular() ? Settings::bool( 'muckrack_verified_enabled' ) : ArticleFeatures::enabled( 'muckrack' );
