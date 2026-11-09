@@ -27,6 +27,14 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 
 ## Features
 
+### Post opening paragraph
+- **Does:** reads the first text paragraph of post content, never the excerpt, on every site and post type. No post or media writes.
+- **Switch:** available automatically; output requires explicit use.
+- **Use:** Elementor **SMP Publication > Post Opening Paragraph**, tag `post_opening_paragraph`, Word limit 0 (unlimited). `[post_opening_paragraph post_id="0" word_limit="0"]` uses the current loop or single post by default.
+- **Style:** escaped plain text; no wrapper or assets. Style the containing widget.
+- **Example:** [Behavior and output](docs/post-opening-paragraph.md).
+- **Code:** `src/Content/PostOpeningParagraph.php`, `src/Elementor/PostOpeningParagraphTag.php`.
+
 ### Dynamic article types and feature policy
 - **Manifest:** the public publication manifest includes selected article types and enabled types per feature; nested values pass through the standard recursive sanitizer.
 - **Does:** lets administrators choose any registered public post type as an article, with independent feature switches per type. Disabling retains saved article content, metadata, and field values.

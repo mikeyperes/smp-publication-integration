@@ -123,6 +123,7 @@ final class Plugin {
             new Content\ElementorCssCacheBusting(),
             new Content\ElementorFrontendCompatibility(),
             new Content\ElementorPrimaryCategory(),
+            new Content\PostOpeningParagraph(),
             new Content\MuckRackVerification(),
             new Content\AuthorSocialCleanup(),
             new Content\PublicDomRuntime(),
