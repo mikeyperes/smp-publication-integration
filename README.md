@@ -27,6 +27,11 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 
 ## Features
 
+### Native Elementor author verification
+- **Does:** renders the existing verified-author badge beside each native Post Info author link, including loop cards with dynamically bound featured images. Uses the link's author identity, existing verification settings and context styling on every site type; leaves post content, media and templates untouched.
+- **Use:** enable the existing MuckRack verification context. Native badges arrive in widget HTML and are excluded from the legacy browser placement pass to prevent duplicates.
+
+
 ### Post opening paragraph
 - **Does:** reads the first text paragraph of post content, never the excerpt, on every site and post type. No post or media writes.
 - **Switch:** available automatically; output requires explicit use.
@@ -239,7 +244,7 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 ### Primary category
 - **Does:** a post's primary category in Elementor (Rank Math or Yoast primary, else its first category). The default category steps aside for any other; a post filed only under it shows it, except WordPress's "Uncategorized".
 - **Switch:** `elementor_primary_category_enabled`, `elementor_primary_category_exclude_default`.
-- **Use:** Elementor dynamic tag `smpi-primary-category`.
+- **Use:** Elementor dynamic tag `smpi-primary-category` for the unchanged label; choose `Primary Category URL` (`smpi-primary-category-url`) in a widget link field for the same category archive. Both use the same selection rules and switch.
 - **Code:** `src/Elementor/PrimaryCategoryTag.php`
 
 ### Content types and article types
@@ -386,6 +391,12 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.13.3
+- Render verified badges beside every native Elementor Post Info author link on the server, independent of featured-image bindings and card layout. Existing verification and placement switches still apply.
+- Add Primary Category URL to Elementor link fields without changing Primary Category label output.
+- Bundle Hexa WP Core 3.59.1.
+
 
 ### 2.10.0
 

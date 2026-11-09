@@ -3,6 +3,7 @@
 namespace smp_publication_integration\Content;
 
 use smp_publication_integration\Elementor\PrimaryCategoryTag;
+use smp_publication_integration\Elementor\PrimaryCategoryUrlTag;
 use smp_publication_integration\Support\Settings;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -27,6 +28,7 @@ final class ElementorPrimaryCategory {
         }
 
         $dynamic_tags->register( new PrimaryCategoryTag() );
+        $dynamic_tags->register( new PrimaryCategoryUrlTag() );
     }
 
     public static function term( int $post_id = 0 ): ?object {
