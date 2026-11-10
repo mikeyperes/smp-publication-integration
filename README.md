@@ -101,7 +101,7 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 
 ### Archive listings (lead story, the rest, story count)
 - **Does:** lets an Elementor archive template (category, tag, taxonomy, author or search) show the newest story on its own and then the rest of the archive in whole-row batches with Load more, plus the archive's story count. Author listings include co-authored stories.
-- **Use:** give one Loop Grid or Posts widget (Source: Posts) the Query ID `smpi_archive_lead` for the lead story, and a second one the Query ID `smpi_archive_rest` for the rest; the rest listing starts at the second story and uses the widget's own posts per page (8 for four per row). `[smp_archive_count singular="story" plural="stories"]` prints the count ("125 stories") and nothing when the archive is empty. Infinite scroll with a visible Load more button comes from HWS Base Tools (CSS class `hws-auto-load-more`; `smpi-auto-load-more` still works).
+- **Use:** give one Loop Grid or Posts widget (Source: Posts) the Query ID `smpi_archive_lead` for the lead story, and a second one the Query ID `smpi_archive_rest` for the rest; the rest listing starts at the second story and uses the widget's own posts per page (8 for four per row). For a lead shown as a pair, a third widget takes `smpi_archive_side` (the second story) and the grid takes `smpi_archive_rest_2`, which starts at the third story (`smpi_archive_rest_<n>` skips the first n). Category, tag and search listings hold the site's article types that the archive's taxonomy covers, so a video filed in a category lists with its articles once its type is an article type. `[smp_archive_count singular="story" plural="stories"]` prints the count ("125 stories") and nothing when the archive is empty. Infinite scroll with a visible Load more button comes from HWS Base Tools (CSS class `hws-auto-load-more`; `smpi-auto-load-more` still works).
 - **Style:** `.smpi-archive-count`.
 - **Code:** `src/Content/ArchiveListing.php`
 
@@ -391,6 +391,11 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.13.6
+- Archive listings: `smpi_archive_side` shows the second story beside the lead, and `smpi_archive_rest_<n>` starts the story grid after the first n stories.
+- Category, tag and search listings hold every article type the archive's taxonomy covers (a video in a category), not only posts.
+
 
 ### 2.13.5
 - Load shared verification styles with the first native author widget when the page-level article gate skipped them.

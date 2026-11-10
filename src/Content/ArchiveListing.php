@@ -17,12 +17,17 @@ if ( ! defined( "ABSPATH" ) ) {
  * show the newest story apart from the list. Two Query IDs fix that while Elementor keeps
  * rendering, Load more and pagination:
  * - smpi_archive_lead: the current archive's newest story (one post).
+ * - smpi_archive_side: the second-newest story (one post), for a lead shown as a pair.
  * - smpi_archive_rest: the same archive from the second story on, in the widget's own
- *   batch size, so every Load more batch fills whole rows.
+ *   batch size, so every Load more batch fills whole rows. smpi_archive_rest_<n> starts
+ *   after the first n stories (smpi_archive_rest_2 under a lead pair).
+ * Category, tag and search listings hold the site's article types that the archive's
+ * taxonomy covers (a video in a category is listed with its articles).
  * [smp_archive_count] prints how many stories the current archive holds.
  */
 final class ArchiveListing {
     public const LEAD_QUERY_ID = "smpi_archive_lead";
+    public const SIDE_QUERY_ID = "smpi_archive_side";
     public const REST_QUERY_ID = "smpi_archive_rest";
     public const COUNT_SHORTCODE = "smp_archive_count";
     /** Templates' infinite-scroll class; HWS Base Tools serves it (its own class is hws-auto-load-more). */
@@ -54,7 +59,7 @@ final class ArchiveListing {
         }
 
         $query_id = self::widget_query_id( $widget );
-        if ( self::LEAD_QUERY_ID !== $query_id && self::REST_QUERY_ID !== $query_id ) {
+        if ( ! self::is_listing_query_id( $query_id ) ) {
             return $query_args;
         }
 
@@ -73,27 +78,58 @@ final class ArchiveListing {
         $query_args["orderby"] = "date";
         $query_args["order"] = "DESC";
 
-        if ( self::LEAD_QUERY_ID === $query_id ) {
+        if ( self::LEAD_QUERY_ID === $query_id || self::SIDE_QUERY_ID === $query_id ) {
             $query_args["posts_per_page"] = 1;
             $query_args["paged"] = 1;
+            if ( self::SIDE_QUERY_ID === $query_id ) {
+                $query_args["offset"] = 1;
+            }
             // Elementor reads a zero result count as "nothing found", so the count stays on.
             return $query_args;
         }
 
+        $skip = self::rest_skip( $query_id );
         $per_page = max( 1, (int) ( $query_args["posts_per_page"] ?? get_option( "posts_per_page" ) ) );
         $paged = max( 1, (int) ( $query_args["paged"] ?? 1 ) );
         $query_args["posts_per_page"] = $per_page;
-        $query_args["offset"] = 1 + ( $paged - 1 ) * $per_page;
-        $query_args[ self::OFFSET_BASE_VAR ] = 1;
+        $query_args["offset"] = $skip + ( $paged - 1 ) * $per_page;
+        $query_args[ self::OFFSET_BASE_VAR ] = $skip;
         return $query_args;
     }
 
-    /** The rest listing skips the lead story, so its total and page count leave it out too. */
+    /** The rest listing skips the stories shown above it, so its total and page count leave them out too. */
     public function filter_found_posts( $found_posts, $query ) {
-        if ( ! $query instanceof \WP_Query || 1 !== (int) $query->get( self::OFFSET_BASE_VAR ) ) {
+        $skip = $query instanceof \WP_Query ? (int) $query->get( self::OFFSET_BASE_VAR ) : 0;
+        if ( $skip < 1 ) {
             return $found_posts;
         }
-        return max( 0, (int) $found_posts - 1 );
+        return max( 0, (int) $found_posts - $skip );
+    }
+
+    /** Whether a Query ID is one of the archive listings (lead, side, rest or rest_<n>). */
+    public static function is_listing_query_id( string $query_id ): bool {
+        return self::LEAD_QUERY_ID === $query_id || self::SIDE_QUERY_ID === $query_id || self::rest_skip( $query_id ) > 0;
+    }
+
+    /** Whether a Query ID is a single story shown above the story grid (the lead or its side story). */
+    public static function is_top_query_id( string $query_id ): bool {
+        return self::LEAD_QUERY_ID === $query_id || self::SIDE_QUERY_ID === $query_id;
+    }
+
+    /** How many stories a rest listing skips: 1 for smpi_archive_rest, n for smpi_archive_rest_<n>, 0 otherwise. */
+    private static function rest_skip( string $query_id ): int {
+        if ( self::REST_QUERY_ID === $query_id ) {
+            return 1;
+        }
+        return preg_match( "/^" . self::REST_QUERY_ID . "_([1-9]\\d?)$/", $query_id, $m ) ? (int) $m[1] : 0;
+    }
+
+    /** The site's article types the taxonomy covers; posts when none match. */
+    private static function listing_post_types( string $taxonomy ): array {
+        $object = get_taxonomy( $taxonomy );
+        $covered = $object ? (array) $object->object_type : [ "post" ];
+        $types = array_values( array_intersect( PublicationContentTypes::article_post_types(), $covered ) );
+        return $types ?: [ "post" ];
     }
 
     /**
@@ -175,7 +211,7 @@ final class ArchiveListing {
             if ( ! $term instanceof \WP_Term ) {
                 return null;
             }
-            $args = [ "post_type" => "post", Visibility::MANAGED_CONTEXT_QUERY_VAR => "category_tag" ];
+            $args = [ "post_type" => self::listing_post_types( $term->taxonomy ), Visibility::MANAGED_CONTEXT_QUERY_VAR => "category_tag" ];
             if ( "category" === $term->taxonomy ) {
                 $args["cat"] = (int) $term->term_id;
             } elseif ( "post_tag" === $term->taxonomy ) {
@@ -198,7 +234,7 @@ final class ArchiveListing {
 
         if ( is_search() ) {
             $term = get_search_query( false );
-            return "" === $term ? null : [ "post_type" => "post", "s" => $term ];
+            return "" === $term ? null : [ "post_type" => self::listing_post_types( "category" ), "s" => $term ];
         }
 
         return null;

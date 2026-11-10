@@ -71,7 +71,7 @@ final class ArchiveSearch {
             if ( ! is_string( $key ) || ! is_string( $value ) ) {
                 continue;
             }
-            if ( "query_id" === substr( $key, -8 ) && in_array( sanitize_key( $value ), [ ArchiveListing::LEAD_QUERY_ID, ArchiveListing::REST_QUERY_ID ], true ) ) {
+            if ( "query_id" === substr( $key, -8 ) && ArchiveListing::is_listing_query_id( sanitize_key( $value ) ) ) {
                 return true;
             }
             if ( "_post_type" === substr( $key, -10 ) && "current_query" === $value ) {
@@ -101,7 +101,7 @@ final class ArchiveSearch {
     private static function is_lead( $widget ): bool {
         $settings = method_exists( $widget, "get_settings_for_display" ) ? (array) $widget->get_settings_for_display() : [];
         foreach ( $settings as $key => $value ) {
-            if ( is_string( $key ) && "query_id" === substr( $key, -8 ) && is_string( $value ) && ArchiveListing::LEAD_QUERY_ID === sanitize_key( $value ) ) {
+            if ( is_string( $key ) && "query_id" === substr( $key, -8 ) && is_string( $value ) && ArchiveListing::is_top_query_id( sanitize_key( $value ) ) ) {
                 return true;
             }
         }
