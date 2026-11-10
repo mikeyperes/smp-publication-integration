@@ -157,6 +157,7 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 - **Code:** `src/Support/PublicationFounders.php`, `src/Admin/FoundersTab.php`.
 
 ### Founding Date (from HWS Base Tools)
+- **Date precision:** uses the Base Tools shared founding-date formatter for year-only, year-month and full dates, including shortcode and admin previews. Schema continues to use the unexpanded identity value. Requires Base Tools 13.74.2 for partial-date formatting.
 - **Does:** the founding date and city come only from HWS Base Tools' Website Identity (`[smp_company field="founding_date"]`, `field="founding_location"`); the publication's search-engine data (`foundingDate`, `foundingLocation`) reads the same facts. The Founding Date page applies only to company sites.
 - **Removed in 2.5.21:** SMP's own founding fields (`smpi_founding_date`, `smpi_founding_location`, `smpi_founding_location_url`, `smpi_founding_date_extended`), the `[smpi_founding_date]` section, its switch `smpi_founding_date_section` and `docs/founding-date.md`.
 

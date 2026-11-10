@@ -149,6 +149,9 @@ final class CompanyFacts {
         $format = sanitize_key( (string) $atts['format'] );
         $sep    = (string) $atts['sep'];
 
+        if ( 'founding_date' === $field && class_exists( '\\HWS\\BaseTools\\SiteProfile\\FoundingDate' ) ) {
+            return esc_html( \HWS\BaseTools\SiteProfile\FoundingDate::format( $value, $format ) );
+        }
         if ( 'founding_date' === $field && 'raw' !== $format ) {
             $time = strtotime( (string) $value );
             return $time ? esc_html( date_i18n( 'year' === $format ? 'Y' : get_option( 'date_format', 'F j, Y' ), $time ) ) : esc_html( (string) $value );
