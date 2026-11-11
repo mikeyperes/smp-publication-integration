@@ -257,7 +257,7 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 - **Switch:** `post_featured_image_required`, `hide_home_posts_without_featured_image`, post time display `post_time_mode`, Elementor CSS cache busting `elementor_css_cache_busting`.
 
 ### Elementor CSS and the page cache
-- **Does:** adds each Elementor CSS file's change time to its link (with `elementor_css_cache_busting` on), and whenever Elementor clears its CSS cache (every Site Settings save) rebuilds the Elementor CSS files (pages, templates, the site kit and loop items) in the same request, so cached pages keep linking working CSS. It never clears the whole page cache: it removes LiteSpeed Cache's built-in Elementor listener that would purge everything on that event.
+- **Does:** adds each Elementor CSS file's change time to its link (with `elementor_css_cache_busting` on), and whenever Elementor clears its CSS cache (every Site Settings save) rebuilds the Elementor CSS files (pages, templates, the site kit and loop items) in the same request, so cached pages keep linking working CSS. When Elementor clears its cache while still starting up (a pending database upgrade), the rebuild waits until Elementor has finished loading, so add-ons such as JetElements are ready. It never clears the whole page cache: it removes LiteSpeed Cache's built-in Elementor listener that would purge everything on that event.
 - **Code:** `src/Content/ElementorCssCacheBusting.php`
 
 ### Admin code and shortcode displays
@@ -392,6 +392,9 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.13.8
+- Elementor CSS rebuild waits until Elementor has finished loading. Before, a pending Elementor database upgrade rebuilt CSS too early, which crashed sites running JetElements on every admin load.
 
 ### 2.13.6
 - Archive listings: `smpi_archive_side` shows the second story beside the lead, and `smpi_archive_rest_<n>` starts the story grid after the first n stories.

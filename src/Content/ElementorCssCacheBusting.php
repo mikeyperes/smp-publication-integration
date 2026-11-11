@@ -24,6 +24,15 @@ final class ElementorCssCacheBusting {
      * the whole page cache on this event is removed instead of emptying every cached page.
      */
     public function rebuild_css_files(): void {
+        // Elementor can clear its cache while it is still starting up (a pending database upgrade runs
+        // before "elementor/init"). Rebuilding then registers widget controls before add-ons such as
+        // JetElements have loaded their classes, which is fatal, so wait until Elementor is ready.
+        if ( ! did_action( "elementor/init" ) ) {
+            if ( ! has_action( "elementor/init", [ $this, "rebuild_css_files" ] ) ) {
+                add_action( "elementor/init", [ $this, "rebuild_css_files" ], 99 );
+            }
+            return;
+        }
         $files_manager = class_exists( "\\Elementor\\Plugin" ) && isset( \Elementor\Plugin::$instance->files_manager ) ? \Elementor\Plugin::$instance->files_manager : null;
         if ( ! is_object( $files_manager ) || ! method_exists( $files_manager, "generate_css" ) ) {
             return;
