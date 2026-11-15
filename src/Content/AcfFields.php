@@ -131,10 +131,10 @@ final class AcfFields {
                 "label" => "Post Summary",
                 "name" => "post_summary",
                 "type" => "wysiwyg",
-                "instructions" => "Insert an html list (you can copy paste html in the code editor)",
+                "instructions" => "Written by Publish. Locked to keep it as generated; use Edit manually to change it.",
                 "tabs" => "all",
-                "toolbar" => "full",
-                "media_upload" => 1,
+                "toolbar" => "basic",
+                "media_upload" => 0,
                 "delay" => 0,
             ],
         ], 0 );

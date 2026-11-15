@@ -27,6 +27,10 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 
 ## Features
 
+### Read-only "What to Know" summary
+- **Does:** shows the post summary in a short, locked editor with no toolbar, so the text Publish writes is not changed by accident.
+- **Use:** click Edit manually beside Generate summary to unlock it (Lock locks it again). Sites with content generation off keep the normal editable field.
+
 ### Native Elementor author verification
 - **Does:** renders the existing verified-author badge beside each native Post Info author link, including loop cards with dynamically bound featured images. Uses Elementor's current document manager and the link's author identity, existing verification settings and context styling on every site type; leaves post content, media and templates untouched.
 - **Use:** enable the existing MuckRack verification context. The shared verification stylesheet prints once, at the first native widget when the page head did not load it. Native author and verification links share a centered, nonwrapping inline row; icon size and margins retain their existing context settings. Native badges arrive in widget HTML and are excluded from the legacy browser placement pass to prevent duplicates.
@@ -392,6 +396,9 @@ for file in tests/*.php; do php "$file" || exit 1; done
 The suite covers navigation, article defaults, article/FAQ output, authorship, templates, colors, typography, content types, schema fallbacks, and updater configuration.
 
 ## Changelog
+
+### 2.13.9
+- "What to Know" summary field is smaller and read-only, with an Edit manually button to unlock it.
 
 ### 2.13.8
 - Elementor CSS rebuild waits until Elementor has finished loading. Before, a pending Elementor database upgrade rebuilt CSS too early, which crashed sites running JetElements on every admin load.

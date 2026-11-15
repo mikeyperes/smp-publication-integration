@@ -226,9 +226,28 @@
             "<ol class='smpi-generation-log'></ol></div></div>"
         ).attr("data-smpi-generation-control", target);
         box.find("button").attr("data-smpi-generate-target", target).text(BUTTON[target]);
+        if (target === "summary") {
+            box.find(".smpi-generation-actions button").after("<button type='button' class='button' data-smpi-manual-edit>Edit manually</button>");
+        }
         if (meta.place === "beforeHost") { host.before(box); }
         else if (meta.place === "afterField" && $(meta.field).length) { $(meta.field).first().after(box); }
         else { host.after(box); }
+    }
+
+    // ---- The summary stays read-only until someone chooses to edit it -----
+
+    var summaryLocked = true;
+
+    function lockSummary(locked) {
+        summaryLocked = locked;
+        var host = $(FIELDS.summary.host).first();
+        var field = $(FIELDS.summary.field).first();
+        var id = field.attr("id");
+        var editor = id && window.tinymce ? window.tinymce.get(id) : null;
+        host.toggleClass("is-locked", locked);
+        field.prop("readonly", locked);
+        if (editor && editor.setMode) { editor.setMode(locked ? "readonly" : "design"); }
+        $("[data-smpi-manual-edit]").text(locked ? "Edit manually" : "Lock");
     }
 
     function elapsed(state) {
@@ -259,6 +278,11 @@
         Object.keys(FIELDS).forEach(install);
         subscribe(render);
         update(cfg.states || {});
+        lockSummary(true);
+        $(document).on("tinymce-editor-init", function (event, editor) {
+            if (editor && editor.id === $(FIELDS.summary.field).first().attr("id")) { lockSummary(summaryLocked); }
+        });
+        $(document).on("click", "[data-smpi-manual-edit]", function () { lockSummary(!summaryLocked); });
         $(document).on("click", "[data-smpi-generate-target]", function () {
             start($(this).attr("data-smpi-generate-target"));
         });

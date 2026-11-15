@@ -19,3 +19,6 @@
 .smpi-generation-filled{animation:smpi-generation-filled 1.6s ease}
 @keyframes smpi-generation-spin{to{transform:rotate(360deg)}}
 @keyframes smpi-generation-filled{0%{box-shadow:0 0 0 3px #00a32a}100%{box-shadow:0 0 0 0 rgba(0,163,42,0)}}
+.smpi-generation-target[data-name='post_summary'] iframe,.smpi-generation-target[data-name='post_summary'] .wp-editor-area{height:140px!important;min-height:140px!important}
+.smpi-generation-target.is-locked[data-name='post_summary'] .mce-toolbar-grp,.smpi-generation-target.is-locked[data-name='post_summary'] .wp-editor-tabs,.smpi-generation-target.is-locked[data-name='post_summary'] .mce-statusbar,.smpi-generation-target.is-locked[data-name='post_summary'] .quicktags-toolbar{display:none}
+.smpi-generation-target.is-locked[data-name='post_summary'] .wp-editor-container{background:#f6f7f7}
