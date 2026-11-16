@@ -27,6 +27,11 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 
 ## Features
 
+### Signed AI-writing connection
+- **Does:** sends status, generation and job reads by signed POST to the dedicated API host through Hexa WP Core 3.62.1. Existing default Publish addresses resolve to the new address; custom endpoint settings are preserved.
+- **Setting:** `content_generation_api_base`, default `https://api.scalemypublication.com/v1/content-generation`.
+- **Code:** `src/Content/Generation/PublishContentClient.php`.
+
 ### Read-only "What to Know" summary
 - **Does:** shows the post summary in a short, locked editor with no toolbar, so the text Publish writes is not changed by accident.
 - **Use:** click Edit manually beside Generate summary to unlock it (Lock locks it again). Sites with content generation off keep the normal editable field.

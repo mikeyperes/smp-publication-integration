@@ -2,7 +2,7 @@
 namespace smp_publication_integration\Content\Generation;
 
 use Hexa\PluginCore\CredentialVault\CredentialStore;
-use smp_publication_integration\Config;
+use Hexa\PluginCore\ApiKeys\SignedJsonClient;
 use smp_publication_integration\Support\Settings;
 
 if ( ! defined( "ABSPATH" ) ) {
@@ -20,13 +20,14 @@ if ( ! defined( "ABSPATH" ) ) {
 final class PublishContentClient {
     public const CREDENTIAL_SLUG = "smp-publication-integration";
     public const CREDENTIAL_KEY = "content_generation_api_key";
-    public const DEFAULT_API_BASE = "https://publish.scalemypublication.com/api/smp-content-generation/v1";
+    public const DEFAULT_API_BASE = "https://api.scalemypublication.com/v1/content-generation";
+    public const LEGACY_API_BASE = "https://publish.scalemypublication.com/api/smp-content-generation/v1";
     private const START_TIMEOUT = 20;
     private const READ_TIMEOUT = 10;
 
     /** @return array|\WP_Error */
     public function status() {
-        return $this->request( "/status", [ "site_url" => home_url(), "plugin_version" => Config::VERSION ], self::READ_TIMEOUT );
+        return $this->request( "/status", [], self::READ_TIMEOUT );
     }
 
     /**
@@ -90,16 +91,7 @@ final class PublishContentClient {
         if ( "" === $api_key ) {
             return new \WP_Error( "smpi_content_api_key_missing", "No SMP content generation API key is configured." );
         }
-        $base = rtrim( (string) Settings::get( "content_generation_api_base", self::DEFAULT_API_BASE ), "/" );
-        $response = wp_remote_post( $base . $path, [
-            "timeout" => $timeout,
-            "headers" => [
-                "Accept" => "application/json",
-                "Content-Type" => "application/json",
-                "X-SMP-Content-Key" => $api_key,
-            ],
-            "body" => wp_json_encode( $payload ),
-        ] );
+        $response = ( new SignedJsonClient( "X-SMP-" ) )->post( $this->api_base() . $path, $payload, $api_key, home_url(), $timeout );
         if ( is_wp_error( $response ) ) {
             return new \WP_Error( "smpi_content_api_unreachable", "Could not reach Publish: " . $response->get_error_message() );
         }
@@ -111,6 +103,11 @@ final class PublishContentClient {
             return new \WP_Error( "smpi_content_api_http", $message, [ "status" => $code ] );
         }
         return $body;
+    }
+
+    public function api_base(): string {
+        $base = rtrim( (string) Settings::get( "content_generation_api_base", self::DEFAULT_API_BASE ), "/" );
+        return "" === $base || self::LEGACY_API_BASE === $base ? self::DEFAULT_API_BASE : $base;
     }
 
     private function payload_for_post( \WP_Post $post, string $target ): array {

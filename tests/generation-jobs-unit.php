@@ -24,6 +24,12 @@ namespace smp_publication_integration\Support {
     }
 }
 
+namespace smp_publication_integration\Content {
+    final class ArticleFeatures {
+        public static function enabled( string $feature, int $post_id ): bool { return true; }
+    }
+}
+
 namespace smp_publication_integration {
     final class Config { public const VERSION = "test"; }
 }
@@ -77,11 +83,18 @@ namespace {
     function home_url(): string { return "https://site.test"; }
     function get_the_title( $post ): string { return "Title " . $post->ID; }
     function get_permalink( $post ): string { return "https://site.test/?p=" . $post->ID; }
+    function wp_parse_url( $url, $component = -1 ) { return parse_url( $url, $component ); }
     function wp_json_encode( $value ) { return json_encode( $value ); }
     function wp_remote_post( string $url, array $args ) {
+        $headers = $args['headers'];
+        $expected = \Hexa\PluginCore\ApiKeys\HmacSignature::sign( 'POST', parse_url( $url, PHP_URL_PATH ), $headers['X-SMP-Timestamp'], $headers['X-SMP-Nonce'], 'site.test', $args['body'], 'site-key-123' );
+        if ( $expected !== $headers['X-SMP-Signature'] || 0 !== $args['redirection'] || ! $args['sslverify'] ) {
+            throw new \RuntimeException( 'Generation transport did not sign its exact body and path safely.' );
+        }
+        $GLOBALS['last_transport'] = [ $url, $args ];
         $path = substr( $url, strrpos( $url, "/" ) );
         $payload = json_decode( $args["body"], true );
-        $GLOBALS["calls"][] = [ "path" => $path, "payload" => $payload, "key" => $args["headers"]["X-SMP-Content-Key"] ?? "" ];
+        $GLOBALS["calls"][] = [ "path" => $path, "payload" => $payload, "key" => $args["headers"]["X-SMP-Key"] ?? "" ];
         $answer = ( $GLOBALS["publish"] )( $path, $payload );
         return $answer instanceof WP_Error ? $answer : [ "code" => $answer[0], "body" => json_encode( $answer[1] ) ];
     }
@@ -89,6 +102,8 @@ namespace {
     function wp_remote_retrieve_body( $response ) { return $response["body"]; }
 
     $root = dirname( __DIR__ );
+    require $root . "/lib/hexa-wordpress-plugin-core/src/ApiKeys/HmacSignature.php";
+    require $root . "/lib/hexa-wordpress-plugin-core/src/ApiKeys/SignedJsonClient.php";
     require $root . "/src/Content/Generation/PublishContentClient.php";
     require $root . "/src/Content/Generation/GeneratedValueStore.php";
     require $root . "/src/Content/Generation/GenerationJobs.php";
@@ -223,6 +238,19 @@ namespace {
     // 12. Disabled module refuses to start.
     Settings::$values["content_generation_enabled"] = false;
     check( "a disabled module does not start jobs", "failed" === $jobs->start( 12, "excerpt" )["status"] );
+
+    $client = new \smp_publication_integration\Content\Generation\PublishContentClient();
+    check( "new default uses dedicated host", $client->api_base() === $client::DEFAULT_API_BASE );
+    Settings::$values['content_generation_api_base'] = $client::LEGACY_API_BASE . '/';
+    check( "saved legacy default migrates", $client->api_base() === $client::DEFAULT_API_BASE );
+    Settings::$values['content_generation_api_base'] = 'https://custom.example.test/v1/content-generation/';
+    check( "custom endpoint is preserved", 'https://custom.example.test/v1/content-generation' === $client->api_base() );
+    Settings::$values['content_generation_api_base'] = '';
+    check( "empty endpoint uses dedicated default", $client->api_base() === $client::DEFAULT_API_BASE );
+    $GLOBALS['publish'] = fn () => [ 200, [ 'success' => true ] ];
+    $client->status();
+    check( "status sends only the expected empty object", '{}' === $GLOBALS['last_transport'][1]['body'] );
+    check( "status reaches the dedicated endpoint", $client::DEFAULT_API_BASE . '/status' === $GLOBALS['last_transport'][0] );
 
     if ( $failures ) {
         fwrite( STDERR, $failures . " generation job check(s) failed.\n" );

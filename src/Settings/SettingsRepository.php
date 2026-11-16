@@ -2,6 +2,7 @@
 namespace smp_publication_integration\Settings;
 
 use smp_publication_integration\Pages\PageTypes;
+use smp_publication_integration\Content\Generation\PublishContentClient;
 use Hexa\PluginCore\ActivityLog\ActivityLogConfig;
 use Hexa\PluginCore\ActivityLog\ActivityLogEntry;
 use Hexa\PluginCore\ActivityLog\ActivityLogger;
@@ -186,7 +187,7 @@ class SettingsRepository {
             'rank_math_breadcrumb_check_enabled' => true,
             'hws_masked_admin_report_enabled' => true,
             "content_generation_enabled" => true,
-            "content_generation_api_base" => "https://publish.scalemypublication.com/api/smp-content-generation/v1",
+            "content_generation_api_base" => PublishContentClient::DEFAULT_API_BASE,
             "post_hygiene_enabled" => true,
             "post_hygiene_strip_inline_styles" => true,
             "post_hygiene_unwrap_spans" => true,
@@ -720,7 +721,7 @@ class SettingsRepository {
 
             if ( "content_generation_api_base" === $key ) {
                 $url = esc_url_raw( (string) $value );
-                $settings[ $key ] = $url ?: "https://publish.scalemypublication.com/api/smp-content-generation/v1";
+                $settings[ $key ] = $url ?: PublishContentClient::DEFAULT_API_BASE;
                 continue;
             }
         }
