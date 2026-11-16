@@ -1,4 +1,15 @@
+## 3.62.0 - 2026-11-15
+
+- Add shared domain-bound HMAC JSON signing and HTTPS POST transport with fresh nonces, exact-body hashes and redirects disabled.
+
 # 3.57.0
+
+## 3.61.0 - 2026-11-13
+
+- Schema structures: `SchemaStructures` registry, `SchemaContext`, `SchemaStructuresPanel` and `SchemaStructuresModule` (AJAX and `wp hexa schema`): each plugin declares its structures, which ship on in their default mode, keep their mode, print in the shared block and preview live.
+- `SchemaNodes::person_profile()`, `occupation()`, `educational_organization()`, `country()`, `quotation()`, `creative_work()`; `ImageGallery` page type; `same_as()` keeps the first spelling of a repeated link.
+- `SchemaPage::merge_nodes()` and `document_for()` merge and print nodes without changing the current page.
+- FAQ output no longer prints the admin UI styles on public pages; its own styles print once per page.
 
 ## 3.59.1 - 2026-11-08
 
@@ -378,3 +389,6 @@ Version 0.19.13 adds reusable collapsed detail subcards and uses them in cleanup
 Version 0.19.12 keeps Core toggle inputs clipped to a 1px focusable control so hidden checkbox fields cannot create horizontal page overflow.
 
 Version 0.19.4 adds:
+
+## 3.60.0
+- Generic PdfPrint physical dimensions and HTML print/PDF renderer; host supplies Dompdf.
