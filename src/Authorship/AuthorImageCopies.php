@@ -5,87 +5,106 @@ if ( ! defined( "ABSPATH" ) ) {
     exit;
 }
 
-/** Prepare responsive author copies only after photo or template changes. */
+/** Prepare document-scoped author copies in a background event after saves. */
 final class AuthorImageCopies {
-    private array $authors = [];
-    private bool $all_authors = false;
+    private const HOOK = "smpi_prepare_author_image_copies";
+    private const SLOTS_OPTION = "smpi_author_image_document_slots";
 
     public function register(): void {
         add_action( "added_user_meta", [ $this, "photo_changed" ], 20, 3 );
         add_action( "updated_user_meta", [ $this, "photo_changed" ], 20, 3 );
-        add_action( "profile_update", [ $this, "queue_author" ], 20 );
+        add_action( "profile_update", [ $this, "author_changed" ], 20 );
         add_action( "added_post_meta", [ $this, "template_changed" ], 20, 3 );
         add_action( "updated_post_meta", [ $this, "template_changed" ], 20, 3 );
-        add_action( "save_post", [ $this, "content_changed" ], 20, 2 );
-        add_action( "shutdown", [ $this, "prepare_queued" ] );
+        add_action( "save_post", [ $this, "document_changed" ], 20 );
+        add_action( self::HOOK, [ $this, "prepare" ] );
     }
 
     public function photo_changed( $meta_id, int $user_id, string $key ): void {
         $fields = AuthorFieldResolver::aliases()["image"];
         if ( in_array( $key, $fields, true ) || "_avatar" === substr( $key, -7 ) ) {
-            $this->queue_author( $user_id );
+            $this->author_changed( $user_id );
         }
     }
 
-    public function queue_author( int $user_id ): void {
-        $this->authors[ $user_id ] = $user_id;
+    public function author_changed( int $user_id ): void {
+        $pairs = [];
+        foreach ( (array) get_option( self::SLOTS_OPTION, [] ) as $document ) {
+            foreach ( $document["slots"] as $slot ) {
+                if ( $slot["user_id"] === $user_id || ( ! $slot["user_id"] && ( ! $document["authors"] || in_array( $user_id, $document["authors"], true ) ) ) ) {
+                    $pairs[] = [ "author_id" => $user_id, "size" => $slot["size"], "sizes" => $slot["sizes"] ];
+                }
+            }
+        }
+        $this->schedule( $pairs );
     }
 
     public function template_changed( $meta_id, int $post_id, string $key ): void {
         if ( "_elementor_data" === $key ) {
-            $this->all_authors = true;
+            $this->document_changed( $post_id );
         }
     }
 
-    public function content_changed( int $post_id, \WP_Post $post ): void {
-        if ( ! wp_is_post_revision( $post_id ) && has_shortcode( $post->post_content, "author_image" ) ) {
-            $this->all_authors = true;
-        }
-    }
-
-    public function prepare_queued(): void {
-        if ( $this->all_authors ) {
-            $this->regenerate();
-        } elseif ( $this->authors ) {
-            $this->regenerate( array_values( $this->authors ) );
-        }
-    }
-
-    /** Explicit regeneration also prepares existing author photos during a rollout. */
-    public function regenerate( ?array $author_ids = null ): void {
-        $slots = $this->saved_slots();
-        if ( ! $slots ) {
+    /** Only this saved document is parsed; no post or user inventory is loaded. */
+    public function document_changed( int $post_id ): void {
+        if ( wp_is_post_revision( $post_id ) ) {
             return;
         }
-        $author_ids = $author_ids ?? get_users( [ "fields" => "ID" ] );
-        $resolver = new AuthorFieldResolver();
-        foreach ( $author_ids as $author_id ) {
-            $attachment_id = $resolver->explicit_image_attachment_id( (int) $author_id );
-            if ( ! $attachment_id ) {
-                continue;
+        $post = get_post( $post_id );
+        if ( ! $post instanceof \WP_Post ) {
+            return;
+        }
+        $slots = [];
+        $this->collect_slots( $post->post_content, $slots );
+        $data = get_post_meta( $post_id, "_elementor_data", true );
+        $this->collect_slots( is_string( $data ) ? json_decode( $data, true ) : $data, $slots );
+        $authors = "elementor_library" === $post->post_type ? [] : $this->post_authors( $post_id );
+        $index = (array) get_option( self::SLOTS_OPTION, [] );
+        if ( $slots ) {
+            $index[ $post_id ] = [ "authors" => $authors, "slots" => array_values( $slots ) ];
+        } else {
+            unset( $index[ $post_id ] );
+        }
+        update_option( self::SLOTS_OPTION, $index, false );
+        $pairs = [];
+        foreach ( $slots as $slot ) {
+            $targets = $slot["user_id"] ? [ $slot["user_id"] ] : $authors;
+            foreach ( $targets as $author_id ) {
+                $pairs[] = [ "author_id" => $author_id, "size" => $slot["size"], "sizes" => $slot["sizes"] ];
             }
-            foreach ( $slots as $slot ) {
-                $image = wp_get_attachment_image_src( $attachment_id, $slot["size"] );
-                if ( is_array( $image ) && $image[0] === $resolver->image_url( (int) $author_id, $slot["size"] ) ) {
-                    self::ensure_slot_copies( $attachment_id, $image, $slot["sizes"] );
-                }
-            }
+        }
+        $this->schedule( $pairs );
+    }
+
+    private function post_authors( int $post_id ): array {
+        $records = ( new AuthorAssignmentRepository() )->records_for_post( $post_id );
+        return array_map( static fn( AuthorRecord $author ): int => $author->id(), $records );
+    }
+
+    /** One scheduled event carries the deduplicated author/slot batch as its argument. */
+    private function schedule( array $pairs ): void {
+        $unique = [];
+        foreach ( $pairs as $pair ) {
+            $unique[ wp_json_encode( $pair ) ] = $pair;
+        }
+        ksort( $unique );
+        $args = [ array_values( $unique ) ];
+        if ( $unique && ! wp_next_scheduled( self::HOOK, $args ) ) {
+            wp_schedule_single_event( time(), self::HOOK, $args );
         }
     }
 
-    private function saved_slots(): array {
-        $types = array_values( get_post_types( [ "public" => true ] ) );
-        $types[] = "elementor_library";
-        $query = [ "post_type" => $types, "post_status" => [ "publish", "draft", "private" ], "posts_per_page" => -1, "fields" => "ids" ];
-        $templates = get_posts( $query + [ "meta_key" => "_elementor_data" ] );
-        $posts = get_posts( $query + [ "s" => "[author_image" ] );
-        $slots = [];
-        foreach ( array_unique( array_merge( $templates, $posts ) ) as $post_id ) {
-            $this->collect_slots( (string) get_post_field( "post_content", $post_id ), $slots );
-            $data = get_post_meta( $post_id, "_elementor_data", true );
-            $this->collect_slots( is_string( $data ) ? json_decode( $data, true ) : $data, $slots );
+    /** Explicitly supplied batches can also regenerate existing photos during rollout. */
+    public function prepare( array $pairs ): void {
+        $resolver = new AuthorFieldResolver();
+        foreach ( $pairs as $pair ) {
+            $author_id = (int) $pair["author_id"];
+            $attachment_id = $resolver->explicit_image_attachment_id( $author_id );
+            $image = $attachment_id ? wp_get_attachment_image_src( $attachment_id, $pair["size"] ) : false;
+            if ( is_array( $image ) && $image[0] === $resolver->image_url( $author_id, $pair["size"] ) ) {
+                self::ensure_slot_copies( $attachment_id, $image, $pair["sizes"] );
+            }
         }
-        return array_values( $slots );
     }
 
     private function collect_slots( $value, array &$slots ): void {
@@ -100,11 +119,11 @@ final class AuthorImageCopies {
                     continue;
                 }
                 $size = sanitize_key( (string) ( $atts["size"] ?? "thumbnail" ) );
-                if ( ! in_array( $size, [ "thumbnail", "medium", "medium_large", "large", "full" ], true ) ) {
+                if ( ! in_array( $size, array_merge( get_intermediate_image_sizes(), [ "full" ] ), true ) ) {
                     $size = "thumbnail";
                 }
-                $sizes = trim( (string) $atts["sizes"] );
-                $slots[ $size . "|" . $sizes ] = [ "size" => $size, "sizes" => $sizes ];
+                $slot = [ "size" => $size, "sizes" => trim( (string) $atts["sizes"] ), "user_id" => absint( $atts["user_id"] ?? 0 ) ];
+                $slots[ wp_json_encode( $slot ) ] = $slot;
             }
         }
     }

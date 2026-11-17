@@ -219,7 +219,7 @@ final class AuthorShortcodes {
             return "";
         }
         $size = sanitize_key( (string) $atts["size"] );
-        if ( ! in_array( $size, [ "thumbnail", "medium", "medium_large", "large", "full" ], true ) ) {
+        if ( ! in_array( $size, array_merge( get_intermediate_image_sizes(), [ "full" ] ), true ) ) {
             $size = "thumbnail";
         }
         $resolver = new AuthorFieldResolver();
