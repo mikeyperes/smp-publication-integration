@@ -615,7 +615,6 @@ SMPI_JS;
 
     public static function publication_verification_markup( string $class = "", string $style_override = "", string $color_override = "", bool $icon = false, int $size = 0, string $text_color = "" ): string {
         $mode = (string) Settings::get( "publication_muckrack_text_mode", "news_outlet" );
-        $label = "publication_name" === $mode ? get_bloginfo( "name" ) : "News outlet";
         $url = Fields::option_url( "publication_muckrack_url" );
         $target = "" !== $url ? $url : "https://muckrack.com/";
         $style = sanitize_key( "" !== $style_override ? $style_override : (string) Settings::get( "publication_muckrack_style", "block" ) );
@@ -632,10 +631,8 @@ SMPI_JS;
         $style_attribute = [] !== $inline ? ' style="' . esc_attr( implode( ";", $inline ) ) . '"' : "";
 
         $mark = $icon ? '<span class="smpi-muckrack-icon smpi-muckrack-icon-circle smpi-muckrack-publication-icon" aria-hidden="true">' . self::icon_svg_html( "circle" ) . '</span> ' : "";
-        $sentence = "publication_sentence" === $mode
-            ? esc_html( get_bloginfo( "name" ) ) . ' is verified by <span class="smpi-muckrack-brand">MuckRack</span>&#8217;s editorial team.'
-            : esc_html( $label ) . ' verified by <span class="smpi-muckrack-brand">MuckRack</span> editorial team';
-        return '<span class="' . esc_attr( $classes ) . '"' . $style_attribute . '>' . $mark . $sentence . ( "" !== $url ? ' <a href="' . esc_url( $url ) . '" target="_blank" rel="noopener noreferrer">(learn more)</a>' : "" ) . '</span>';
+        $sentence = esc_html( get_bloginfo( "name" ) ) . " is verified by <b class=\"smpi-muckrack-brand\">MuckRack</b>'s editorial team.";
+        return '<span class="' . esc_attr( $classes ) . '"' . $style_attribute . '>' . $mark . $sentence . ' <a href="' . esc_url( $target ) . '" target="_blank" rel="noopener noreferrer">learn more</a></span>';
     }
 
     public static function publication_report(): array {

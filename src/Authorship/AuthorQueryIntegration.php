@@ -31,6 +31,7 @@ final class AuthorQueryIntegration {
         add_filter( "elementor/query/get_query_args/current_query", [ $this, "filter_elementor_query_args" ], $elementor_priority );
         add_filter( "elementor_pro/query_control/get_query_args/current_query", [ $this, "filter_elementor_query_args" ], $elementor_priority );
         add_filter( "elementor/query/query_args", [ $this, "filter_elementor_query_args" ], $elementor_priority );
+        add_filter( "elementor/query/query_args", [ $this, "filter_related_author_query_args" ], $elementor_priority, 2 );
         add_filter( "elementor/query/fallback_query_args", [ $this, "filter_elementor_query_args" ], $elementor_priority );
     }
 
@@ -162,6 +163,34 @@ final class AuthorQueryIntegration {
         if ( $query_args[ Visibility::HPR_ALLOW_QUERY_VAR ] ) {
             $query_args[ Visibility::HPR_FORCE_HIDE_QUERY_VAR ] = false;
         }
+        return $query_args;
+    }
+
+    public function filter_related_author_query_args( array $query_args, \Elementor\Widget_Base $widget ): array {
+        if ( ! is_singular( $this->repository->supported_post_types() )
+            || "loop-grid" !== $widget->get_name()
+        ) {
+            return $query_args;
+        }
+
+        $settings = $widget->get_settings();
+        if ( "related" !== ( $settings["post_query_post_type"] ?? "" )
+            || ! in_array( "authors", (array) ( $settings["post_query_include"] ?? [] ), true )
+        ) {
+            return $query_args;
+        }
+
+        $post_id = (int) get_queried_object_id();
+        $author_id = (int) get_post_field( "post_author", $post_id );
+        $query_args["author__in"] = [ $author_id ];
+        $excluded = (array) ( $query_args["post__not_in"] ?? [] );
+        $excluded[] = $post_id;
+        if ( "yes" === ( $settings["post_query_ignore_sticky_posts"] ?? "" ) ) {
+            $query_args["ignore_sticky_posts"] = true;
+            $excluded = array_merge( $excluded, (array) get_option( "sticky_posts", [] ) );
+        }
+        $query_args["post__not_in"] = array_values( array_unique( array_map( "absint", $excluded ) ) );
+
         return $query_args;
     }
 

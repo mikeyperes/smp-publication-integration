@@ -27,6 +27,11 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 
 ## Features
 
+### Publication verification and related-author loops
+- **Does:** publication verification always prints the site's outlet name followed by "is verified by MuckRack's editorial team. learn more", with bold MuckRack and an unbracketed link to its saved profile (or MuckRack when absent).
+- **Use:** `[smp_publication_muckrack_verified]` retains its existing enablement and styling controls. Native Elementor Loop Grid queries using Related and Include by Author retain the current author's stories, exclude the current article, and exclude sticky posts when Ignore sticky posts is enabled.
+- **Code:** `src/Content/MuckRackVerification.php`, `src/Authorship/AuthorQueryIntegration.php`.
+
 ### Signed AI-writing connection
 - **Does:** sends status, generation and job reads by signed POST to the dedicated API host through Hexa WP Core 3.62.1. Existing default Publish addresses resolve to the new address; custom endpoint settings are preserved.
 - **Setting:** `content_generation_api_base`, default `https://api.scalemypublication.com/v1/content-generation`.

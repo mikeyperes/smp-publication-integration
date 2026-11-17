@@ -1258,9 +1258,9 @@ HTML;
     }
 
     private function publication_preview_sample_html( string $style, array $settings ): string {
-        $label = "publication_name" === (string) ( $settings["publication_muckrack_text_mode"] ?? "news_outlet" ) ? get_bloginfo( "name" ) : "News outlet";
+        $label = get_bloginfo( "name" );
         $class = "smpi-publication-preview-" . sanitize_html_class( $style );
-        return '<span class="smpi-muckrack-publication-text smpi-muckrack-publication-' . esc_attr( $style ) . ' ' . esc_attr( $class ) . '">' . esc_html( $label ) . ' verified by <span class="smpi-muckrack-brand smpi-publication-preview-brand">MuckRack</span> editorial team <a href="#">(learn more)</a></span>';
+        return '<span class="smpi-muckrack-publication-text smpi-muckrack-publication-' . esc_attr( $style ) . ' ' . esc_attr( $class ) . '">' . esc_html( $label ) . " is verified by <b class=\"smpi-muckrack-brand smpi-publication-preview-brand\">MuckRack</b>'s editorial team. <a href=\"#\">learn more</a></span>";
     }
 
     private static function ico( bool $ok, bool $strict = false ): string {
