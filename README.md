@@ -28,9 +28,9 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 ## Features
 
 ### Responsive author photos
-- **Does:** preserves each author image's declared `sizes` and selected WordPress size when Elementor rebinds a multi-author template. Shortcodes and rebound photos share one renderer, cap candidates at the selected copy's width, and cache smaller 1x/2x copies for declared pixel slots using WordPress image APIs.
+- **Does:** preserves each author image's declared `sizes` and selected WordPress size when Elementor rebinds a multi-author template. Shortcodes and rebound photos share one renderer, cap candidates at the selected copy's width, and read existing smaller 1x/2x copies for declared pixel slots. Photo and template save hooks prepare those copies through WordPress image APIs; front-end rendering never generates files or updates attachment metadata. Existing photos can be prepared explicitly with `AuthorImageCopies::regenerate()`.
 - **Use:** `[author_image size="thumbnail" sizes="44px"]`; responsive pixel-slot lists are retained unchanged.
-- **Code:** `src/Authorship/AuthorImage.php`, `src/Content/AuthorShortcodes.php`, `src/Authorship/ElementorAuthorRenderer.php`.
+- **Code:** `src/Authorship/AuthorImage.php`, `src/Authorship/AuthorImageCopies.php`, `src/Content/AuthorShortcodes.php`, `src/Authorship/ElementorAuthorRenderer.php`.
 
 ### Publication verification and related-author loops
 - **Does:** publication verification always prints the site's outlet name followed by "is verified by MuckRack's editorial team. learn more", with bold MuckRack and an unbracketed link to its saved profile (or MuckRack when absent).

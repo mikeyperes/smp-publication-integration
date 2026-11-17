@@ -105,6 +105,7 @@ final class Plugin {
             new Content\MultiAuthors(),
             new Content\AuthorPhotoVisibility(),
             new Content\AuthorShortcodes(),
+            new \smp_publication_integration\Authorship\AuthorImageCopies(),
             new Content\AuthorSocialIcons(),
             new Content\AuthorListings(),
             new Content\ExecutiveLeadership(),
