@@ -27,6 +27,11 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 
 ## Features
 
+### Responsive author photos
+- **Does:** preserves each author image's declared `sizes` and selected WordPress size when Elementor rebinds a multi-author template. Shortcodes and rebound photos share one renderer, cap candidates at the selected copy's width, and cache smaller 1x/2x copies for declared pixel slots using WordPress image APIs.
+- **Use:** `[author_image size="thumbnail" sizes="44px"]`; responsive pixel-slot lists are retained unchanged.
+- **Code:** `src/Authorship/AuthorImage.php`, `src/Content/AuthorShortcodes.php`, `src/Authorship/ElementorAuthorRenderer.php`.
+
 ### Publication verification and related-author loops
 - **Does:** publication verification always prints the site's outlet name followed by "is verified by MuckRack's editorial team. learn more", with bold MuckRack and an unbracketed link to its saved profile (or MuckRack when absent).
 - **Use:** `[smp_publication_muckrack_verified]` retains its existing enablement and styling controls. Native Elementor Loop Grid queries using Related and Include by Author retain the current author's stories, exclude the current article, and exclude sticky posts when Ignore sticky posts is enabled.

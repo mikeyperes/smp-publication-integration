@@ -270,8 +270,15 @@ final class ElementorAuthorRenderer {
         $data = $author->to_array();
         if ( "image" === $field ) {
             foreach ( $node->getElementsByTagName( "img" ) as $image ) {
-                $image->setAttribute( "src", (string) $data["avatar"] );
-                $image->removeAttribute( "srcset" );
+                $size = $image->getAttribute( "data-smpi-image-size" ) ?: "thumbnail";
+                $attributes = AuthorImage::attributes( $author->id(), $size, $image->getAttribute( "sizes" ) );
+                foreach ( [ "src", "srcset", "sizes", "width", "height", "data-src", "data-srcset", "data-sizes", "data-lazy-src", "data-lazy-srcset" ] as $attribute ) {
+                    $image->removeAttribute( $attribute );
+                }
+                foreach ( $attributes as $attribute => $value ) {
+                    $image->setAttribute( $attribute, (string) $value );
+                }
+                $image->setAttribute( "data-smpi-author-id", (string) $author->id() );
                 $image->setAttribute( "alt", (string) $data["name"] );
             }
             return;

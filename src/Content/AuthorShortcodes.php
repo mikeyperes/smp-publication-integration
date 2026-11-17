@@ -233,23 +233,13 @@ final class AuthorShortcodes {
         $name = get_the_author_meta( "display_name", $author_id );
         // A photo on the first screen (an author page header) loads at once: loading="eager".
         $loading = "eager" === sanitize_key( (string) $atts["loading"] ) ? "loading=\"eager\" fetchpriority=\"high\"" : "loading=\"lazy\"";
-        // Opt in so existing templates retain their exact markup and loading behavior.
+        $attributes = \smp_publication_integration\Authorship\AuthorImage::attributes( $author_id, $size, trim( (string) $atts["sizes"] ) );
         $responsive = "";
-        $sizes = trim( (string) $atts["sizes"] );
-        if ( "" !== $sizes ) {
-            $responsive = ' sizes="' . esc_attr( $sizes ) . '"';
-            $attachment_id = $resolver->explicit_image_attachment_id( $author_id );
-            $image = $attachment_id ? wp_get_attachment_image_src( $attachment_id, $size ) : false;
-            // Never attach dimensions or candidates from a different resolved photo.
-            if ( is_array( $image ) && $image[0] === $url && 0 < (int) $image[1] && 0 < (int) $image[2] ) {
-                $responsive .= sprintf( ' width="%d" height="%d"', (int) $image[1], (int) $image[2] );
-                $srcset = wp_get_attachment_image_srcset( $attachment_id, $size );
-                if ( is_string( $srcset ) && "" !== $srcset ) {
-                    $responsive .= ' srcset="' . esc_attr( $srcset ) . '"';
-                }
-            }
+        foreach ( $attributes as $key => $value ) {
+            $value = "src" === $key ? esc_url( (string) $value ) : (string) $value;
+            $responsive .= ' ' . $key . '="' . esc_attr( $value ) . '"';
         }
-        return sprintf( "<img data-smpi-author-id=\"%d\" class=\"%s\" src=\"%s\" alt=\"%s\" %s decoding=\"async\"%s>", $author_id, esc_attr( (string) $atts["class"] ), esc_url( $url ), esc_attr( $name ), $loading, $responsive );
+        return sprintf( "<img data-smpi-author-id=\"%d\" data-smpi-image-size=\"%s\" class=\"%s\" alt=\"%s\" %s decoding=\"async\"%s>", $author_id, esc_attr( $size ), esc_attr( (string) $atts["class"] ), esc_attr( $name ), $loading, $responsive );
     }
 
     private function render_author_text( string $key, array $atts = [] ): string {
