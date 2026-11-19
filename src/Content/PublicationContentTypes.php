@@ -60,10 +60,10 @@ final class PublicationContentTypes {
                     'description'     => 'Publication identity, policies, contact details, brand assets, and generated schema fields.',
                     'group_key'       => 'group_smpi_publication_profile',
                     'enabled_default' => true,
-                    'definition'      => [ AcfFields::class, 'publication_profile_group' ],
+                    'definition'      => [ PublicationFields::class, 'publication_profile_group' ],
                     'location'        => 'SMP Publication settings',
                     'fields'          => [ 'Publication identity', 'Publication author', 'Brand assets', 'Editorial policies', 'Contact information', 'Schema metadata' ],
-                    'dependencies'    => [ 'Advanced Custom Fields Pro' ],
+
                 ]
             )
             ->add(
@@ -71,12 +71,12 @@ final class PublicationContentTypes {
                     'id'              => 'post-summary',
                     'label'           => 'What to Know Fields',
                     'description'     => 'The "What to know" article summary field. Registered only while the What to know feature is on.',
-                    'group_key'       => AcfFields::POST_SUMMARY_GROUP_KEY,
+                    'group_key'       => PublicationFields::POST_SUMMARY_GROUP_KEY,
                     'enabled_default' => true,
-                    'definition'      => [ AcfFields::class, 'post_summary_group' ],
+                    'definition'      => [ PublicationFields::class, 'post_summary_group' ],
                     'location'        => implode( ', ', self::article_post_types() ) . ' editors',
                     'fields'          => [ 'Post Summary' ],
-                    'dependencies'    => [ 'Advanced Custom Fields Pro', 'What to know feature switch' ],
+                    'dependencies'    => [ 'What to know feature switch' ],
                 ]
             )
             ->add(
@@ -84,12 +84,12 @@ final class PublicationContentTypes {
                     'id'              => 'post-faqs',
                     'label'           => 'FAQ Fields',
                     'description'     => 'Structured FAQ rows and the FAQ schema switch. Registered only while the FAQs feature is on.',
-                    'group_key'       => AcfFields::POST_FAQS_GROUP_KEY,
+                    'group_key'       => PublicationFields::POST_FAQS_GROUP_KEY,
                     'enabled_default' => true,
-                    'definition'      => [ AcfFields::class, 'post_faqs_group' ],
+                    'definition'      => [ PublicationFields::class, 'post_faqs_group' ],
                     'location'        => implode( ', ', self::article_post_types() ) . ' editors',
                     'fields'          => [ 'FAQ Schema', 'Structured FAQs' ],
-                    'dependencies'    => [ 'Advanced Custom Fields Pro', 'FAQs feature switch' ],
+                    'dependencies'    => [ 'FAQs feature switch' ],
                 ]
             );
 

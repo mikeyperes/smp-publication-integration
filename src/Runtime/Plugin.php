@@ -97,7 +97,7 @@ final class Plugin {
         return [
             new SettingsMigrations(),
             new \smp_publication_integration\Content\ArticleFeatures(),
-            new Content\AcfFields(),
+            new Content\PublicationFields(),
             new Content\Shortcodes(),
             new Pages\CompanyFacts(),
             new Pages\LatestPressReleases(),

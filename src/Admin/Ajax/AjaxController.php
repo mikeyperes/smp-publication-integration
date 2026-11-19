@@ -10,7 +10,7 @@ use Hexa\PluginCore\WpAdminAjax\AjaxFailure;
 use Hexa\PluginCore\WpAdminAjax\AjaxGuard;
 use Hexa\PluginCore\WpAdminAjax\AjaxRequest;
 use smp_publication_integration\Admin\Dashboard;
-use smp_publication_integration\Content\AcfFields;
+use smp_publication_integration\Content\PublicationFields;
 use smp_publication_integration\Content\MuckRackVerification;
 use smp_publication_integration\Content\MultiAuthors;
 use smp_publication_integration\Content\Schema;
@@ -231,10 +231,6 @@ class AjaxController {
     }
 
     public function save_publication_muckrack_source( AjaxRequest $request ): array {
-        if ( ! \Hexa\PluginCore\Fields\Field::available() || ! \Hexa\PluginCore\Fields\Field::available() ) {
-            throw AjaxFailure::server_error( 'Advanced Custom Fields must be active to update the publication source.' );
-        }
-
         $verified = $request->bool( 'verified', false, 'post' );
         $raw_url = trim( (string) $request->raw( 'url', '', 'post' ) );
         $url = '' === $raw_url ? '' : esc_url_raw( $raw_url, [ 'http', 'https' ] );
@@ -246,13 +242,13 @@ class AjaxController {
             throw AjaxFailure::bad_request( 'Enter the publication MuckRack URL before enabling verification.' );
         }
 
-        \Hexa\PluginCore\Fields\Field::update( AcfFields::PUBLICATION_MUCKRACK_VERIFIED_FIELD_KEY, $verified ? 1 : 0, 'option' );
-        \Hexa\PluginCore\Fields\Field::update( AcfFields::PUBLICATION_MUCKRACK_URL_FIELD_KEY, $url, 'option' );
+        \Hexa\PluginCore\Fields\Field::update( PublicationFields::PUBLICATION_MUCKRACK_VERIFIED_FIELD_KEY, $verified ? 1 : 0, 'option' );
+        \Hexa\PluginCore\Fields\Field::update( PublicationFields::PUBLICATION_MUCKRACK_URL_FIELD_KEY, $url, 'option' );
 
-        $saved_verified = (bool) \Hexa\PluginCore\Fields\Field::get( AcfFields::PUBLICATION_MUCKRACK_VERIFIED_FIELD_KEY, 'option' );
-        $saved_url = trim( (string) \Hexa\PluginCore\Fields\Field::get( AcfFields::PUBLICATION_MUCKRACK_URL_FIELD_KEY, 'option' ) );
+        $saved_verified = (bool) \Hexa\PluginCore\Fields\Field::get( PublicationFields::PUBLICATION_MUCKRACK_VERIFIED_FIELD_KEY, 'option' );
+        $saved_url = trim( (string) \Hexa\PluginCore\Fields\Field::get( PublicationFields::PUBLICATION_MUCKRACK_URL_FIELD_KEY, 'option' ) );
         if ( $saved_verified !== $verified || $saved_url !== $url ) {
-            throw AjaxFailure::server_error( 'The publication ACF source values could not be confirmed after saving.' );
+            throw AjaxFailure::server_error( 'The publication source fields could not be confirmed after saving.' );
         }
 
         $this->purge_frontend_cache();

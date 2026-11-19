@@ -34,7 +34,7 @@ use smp_publication_integration\Admin\QuickStartCleanupWorkflow;
 
 use smp_publication_integration\Admin\Navigation\AdminNavigation;
 use smp_publication_integration\Config;
-use smp_publication_integration\Content\AcfFields;
+use smp_publication_integration\Content\PublicationFields;
 use smp_publication_integration\Content\AuthorSocialIcons;
 use smp_publication_integration\Content\AuthorArchiveLoading;
 use smp_publication_integration\Content\MuckRackVerification;
@@ -64,8 +64,8 @@ trait PublicationSettingsTab {
     /** Newsroom-only fields edited here; company facts are owned by HWS Base Tools. */
     private const NEWSROOM_FIELDS = [
         'field_smpi_google_news_url',
-        AcfFields::PUBLICATION_MUCKRACK_VERIFIED_FIELD_KEY,
-        AcfFields::PUBLICATION_MUCKRACK_URL_FIELD_KEY,
+        PublicationFields::PUBLICATION_MUCKRACK_VERIFIED_FIELD_KEY,
+        PublicationFields::PUBLICATION_MUCKRACK_URL_FIELD_KEY,
         'field_smpi_rss_feed',
         'field_smpi_has_podcast',
         'field_smpi_knows_about',

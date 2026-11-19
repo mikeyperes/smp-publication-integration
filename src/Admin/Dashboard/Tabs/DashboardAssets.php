@@ -34,7 +34,7 @@ use smp_publication_integration\Admin\QuickStartCleanupWorkflow;
 
 use smp_publication_integration\Admin\Navigation\AdminNavigation;
 use smp_publication_integration\Config;
-use smp_publication_integration\Content\AcfFields;
+use smp_publication_integration\Content\PublicationFields;
 use smp_publication_integration\Content\AuthorSocialIcons;
 use smp_publication_integration\Content\AuthorArchiveLoading;
 use smp_publication_integration\Content\MuckRackVerification;
@@ -73,13 +73,12 @@ trait DashboardAssets {
         jQuery(function($){
             function tabPanel(){return $(`#smpi-tab-panel`)}
             function setTabMessage(text){$(`#smpi-core-tabs [data-hpc-tab-message]`).text(text)}
-            function destroyDynamicEditors(root){if(window.acf){try{acf.doAction(`remove`,root)}catch(e){}}if(!window.tinymce)return;root.find(`textarea.wp-editor-area`).each(function(){var id=this.id;if(id&&tinymce.get(id)){tinymce.get(id).remove()}})}
-            function initAcfFields(root){if(window.acf){try{acf.doAction(`append`,root)}catch(e){}}}
+            function destroyDynamicEditors(root){if(!window.tinymce)return;root.find(`textarea.wp-editor-area`).each(function(){var id=this.id;if(id&&tinymce.get(id)){tinymce.get(id).remove()}})}
             function initDynamicEditors(root){if(!window.wp||!wp.editor)return;root.find(`.smpi-page-template-editor textarea`).each(function(){var id=this.id;if(!id)return;if(window.tinymce&&tinymce.get(id)){tinymce.get(id).remove()}try{wp.editor.initialize(id,{tinymce:true,quicktags:true,mediaButtons:$(this).closest(`.smpi-page-template-editor`).length>0})}catch(e){}})}
             initDynamicEditors(tabPanel());
             document.addEventListener("hexa-core-host-tab-before-load",function(ev){if(!ev.detail||!ev.detail.panel||ev.detail.panel.id!=="smpi-tab-panel")return;destroyDynamicEditors($(ev.detail.panel))});
-            document.addEventListener("hexa-core-host-tab-loaded",function(ev){if(!ev.detail||!ev.detail.panel||ev.detail.panel.id!=="smpi-tab-panel")return;smpiAdmin.activeTab=ev.detail.tab||smpiAdmin.activeTab;initAcfFields($(ev.detail.panel));initDynamicEditors($(ev.detail.panel))});
-            function refreshActiveFragment(fragment){if(!fragment||!fragment.html)return;var panel=tabPanel(),y=window.scrollY||window.pageYOffset||0;destroyDynamicEditors(panel);panel.html(fragment.html).attr(`data-active-tab`,fragment.tab||smpiAdmin.activeTab).attr(`aria-busy`,`false`);initAcfFields(panel);initDynamicEditors(panel);if(window.scrollTo){window.scrollTo(0,y)}}
+            document.addEventListener("hexa-core-host-tab-loaded",function(ev){if(!ev.detail||!ev.detail.panel||ev.detail.panel.id!=="smpi-tab-panel")return;smpiAdmin.activeTab=ev.detail.tab||smpiAdmin.activeTab;initDynamicEditors($(ev.detail.panel))});
+            function refreshActiveFragment(fragment){if(!fragment||!fragment.html)return;var panel=tabPanel(),y=window.scrollY||window.pageYOffset||0;destroyDynamicEditors(panel);panel.html(fragment.html).attr(`data-active-tab`,fragment.tab||smpiAdmin.activeTab).attr(`aria-busy`,`false`);initDynamicEditors(panel);if(window.scrollTo){window.scrollTo(0,y)}}
             function saveMessage(x,fallback){if(x&&x.data){if(typeof x.data.message===`string`&&x.data.message)return x.data.message;if(typeof x.data.error===`string`&&x.data.error)return x.data.error}return fallback||`Unknown error`}
             function smpiEscape(v){return $(`<div>`).text(v==null?``:String(v)).html()}
             function smpiAttr(v){return smpiEscape(v).replace(/"/g,`&quot;`).replace(/'/g,`&#039;`).replace(/`/g,`&#096;`)}

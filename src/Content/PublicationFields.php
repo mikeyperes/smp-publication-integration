@@ -9,7 +9,8 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-final class AcfFields {
+/** Defines the publication and article fields managed by Core. */
+final class PublicationFields {
     public const POST_SUMMARY_GROUP_KEY = 'group_64a7290b61191';
     public const POST_FAQS_GROUP_KEY = 'group_smpi_post_faqs';
     public const PUBLICATION_MUCKRACK_VERIFIED_FIELD_KEY = 'field_smpi_publication_muckrack_verified';
@@ -18,8 +19,8 @@ final class AcfFields {
     public const PUBLICATION_MUCKRACK_URL_FIELD_NAME = 'smpi_publication_muckrack_url';
 
     public function register(): void {
-        \Hexa\PluginCore\Fields\Hooks::on( "input/admin_head", [ $this, "admin_faq_styles" ] );
-        \Hexa\PluginCore\Fields\Hooks::on( "input/admin_footer", [ $this, "admin_faq_scripts" ] );
+        add_action( "admin_head", [ $this, "admin_faq_styles" ] );
+        add_action( "admin_footer", [ $this, "admin_faq_scripts" ] );
     }
 
     public static function publication_profile_group(): array {
@@ -200,7 +201,7 @@ final class AcfFields {
             return;
         }
         ?>
-        <style>.acf-field-smpi-post-faq-summary .acf-label label{font-size:15px;font-weight:700}.smpi-faq-summary-card{border:1px solid #d8dee8;border-radius:12px;background:#f8fafc;padding:12px 14px;color:#1f2937}.smpi-faq-summary-card strong{display:block;margin-bottom:8px}.smpi-faq-summary-card p{margin:0;color:#64748b}.smpi-faq-summary-card ol{margin:8px 0 0 20px}.smpi-faq-summary-card li{margin:6px 0}.smpi-faq-summary-card small{display:block;color:#64748b;margin-top:2px}.acf-field-smpi-post-faq-answer .wp-editor-area,.acf-field-smpi-post-faq-answer iframe,.acf-field-smpi-post-faq-answer .mce-edit-area iframe,.smpi-faq-answer-field .wp-editor-area,.smpi-faq-answer-field iframe,.smpi-faq-answer-field .mce-edit-area iframe{height:225px!important;min-height:225px!important}.acf-field-smpi-post-faq-items>.acf-label label{font-size:14px}.acf-field-smpi-post-faq-accordion .acf-accordion-title label{font-size:15px;font-weight:700}</style>
+        <style>.acf-field-smpi-post-faq-summary .acf-label label{font-size:15px;font-weight:700}.smpi-faq-summary-card{border:1px solid #d8dee8;border-radius:12px;background:#f8fafc;padding:12px 14px;color:#1f2937}.smpi-faq-summary-card strong{display:block;margin-bottom:8px}.smpi-faq-summary-card p{margin:0;color:#64748b}.smpi-faq-summary-card ol{margin:8px 0 0 20px}.smpi-faq-summary-card li{margin:6px 0}.smpi-faq-summary-card small{display:block;color:#64748b;margin-top:2px}.acf-field-smpi-post-faq-answer .wp-editor-area,.acf-field-smpi-post-faq-answer iframe,.acf-field-smpi-post-faq-answer .mce-edit-area iframe,.smpi-faq-answer-field .wp-editor-area,.smpi-faq-answer-field iframe,.smpi-faq-answer-field .mce-edit-area iframe{height:225px!important;min-height:225px!important}[data-key=field_smpi_post_faq_items]>.acf-label label{font-size:14px}.smpi-faq-accordion button label{font-size:15px;font-weight:700}</style>
         <?php
     }
 
@@ -211,17 +212,16 @@ final class AcfFields {
         ?>
         <script>
         (function($){
-            function faqFields(){return $(".acf-field-smpi-post-faq-items,.acf-field-smpi-post-faq-accordion-end");}
-            function faqAccordion(){return $(".acf-field-smpi-post-faq-accordion").first();}
-            function setFaqCollapsed(closed){var a=faqAccordion();a.toggleClass("smpi-faq-collapsed",closed).toggleClass("smpi-faq-expanded",!closed);faqFields().toggle(!closed);}
-            function initFaqCollapse(){var a=faqAccordion();if(a.length&&!a.data("smpiFaqInit")){a.data("smpiFaqInit",1);setFaqCollapsed(true);}}
+            function faqFields(){return $("[data-key=field_smpi_post_faq_items],[data-key=field_smpi_post_faq_accordion_end]");}
+            function faqAccordion(){return faqFields().first().prev(".hexa-field-heading");}
+            function setFaqCollapsed(closed){var a=faqAccordion();a.toggleClass("smpi-faq-collapsed",closed).toggleClass("smpi-faq-expanded",!closed);a.find("button").attr("aria-expanded",String(!closed));faqFields().toggle(!closed);}
+            function initFaqCollapse(){var a=faqAccordion();if(a.length&&!a.data("smpiFaqInit")){a.data("smpiFaqInit",1).addClass("smpi-faq-accordion");a.wrapInner($("<button>",{type:"button",class:"button-link","aria-expanded":"false"}));setFaqCollapsed(true);}}
             function clean(v){return $("<div>").html(v||"").text().replace(/\s+/g," ").trim();}
             function ans(row){var f=row.find("[data-key=\"field_smpi_post_faq_answer\"]").first(),t=f.find("textarea.wp-editor-area,textarea").first(),id=t.attr("id");if(!t.length){return "";}if(window.tinymce&&id&&tinymce.get(id)&&!tinymce.get(id).isHidden()){return clean(tinymce.get(id).getContent());}return clean(t.val());}
-            function upd(){var s=$("[data-smpi-faq-summary]").first(),r=$(".acf-field-smpi-post-faq-items").first(),rows=[];if(!s.length||!r.length){return;}var schemaField=$("[data-key=\"field_smpi_post_faq_schema_enabled\"] input[type=\"checkbox\"]").first(),schemaOn=!schemaField.length||schemaField.is(":checked");r.find("tr.acf-row:not(.acf-clone)").each(function(){var row=$(this),q=$.trim(row.find("[data-key=\"field_smpi_post_faq_question\"] input").first().val()||""),a=ans(row);if(q||a){rows.push({q:q,a:a});}});if(!rows.length){s.html("<strong>FAQ summary</strong><p class=\"smpi-faq-summary-empty\">No structured FAQ rows yet.</p>");return;}var h="<strong>FAQ summary</strong><p>"+rows.length+" FAQ row"+(rows.length===1?"":"s")+" entered. FAQ schema is "+(schemaOn?"on":"off")+".</p><ol>";rows.slice(0,6).forEach(function(x){h+="<li><b>"+_.escape(x.q||"Untitled question")+"</b><small>"+_.escape((x.a||"No answer yet").slice(0,180))+"</small></li>";});if(rows.length>6){h+="<li><small>"+(rows.length-6)+" more row"+(rows.length-6===1?"":"s")+"</small></li>";}s.html(h+"</ol>");}
-            $(document).on("input change keyup",".acf-field-smpi-post-faq-items input,.acf-field-smpi-post-faq-items textarea,.acf-field-smpi-post-faq-schema-enabled input",upd);
-            $(document).on("click",".acf-field-smpi-post-faq-items .acf-icon.-minus,.acf-field-smpi-post-faq-items .acf-icon.-plus,.acf-field-smpi-post-faq-items .acf-button",function(){setTimeout(upd,250);});
-            $(document).on("click",".acf-field-smpi-post-faq-accordion .acf-accordion-title",function(e){e.preventDefault();setFaqCollapsed(!faqAccordion().hasClass("smpi-faq-collapsed"));setTimeout(upd,50);});
-            if(window.acf){acf.addAction("append remove sortstop ready",function(){initFaqCollapse();setTimeout(upd,200);});}
+            function upd(){var s=$("[data-smpi-faq-summary]").first(),r=$("[data-key=field_smpi_post_faq_items]").first(),rows=[];if(!s.length||!r.length){return;}var schemaField=$("[data-key=\"field_smpi_post_faq_schema_enabled\"] input[type=\"checkbox\"]").first(),schemaOn=!schemaField.length||schemaField.is(":checked");r.find("tr.hexa-repeater-row").each(function(){var row=$(this),q=$.trim(row.find("[data-key=\"field_smpi_post_faq_question\"] input").first().val()||""),a=ans(row);if(q||a){rows.push({q:q,a:a});}});if(!rows.length){s.html("<strong>FAQ summary</strong><p class=\"smpi-faq-summary-empty\">No structured FAQ rows yet.</p>");return;}var h="<strong>FAQ summary</strong><p>"+rows.length+" FAQ row"+(rows.length===1?"":"s")+" entered. FAQ schema is "+(schemaOn?"on":"off")+".</p><ol>";rows.slice(0,6).forEach(function(x){h+="<li><b>"+_.escape(x.q||"Untitled question")+"</b><small>"+_.escape((x.a||"No answer yet").slice(0,180))+"</small></li>";});if(rows.length>6){h+="<li><small>"+(rows.length-6)+" more row"+(rows.length-6===1?"":"s")+"</small></li>";}s.html(h+"</ol>");}
+            $(document).on("input change keyup","[data-key=field_smpi_post_faq_items] input,[data-key=field_smpi_post_faq_items] textarea,[data-key=field_smpi_post_faq_schema_enabled] input",upd);
+            $(document).on("click","[data-key=field_smpi_post_faq_items] .hexa-repeater-remove,[data-key=field_smpi_post_faq_items] .hexa-repeater-add,[data-key=field_smpi_post_faq_items] .acf-button",function(){setTimeout(upd,250);});
+            $(document).on("click",".smpi-faq-accordion button",function(e){e.preventDefault();setFaqCollapsed(!faqAccordion().hasClass("smpi-faq-collapsed"));setTimeout(upd,50);});
             $(document).on("tinymce-editor-init",function(ev,ed){if(ed&&ed.on){ed.on("keyup change undo redo SetContent",upd);}setTimeout(upd,200);});
             $(function(){initFaqCollapse();upd();});setTimeout(function(){initFaqCollapse();upd();},700);
         })(jQuery);
@@ -229,3 +229,6 @@ final class AcfFields {
         <?php
     }
 }
+
+// Preserve the public class name used by earlier integrations.
+class_alias( PublicationFields::class, __NAMESPACE__ . '\\AcfFields' );

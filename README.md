@@ -27,6 +27,8 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 
 ## Features
 
+- Hexa WP Core 3.64.0 registers, reads and edits publication and article fields. Structured FAQs keep their existing rows and keys.
+
 ### Responsive author photos
 - **Does:** preserves each author image's declared `sizes` and selected WordPress size when Elementor rebinds a multi-author template. Shortcodes and rebound photos share one renderer, cap candidates at the selected copy's width, and read existing smaller 1x/2x copies for declared pixel slots. Photo and document saves schedule a single background event with deduplicated author/slot pairs. Only the saved document is parsed; its slots are indexed for later photo saves without scanning posts or users. Unbound library templates index their slots for subsequent photo saves; explicitly bound authors and article authors are queued immediately. Registered WordPress image sizes are supported. Front-end rendering never generates files or updates attachment metadata. Existing photos can be prepared explicitly with `AuthorImageCopies::prepare($pairs)`.
 - **Use:** `[author_image size="thumbnail" sizes="44px"]`; responsive pixel-slot lists are retained unchanged.
@@ -234,7 +236,7 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 - **Switch:** `post_summary_acf_enabled` (Article Design, "What to know"). Off removes everything: the editor field, the automatic placement, the shortcodes, the contents link, the go-live checklist item and the styles.
 - **Fields:** its own field group "What to Know", key `group_64a7290b61191`, field `post_summary` (`field_65ab7ba0e849b`). The key is kept because sites carry a database "Post - Header" group with that key; SMP's local group replaces it, and with the switch off it is registered empty and inactive so neither copy shows.
 - **Use:** `[smp_post_summary post_id="" format="html" style=""]`, `[smp_post_acf field="post_summary"]`.
-- **Code:** `src/Content/AcfFields.php` (`post_summary_group`), `src/Content/Shortcodes.php`, `src/Content/PostSummaryPlacement.php`, `src/Content/ArticleStyles.php` (`has_visible_text`)
+- **Code:** `src/Content/PublicationFields.php` (`post_summary_group`), `src/Content/Shortcodes.php`, `src/Content/PostSummaryPlacement.php`, `src/Content/ArticleStyles.php` (`has_visible_text`)
 - **HTML/CSS example:** [What to know](docs/article-design-examples.md#what-to-know).
 
 ### FAQs
@@ -242,7 +244,7 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 - **Switch:** `post_faqs_acf_enabled` (Article Design, "FAQs"). Off removes everything: the editor fields, the automatic placement, the shortcodes, the FAQPage schema, the go-live checklist item and the styles.
 - **Fields:** its own field group "FAQs", key `group_smpi_post_faqs`, fields `post_faq_schema_enabled` and `post_faq_items` (keys unchanged).
 - **Use:** `[smp_post_faqs post_id="" format="html|accordion|text" style=""]`, `[smp_post_acf field="post_faq_items"]`. `format="accordion"` renders structured FAQ rows as native closed `details` and `summary` elements. It does not parse or migrate FAQ text already embedded in older article content.
-- **Code:** `src/Content/AcfFields.php` (`post_faqs_group`), `src/Content/Shortcodes.php`, `src/Content/PostFaqPlacement.php`, `src/StructuredData/SchemaManager.php` (`faq_rows_for_post`)
+- **Code:** `src/Content/PublicationFields.php` (`post_faqs_group`), `src/Content/Shortcodes.php`, `src/Content/PostFaqPlacement.php`, `src/StructuredData/SchemaManager.php` (`faq_rows_for_post`)
 - **HTML/CSS example:** [FAQs](docs/article-design-examples.md#frequently-asked-questions).
 
 ### Publication pages
@@ -332,7 +334,7 @@ The **Custom Post Types** tab registers `knowledge-base` and `resources` through
 - Enable/disable state.
 - Editable public rewrite slug.
 - Editable singular and plural labels.
-- Related ACF structure toggles with detailed field breakdowns.
+- Related field structure toggles with detailed field breakdowns.
 
 The WordPress post-type keys remain immutable so existing content cannot be orphaned. SMP contains no runtime registration for the retired `imported-news` type.
 
@@ -394,7 +396,7 @@ The plugin updater targets the repository's canonical `main` branch and register
 | PHP | 8.1 |
 | Hexa WP Core bundle | 3.34.2 |
 
-ACF Pro is not required: publication option and content field groups run on Hexa WP Core's custom fields, which use ACF when it is active and store the same data natively when it is not. Feature-specific integrations require their corresponding plugins.
+Publication options and article fields use the Hexa WP Core editor and the existing WordPress storage.
 
 ## Installation
 

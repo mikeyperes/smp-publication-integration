@@ -34,7 +34,7 @@ use smp_publication_integration\Admin\QuickStartCleanupWorkflow;
 
 use smp_publication_integration\Admin\Navigation\AdminNavigation;
 use smp_publication_integration\Config;
-use smp_publication_integration\Content\AcfFields;
+use smp_publication_integration\Content\PublicationFields;
 use smp_publication_integration\Content\AuthorSocialIcons;
 use smp_publication_integration\Content\AuthorArchiveLoading;
 use smp_publication_integration\Content\MuckRackVerification;
@@ -112,9 +112,9 @@ trait PostFieldsTab {
                 "description" => "Main publication profile fields, schema policy references, contact points, and fallback publication identity fields.",
                 "instructions" => "Edit these fields from the Publication Options tab. They stay always on because SMP schema and shortcodes depend on them.",
                 "fields" => [ "smpi_publication_user", "smpi_publication_summary", "smpi_publication_logo", "schema policy pages", "contactPoint", "postalAddress" ],
-                "dependencies" => [ "ACF Pro", "SMP publication options page" ],
+                "dependencies" => [ "SMP publication options page" ],
                 "code_example" => "[smp_publication_field field=legal_name format=text]",
-                "test_report" => "Custom fields run on " . \Hexa\PluginCore\Fields\Acf::mode() . "; the publication options group should be registered on the options page.",
+                "test_report" => "Hexa WP Core registers these fields; the publication options group should be registered on the options page.",
             ],
             [
                 "id" => "post_summary_acf",
@@ -129,7 +129,7 @@ trait PostFieldsTab {
                 "description" => "Optional article summary field used by shortcodes and single article treatments.",
                 "instructions" => "Enable this when editors need a reusable post summary separate from the article body. Styling controls remain in Features.",
                 "fields" => [ "post_summary" ],
-                "dependencies" => [ "ACF Pro", "What to Know local field group" ],
+                "dependencies" => [ "What to Know local field group" ],
                 "code_example" => "[smp_post_summary style=\"sum00\"]",
                 "test_report" => $this->post_acf_addons_report_text(),
             ],
@@ -146,7 +146,7 @@ trait PostFieldsTab {
                 "description" => "Structured FAQ rows that power FAQPage schema and display shortcodes.",
                 "instructions" => "Enable this when article editors need repeatable question and answer rows. Schema rows can be disabled one by one in the editor.",
                 "fields" => [ "question", "answer", "enabled_for_schema" ],
-                "dependencies" => [ "ACF Pro", "FAQPage schema output", "SMP post FAQ shortcode" ],
+                "dependencies" => [ "FAQPage schema output", "SMP post FAQ shortcode" ],
                 "code_example" => "[smp_post_faqs style=\"faq02\"]",
                 "test_report" => $this->post_acf_addons_report_text(),
             ],
@@ -163,7 +163,7 @@ trait PostFieldsTab {
                 "description" => "Editor controls that hide posts from archive queries while keeping direct URLs accessible.",
                 "instructions" => "Enable this for editorial shadowing controls. The front end still allows direct single URLs.",
                 "fields" => [ "_smpi_shadow_complete", "_smpi_shadow_home" ],
-                "dependencies" => [ "ACF Pro", "pre_get_posts archive filters" ],
+                "dependencies" => [ "pre_get_posts archive filters" ],
                 "code_example" => 'get_field("_smpi_shadow_complete", $post_id)',
                 "test_report" => "Shadow posts setting is " . ( Settings::bool( "shadow_posts_enabled" ) ? "enabled" : "disabled" ) . ".",
             ],
@@ -180,7 +180,7 @@ trait PostFieldsTab {
                 "description" => "Per-post override for global press-release inclusion or hiding rules.",
                 "instructions" => "Use this when press releases need force-show or force-hide control independent of global defaults.",
                 "fields" => [ "_smpi_pr_shadow_override" ],
-                "dependencies" => [ "ACF Pro", "press-release CPT" ],
+                "dependencies" => [ "press-release CPT" ],
                 "code_example" => 'get_field("_smpi_pr_shadow_override", $post_id)',
                 "test_report" => "Press-release inclusion setting is " . ( Settings::bool( "press_release_include_enabled" ) ? "enabled" : "disabled" ) . ".",
             ],

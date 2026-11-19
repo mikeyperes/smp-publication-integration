@@ -9,7 +9,7 @@ declare(strict_types=1);
 $root = dirname( __DIR__ );
 $read = static fn( string $path ): string => (string) file_get_contents( $root . "/" . $path );
 
-$fields = $read( "src/Content/AcfFields.php" );
+$fields = $read( "src/Content/PublicationFields.php" );
 $types = $read( "src/Content/PublicationContentTypes.php" );
 $shortcodes = $read( "src/Content/Shortcodes.php" );
 $schema = $read( "src/StructuredData/SchemaManager.php" );

@@ -4,7 +4,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/fixtures/dashboard-source.php';
 
 $root = dirname( __DIR__ );
-$acf = (string) file_get_contents( $root . '/src/Content/AcfFields.php' );
+$acf = (string) file_get_contents( $root . '/src/Content/PublicationFields.php' );
 $ajax = (string) file_get_contents( $root . '/src/Admin/Ajax/AjaxController.php' );
 $dashboard = smpi_test_dashboard_source( $root );
 
@@ -31,8 +31,8 @@ assert_publication_muckrack_source(
 );
 assert_publication_muckrack_source(
     str_contains( $ajax, "'smpi_save_publication_muckrack_source' => [ 'callback' => [ \$this, 'save_publication_muckrack_source' ] ]" )
-        && str_contains( $save_method, "\\Hexa\\PluginCore\\Fields\\Field::update( AcfFields::PUBLICATION_MUCKRACK_VERIFIED_FIELD_KEY, \$verified ? 1 : 0, 'option' )" )
-        && str_contains( $save_method, "\\Hexa\\PluginCore\\Fields\\Field::update( AcfFields::PUBLICATION_MUCKRACK_URL_FIELD_KEY, \$url, 'option' )" ),
+        && str_contains( $save_method, "\\Hexa\\PluginCore\\Fields\\Field::update( PublicationFields::PUBLICATION_MUCKRACK_VERIFIED_FIELD_KEY, \$verified ? 1 : 0, 'option' )" )
+        && str_contains( $save_method, "\\Hexa\\PluginCore\\Fields\\Field::update( PublicationFields::PUBLICATION_MUCKRACK_URL_FIELD_KEY, \$url, 'option' )" ),
     'The AJAX action must write both values directly to the canonical ACF options.'
 );
 assert_publication_muckrack_source(

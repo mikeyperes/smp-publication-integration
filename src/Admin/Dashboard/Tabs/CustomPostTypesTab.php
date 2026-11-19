@@ -34,7 +34,7 @@ use smp_publication_integration\Admin\QuickStartCleanupWorkflow;
 
 use smp_publication_integration\Admin\Navigation\AdminNavigation;
 use smp_publication_integration\Config;
-use smp_publication_integration\Content\AcfFields;
+use smp_publication_integration\Content\PublicationFields;
 use smp_publication_integration\Content\AuthorSocialIcons;
 use smp_publication_integration\Content\AuthorArchiveLoading;
 use smp_publication_integration\Content\MuckRackVerification;
@@ -77,7 +77,7 @@ trait CustomPostTypesTab {
         echo ( new AcfFieldGroupRenderer() )->render(
             PublicationContentTypes::acf_groups(),
             [
-                'title'          => 'Publication ACF Structures',
+                'title'          => 'Publication Field Structures',
                 'description'    => 'Control publication and article field structures through the same reusable Hexa WP Core registry.',
                 'persist_prefix' => 'smpi-acf-structures',
             ]

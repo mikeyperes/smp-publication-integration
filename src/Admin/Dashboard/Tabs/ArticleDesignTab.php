@@ -35,7 +35,7 @@ use smp_publication_integration\Admin\QuickStartCleanupWorkflow;
 
 use smp_publication_integration\Admin\Navigation\AdminNavigation;
 use smp_publication_integration\Config;
-use smp_publication_integration\Content\AcfFields;
+use smp_publication_integration\Content\PublicationFields;
 use smp_publication_integration\Content\AuthorSocialIcons;
 use smp_publication_integration\Content\AuthorArchiveLoading;
 use smp_publication_integration\Content\MuckRackVerification;
@@ -1322,11 +1322,11 @@ HTML;
     private function publication_muckrack_source_html(): string {
         $report = MuckRackVerification::publication_report();
         $verified = \Hexa\PluginCore\Fields\Field::available()
-            ? (bool) \Hexa\PluginCore\Fields\Field::get( AcfFields::PUBLICATION_MUCKRACK_VERIFIED_FIELD_KEY, 'option' )
-            : (bool) get_option( 'options_' . AcfFields::PUBLICATION_MUCKRACK_VERIFIED_FIELD_NAME, false );
+            ? (bool) \Hexa\PluginCore\Fields\Field::get( PublicationFields::PUBLICATION_MUCKRACK_VERIFIED_FIELD_KEY, 'option' )
+            : (bool) get_option( 'options_' . PublicationFields::PUBLICATION_MUCKRACK_VERIFIED_FIELD_NAME, false );
         $source_url = \Hexa\PluginCore\Fields\Field::available()
-            ? trim( (string) \Hexa\PluginCore\Fields\Field::get( AcfFields::PUBLICATION_MUCKRACK_URL_FIELD_KEY, 'option' ) )
-            : trim( (string) get_option( 'options_' . AcfFields::PUBLICATION_MUCKRACK_URL_FIELD_NAME, '' ) );
+            ? trim( (string) \Hexa\PluginCore\Fields\Field::get( PublicationFields::PUBLICATION_MUCKRACK_URL_FIELD_KEY, 'option' ) )
+            : trim( (string) get_option( 'options_' . PublicationFields::PUBLICATION_MUCKRACK_URL_FIELD_NAME, '' ) );
         $input_url = '' !== $source_url ? $source_url : trim( (string) ( $report['url'] ?? '' ) );
         $effective = MuckRackVerification::publication_enabled();
         $options_url = add_query_arg(
