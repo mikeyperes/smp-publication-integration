@@ -213,7 +213,7 @@ trait ArticleDesignTab {
                 "Both shortcodes use the selected Summary design. Choose Manual placement when positioning the block in Elementor or post content.",
                 [
                     [ "Recommended", "[smp_post_summary]" ],
-                    [ "ACF alias", "[smp_post_acf field=\"post_summary\"]" ],
+                    [ "Legacy shortcode alias", "[smp_post_acf field=\"post_summary\"]" ],
                     [ "Another post", "[smp_post_summary post_id=\"123\"]" ],
                 ]
             );
@@ -238,7 +238,7 @@ trait ArticleDesignTab {
                 [
                     [ "Recommended", "[smp_post_faqs]" ],
                     [ "Native accordion", "[smp_post_faqs format=\"accordion\" style=\"unstyled\"]" ],
-                    [ "ACF alias", "[smp_post_acf field=\"post_faq_items\"]" ],
+                    [ "Legacy shortcode alias", "[smp_post_acf field=\"post_faq_items\"]" ],
                     [ "Another post", "[smp_post_faqs post_id=\"123\"]" ],
                 ]
             );
@@ -355,7 +355,7 @@ trait ArticleDesignTab {
         $this->feature_card(
             "MuckRack verified publication",
             "publication_muckrack_verified_enabled",
-            "Registers site option ACF fields on Publication Theme Options: smpi_publication_muckrack_verified and smpi_publication_muckrack_url.",
+            "Registers site option fields on Publication Theme Options: smpi_publication_muckrack_verified and smpi_publication_muckrack_url.",
             "Shows publication-level MuckRack verification separately from author verification.",
             "[smp_publication_muckrack_verified]",
             $this->publication_muckrack_report_html(),
@@ -1355,7 +1355,7 @@ HTML;
 
         return '<div class="smpi-control-group smpi-publication-muckrack-source" data-smpi-publication-muckrack-source>'
             . '<h3>Publication verification source</h3>'
-            . '<p class="smpi-muted">Edit the existing Publication Options ACF fields used by the shortcode and frontend output.</p>'
+            . '<p class="smpi-muted">Edit the existing Publication Options fields used by the shortcode and frontend output.</p>'
             . $status
             . '<div class="smpi-publication-muckrack-source-fields"><div class="smpi-control-row">' . $toggle . '</div>'
             . '<label class="smpi-publication-muckrack-source-url-field" for="smpi-publication-muckrack-source-url"><strong>Publication MuckRack URL</strong>'

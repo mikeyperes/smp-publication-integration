@@ -93,7 +93,7 @@ trait PublishingRulesTab {
         $this->feature_card(
             $definition->name,
             $definition->option_key,
-            "Snippet-backed feature. No custom ACF fields needed.",
+            "Snippet-backed feature. No custom fields needed.",
             $definition->description,
             $this->snippet_code_text( $definition ),
             $this->snippet_report_html( $snippet_id ) . $extra_report_html,

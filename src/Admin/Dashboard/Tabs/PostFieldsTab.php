@@ -164,7 +164,7 @@ trait PostFieldsTab {
                 "instructions" => "Enable this for editorial shadowing controls. The front end still allows direct single URLs.",
                 "fields" => [ "_smpi_shadow_complete", "_smpi_shadow_home" ],
                 "dependencies" => [ "pre_get_posts archive filters" ],
-                "code_example" => 'get_field("_smpi_shadow_complete", $post_id)',
+                "code_example" => '\Hexa\PluginCore\Fields\Field::get("_smpi_shadow_complete", $post_id)',
                 "test_report" => "Shadow posts setting is " . ( Settings::bool( "shadow_posts_enabled" ) ? "enabled" : "disabled" ) . ".",
             ],
             [
@@ -181,7 +181,7 @@ trait PostFieldsTab {
                 "instructions" => "Use this when press releases need force-show or force-hide control independent of global defaults.",
                 "fields" => [ "_smpi_pr_shadow_override" ],
                 "dependencies" => [ "press-release CPT" ],
-                "code_example" => 'get_field("_smpi_pr_shadow_override", $post_id)',
+                "code_example" => '\Hexa\PluginCore\Fields\Field::get("_smpi_pr_shadow_override", $post_id)',
                 "test_report" => "Press-release inclusion setting is " . ( Settings::bool( "press_release_include_enabled" ) ? "enabled" : "disabled" ) . ".",
             ],
             [

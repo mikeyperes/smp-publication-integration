@@ -2,6 +2,7 @@
 namespace smp_publication_integration\Admin\Dashboard\Tabs;
 
 use Hexa\PluginCore\BrandColors\BrandColorProvider;
+use Hexa\PluginCore\Fields\Field;
 use Hexa\PluginCore\ActivityLog\ActivityLogConfig;
 use Hexa\PluginCore\ActivityLog\ActivityLogRenderer;
 use Hexa\PluginCore\PluginChecks\PluginInventoryRenderer;
@@ -143,11 +144,12 @@ trait OverviewTab {
             return "<div class=\"smpi-empty-state\"><strong>No main publication profile selected.</strong><p>Search by publication name, username, or email and choose the profile that represents this publication.</p></div>";
         }
 
-        $title = $this->acf_user_value( $user_id, "title" );
-        $bio_short = $this->acf_user_value( $user_id, "biography_short" );
-        $bio = $this->acf_user_value( $user_id, "biography" );
-        $mission = $this->acf_user_value( $user_id, "mission_statement" );
-        $urls = $this->acf_user_value( $user_id, "urls" );
+        $profile_context = "user_" . $user_id;
+        $title = Field::get( "title", $profile_context );
+        $bio_short = Field::get( "biography_short", $profile_context );
+        $bio = Field::get( "biography", $profile_context );
+        $mission = Field::get( "mission_statement", $profile_context );
+        $urls = Field::get( "urls", $profile_context );
         $roles = is_array( $user->roles ) ? implode( ", ", $user->roles ) : "";
         $html = "<div class=\"smpi-profile-card\"><div class=\"smpi-profile-avatar\"><img src=\"" . esc_url( get_avatar_url( $user_id, [ "size" => 128 ] ) ) . "\" alt=\"" . esc_attr( $user->display_name ) . "\"></div><div class=\"smpi-profile-info\"><h3>" . esc_html( $user->display_name ) . "</h3>";
         if ( $title ) {
@@ -177,13 +179,6 @@ trait OverviewTab {
         }
         $html .= "</div>";
         return $html;
-    }
-
-    private function acf_user_value( int $user_id, string $field ) {
-        if ( ! \Hexa\PluginCore\Fields\Field::available() ) {
-            return "";
-        }
-        return \Hexa\PluginCore\Fields\Field::get( $field, "user_" . $user_id );
     }
 
     private function format_preview_value( $value ): string {

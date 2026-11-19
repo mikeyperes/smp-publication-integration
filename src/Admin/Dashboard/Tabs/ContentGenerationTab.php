@@ -53,7 +53,7 @@ final class ContentGenerationTab {
                 <p>On supported post edit screens the module adds buttons near the existing excerpt, post summary, and FAQ fields. Each one shows a working state while Publish writes, an activity log, and a success or error result. The Going Live checklist uses the same jobs.</p>
                 <ul>
                     <li><code>excerpt</code> updates the native WordPress excerpt.</li>
-                    <li><code>summary</code> updates the <code>post_summary</code> ACF field.</li>
+                    <li><code>summary</code> updates the <code>post_summary</code> field.</li>
                     <li><code>faqs</code> updates the <code>post_faq_items</code> ACF repeater and enables FAQ schema for the post.</li>
                 </ul>
                 <p>Handoff for the publish-side reporting portal: <code>docs/publish-scale-content-generation-handoff.md</code></p>

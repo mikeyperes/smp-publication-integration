@@ -59,7 +59,7 @@ final class GeneratedValueStore {
             if ( "" === trim( wp_strip_all_tags( $summary ) ) ) {
                 return new \WP_Error( "smpi_content_empty", "Publish returned an empty summary." );
             }
-            $this->update_field( "post_summary", "post_summary", $summary, $post_id );
+            Field::update( "post_summary", $summary, $post_id );
             return $summary;
         }
         if ( "faqs" === $target ) {
@@ -67,8 +67,8 @@ final class GeneratedValueStore {
             if ( empty( $rows ) ) {
                 return new \WP_Error( "smpi_content_empty", "Publish returned no FAQ questions and answers." );
             }
-            $this->update_field( "field_smpi_post_faq_items", "post_faq_items", $rows, $post_id );
-            $this->update_field( "field_smpi_post_faq_schema_enabled", "post_faq_schema_enabled", 1, $post_id );
+            Field::update( "field_smpi_post_faq_items", $rows, $post_id );
+            Field::update( "field_smpi_post_faq_schema_enabled", 1, $post_id );
             return $rows;
         }
         return new \WP_Error( "smpi_content_target", "Unsupported generation target." );
@@ -99,23 +99,9 @@ final class GeneratedValueStore {
         return $this->normalize_faq_rows( self::field_value( "post_faq_items", $post_id ) );
     }
 
-    /** Reads a field through the Hexa field layer, falling back to post meta. */
+    /** Reads an article field through Core for the generation and publishing checks. */
     public static function field_value( string $field, int $post_id ) {
-        if ( Field::available() ) {
-            $value = Field::get( $field, $post_id );
-            if ( null !== $value && false !== $value && "" !== $value ) {
-                return $value;
-            }
-        }
-        return get_post_meta( $post_id, $field, true );
-    }
-
-    private function update_field( string $field_key, string $meta_key, $value, int $post_id ): void {
-        if ( Field::available() ) {
-            Field::update( $field_key, $value, $post_id );
-            return;
-        }
-        update_post_meta( $post_id, $meta_key, $value );
+        return Field::get( $field, $post_id ) ?? "";
     }
 
     private function normalize_faq_rows( $value ): array {

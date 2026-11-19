@@ -5,7 +5,7 @@ Editorial, publication-profile, article-type, authorship, design, and structured
 > Feature base for HWS Skills. Read before building on this plugin; use or
 > extend these features instead of rebuilding them.
 
-**Purpose:** editorial, authorship, verification and publication-profile features for Scale My Publication news sites. **Admin:** WP Admin → SMP Publication (`admin.php?page=smp-publication-integration`); every switch below is a key in the `smpi_settings` option. **Depends on:** ACF Pro, Rank Math (breadcrumbs), HWS Base Tools (primary entity); Elementor optional.
+**Purpose:** editorial, authorship, verification and publication-profile features for Scale My Publication news sites. **Admin:** WP Admin → SMP Publication (`admin.php?page=smp-publication-integration`); every switch below is a key in the `smpi_settings` option. **Depends on:** Rank Math (breadcrumbs), HWS Base Tools (primary entity); Elementor optional.
 
 ## Design examples and styling
 
@@ -27,7 +27,7 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 
 ## Features
 
-- Generated summaries and FAQ rows fill the same Core inputs used for manual article editing. Existing article field keys are preserved.
+- Generated summaries and FAQ rows use Core for writes and manual editing. The publication profile preview and the article field code examples also use Core. Existing field keys are preserved.
 
 - Hexa WP Core 3.64.0 registers, reads and edits publication and article fields. Structured FAQs keep their existing rows and keys.
 
@@ -140,7 +140,7 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 - **Code:** `src/Content/RelatedTags.php`
 
 ### Author fields
-- **Does:** any author's name, bio, title, socials, image or ACF field for the current post's author (or a given user / co-author).
+- **Does:** any author's name, bio, title, socials, image or custom field for the current post's author (or a given user / co-author).
 - **Use:** `[author_name]`, `[author_bio format="html"]`, `[author_bio_short words="35"]`, `[author_title]`, `[author_subtitle]`, `[author_image size="thumbnail" output="html" class="smpi-author-image" loading="lazy" sizes=""]` (`loading="eager"` for a photo on the first screen), `[author_categories limit="4" separator=", "]` (the "Writes about" list: the author's published-post categories, most posts first, ties by oldest category, Uncategorized skipped, empty when none; [HTML and CSS](docs/article-design-examples.md#writes-about); `.smpi-author-categories`, `.smpi-author-category`), `[author_facebook]` `[author_instagram]` `[author_x]` `[author_linkedin]` `[author_youtube]` `[author_website]` `[author_url]` (the byline author's archive page, for a "View more articles" link through Elementor's Shortcode dynamic tag) `[author_crunchbase]` `[author_muckrack]` `[author_email]`, `[acf_author_field field=""]`. All accept `user_id`, `post_id`, `author_index`.
 - **Responsive photos:** optional `sizes` supplies the real display widths. A nonempty value adds escaped `sizes`, and, for a matching media-library image, its own `width`, `height` and available `srcset`. Omitted or empty `sizes` preserves the previous HTML exactly; `output="url"` is unchanged. Remote photos without matching attachment metadata receive only `sizes`. [Markup and build example](docs/author-image.md).
 - **Code:** `src/Content/AuthorShortcodes.php`
