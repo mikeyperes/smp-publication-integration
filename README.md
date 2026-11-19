@@ -27,6 +27,8 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 
 ## Features
 
+- Generated summaries and FAQ rows fill the same Core inputs used for manual article editing. Existing article field keys are preserved.
+
 - Hexa WP Core 3.64.0 registers, reads and edits publication and article fields. Structured FAQs keep their existing rows and keys.
 
 ### Responsive author photos

@@ -18,8 +18,8 @@
 
     var FIELDS = {
         excerpt: {host: "#postexcerpt .inside", field: "#excerpt", place: "afterField"},
-        summary: {host: ".acf-field[data-name='post_summary']", field: ".acf-field[data-name='post_summary'] textarea", place: "afterHost"},
-        faqs: {host: "[data-key='field_smpi_post_faq_accordion'], .acf-field-smpi-post-faq-accordion, .acf-field[data-name='post_faq_items']", field: "", place: "beforeHost"}
+        summary: {host: ".hexa-field[data-name='post_summary']", field: ".hexa-field[data-name='post_summary'] textarea", place: "afterHost"},
+        faqs: {host: ".hexa-field[data-name='post_faq_items']", field: "", place: "beforeHost"}
     };
 
     var states = {};
@@ -150,50 +150,37 @@
     }
 
     function faqRows(repeater) {
-        return repeater.find(".acf-row:not(.acf-clone)").filter(function () {
-            return $(this).closest(".acf-field[data-name='post_faq_items']")[0] === repeater[0];
+        return repeater.find(".hexa-repeater-row").filter(function () {
+            return $(this).closest(".hexa-field[data-name='post_faq_items']")[0] === repeater[0];
         });
     }
 
     function setFaqSubField(row, name, value) {
-        var input = row.find(".acf-field[data-name='" + name + "']").first().find("textarea, input[type='text']").first();
+        var input = row.find(".hexa-field[data-name='" + name + "']").first().find("textarea, input[type='text']").first();
         if (input.length) { syncEditor(input, value || ""); }
     }
 
     function paintFaqs(value) {
         var rows = Array.isArray(value) ? value : [];
-        var repeater = $(".acf-field[data-name='post_faq_items']").first();
-        var clone = repeater.find(".acf-row.acf-clone").first();
-        if (!rows.length || !repeater.length || !clone.length) {
+        var repeater = $(".hexa-field[data-name='post_faq_items']").first();
+        var addButton = repeater.children(".hexa-repeater").children("p").find(".hexa-repeater-add").first();
+        if (!rows.length || !repeater.length || !addButton.length) {
             return false;
         }
-        faqRows(repeater).each(function () {
-            var row = $(this);
-            if (window.tinymce) {
-                row.find("textarea.wp-editor-area").each(function () {
-                    var editor = this.id ? window.tinymce.get(this.id) : null;
-                    if (editor) { window.tinymce.remove(editor); }
-                });
-            }
-            row.remove();
-        });
-        rows.forEach(function (item, index) {
-            var row = clone.clone(false, false).removeClass("acf-clone").removeAttr("data-id").show();
-            ["id", "for", "name"].forEach(function (attr) {
-                row.find("[" + attr + "]").each(function () {
-                    $(this).attr(attr, ($(this).attr(attr) || "").replace(/acfcloneindex/g, index));
-                });
-            });
-            row.find("input, textarea, select, button").prop("disabled", false).removeAttr("disabled");
-            clone.before(row);
+
+        // Bug: filled FAQs were cloned from the ACF editor and never reached Core.
+        // Fix: use Core's add-row control. Why: input names and indexes follow the same path as a manual edit.
+        faqRows(repeater).remove();
+        rows.forEach(function (item) {
+            addButton.trigger("click");
+            var row = faqRows(repeater).last();
             setFaqSubField(row, "question", item.question || "");
             setFaqSubField(row, "answer", item.answer || "");
-            if (window.acf && window.acf.doAction) { window.acf.doAction("append", row); }
         });
         var schema = $("[data-key='field_smpi_post_faq_schema_enabled'] input[type=checkbox]").first();
         if (schema.length && !schema.is(":checked")) { schema.prop("checked", true).trigger("change"); }
         if (window.tinymce) { window.tinymce.triggerSave(); }
-        if (window.acf && window.acf.doAction) { window.acf.doAction("change", repeater); }
+        repeater.trigger("change");
         return faqRows(repeater).length === rows.length;
     }
 

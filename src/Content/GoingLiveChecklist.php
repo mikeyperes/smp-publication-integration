@@ -162,12 +162,12 @@ final class GoingLiveChecklist {
             $items[] = [ "key" => "verified_profiles_created", "label" => "Verified Profiles Created", "description" => "Checks the verified profiles shortcode/output for this post.", "selector" => ".elementor-shortcode, [data-widget_type='shortcode.default'], [class*='verified-profile'], [id*='verified-profile']" ];
         }
         $items[] = [ "key" => "excerpt", "label" => "Excerpt customized", "description" => "Checks the native WordPress excerpt.", "selector" => "#postexcerpt, #excerpt" ];
-        if ( ArticleFeatures::enabled( "summary", (int) $post->ID ) ) $items[] = [ "key" => "summary", "label" => "Article Summary Created", "description" => "Checks the post_summary ACF field.", "selector" => "[data-name='post_summary'], .acf-field[data-name='post_summary']" ];
-        if ( ArticleFeatures::enabled( "faqs", (int) $post->ID ) ) $items[] = [ "key" => "faqs", "label" => "FAQs created", "description" => "Checks structured FAQ rows.", "selector" => "[data-key='field_smpi_post_faq_accordion'], .acf-field-smpi-post-faq-accordion, .acf-field[data-name='post_faq_items']" ];
+        if ( ArticleFeatures::enabled( "summary", (int) $post->ID ) ) $items[] = [ "key" => "summary", "label" => "Article Summary Created", "description" => "Checks the post_summary ACF field.", "selector" => "[data-name='post_summary'], .hexa-field[data-name='post_summary']" ];
+        if ( ArticleFeatures::enabled( "faqs", (int) $post->ID ) ) $items[] = [ "key" => "faqs", "label" => "FAQs created", "description" => "Checks structured FAQ rows.", "selector" => "[data-key='field_smpi_post_faq_accordion'], [data-key=field_smpi_post_faq_items], .hexa-field[data-name='post_faq_items']" ];
         if ( $this->uses_verified_profiles( $post ) ) {
             $items[] = [ "key" => "verified_profiles_internally_linked", "label" => "Verified profiles internally linked", "description" => "Checks that verified profile output contains links.", "selector" => ".elementor-shortcode, [data-widget_type='shortcode.default'], [class*='verified-profile'], [id*='verified-profile']" ];
         }
-        $items[] = [ "key" => "tts", "label" => "Text to speech", "description" => "Checks the article_audio ACF field.", "selector" => ".hexa-tts-postbox, [data-acf-field='article_audio'], .acf-field[data-name='article_audio']" ];
+        $items[] = [ "key" => "tts", "label" => "Text to speech", "description" => "Checks the stored article audio field.", "selector" => ".hexa-tts-postbox, [data-acf-field='article_audio'], .hexa-field[data-name='article_audio']" ];
         return $items;
     }
 
