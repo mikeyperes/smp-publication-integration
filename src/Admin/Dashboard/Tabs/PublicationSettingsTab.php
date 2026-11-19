@@ -107,7 +107,7 @@ trait PublicationSettingsTab {
             $group = \Hexa\PluginCore\Fields\FieldGroups::get_group( "group_smpi_publication_profile" );
             $fields = is_array( $group ) && isset( $group["fields"] ) && is_array( $group["fields"] ) ? $group["fields"] : [];
         }
-        $html = "<div class=smpi-panel><h2>Publication Options ACF shortcode examples</h2><p>Every publication option field can be rendered with <code>[smp_publication_field]</code>. Repeater rows use <code>row=1</code> and <code>sub_field</code>.</p><table class=\"widefat smpi-publication-shortcode-table\"><thead><tr><th>Field</th><th>ACF name</th><th>Primary shortcode</th><th>Variations / parameters</th></tr></thead><tbody>";
+        $html = "<div class=smpi-panel><h2>Publication Options field shortcode examples</h2><p>Every publication option field can be rendered with <code>[smp_publication_field]</code>. Repeater rows use <code>row=1</code> and <code>sub_field</code>.</p><table class=\"widefat smpi-publication-shortcode-table\"><thead><tr><th>Field</th><th>ACF name</th><th>Primary shortcode</th><th>Variations / parameters</th></tr></thead><tbody>";
         foreach ( $fields as $field ) {
             if ( empty( $field["name"] ) ) {
                 continue;

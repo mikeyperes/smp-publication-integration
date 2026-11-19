@@ -102,13 +102,13 @@ trait PostFieldsTab {
         $definitions = [
             [
                 "id" => "publication_options_acf",
-                "label" => "Publication Options ACF",
+                "label" => "Publication Options Fields",
                 "type" => "acf",
                 "enabled" => true,
                 "registered" => function() use ( $acf_active ): bool { return $acf_active && (bool) \Hexa\PluginCore\Fields\FieldGroups::get_group( "group_smpi_publication_profile" ); },
                 "acf_group_key" => "group_smpi_publication_profile",
                 "object_name" => "smp-publication-integration options page",
-                "location" => "ACF options page: smp-publication-integration",
+                "location" => "Core options page: smp-publication-integration",
                 "description" => "Main publication profile fields, schema policy references, contact points, and fallback publication identity fields.",
                 "instructions" => "Edit these fields from the Publication Options tab. They stay always on because SMP schema and shortcodes depend on them.",
                 "fields" => [ "smpi_publication_user", "smpi_publication_summary", "smpi_publication_logo", "schema policy pages", "contactPoint", "postalAddress" ],
@@ -294,7 +294,7 @@ trait PostFieldsTab {
         $html .= "<tr><th>Text size</th><td>" . esc_html( (string) max( 8, min( 64, (int) Settings::get( "muckrack_verified_font_size", 14 ) ) ) ) . "px</td></tr>";
         $html .= "<tr><th>Leave as is</th><td>" . esc_html( $this->typography_preserved_label( "muckrack_verified" ) ) . "</td></tr>";
         $html .= "</tbody></table>";
-        $html .= "<table class=\"widefat striped\"><thead><tr><th>User</th><th>Posts</th><th>ACF verified</th><th>Effective</th><th>Forced</th><th>URL</th><th>Description</th></tr></thead><tbody>";
+        $html .= "<table class=\"widefat striped\"><thead><tr><th>User</th><th>Posts</th><th>Field verified</th><th>Effective</th><th>Forced</th><th>URL</th><th>Description</th></tr></thead><tbody>";
         foreach ( $rows as $row ) {
             $html .= "<tr><td>" . esc_html( $row["display_name"] ) . " (#" . esc_html( (string) $row["user_id"] ) . ")</td><td>" . esc_html( (string) $row["posts"] ) . "</td><td>" . self::ico( (bool) $row["acf_verified"] ) . "</td><td>" . self::ico( (bool) $row["verified"] ) . "</td><td>" . ( $row["forced"] ? "YES" : "NO" ) . "</td><td>" . self::ico( (bool) $row["has_url"] ) . "</td><td>" . self::ico( (bool) $row["has_description"] ) . "</td></tr>";
         }

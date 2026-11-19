@@ -54,7 +54,7 @@ final class ContentGenerationTab {
                 <ul>
                     <li><code>excerpt</code> updates the native WordPress excerpt.</li>
                     <li><code>summary</code> updates the <code>post_summary</code> field.</li>
-                    <li><code>faqs</code> updates the <code>post_faq_items</code> ACF repeater and enables FAQ schema for the post.</li>
+                    <li><code>faqs</code> updates the <code>post_faq_items</code> repeater and enables FAQ schema for the post.</li>
                 </ul>
                 <p>Handoff for the publish-side reporting portal: <code>docs/publish-scale-content-generation-handoff.md</code></p>
             </div>

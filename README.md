@@ -27,7 +27,7 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 
 ## Features
 
-- Generated summaries and FAQ rows use Core for writes and manual editing. The publication profile preview and the article field code examples also use Core. Existing field keys are preserved.
+- Generated summaries and FAQ rows use Core for writes and manual editing. The publication profile preview and the article field code examples also use Core. The post field inventory and FAQ editor use Core labels and markup. Existing field keys are preserved.
 
 - Hexa WP Core 3.64.0 registers, reads and edits publication and article fields. Structured FAQs keep their existing rows and keys.
 
