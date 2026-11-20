@@ -27,6 +27,8 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 
 ## Features
 
+- Publication field labels and shortcode examples describe Core fields. The article audio checklist targets Core controls. Stored settings and legacy shortcodes keep their existing names.
+
 - Generated summaries and FAQ rows use Core for writes and manual editing. The publication profile preview and the article field code examples also use Core. The post field inventory and FAQ editor use Core labels and markup. Existing field keys are preserved.
 
 - Hexa WP Core 3.64.0 registers, reads and edits publication and article fields. Structured FAQs keep their existing rows and keys.
@@ -382,7 +384,7 @@ Removed in 2.5.18 (old links redirect): Publication Fields, Founding Date, Brand
 
 `smp-publication-integration.php` is the canonical plugin entry. `initialization.php` is a compatibility loader for older active-plugin records.
 
-Namespaced domain code lives under `src/`. Reusable UI, AJAX, updater, CPT, ACF, entity, FAQ, schema, taxonomy, activity-log, color, typography, and template infrastructure comes from Hexa WordPress Plugin Core 3.22.0.
+Namespaced domain code lives under `src/`. Reusable UI, AJAX, updater, content types, fields, entity, FAQ, schema, taxonomy, activity-log, color, typography, and template infrastructure comes from Hexa WordPress Plugin Core 3.22.0.
 
 Elementor single-post recent-content loops opt into SMP publication filtering with the exact Query ID `smpi_single_recent`. Other Posts and Loop Grid widgets remain outside SMP query mutation.
 

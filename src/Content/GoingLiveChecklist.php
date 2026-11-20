@@ -167,7 +167,7 @@ final class GoingLiveChecklist {
         if ( $this->uses_verified_profiles( $post ) ) {
             $items[] = [ "key" => "verified_profiles_internally_linked", "label" => "Verified profiles internally linked", "description" => "Checks that verified profile output contains links.", "selector" => ".elementor-shortcode, [data-widget_type='shortcode.default'], [class*='verified-profile'], [id*='verified-profile']" ];
         }
-        $items[] = [ "key" => "tts", "label" => "Text to speech", "description" => "Checks the stored article audio field.", "selector" => ".hexa-tts-postbox, [data-acf-field='article_audio'], .hexa-field[data-name='article_audio']" ];
+        $items[] = [ "key" => "tts", "label" => "Text to speech", "description" => "Checks the stored article audio field.", "selector" => ".hexa-tts-postbox, .hexa-field[data-name='article_audio']" ];
         return $items;
     }
 

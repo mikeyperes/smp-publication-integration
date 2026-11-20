@@ -152,7 +152,7 @@ trait PostFieldsTab {
             ],
             [
                 "id" => "shadow_visibility_acf",
-                "label" => "Post Shadow Visibility ACF",
+                "label" => "Post Shadow Visibility Fields",
                 "type" => "acf",
                 "setting_key" => "shadow_posts_enabled",
                 "enabled" => Settings::bool( "shadow_posts_enabled" ),
@@ -169,7 +169,7 @@ trait PostFieldsTab {
             ],
             [
                 "id" => "press_release_visibility_acf",
-                "label" => "Press Release Visibility ACF",
+                "label" => "Press Release Visibility Fields",
                 "type" => "acf",
                 "setting_key" => "press_release_include_enabled",
                 "enabled" => Settings::bool( "press_release_include_enabled" ) || Settings::bool( "shadow_press_releases" ),
@@ -282,7 +282,7 @@ trait PostFieldsTab {
     private function muckrack_report_html(): string {
         $rows = \smp_publication_integration\Content\MuckRackVerification::integrity_report( 10 );
         $forced = Settings::bool( "muckrack_author_always_show" );
-        $html = $this->simple_status_html( Settings::bool( "muckrack_verified_enabled" ), "Top 10 authors by published posts checked for MuckRack ACF/user fields. Always-show override: " . ( $forced ? "on" : "off" ) . ". Font: " . Settings::font_family_label( "muckrack_verified_font_family" ) . "." );
+        $html = $this->simple_status_html( Settings::bool( "muckrack_verified_enabled" ), "Top 10 authors by published posts checked for MuckRack user fields. Always-show override: " . ( $forced ? "on" : "off" ) . ". Font: " . Settings::font_family_label( "muckrack_verified_font_family" ) . "." );
         $text_color = sanitize_hex_color( (string) Settings::get( "muckrack_verified_text_color", "#64748b" ) ) ?: "#64748b";
         $html .= "<table class=\"widefat striped\"><tbody>";
         $typography_mode = Settings::typography_mode( "muckrack_verified" );

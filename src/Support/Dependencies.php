@@ -78,7 +78,7 @@ final class Dependencies {
             || function_exists( 'hws_base_tools\\check_plugin_status' );
     }
 
-    /** Custom fields always work: HexaWP Core uses ACF when present, its native engine otherwise. */
+    /** Reports whether the Core field API is available. */
     public static function fields_available(): bool {
         return \Hexa\PluginCore\Fields\Field::available();
     }
