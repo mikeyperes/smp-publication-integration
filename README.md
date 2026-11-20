@@ -27,6 +27,8 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 
 ## Features
 
+- Article Design describes the publication verification field and saved author fields.
+
 - Publication field labels and shortcode examples describe Core fields. The article audio checklist targets Core controls. Stored settings and legacy shortcodes keep their existing names.
 
 - Generated summaries and FAQ rows use Core for writes and manual editing. The publication profile preview and the article field code examples also use Core. The post field inventory and FAQ editor use Core labels and markup. Existing field keys are preserved.

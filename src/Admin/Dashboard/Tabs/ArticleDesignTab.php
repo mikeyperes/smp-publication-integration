@@ -125,7 +125,7 @@ trait ArticleDesignTab {
         $this->feature_card(
             "Article table of contents",
             "table_of_contents_enabled",
-            "No ACF changes. Parses post headings from post_content.",
+            "Parses post headings from post_content.",
             "Builds a table of contents from post headings. Place it by shortcode or automatically above single-post content.",
             "[smp_table_of_contents]\n[smp_table_of_contents style=\"toc02\"]\n[smp_table_of_contents style=\"unstyled\" title=\"Contents\" levels=\"h2\" open=\"desktop\" markers=\"leading-zero\"]\n[smp_table_of_contents post_id=\"123\" title=\"In this article\"]",
             $this->table_of_contents_report_html(),
@@ -139,7 +139,7 @@ trait ArticleDesignTab {
         $this->feature_card(
             "Article H2/H3 heading styles",
             "article_heading_styles_enabled",
-            "No ACF changes. Applies selected CSS to H2 and H3 tags inside single post content only.",
+            "Applies selected CSS to H2 and H3 tags inside single post content only.",
             "Styles H2 and H3 headings inside single-post content with one template, one accent color, and separate font sizes.",
             "No shortcode needed. Enable the feature, choose a heading template, then tune accent color and H2/H3 sizes.",
             $this->article_heading_report_html(),
@@ -153,7 +153,7 @@ trait ArticleDesignTab {
         $this->feature_card(
             "Numbered article list styles",
             "article_numbered_lists_enabled",
-            "No ACF changes. Styles top-level ordered lists inside single post content and leaves nested lists unchanged.",
+            "Styles top-level ordered lists inside single post content and leaves nested lists unchanged.",
             "Turns standard numbered article lists into structured editorial rows with selectable number, divider, rail, card, and index treatments.",
             "Use a normal ordered list (<ol>) in post content. Each top-level list item becomes one numbered row; optional H3/H4 headings and paragraphs receive semantic SMP classes.",
             $this->article_numbered_list_report_html(),
@@ -167,7 +167,7 @@ trait ArticleDesignTab {
         $this->feature_card(
             "First-letter drop cap",
             "article_drop_cap_enabled",
-            "No ACF changes. Applies CSS to the first letter of the first paragraph inside single post content.",
+            "Applies CSS to the first letter of the first paragraph inside single post content.",
             "Styles the first letter of the first paragraph in single-post content with one of ten selectable templates.",
             "No shortcode needed. Enable the feature, choose a template, then tune accent color and size.",
             $this->article_drop_cap_report_html(),
@@ -181,7 +181,7 @@ trait ArticleDesignTab {
         $this->feature_card(
             "Inline article image styles",
             "inline_photo_treatments_enabled",
-            "No ACF changes. Applies selected treatment to inline figures in posts and press-release articles.",
+            "Applies selected treatment to inline figures in posts and press-release articles.",
             "Styles inline figures and captions in posts and press releases.",
             "No shortcode needed. Enable the feature and select a treatment.",
             $this->simple_status_html( Settings::bool( "inline_photo_treatments_enabled" ), "Current treatment: " . (string) Settings::get( "inline_photo_treatment", "none" ) . ". Font: " . Settings::font_family_label( "inline_photo_caption_font_family" ) . "." ),
@@ -195,7 +195,7 @@ trait ArticleDesignTab {
         $this->feature_card(
             "Featured image caption styles",
             "featured_image_caption_templates_enabled",
-            "No ACF changes. Reads the caption from the media attachment used as the post featured image.",
+            "Reads the caption from the media attachment used as the post featured image.",
             "Styles captions attached to featured images on posts and press releases.",
             "No shortcode needed. Add a media caption to the featured image, enable this feature, and select a template.",
             $this->featured_image_caption_report_html(),
@@ -308,7 +308,7 @@ trait ArticleDesignTab {
         $this->feature_card(
             "Author social icons",
             "author_social_icons_enabled",
-            "Reads the existing author user/ACF social URL aliases for X, LinkedIn, Facebook, Instagram, YouTube, website, Crunchbase, and Muck Rack. Missing or invalid values never produce a list item.",
+            "Reads the existing author social URL aliases for X, LinkedIn, Facebook, Instagram, YouTube, website, Crunchbase, and Muck Rack. Missing or invalid values never produce a list item.",
             "Builds one accessible social-icon group for manual shortcode placement or optional automatic insertion on single posts and author archives.",
             "[smp_author_social_icons]\n[smp_author_social_icons style=\"unstyled\"]\n[smp_author_social_icons user_id=\"54\" networks=\"linkedin,x,website\"]",
             $this->author_social_report_html( $settings ),
@@ -373,7 +373,7 @@ trait ArticleDesignTab {
         $this->feature_card(
             "Elementor primary category",
             "elementor_primary_category_enabled",
-            "No ACF changes. Registers one SMP-owned Elementor text dynamic tag.",
+            "Registers one SMP-owned Elementor text dynamic tag.",
             "Outputs one category in Elementor, honors Rank Math or Yoast primary-category metadata, and can exclude the WordPress default category.",
             "Elementor dynamic tag: SMP Publication > Primary Category",
             $this->simple_status_html( Settings::bool( "elementor_primary_category_enabled" ), "Primary Category dynamic tag is registered for Elementor text fields." ),
@@ -1248,7 +1248,7 @@ HTML;
             [ "Current post author MuckRack URL", "[author_muckrack]", "Returns the current author MuckRack URL." ],
             [ "Specific user badge", "[muckrack_verified type=\"icon\" user_id=\"54\"]", "Use when you know the WordPress user ID." ],
             [ "Specific user text", "[muckrack_verified type=\"text\" user_id=\"54\"]", "Specific user verification sentence." ],
-            [ "Specific user raw field", "[acf_author_field field=\"muckrack_url\" user_id=\"54\"]", "Reads a raw author ACF/user field." ],
+            [ "Specific user raw field", "[acf_author_field field=\"muckrack_url\" user_id=\"54\"]", "Reads a raw author field." ],
         ];
         $html = "<div class=\"smpi-control-group smpi-shortcode-reference\"><h3>Copy-ready shortcodes</h3><div class=smpi-shortcode-list>";
         foreach ( $rows as $row ) {
@@ -1300,7 +1300,7 @@ HTML;
     private function publication_muckrack_report_html(): string {
         $report = MuckRackVerification::publication_report();
         $placements = ! empty( $report["placements"] ) ? implode( ", ", array_map( "sanitize_key", (array) $report["placements"] ) ) : "none selected";
-        $html = $this->simple_status_html( ! empty( $report["effective"] ), "Feature toggle: " . ( ! empty( $report["enabled"] ) ? "on" : "off" ) . ". Publication ACF verified: " . ( ! empty( $report["acf_verified"] ) ? "yes" : "no" ) . "." );
+        $html = $this->simple_status_html( ! empty( $report["effective"] ), "Feature toggle: " . ( ! empty( $report["enabled"] ) ? "on" : "off" ) . ". Publication verified field: " . ( ! empty( $report["acf_verified"] ) ? "yes" : "no" ) . "." );
         $html .= "<table class=\"widefat striped\"><tbody>";
         $html .= "<tr><th>Text option</th><td><code>" . esc_html( (string) $report["text_mode"] ) . "</code></td></tr>";
         $html .= "<tr><th>Display style</th><td><code>" . esc_html( (string) $report["style"] ) . "</code></td></tr>";
@@ -1315,7 +1315,7 @@ HTML;
         $html .= "<tr><th>Placement</th><td>" . esc_html( $placements ) . "</td></tr>";
         $html .= "<tr><th>MuckRack URL</th><td>" . ( "" !== $report["url"] ? esc_html( (string) $report["url"] ) : self::ico( false ) . "Missing optional URL." ) . "</td></tr>";
         $html .= "<tr><th>Shortcode</th><td><code>" . esc_html( (string) $report["shortcode"] ) . "</code></td></tr>";
-        $html .= "<tr><th>Actual preview</th><td>" . ( "" !== $report["preview_html"] ? wp_kses_post( (string) $report["preview_html"] ) : self::ico( false ) . "Enable feature and verify publication ACF to render the live shortcode preview. Visual examples are shown above." ) . "</td></tr>";
+        $html .= "<tr><th>Actual preview</th><td>" . ( "" !== $report["preview_html"] ? wp_kses_post( (string) $report["preview_html"] ) : self::ico( false ) . "Enable the feature and set the publication verified field to show the live preview. Visual examples are shown above." ) . "</td></tr>";
         return $html . "</tbody></table>";
     }
 
