@@ -208,7 +208,7 @@
 - **Code:** `src/PluginProvisioning/` (docs: `docs/plugin-provisioning.md`)
 
 ### Plugin updater
-- **Does:** updates the plugin from GitHub inside WordPress's updater, and the Git Report panel: repo, branch, GitHub against installed version, update button, version downloads and a live log; keeps the plugin's active state across updates.
+- **Does:** updates the plugin from GitHub through WordPress or the Git Report panel and keeps its activation state. Both update paths refuse Git checkouts before downloading and direct administrators to Git. Ignored metadata is removed from the extracted update package.
 - **Use:** `$config = UpdaterConfig::from_plugin_file( __FILE__, [...] )`, `( new GitHubPluginUpdater( $config ) )->register()`, `( new UpdaterAjaxController( $config ) )->register()`, `( new UpdaterPanelRenderer( $config ) )->render()`; `bin/build-php74-release.sh` makes the PHP 7.4 release zip.
 - **Code:** `src/PluginUpdates/` (docs: `docs/updater.md`)
 
