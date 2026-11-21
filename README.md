@@ -29,7 +29,7 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 
 ### Verified Profiles integration status
 
-The Plugins tab displays the installed starter and activation state for SMP Verified Profiles. It recognizes both the current `smp-verified-profiles.php` starter and older `initialization.php` installations. GitHub version checks use the current starter.
+The Plugins tab displays the installed starter and activation state for SMP Verified Profiles. It recognizes both the current `smp-verified-profiles.php` starter and older `initialization.php` installations. The integration catalog declares legacy starters for any plugin that needs them. The Plugins tab and plugin actions share the same resolution. GitHub version checks use the current starter.
 
 - Article Design describes the publication verification field and saved author fields.
 

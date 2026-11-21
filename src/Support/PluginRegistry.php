@@ -13,7 +13,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 /** Maps publication integrations to Core's plugin provisioning and status services. */
 final class PluginRegistry {
     public const VERIFIED_PROFILES_FILE = 'smp-verified-profiles/smp-verified-profiles.php';
-    public const VERIFIED_PROFILES_LEGACY_FILE = 'smp-verified-profiles/initialization.php';
 
     public static function catalog(): array {
         return [
@@ -21,7 +20,13 @@ final class PluginRegistry {
             'smp-publication-integration/smp-publication-integration.php' => [ 'label' => 'SMP Publication Integration', 'type' => 'current', 'repo' => 'mikeyperes/smp-publication-integration', 'starter' => 'smp-publication-integration.php' ],
             'hexa-pr-wire-distributor/hexa-pr-wire-distributor.php' => [ 'label' => 'Hexa PR Wire Distributor', 'type' => 'recommended', 'repo' => 'mikeyperes/hexa-pr-wire-distributor', 'starter' => 'hexa-pr-wire-distributor.php' ],
             'smp-core-podcast-integration/initialization.php' => [ 'label' => 'SMP Core Podcast Integration', 'type' => 'recommended', 'repo' => 'mikeyperes/smp-core-podcast-integration', 'starter' => 'initialization.php' ],
-            self::VERIFIED_PROFILES_FILE => [ 'label' => 'SMP Verified Profiles', 'type' => 'recommended', 'repo' => 'mikeyperes/smp-verified-profiles', 'starter' => 'smp-verified-profiles.php' ],
+            self::VERIFIED_PROFILES_FILE => [
+                'label'        => 'SMP Verified Profiles',
+                'type'         => 'recommended',
+                'repo'         => 'mikeyperes/smp-verified-profiles',
+                'starter'      => 'smp-verified-profiles.php',
+                'legacy_files' => [ 'smp-verified-profiles/initialization.php' ],
+            ],
             'smp-contributor-network/initialization.php' => [ 'label' => 'SMP Contributor Network', 'type' => 'recommended', 'repo' => 'mikeyperes/smp-contributor-network', 'starter' => 'initialization.php' ],
             'sfpf-person-profile-integration/initialization.php' => [ 'label' => 'SFPF Person Profile Integration', 'type' => 'recommended', 'repo' => 'mikeyperes/sfpf-person-profile-integration', 'starter' => 'initialization.php' ],
             'seo-by-rank-math/seo-by-rank-math.php' => [ 'label' => 'Rank Math SEO', 'type' => 'recommended', 'repo' => '', 'starter' => 'seo-by-rank-math.php' ],
@@ -30,6 +35,51 @@ final class PluginRegistry {
         ];
     }
 
+    /**
+     * Resolves the catalog identity and the installed starter used by WordPress.
+     *
+     * Bug: a starter migration made installations appear missing when the catalog listed only one path.
+     * Fix: resolve active files first, then installed files, in catalog order.
+     * Why this way: callers share the same resolution and Core still owns plugin status and operations.
+     *
+     * @return array{catalog_file:string, plugin_file:string}
+     */
+    public static function resolve( string $plugin_file, ?array $installed = null ): array {
+        $catalog = self::catalog();
+        $catalog_file = $plugin_file;
+        if ( ! isset( $catalog[ $catalog_file ] ) ) {
+            foreach ( $catalog as $file => $entry ) {
+                if ( in_array( $plugin_file, $entry['legacy_files'] ?? [], true ) ) {
+                    $catalog_file = $file;
+                    break;
+                }
+            }
+        }
+
+        $legacy_files = $catalog[ $catalog_file ]['legacy_files'] ?? [];
+        if ( [] === $legacy_files ) {
+            return [ 'catalog_file' => $catalog_file, 'plugin_file' => $catalog_file ];
+        }
+
+        if ( ! function_exists( 'get_plugins' ) || ! function_exists( 'is_plugin_active' ) ) {
+            require_once ABSPATH . 'wp-admin/includes/plugin.php';
+        }
+        $installed ??= get_plugins();
+        $installed_file = null;
+        foreach ( array_merge( [ $catalog_file ], $legacy_files ) as $candidate ) {
+            if ( ! isset( $installed[ $candidate ] ) ) {
+                continue;
+            }
+            if ( is_plugin_active( $candidate ) ) {
+                return [ 'catalog_file' => $catalog_file, 'plugin_file' => $candidate ];
+            }
+            $installed_file ??= $candidate;
+        }
+
+        return [ 'catalog_file' => $catalog_file, 'plugin_file' => $installed_file ?? $catalog_file ];
+    }
+
+    /** Returns Core's status and upstream version for a catalog starter. */
     public static function info( string $plugin_file ): array {
         if ( ! function_exists( 'get_plugins' ) ) {
             require_once ABSPATH . 'wp-admin/includes/plugin.php';
@@ -37,18 +87,11 @@ final class PluginRegistry {
 
         $catalog = self::catalog();
         $installed = get_plugins();
+        $resolved = self::resolve( $plugin_file, $installed );
+        $catalog_file = $resolved['catalog_file'];
+        $plugin_file = $resolved['plugin_file'];
         $updates = get_site_transient( 'update_plugins' );
-        $config = $catalog[ $plugin_file ] ?? [ 'label' => $plugin_file, 'type' => 'external', 'repo' => '', 'starter' => basename( $plugin_file ) ];
-        // Bug: one starter path reported an active installation as missing after Verified Profiles migrated.
-        // Fix: prefer the canonical starter, but report the legacy starter when it is the active or sole installed file.
-        // Why this way: Core still owns status and version reads, while upstream release lookup uses the canonical starter.
-        if ( self::VERIFIED_PROFILES_FILE === $plugin_file ) {
-            $legacy_file = self::VERIFIED_PROFILES_LEGACY_FILE;
-            if ( isset( $installed[ $legacy_file ] ) && ! is_plugin_active( $plugin_file )
-                && ( is_plugin_active( $legacy_file ) || ! isset( $installed[ $plugin_file ] ) ) ) {
-                $plugin_file = $legacy_file;
-            }
-        }
+        $config = $catalog[ $catalog_file ] ?? [ 'label' => $plugin_file, 'type' => 'external', 'repo' => '', 'starter' => basename( $plugin_file ) ];
         $data = $installed[ $plugin_file ] ?? [];
         $response = is_object( $updates ) && isset( $updates->response[ $plugin_file ] ) ? $updates->response[ $plugin_file ] : null;
         $core_status = PluginProvisioner::plugin_status_by_file( $plugin_file );
@@ -134,12 +177,15 @@ final class PluginRegistry {
         return 'smpi_github_version_refresh_' . md5( $repo . '|' . $starter );
     }
 
+    /** Handles an authorized plugin action on the resolved runtime starter. */
     public static function perform_action( string $plugin_file, string $operation ) {
         if ( ! current_user_can( 'update_plugins' ) ) {
             return new \WP_Error( 'smpi_forbidden', 'Permission denied.' );
         }
         $catalog = self::catalog();
-        $catalog_file = self::VERIFIED_PROFILES_LEGACY_FILE === $plugin_file ? self::VERIFIED_PROFILES_FILE : $plugin_file;
+        $resolved = self::resolve( $plugin_file );
+        $catalog_file = $resolved['catalog_file'];
+        $plugin_file = $resolved['plugin_file'];
         if ( ! isset( $catalog[ $catalog_file ] ) ) {
             return new \WP_Error( 'smpi_unknown_plugin', 'Unknown plugin.' );
         }

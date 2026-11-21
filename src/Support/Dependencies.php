@@ -84,9 +84,10 @@ final class Dependencies {
     }
 
 
+    /** Reports activation using the same starter resolution as the Plugins tab. */
     public static function verified_profiles_plugin_active(): bool {
-        return self::plugin_active( PluginRegistry::VERIFIED_PROFILES_FILE )
-            || self::plugin_active( PluginRegistry::VERIFIED_PROFILES_LEGACY_FILE )
+        $resolved = PluginRegistry::resolve( PluginRegistry::VERIFIED_PROFILES_FILE );
+        return self::plugin_active( $resolved['plugin_file'] )
             || function_exists( 'smp_verified_profiles\\get_verified_profile_shortcodes' )
             || function_exists( 'smp_verified_profiles\\get_snippets' );
     }
