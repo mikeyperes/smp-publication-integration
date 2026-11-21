@@ -163,7 +163,7 @@ class SchemaManager {
      * Resolves a same-site URL through WordPress's public rewrite and query lifecycle.
      *
      * Bug: url_to_postid treated the static front page as an article and archives as home.
-     * Fix: run the native query and use the same Core graph builder as the frontend.
+     * Fix: run the native query and use the same Core graph builder for either public HTTP scheme.
      * Why this way: the diagnostic follows permalinks without an HTTP request and restores the REST query state.
      *
      * @return array{0:string,1:int,2:array}|\WP_Error
@@ -171,13 +171,18 @@ class SchemaManager {
     private function schema_for_url( string $url ): array|\WP_Error {
         $home = wp_parse_url( home_url( "/" ) );
         $target = wp_parse_url( $url );
+        $scheme = strtolower( $target["scheme"] ?? "" );
+        $target_port = $target["port"] ?? null;
+        $home_port = $home["port"] ?? null;
+        $default_target_port = "https" === $scheme ? 443 : 80;
+        $default_home_port = "https" === strtolower( $home["scheme"] ?? "" ) ? 443 : 80;
         $path = $target["path"] ?? "/";
         $home_path = trailingslashit( $home["path"] ?? "/" );
         $invalid_url = new \WP_Error( "smpi_schema_invalid_url", "Use a public URL on this site.", [ "status" => 400 ] );
         if ( ! is_array( $target ) || isset( $target["user"] ) || isset( $target["pass"] )
             || strtolower( $target["host"] ?? "" ) !== strtolower( $home["host"] ?? "" )
-            || ( $target["scheme"] ?? "" ) !== ( $home["scheme"] ?? "" )
-            || ( $target["port"] ?? null ) !== ( $home["port"] ?? null )
+            || ! in_array( $scheme, [ "http", "https" ], true )
+            || ( $target_port === $default_target_port ? null : $target_port ) !== ( $home_port === $default_home_port ? null : $home_port )
             || ! str_starts_with( trailingslashit( $path ), $home_path ) ) {
             return $invalid_url;
         }

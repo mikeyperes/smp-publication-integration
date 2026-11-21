@@ -29,7 +29,7 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 
 ### Schema checks for public URLs
 
-The schema diagnostic uses WordPress rewrite rules and query context for same-site URLs. Static homepages, articles, author archives and category archives use their corresponding graphs and integrity checks. Explicit post-ID checks keep their existing behavior.
+The schema diagnostic uses WordPress rewrite rules and query context for same-site HTTP and HTTPS URLs. Static homepages, articles, author archives and category archives use their corresponding graphs and integrity checks. Explicit post-ID checks keep their existing behavior.
 
 - The latest press releases list and submission form use the publication’s own WordPress content and form setting.
 
