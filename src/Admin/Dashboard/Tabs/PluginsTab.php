@@ -65,7 +65,8 @@ trait PluginsTab {
 
         // Integrations: Verified Profiles (was its own tab).
         echo '<div class="smpi-panel"><h2>Integrations</h2><p>Verified Profiles supplies profile records. SMP still runs without it. Founders are set in HWS Base Tools.</p>';
-        $this->plugin_table( [ 'smp-verified-profiles/initialization.php' => PluginRegistry::info( 'smp-verified-profiles/initialization.php' ) ] );
+        $profiles = PluginRegistry::info( PluginRegistry::VERIFIED_PROFILES_FILE );
+        $this->plugin_table( [ $profiles['plugin_file'] => $profiles ] );
         echo '</div>';
 
         echo $renderer->render_group(

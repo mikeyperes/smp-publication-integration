@@ -27,6 +27,10 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 
 ## Features
 
+### Verified Profiles integration status
+
+The Plugins tab displays the installed starter and activation state for SMP Verified Profiles. It recognizes both the current `smp-verified-profiles.php` starter and older `initialization.php` installations. GitHub version checks use the current starter.
+
 - Article Design describes the publication verification field and saved author fields.
 
 - Publication field labels and shortcode examples describe Core fields. The article audio checklist targets Core controls. Stored settings and legacy shortcodes keep their existing names.

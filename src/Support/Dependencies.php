@@ -17,7 +17,7 @@ final class Dependencies {
                 'message' => 'Optional signed publishing transport and shared site-management tools. SMP publication features and its public manifest work without it.',
                 'active'  => self::hws_base_tools_active(),
             ],
-            'smp-verified-profiles/initialization.php' => [
+            PluginRegistry::VERIFIED_PROFILES_FILE => [
                 'label'   => 'SMP Verified Profiles',
                 'message' => 'Recommended for founder/person profile binding and profile schema checks.',
                 'active'  => self::sfpf_active(),
@@ -85,7 +85,8 @@ final class Dependencies {
 
 
     public static function verified_profiles_plugin_active(): bool {
-        return self::plugin_active( 'smp-verified-profiles/initialization.php' )
+        return self::plugin_active( PluginRegistry::VERIFIED_PROFILES_FILE )
+            || self::plugin_active( PluginRegistry::VERIFIED_PROFILES_LEGACY_FILE )
             || function_exists( 'smp_verified_profiles\\get_verified_profile_shortcodes' )
             || function_exists( 'smp_verified_profiles\\get_snippets' );
     }
