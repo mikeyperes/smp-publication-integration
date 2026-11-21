@@ -91,10 +91,29 @@ class SchemaManager {
         if ( ! RuntimeContext::is_public_frontend() || is_404() ) {
             return [];
         }
+        return $this->query_nodes( self::query_context() );
+    }
+
+    /** Classifies the native query for frontend output and diagnostics. */
+    private static function query_context(): string {
         if ( is_front_page() || ( is_home() && ! get_option( "page_for_posts" ) ) ) {
-            return $this->home_nodes();
+            return "home";
         }
         if ( is_singular() ) {
+            return "single";
+        }
+        if ( is_author() ) {
+            return "author";
+        }
+        return is_archive() || is_home() ? "archive" : "site";
+    }
+
+    /** Returns the publication graph for the active query. */
+    private function query_nodes( string $context ): array {
+        if ( "home" === $context ) {
+            return $this->home_nodes();
+        }
+        if ( "single" === $context ) {
             $post = get_queried_object();
             if ( ! $post instanceof \WP_Post || in_array( $post->post_type, self::NO_SCHEMA_POST_TYPES, true ) ) {
                 return [];
@@ -103,20 +122,29 @@ class SchemaManager {
                 ? $this->article_nodes( $post )
                 : $this->page_nodes( $post );
         }
-        if ( is_archive() || is_home() ) {
-            return $this->archive_nodes();
-        }
-        return $this->site_nodes();
+        return in_array( $context, [ "author", "archive" ], true ) ? $this->archive_nodes() : $this->site_nodes();
     }
 
-    public function rest_schema( \WP_REST_Request $request ): \WP_REST_Response {
+    /** Reports the graph and integrity checks for one explicit post or public URL. */
+    public function rest_schema( \WP_REST_Request $request ): \WP_REST_Response|\WP_Error {
         $post_id = absint( $request->get_param( "post_id" ) );
         $url = (string) $request->get_param( "url" );
+
         if ( ! $post_id && "" !== $url ) {
-            $post_id = url_to_postid( $url );
+            $result = $this->schema_for_url( $url );
+            if ( is_wp_error( $result ) ) {
+                return $result;
+            }
+            [ $context, $post_id, $schema ] = $result;
+            $article = "single" === $context
+                && \smp_publication_integration\Content\ArticleEligibility::allows( get_post( $post_id ) )
+                && \smp_publication_integration\Content\ArticleFeatures::enabled( "schema", $post_id );
+            $integrity = $this->check_integrity( $schema, $context, $post_id, $article );
+        } else {
+            $context = $post_id > 0 && get_post( $post_id ) ? "single" : "home";
+            $schema = "single" === $context ? $this->generate_single_schema_array( $post_id ) : $this->generate_home_schema_array();
+            $integrity = self::integrity_report( "single" === $context ? $post_id : 0 );
         }
-        $context = $post_id > 0 && get_post( $post_id ) ? "single" : "home";
-        $schema = "single" === $context ? $this->generate_single_schema_array( $post_id ) : $this->generate_home_schema_array();
 
         return new \WP_REST_Response(
             [
@@ -125,10 +153,66 @@ class SchemaManager {
                 "requested_url" => $url,
                 "post_id" => $post_id,
                 "types" => self::schema_types( $schema ),
-                "integrity" => self::integrity_report( "single" === $context ? $post_id : 0 ),
+                "integrity" => $integrity,
                 "schema" => $schema,
             ]
         );
+    }
+
+    /**
+     * Resolves a same-site URL through WordPress's public rewrite and query lifecycle.
+     *
+     * Bug: url_to_postid treated the static front page as an article and archives as home.
+     * Fix: run the native query and use the same Core graph builder as the frontend.
+     * Why this way: the diagnostic follows permalinks without an HTTP request and restores the REST query state.
+     *
+     * @return array{0:string,1:int,2:array}|\WP_Error
+     */
+    private function schema_for_url( string $url ): array|\WP_Error {
+        $home = wp_parse_url( home_url( "/" ) );
+        $target = wp_parse_url( $url );
+        $path = $target["path"] ?? "/";
+        $home_path = trailingslashit( $home["path"] ?? "/" );
+        $invalid_url = new \WP_Error( "smpi_schema_invalid_url", "Use a public URL on this site.", [ "status" => 400 ] );
+        if ( ! is_array( $target ) || isset( $target["user"] ) || isset( $target["pass"] )
+            || strtolower( $target["host"] ?? "" ) !== strtolower( $home["host"] ?? "" )
+            || ( $target["scheme"] ?? "" ) !== ( $home["scheme"] ?? "" )
+            || ( $target["port"] ?? null ) !== ( $home["port"] ?? null )
+            || ! str_starts_with( trailingslashit( $path ), $home_path ) ) {
+            return $invalid_url;
+        }
+
+        $relative = rawurldecode( trim( substr( $path, strlen( $home_path ) ), "/" ) );
+        $segments = explode( "/", preg_replace( "~^index\.php/~", "", $relative ) );
+        $query = $target["query"] ?? "";
+        parse_str( $query, $params );
+        if ( array_key_exists( "rest_route", $params ) || in_array( $segments[0], [ "wp-admin", "wp-login.php", rest_get_url_prefix() ], true ) ) {
+            return $invalid_url;
+        }
+
+        global $wp, $wp_query, $wp_the_query, $post;
+        $previous = [ $wp, $wp_query, $wp_the_query, $post, $_SERVER, $_GET, $_POST ];
+        try {
+            $_SERVER["REQUEST_URI"] = $path . ( "" !== $query ? "?" . $query : "" );
+            $_SERVER["PATH_INFO"] = "";
+            $_GET = wp_slash( $params );
+            $_POST = [];
+            $wp = new \WP();
+            if ( ! $wp->parse_request() ) {
+                return $invalid_url;
+            }
+            $wp_the_query = $wp_query = new \WP_Query();
+            $wp_query->query( $wp->query_vars );
+            $post = $wp_query->post;
+            $context = self::query_context();
+            $post_id = "single" === $context ? (int) get_queried_object_id() : 0;
+            if ( is_404() || ( "single" === $context && ! $post_id ) ) {
+                return new \WP_Error( "smpi_schema_route_missing", "WordPress did not find this public URL.", [ "status" => 404 ] );
+            }
+            return [ $context, $post_id, self::document( $this->query_nodes( $context ) ) ];
+        } finally {
+            [ $wp, $wp_query, $wp_the_query, $post, $_SERVER, $_GET, $_POST ] = $previous;
+        }
     }
 
     public function ajax_reprocess_schema( AjaxRequest $request ): array {
@@ -193,13 +277,27 @@ class SchemaManager {
         return SchemaGraph::types( $schema );
     }
 
+    /** Reports integrity using the existing explicit-post or home behavior. */
     public static function integrity_report( int $post_id = 0 ): array {
         $self = new self();
         $schema = $post_id ? $self->generate_single_schema_array( $post_id ) : $self->generate_home_schema_array();
+        return $self->check_integrity( $schema, $post_id ? "single" : "home", $post_id, $post_id > 0 );
+    }
+
+    /** Checks the graph against the requirements for its actual page type. */
+    private function check_integrity( array $schema, string $context, int $post_id, bool $article ): array {
         $types = self::schema_types( $schema );
-        $site_type = $self->person_site_user_id() > 0 ? "Person" : "NewsMediaOrganization";
-        $expected = $post_id ? [ $site_type, "WebSite", "WebPage", ArticleTypes::schema_type_for_post( $post_id ) ] : [ $site_type, "WebSite", "CollectionPage", "ItemList" ];
-        if ( $post_id && self::faq_rows_for_post( $post_id, true ) ) {
+        $site_type = $this->person_site_user_id() > 0 ? "Person" : "NewsMediaOrganization";
+        $expected = match ( $context ) {
+            "home", "archive" => [ $site_type, "WebSite", "CollectionPage", "ItemList" ],
+            "author" => array_unique( [ $site_type, "WebSite", "ProfilePage", "Person" ] ),
+            "single" => [ $site_type, "WebSite", "WebPage" ],
+            default => [ $site_type, "WebSite" ],
+        };
+        if ( $article ) {
+            $expected[] = ArticleTypes::schema_type_for_post( $post_id );
+        }
+        if ( $article && self::faq_rows_for_post( $post_id, true ) ) {
             $expected[] = "FAQPage";
         }
 
@@ -216,7 +314,7 @@ class SchemaManager {
             $checks[] = [ "label" => "Publisher " . $property . " populated", "status" => ! empty( $org[ $property ] ) ? "green" : "yellow" ];
         }
 
-        if ( $post_id ) {
+        if ( $article ) {
             $checks[] = [ "label" => "Article featured image populated", "status" => has_post_thumbnail( $post_id ) ? "green" : "yellow" ];
             $checks[] = [ "label" => "Article FAQ repeater rows available for schema", "status" => self::faq_rows_for_post( $post_id, true ) ? "green" : "yellow" ];
             $article_types_enabled = ArticleTypes::is_enabled();
@@ -232,7 +330,7 @@ class SchemaManager {
             "status" => $semantic_issues ? "red" : "green",
         ];
 
-        return [ "context" => $post_id ? "single" : "home", "post_id" => $post_id, "types" => $types, "checks" => $checks, "semantic_issues" => $semantic_issues ];
+        return [ "context" => $context, "post_id" => $post_id, "types" => $types, "checks" => $checks, "semantic_issues" => $semantic_issues ];
     }
 
     public static function faq_rows_for_post( int $post_id, bool $schema_only = true ): array {
