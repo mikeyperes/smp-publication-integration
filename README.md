@@ -27,6 +27,8 @@ as the frontend. The examples explain named skins versus Elementor-owned skins.
 
 ## Features
 
+- The latest press releases list and submission form use the publication’s own WordPress content and form setting.
+
 ### Verified Profiles integration status
 
 The Plugins tab displays the installed starter and activation state for SMP Verified Profiles. It recognizes both the current `smp-verified-profiles.php` starter and older `initialization.php` installations. The integration catalog declares legacy starters for any plugin that needs them. The Plugins tab and plugin actions share the same resolution. GitHub version checks use the current starter.

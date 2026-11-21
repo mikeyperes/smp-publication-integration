@@ -9,13 +9,12 @@ if ( ! defined( 'ABSPATH' ) ) {
  * [smp_latest_press_releases count="10"]: the newest press releases as a simple list.
  * [smp_press_release_form]: the site's press release submission form, a form shortcode
  * saved on the Publication Pages tab (option smpi_press_release_form); empty prints nothing.
- * Press releases are syndicated by the parent wire, Hexa PR Wire (HEXA_PR_WIRE_URL).
+ * Both shortcodes render content configured on this WordPress site.
  */
 final class LatestPressReleases {
     public const SHORTCODE      = 'smp_latest_press_releases';
     public const FORM_SHORTCODE = 'smp_press_release_form';
     public const FORM_OPTION    = 'smpi_press_release_form';
-    public const HEXA_PR_WIRE_URL = 'https://hexaprwire.com';
 
     public function register(): void {
         add_action( 'init', static function (): void {
